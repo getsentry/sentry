@@ -2,18 +2,17 @@ import datetime
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvider
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test
 from sentry.utils import jwt
 
 
-@all_silo_test
+@override_settings(CODECOV_API_BASE_URL="http://example.com")
 class TestCodecovApiClient(TestCase):
     def setUp(self):
         self.test_git_provider_user = "12345"
-        self.test_base_url = "http://example.com"
         self.test_secret = "test-secret-" + "a" * 20
 
         self.test_timestamp = datetime.datetime.now(datetime.UTC)
@@ -21,26 +20,14 @@ class TestCodecovApiClient(TestCase):
 
         with self.options(
             {
-                "codecov.base-url": self.test_base_url,
                 "codecov.api-bridge-signing-secret": self.test_secret,
             }
         ):
             self.codecov_client = CodecovApiClient(self.test_git_provider_user)
 
-    def test_raises_configuration_error_without_base_url(self):
-        with self.options(
-            {
-                "codecov.base-url": None,
-                "codecov.api-bridge-signing-secret": self.test_secret,
-            }
-        ):
-            with pytest.raises(ConfigurationError):
-                CodecovApiClient(self.test_git_provider_user)
-
     def test_raises_configuration_error_without_signing_secret(self):
         with self.options(
             {
-                "codecov.base-url": self.test_base_url,
                 "codecov.api-bridge-signing-secret": None,
             }
         ):

@@ -196,7 +196,7 @@ const constructUnsavedTooltipTitle = (changedParams: {
   return (
     <Fragment>
       {t(
-        "This view's %s filters are not saved.",
+        "This view's %s filters have not been saved.",
         <BoldTooltipText>{oxfordizeArray(changedParamsArray)}</BoldTooltipText>
       )}
     </Fragment>

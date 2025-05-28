@@ -86,10 +86,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The url to check
     url = models.CharField(max_length=255)
     # The domain of the url, extracted via TLDExtract
-    url_domain = models.CharField(max_length=255, db_index=True, default="", db_default="")
+    url_domain = models.CharField(max_length=255, default="", db_default="")
     # The suffix of the url, extracted via TLDExtract. This can be a public
     # suffix, such as com, gov.uk, com.au, or a private suffix, such as vercel.dev
-    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="", db_default="")
+    url_domain_suffix = models.CharField(max_length=255, default="", db_default="")
     # A unique identifier for the provider hosting the domain
     host_provider_id = models.CharField(max_length=255, db_index=True, null=True)
     # The name of the provider hosting this domain
@@ -347,6 +347,15 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
         return Detector.objects.get(type=UptimeDomainCheckFailure.slug, data_sources=data_source)
     except (DataSource.DoesNotExist, Detector.DoesNotExist):
         return None
+
+
+def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
+    """
+    Given a detector get the matching uptime subscription
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
 
 
 def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:

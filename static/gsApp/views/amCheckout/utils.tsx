@@ -14,7 +14,12 @@ import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-import {DEFAULT_TIER, MONTHLY, SUPPORTED_TIERS} from 'getsentry/constants';
+import {
+  DEFAULT_TIER,
+  MONTHLY,
+  RESERVED_BUDGET_QUOTA,
+  SUPPORTED_TIERS,
+} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
   EventBucket,
@@ -22,13 +27,19 @@ import type {
   Plan,
   PlanTier,
   PreviewData,
+  ReservedBudgetCategoryType,
   Subscription,
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {getSlot} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
-import type {CheckoutAPIData, CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import type {
+  CheckoutAPIData,
+  CheckoutFormData,
+  SelectableProduct,
+  SelectedProductData,
+} from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
@@ -179,9 +190,31 @@ type ReservedTotalProps = {
   creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
-  seerBudget?: number;
-  seerEnabled?: boolean;
+  selectedProducts?: Record<SelectableProduct, SelectedProductData>;
 };
+
+/**
+ * Returns the price for a reserved budget category (ie. Seer) in cents.
+ */
+export function getReservedPriceForReservedBudgetCategory({
+  plan,
+  reservedBudgetCategory,
+}: {
+  plan: Plan;
+  reservedBudgetCategory: ReservedBudgetCategoryType;
+}): number {
+  const budgetTypeInfo = plan.availableReservedBudgetTypes[reservedBudgetCategory];
+  if (!budgetTypeInfo) {
+    return 0;
+  }
+  return budgetTypeInfo.dataCategories.reduce((acc, dataCategory) => {
+    const bucket = getBucket({
+      events: RESERVED_BUDGET_QUOTA,
+      buckets: plan.planCategories[dataCategory],
+    });
+    return acc + bucket.price;
+  }, 0);
+}
 
 /**
  * Returns the total plan price (including prices for reserved categories) in cents.
@@ -193,8 +226,7 @@ export function getReservedPriceCents({
   discountType,
   maxDiscount,
   creditCategory,
-  seerEnabled,
-  seerBudget,
+  selectedProducts,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
 
@@ -215,14 +247,22 @@ export function getReservedPriceCents({
       }).price)
   );
 
+  Object.entries(selectedProducts ?? {}).forEach(([apiName, selectedProductData]) => {
+    if (selectedProductData.enabled) {
+      const budgetTypeInfo =
+        plan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
+      if (budgetTypeInfo) {
+        reservedCents += getReservedPriceForReservedBudgetCategory({
+          plan,
+          reservedBudgetCategory: apiName as ReservedBudgetCategoryType,
+        });
+      }
+    }
+  });
+
   if (amount && maxDiscount) {
     const discount = Math.min(maxDiscount, (reservedCents * amount) / 10000);
     reservedCents -= discount;
-  }
-
-  // Add Seer budget to the total if it's enabled
-  if (seerEnabled && seerBudget) {
-    reservedCents += seerBudget;
   }
 
   return reservedCents;
@@ -239,8 +279,7 @@ export function getReservedTotal({
   discountType,
   maxDiscount,
   creditCategory,
-  seerEnabled,
-  seerBudget,
+  selectedProducts,
 }: ReservedTotalProps): string {
   return formatPrice({
     cents: getReservedPriceCents({
@@ -250,8 +289,7 @@ export function getReservedTotal({
       discountType,
       maxDiscount,
       creditCategory,
-      seerEnabled,
-      seerBudget,
+      selectedProducts,
     }),
   });
 }
@@ -479,9 +517,7 @@ export function getCheckoutAPIData({
     referrer: referrer || 'billing',
     ...(previewToken && {previewToken}),
     ...(paymentIntent && {paymentIntent}),
-    ...(formData.seerEnabled && {
-      seer: formData.seerEnabled,
-    }),
+    seer: formData.selectedProducts?.seer?.enabled, // TODO: in future, we should just be able to pass selectedProducts
   };
 
   if (formData.applyNow) {

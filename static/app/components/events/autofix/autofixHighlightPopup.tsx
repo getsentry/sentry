@@ -22,7 +22,7 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -42,6 +42,7 @@ interface Props {
   stepIndex: number;
   blockName?: string;
   isAgentComment?: boolean;
+  onShouldPersistChange?: (shouldPersist: boolean) => void;
 }
 
 interface OptimisticMessage extends CommentThreadMessage {
@@ -137,10 +138,12 @@ function AutofixHighlightPopupContent({
   isAgentComment,
   blockName,
   isFocused,
+  onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
+  const [hidden, setHidden] = useState(false);
   const [comment, setComment] = useState('');
   const [threadId] = useState(() => {
     const timestamp = Date.now();
@@ -261,12 +264,23 @@ function AutofixHighlightPopupContent({
 
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setHidden(true);
     closeCommentThread({
       thread_id: threadId,
       step_index: stepIndex,
       is_agent_comment: isAgentComment ?? false,
     });
   };
+
+  useEffect(() => {
+    if (onShouldPersistChange) {
+      onShouldPersistChange(!!commentThread && commentThread.is_completed !== true);
+    }
+  }, [commentThread, onShouldPersistChange]);
+
+  if (hidden) {
+    return null;
+  }
 
   return (
     <Container onClick={handleContainerClick} isFocused={isFocused}>
@@ -341,7 +355,7 @@ function AutofixHighlightPopupContent({
             borderless
             aria-label={t('Submit Comment')}
           >
-            <IconChevron direction="right" />
+            {'\u23CE'}
           </StyledButton>
         </InputWrapper>
       )}
@@ -578,7 +592,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-
+  color: ${p => p.theme.subText};
   z-index: 2;
 `;
 
@@ -656,8 +670,8 @@ const CircularSeerIcon = styled('div')`
   flex-shrink: 0;
 
   > svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     color: ${p => p.theme.white};
   }
 `;

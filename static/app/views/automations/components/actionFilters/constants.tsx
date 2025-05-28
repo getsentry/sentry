@@ -22,6 +22,8 @@ export const FILTER_DATA_CONDITION_TYPES = [
   DataConditionType.TAGGED_EVENT,
   DataConditionType.LEVEL,
   DataConditionType.EVENT_FREQUENCY,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  DataConditionType.PERCENT_SESSIONS,
 ];
 
 export enum MatchType {
@@ -97,7 +99,7 @@ export enum Level {
   SAMPLING = 0,
 }
 
-export enum Interval {
+enum Interval {
   ONE_MINUTE = '1m',
   FIVE_MINUTES = '5m',
   FIFTEEN_MINUTES = '15m',

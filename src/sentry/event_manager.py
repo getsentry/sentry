@@ -137,7 +137,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_data
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
@@ -1260,6 +1260,7 @@ def assign_event_to_group(
     return group_info
 
 
+@sentry_sdk.tracing.trace
 def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
@@ -1294,6 +1295,7 @@ def get_hashes_and_grouphashes(
         return NULL_GROUPHASH_INFO
 
 
+@sentry_sdk.tracing.trace
 def handle_existing_grouphash(
     job: Job,
     existing_grouphash: GroupHash,
@@ -2587,9 +2589,8 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-
-    set_measurement(measurement_name="jobs", value=len(jobs))
-    set_measurement(measurement_name="projects", value=len(projects))
+    set_span_data("jobs", len(jobs))
+    set_span_data("projects", len(projects))
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 

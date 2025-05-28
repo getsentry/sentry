@@ -22,7 +22,7 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -52,7 +52,12 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
-  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
+  const {
+    autofixData,
+    triggerAutofix,
+    reset,
+    isPending: autofixDataPending,
+  } = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,7 +65,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const userScrolledRef = useRef(false);
+  const userScrolledRef = useRef(true);
   const lastScrollTopRef = useRef(0);
   const autofixDataRef = useRef(autofixData);
 
@@ -137,6 +142,24 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               );
             }, 200);
           }
+        } else {
+          // No matching step found, scroll to bottom
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          userScrolledRef.current = true;
+
+          // Clear the scrollTo parameter from the URL after scrolling
+          setTimeout(() => {
+            navigate(
+              {
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  scrollTo: undefined,
+                },
+              },
+              {replace: true}
+            );
+          }, 200);
         }
       }
     },
@@ -264,9 +287,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
-          <div data-test-id="ai-setup-loading-indicator">
-            <LoadingIndicator />
-          </div>
+          <PlaceholderStack data-test-id="ai-setup-loading-indicator">
+            <Placeholder height="10rem" />
+            <Placeholder height="15rem" />
+            <Placeholder height="15rem" />
+          </PlaceholderStack>
         ) : aiConfig.needsGenAiAcknowledgement ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
@@ -289,6 +314,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : autofixDataPending ? (
+                  <PlaceholderStack>
+                    <Placeholder height="15rem" />
+                    <Placeholder height="15rem" />
+                  </PlaceholderStack>
                 ) : (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
@@ -305,7 +335,6 @@ export const useOpenSeerDrawer = ({
   group,
   project,
   event,
-  buttonRef,
 }: {
   event: Event | null;
   group: Group;
@@ -333,46 +362,8 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
-      shouldCloseOnInteractOutside: element => {
-        const viewAllButton = buttonRef?.current;
-
-        // Check if the element is inside any autofix input element
-        const isInsideAutofixInput = () => {
-          const rethinkInputs = document.querySelectorAll(
-            '[data-autofix-input-type="rethink"]'
-          );
-          const agentCommentInputs = document.querySelectorAll(
-            '[data-autofix-input-type="agent-comment"]'
-          );
-
-          // Check if element is inside any rethink input
-          for (const input of rethinkInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          // Check if element is inside any agent comment input
-          for (const input of agentCommentInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          return false;
-        };
-
-        if (
-          viewAllButton?.contains(element) ||
-          document.getElementById('sentry-feedback')?.contains(element) ||
-          isInsideAutofixInput() ||
-          document.getElementById('autofix-output-stream')?.contains(element) ||
-          document.getElementById('autofix-write-access-modal')?.contains(element) ||
-          element.closest('[data-overlay="true"]')
-        ) {
-          return false;
-        }
-        return true;
+      shouldCloseOnInteractOutside: () => {
+        return false;
       },
       onClose: () => {
         navigate({
@@ -384,10 +375,17 @@ export const useOpenSeerDrawer = ({
         });
       },
     });
-  }, [openDrawer, buttonRef, event, group, project, location, navigate, organization]);
+  }, [openDrawer, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };
+
+const PlaceholderStack = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  margin-top: ${space(2)};
+`;
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};

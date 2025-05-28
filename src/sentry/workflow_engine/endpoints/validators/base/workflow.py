@@ -57,7 +57,9 @@ class WorkflowValidator(CamelSnakeSerializer):
             BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
 
             for action in actions:
-                BaseActionValidator(data=action).is_valid(raise_exception=True)
+                BaseActionValidator(data=action, context=self.context).is_valid(
+                    raise_exception=True
+                )
 
         return value
 

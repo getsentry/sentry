@@ -1,7 +1,8 @@
+import contextlib
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ContextManager
 
 from django.db import router, transaction
 from rest_framework.request import Request
@@ -34,13 +35,21 @@ class ProjectRuleCreator:
     request: Request | None = None
 
     def run(self) -> Rule:
-        try:
+        # Only acquire a lock if issue alert dual write is enabled.
+        lock_acquire: Callable[[], ContextManager[None]] = lambda: contextlib.nullcontext()
+        if features.has(
+            "organizations:workflow-engine-issue-alert-dual-write",
+            self.project.organization,
+        ):
             lock = locks.get(
                 f"workflow-engine-project-error-detector:{self.project.id}",
                 duration=10,
                 name="workflow_engine_issue_alert",
             )
-            with lock.acquire(), transaction.atomic(router.db_for_write(Rule)):
+            lock_acquire = lock.acquire
+
+        try:
+            with lock_acquire(), transaction.atomic(router.db_for_write(Rule)):
                 self.rule = self._create_rule()
 
                 if features.has(

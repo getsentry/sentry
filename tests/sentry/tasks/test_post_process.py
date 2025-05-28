@@ -2482,7 +2482,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("projects:trigger-issue-summary-on-alerts")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_features(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2505,7 +2505,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
-    @with_feature("projects:trigger-issue-summary-on-alerts")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2550,7 +2550,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("projects:trigger-issue-summary-on-alerts")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_seer_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):

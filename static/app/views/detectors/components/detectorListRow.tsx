@@ -23,7 +23,7 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({
-  detector: {workflowIds, id, name, disabled, projectId},
+  detector: {workflowIds, createdBy, id, projectId, name, disabled, type},
   handleSelect,
   selected,
 }: DetectorListRowProps) {
@@ -51,7 +51,7 @@ export function DetectorListRow({
         <StyledGraphCell />
       </Flex>
       <CellWrapper className="type">
-        <TypeCell type="errors" />
+        <TypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
@@ -59,8 +59,8 @@ export function DetectorListRow({
           disabled={disabled}
         />
       </CellWrapper>
-      <CellWrapper className="owner">
-        <UserCell user="sentry" />
+      <CellWrapper className="creator">
+        <UserCell user={createdBy ?? 'sentry'} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
         <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />

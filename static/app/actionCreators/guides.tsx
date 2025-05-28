@@ -46,10 +46,6 @@ export function setForceHide(forceHide: boolean) {
   GuideStore.setForceHide(forceHide);
 }
 
-export function toStep(step: number) {
-  GuideStore.toStep(step);
-}
-
 export function closeGuide(dismissed?: boolean) {
   GuideStore.closeGuide(dismissed);
 }
@@ -89,7 +85,7 @@ export function recordFinish(guide: string, orgId: string | null) {
   });
 }
 
-export function recordDismiss(guide: string, step: number, orgId: string | null) {
+function recordDismiss(guide: string, step: number, orgId: string | null) {
   if (!isDemoModeActive()) {
     api.requestPromise('/assistant/', {
       method: 'PUT',

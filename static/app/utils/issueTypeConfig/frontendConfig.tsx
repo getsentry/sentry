@@ -58,6 +58,8 @@ const frontendConfig: IssueCategoryConfigMapping = {
       links: [],
       linksByPlatform: {},
     },
+    issueSummary: {enabled: true},
+    autofix: true,
   },
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
     spanEvidence: {enabled: true},
@@ -74,6 +76,8 @@ const frontendConfig: IssueCategoryConfigMapping = {
       ],
       linksByPlatform: {},
     },
+    issueSummary: {enabled: true},
+    autofix: true,
   },
 };
 

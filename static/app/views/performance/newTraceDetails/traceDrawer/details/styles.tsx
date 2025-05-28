@@ -55,6 +55,8 @@ import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -416,6 +418,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
 function Highlights({
@@ -425,8 +428,10 @@ function Highlights({
   project,
   headerContent,
   bodyContent,
+  highlightedAttributes,
 }: HighlightProps) {
   const dispatch = useTraceStateDispatch();
+  const organization = useOrganization();
 
   const onOpsBreakdownRowClick = useCallback(
     (op: string) => {
@@ -438,6 +443,8 @@ function Highlights({
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return null;
   }
+
+  const isAiNode = getIsAiNode(node);
 
   const startTimestamp = node.space[0];
   const endTimestamp = node.space[0] + node.space[1];
@@ -479,15 +486,35 @@ function Highlights({
               </HiglightsDurationComparison>
             ) : null}
           </HighlightsDurationWrapper>
-          <StyledPanel>
-            <StyledPanelHeader>{headerContent}</StyledPanelHeader>
-            <PanelBody>{bodyContent}</PanelBody>
-          </StyledPanel>
-          {isEAPSpanNode(node) ? (
-            <HighLightEAPOpsBreakdown onRowClick={onOpsBreakdownRowClick} node={node} />
-          ) : event ? (
-            <HighLightsOpsBreakdown onRowClick={onOpsBreakdownRowClick} event={event} />
+          {highlightedAttributes && highlightedAttributes.length > 0 ? (
+            <HighlightedAttributesWrapper>
+              {highlightedAttributes.map(({name, value}) => (
+                <Fragment key={name}>
+                  <HighlightedAttributeName>{name}</HighlightedAttributeName>
+                  <div>{value}</div>
+                </Fragment>
+              ))}
+            </HighlightedAttributesWrapper>
           ) : null}
+          {isAiNode && hasAgentInsightsFeature(organization) ? null : (
+            <Fragment>
+              <StyledPanel>
+                <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+                <PanelBody>{bodyContent}</PanelBody>
+              </StyledPanel>
+              {isEAPSpanNode(node) ? (
+                <HighLightEAPOpsBreakdown
+                  onRowClick={onOpsBreakdownRowClick}
+                  node={node}
+                />
+              ) : event ? (
+                <HighLightsOpsBreakdown
+                  onRowClick={onOpsBreakdownRowClick}
+                  event={event}
+                />
+              ) : null}
+            </Fragment>
+          )}
         </HighlightsRightColumn>
       </HighlightsWrapper>
       <SectionDivider />
@@ -651,6 +678,21 @@ const HighlightOp = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: normal;
+`;
+
+const HighlightedAttributesWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: ${space(1.5)};
+  row-gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
+`;
+
+const HighlightedAttributeName = styled('div')`
+  color: ${p => p.theme.subText};
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -853,6 +895,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
       ),
@@ -865,6 +908,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
       ),
@@ -895,6 +939,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
         ),
@@ -907,6 +952,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN
         ),
@@ -931,6 +977,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'
@@ -1151,7 +1198,7 @@ const ActionWrapper = styled('div')`
   overflow: visible;
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
@@ -1284,6 +1331,21 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
+const MultilineText = styled('div')`
+  white-space: pre-wrap;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)};
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
+`;
+
+const MultilineTextLabel = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${space(1)};
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
@@ -1315,6 +1377,8 @@ const TraceDrawerComponents = {
   TraceDataSection,
   SectionCardGroup,
   DropdownMenuWithPortal,
+  MultilineText,
+  MultilineTextLabel,
 };
 
 export {TraceDrawerComponents};

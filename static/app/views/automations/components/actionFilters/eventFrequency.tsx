@@ -1,17 +1,30 @@
-import AutomationBuilderNumberField from 'sentry/components/workflowEngine/form/automationBuilderNumberField';
+import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
-import {tct} from 'sentry/locale';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {t, tct} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
-  COMPARISON_INTERVAL_CHOICES,
-  INTERVAL_CHOICES,
-} from 'sentry/views/automations/components/actionFilters/constants';
+  CountBranch,
+  PercentBranch,
+} from 'sentry/views/automations/components/actionFilters/comparisonBranches';
+import {SubfiltersList} from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export default function EventFrequencyNode() {
-  return tct('Number of events in an issue is [select]', {
-    select: <ComparisonTypeField />,
-  });
+  const {condition} = useDataConditionNodeContext();
+  const hasSubfilters = condition.comparison.filters?.length > 0;
+
+  return (
+    <div>
+      <RowLine>
+        {tct('Number of events in an issue is [select] [where]', {
+          select: <ComparisonTypeField />,
+          where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
+        })}
+      </RowLine>
+      <SubfiltersList />
+    </div>
+  );
 }
 
 function ComparisonTypeField() {
@@ -40,70 +53,6 @@ function ComparisonTypeField() {
       ]}
       onChange={(value: DataConditionType) => {
         onUpdateType(value);
-      }}
-    />
-  );
-}
-
-function CountBranch() {
-  return tct('more than [value] [interval]', {
-    value: <ValueField />,
-    interval: <IntervalField />,
-  });
-}
-
-function PercentBranch() {
-  return tct('[value] higher [interval] compared to [comparison_interval]', {
-    value: <ValueField />,
-    interval: <IntervalField />,
-    comparison_interval: <ComparisonIntervalField />,
-  });
-}
-
-function ValueField() {
-  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
-  return (
-    <AutomationBuilderNumberField
-      name={`${condition_id}.comparison.value`}
-      value={condition.comparison.value}
-      min={1}
-      step={1}
-      onChange={(value: string) => {
-        onUpdate({
-          value,
-        });
-      }}
-    />
-  );
-}
-
-function IntervalField() {
-  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
-  return (
-    <AutomationBuilderSelectField
-      name={`${condition_id}.comparison.interval`}
-      value={condition.comparison.interval}
-      options={INTERVAL_CHOICES}
-      onChange={(value: string) => {
-        onUpdate({
-          interval: value,
-        });
-      }}
-    />
-  );
-}
-
-function ComparisonIntervalField() {
-  const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
-  return (
-    <AutomationBuilderSelectField
-      name={`${condition_id}.comparison.comparison_interval`}
-      value={condition.comparison.comparison_interval}
-      options={COMPARISON_INTERVAL_CHOICES}
-      onChange={(value: string) => {
-        onUpdate({
-          comparison_interval: value,
-        });
       }}
     />
   );

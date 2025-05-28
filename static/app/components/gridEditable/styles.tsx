@@ -47,13 +47,22 @@ export const HeaderButtonContainer = styled('div')`
   }
 `;
 
-export const Body = styled(({children, ...props}: any) => (
-  <Panel {...props}>
-    <PanelBody>{children}</PanelBody>
-  </Panel>
-))`
+export const Body = styled(
+  ({
+    children,
+    showVerticalScrollbar: _,
+    ...props
+  }: React.ComponentProps<typeof Panel> & {
+    children?: React.ReactNode;
+    showVerticalScrollbar?: boolean;
+  }) => (
+    <Panel {...props}>
+      <PanelBody>{children}</PanelBody>
+    </Panel>
+  )
+)`
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: ${({showVerticalScrollbar}) => (showVerticalScrollbar ? 'auto' : 'hidden')};
   z-index: ${Z_INDEX_PANEL};
 `;
 

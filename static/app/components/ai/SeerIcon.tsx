@@ -42,8 +42,9 @@ const rockRight = keyframes`
 
 const InteractionWrapper = styled('div')`
   display: inline-block;
-  transform-origin: bottom center;
   transition: transform 1s ease;
+  vertical-align: middle;
+  line-height: 0;
 
   &:hover {
     animation: ${rockLeft} 2s ease-in-out infinite;
@@ -56,34 +57,39 @@ const InteractionWrapper = styled('div')`
 
 function SeerIcon({ref, ...props}: SVGIconProps) {
   return (
-    <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
-      <path
-        d="M14.0407,3.1458L3.5742,17.0376c-.2989.3967-.2327.9584.1501,1.2748l10.4917,8.6705c.3436.284.8405.2838,1.1839-.0005l10.4717-8.6691c.3827-.3169.4483-.8788.1488-1.2753L15.5235,3.1448c-.3719-.4922-1.1115-.4917-1.4828.001Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.25px"
-      />
-      <path
-        d="M14.1483,12.3135l-5.1122,4.0552c-.3332.2643-.314.6812.0426.9278l5.1121,3.5339c.3337.2307.8482.2312,1.1828.0012l5.1412-3.534c.359-.2468.3782-.6657.0427-.9303l-5.1411-4.0551c-.3449-.272-.9243-.2714-1.2682.0013Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.25px"
-      />
-      <line
-        x1="14.7558"
-        y1="15.9343"
-        x2="14.7558"
-        y2="17.2053"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.25px"
-      />
+    <SvgIcon {...props} ref={ref} viewBox="0 0 16 16" kind="path">
+      <g transform="scale(1.18) translate(-1.3, -1.3)">
+        <line
+          className="cls-1"
+          x1="8"
+          y1="8.06"
+          x2="8"
+          y2="8.56"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <path
+          className="cls-1"
+          d="M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <path
+          className="cls-1"
+          d="M8,3c-1.75,2-4.75,6.25-5.75,9.5,3.77.67,7.77.67,11.5,0-1-3.25-4-7.5-5.75-9.5Z"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </g>
     </SvgIcon>
   );
 }
@@ -93,59 +99,148 @@ SeerIcon.displayName = 'SeerIcon';
 function SeerLoadingIcon({ref, ...props}: SVGIconProps) {
   return (
     <InteractionWrapper>
-      <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
-        <defs>
-          <clipPath id="eaf-dde7-1">
-            <rect x="0" y="0" width="30" height="30" />
-          </clipPath>
-        </defs>
-        <g clipPath="url(#eaf-dde7-1)" style={{isolation: 'isolate'}}>
-          <g>
-            <path
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m14.0407 3.1458l-10.4665 13.8918c-0.2989 0.3967 -0.2327 0.9584 0.1501 1.2748l10.4917 8.6705c0.3436 0.284 0.8405 0.2838 1.1839 -0.0005l10.4717 -8.6691c0.3827 -0.3169 0.4483 -0.8788 0.1488 -1.2753l-10.4969 -13.8932c-0.3719 -0.4922 -1.1115 -0.4917 -1.4828 0.001z"
-            />
-            <path
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z"
-            >
-              <animate
-                keyTimes="0;0.0517;0.0767;0.0783;0.1034;0.8;0.825;0.8266;0.8517;1"
-                calcMode="spline"
-                keySplines="0 0 1 1;0.25 0.1 0.25 1;0 0 1 1;0.25 0.1 0.25 1;0 0 1 1;0.25 0.1 0.25 1;0 0 1 1;0.25 0.1 0.25 1;0 0 1 1"
-                dur="10000ms"
-                repeatCount="indefinite"
-                attributeName="d"
-                values="m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.095 19.6386l-5.0589 -3.2699c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1944 3.27c-0.4128 0.3336 -0.8147 0.2817 -1.2682 0.0013l0.0001 0z;m14.095 19.6386l-5.0589 -3.2699c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1944 3.27c-0.4128 0.3336 -0.8147 0.2817 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.095 19.6386l-5.0589 -3.2699c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1944 3.27c-0.4128 0.3336 -0.8147 0.2817 -1.2682 0.0013l0.0001 0z;m14.095 19.6386l-5.0589 -3.2699c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1944 3.27c-0.4128 0.3336 -0.8147 0.2817 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z"
-              />
-            </path>
-            <polyline
-              points="14.7558,15.9343 14.7558,17.2053"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <animate
-                keyTimes="0;0.0517;0.0767;0.1017;0.15;0.2083;0.2817;0.3483;0.435;0.5567;0.6883;0.775;0.8;0.825;0.85;1"
-                calcMode="spline"
-                keySplines="0 0 1 1;0.25 0.1 0.25 1;0.75 0 0.75 0.9;0 0 1 1;0.25 0.1 0.25 1;0.75 0 0.75 0.9;0.75 0 0.75 0.9;0 0 1 1;0.75 0 0.75 0.9;0 0 1 1;0.25 0.1 0.25 1;0 0 1 1;0.25 0.1 0.25 1;0.75 0 0.75 0.9;0 0 1 1"
-                dur="10000ms"
-                repeatCount="indefinite"
-                attributeName="points"
-                values="14.7558,15.9343 14.7558,17.2053;14.7558,15.9343 14.7558,17.2053;14.7068,19.7303 14.7068,21.0013;14.7558,15.9343 14.7558,17.2053;14.7558,15.9343 14.7558,17.2053;12,15.9343 12,17.2053;17.52,15.9343 17.52,17.2053;14.76,15.9343 14.76,17.2053;14.76,15.9343 14.76,17.2053;16.6521,14.383 16.6521,15.654;16.6521,14.383 16.6521,15.654;14.76,15.9343 14.76,17.2053;14.7558,15.9343 14.7558,17.2053;14.7068,19.7303 14.7068,21.0013;14.7558,15.9343 14.7558,17.2053;14.7558,15.9343 14.7558,17.2053"
-              />
-            </polyline>
-          </g>
+      <SvgIcon {...props} ref={ref} viewBox="0 0 16 16" kind="path">
+        <g transform="scale(1.18) translate(-1.3, -1.3)">
+          <style>{`
+        .seer-loading-cls-1 {
+          fill: none;
+          stroke: currentColor;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-width: 1px;
+        }
+        @keyframes seer-loading-eyeball-animation {
+          0%, 20% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+          21% {
+            d: path('M8,9c1.8,0,3.31.22,3.74.52-1.36.08-2.64.11-3.74.11-1.1,0-2.38-.03-3.74-.11.43-.3,1.94-.52,3.74-.52Z');
+          }
+          22%, 55% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+          56% {
+            d: path('M8,9c1.8,0,3.31.22,3.74.52-1.36.08-2.64.11-3.74.11-1.1,0-2.38-.03-3.74-.11.43-.3,1.94-.52,3.74-.52Z');
+          }
+          57%, 97% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+          98% {
+            d: path('M8,9c1.8,0,3.31.22,3.74.52-1.36.08-2.64.11-3.74.11-1.1,0-2.38-.03-3.74-.11.43-.3,1.94-.52,3.74-.52Z');
+          }
+          99%, 100% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+        }
+        @keyframes seer-loading-pupil-animation {
+          0%, 2% {
+            transform: translate(0, 0);
+          }
+          4%, 7% {
+            transform: translate(-0.2px, -1.4px);
+          }
+          13%, 17% {
+            transform: translate(0.1px, 1.4px);
+          }
+          19%, 20% {
+            transform: translate(0, 0);
+          }
+          20% {
+            transform: translate(0, 0);
+          }
+          21% {
+            transform: translate(0, 0.94px);
+          }
+          22% {
+            transform: translate(0, 0);
+          }
+          23%, 24% {
+            transform: translate(0, 0);
+          }
+          25% { transform: translateX(0.2px); visibility: visible; }
+          26% { transform: translateX(-3.6px); visibility: visible; }
+          27% { transform: translateX(-3.6px); visibility: hidden; }
+          28% { transform: translateX(3.6px); visibility: hidden; }
+          29% { transform: translateX(3.6px); visibility: visible; }
+          30% { transform: translateX(-3.6px); visibility: visible; }
+          31% { transform: translateX(-3.6px); visibility: hidden; }
+          32% { transform: translateX(3.6px); visibility: hidden; }
+          33% { transform: translateX(3.6px); visibility: visible; }
+          34% { transform: translateX(-3.6px); visibility: visible; }
+          35% { transform: translateX(-3.6px); visibility: hidden; }
+          36% { transform: translateX(3.6px); visibility: hidden; }
+          37% { transform: translateX(3.6px); visibility: visible; }
+          38% { transform: translateX(-3.6px); visibility: visible; }
+          39% { transform: translateX(-3.6px); visibility: hidden; }
+          40% { transform: translateX(3.6px); visibility: hidden; }
+          41% { transform: translateX(3.6px); visibility: visible; }
+          42% { transform: translateX(-3.6px); visibility: visible; }
+          43% { transform: translateX(-3.6px); visibility: hidden; }
+          44% { transform: translateX(3.6px); visibility: hidden; }
+          45% { transform: translateX(3.6px); visibility: visible; }
+          46% { transform: translateX(-3.6px); visibility: visible; }
+          47% { transform: translateX(-3.6px); visibility: hidden; }
+          48% { transform: translateX(3.6px); visibility: hidden; }
+          49% { transform: translateX(3.6px); visibility: visible; }
+          50% { transform: translateX(-0.2px); visibility: visible; }
+          51% { transform: translateX(0); visibility: visible; }
+          55% {
+            transform: translate(0, 0);
+          }
+          56% {
+            transform: translate(0, 0.94px);
+          }
+          57%, 60% {
+            transform: translate(0, 0);
+          }
+          66%, 72% {
+            transform: translate(-1.2px, 0.7px);
+          }
+          78%, 82% {
+            transform: translate(1.2px, -0.8px);
+          }
+          88%, 93% {
+            transform: translate(1px, 0.7px);
+          }
+          95%, 96% {
+            transform: translate(0, 0);
+          }
+          97% {
+            transform: translate(0, 0);
+          }
+          98% {
+            transform: translate(0, 0.94px);
+          }
+          99% {
+            transform: translate(0, 0);
+          }
+          95%, 100% {
+            transform: translate(0, 0);
+          }
+        }
+        .seer-loading-eyeball {
+          animation: seer-loading-eyeball-animation 15s linear infinite;
+        }
+        .seer-loading-pupil {
+          animation: seer-loading-pupil-animation 15s linear infinite;
+          transform-origin: 8px 8.3px;
+        }
+      `}</style>
+          <path
+            className="seer-loading-cls-1"
+            d="M8,3c-1.75,2-4.75,6.25-5.75,9.5,3.77.67,7.77.67,11.5,0-1-3.25-4-7.5-5.75-9.5Z"
+          />
+          <path
+            className="seer-loading-cls-1 seer-loading-eyeball"
+            d="M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z"
+          />
+          <line
+            className="seer-loading-cls-1 seer-loading-pupil"
+            x1="8"
+            y1="8.06"
+            x2="8"
+            y2="8.56"
+          />
         </g>
       </SvgIcon>
     </InteractionWrapper>
@@ -155,60 +250,69 @@ function SeerLoadingIcon({ref, ...props}: SVGIconProps) {
 function SeerWaitingIcon({ref, ...props}: SVGIconProps) {
   return (
     <InteractionWrapper>
-      <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
-        <defs>
-          <clipPath id="eaf-7216-1">
-            <rect x="0" y="0" width="30" height="30" />
-          </clipPath>
-        </defs>
-        <g clipPath="url(#eaf-7216-1)" style={{isolation: 'isolate'}}>
-          <g>
-            <path
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m14.0407 3.1458l-10.4665 13.8918c-0.2989 0.3967 -0.2327 0.9584 0.1501 1.2748l10.4917 8.6705c0.3436 0.284 0.8405 0.2838 1.1839 -0.0005l10.4717 -8.6691c0.3827 -0.3169 0.4483 -0.8788 0.1488 -1.2753l-10.4969 -13.8932c-0.3719 -0.4922 -1.1115 -0.4917 -1.4828 0.001z"
-            />
-            <path
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z"
-              transform="matrix(1 0 0 1.1072 0 -1.7755)"
-            >
-              <animate
-                keyTimes="0;0.2866;0.3566;0.3934;0.4634;0.5266;0.6466;0.6866;0.7266;1"
-                calcMode="spline"
-                keySplines="0 0 1 1;0.75 0 0.75 0.9;0.25 0.1 0.25 1;0.75 0 0.75 0.9;0.25 0.1 0.25 1;0 0 1 1;0.75 0 0.75 0.9;0.25 0.1 0.25 1;0 0 1 1"
-                dur="5000ms"
-                repeatCount="indefinite"
-                attributeName="d"
-                values="m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1698 11.1863l-5.1336 5.1824c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1196 -5.1823c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1698 11.1863l-5.1336 5.1824c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1196 -5.1823c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1828 19.6768l-5.1467 -3.3081c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1066 3.3082c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z;m14.1483 12.3135l-5.1122 4.0552c-0.3332 0.2643 -0.314 0.6812 0.0426 0.9278l5.1121 3.5339c0.3337 0.2307 0.8482 0.2312 1.1828 0.0012l5.1412 -3.534c0.359 -0.2468 0.3782 -0.6657 0.0427 -0.9303l-5.1411 -4.0551c-0.3449 -0.272 -0.9243 -0.2714 -1.2682 0.0013l0.0001 0z"
-              />
-            </path>
-            <polyline
-              points="14.7558,15.9343 14.7558,17.2053"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <animate
-                keyTimes="0;0.6466;0.6866;0.7266;1"
-                calcMode="spline"
-                keySplines="0 0 1 1;0.75 0 0.75 0.9;0.25 0.1 0.25 1;0 0 1 1"
-                dur="5000ms"
-                repeatCount="indefinite"
-                attributeName="points"
-                values="14.7558,15.9343 14.7558,17.2053;14.7558,15.9343 14.7558,17.2053;14.7371,20.2116 14.7371,21.4826;14.7558,15.9343 14.7558,17.2053;14.7558,15.9343 14.7558,17.2053"
-              />
-            </polyline>
-          </g>
+      <SvgIcon {...props} ref={ref} viewBox="0 0 16 16" kind="path">
+        <g transform="scale(1.18) translate(-1.3, -1.3)">
+          <style>{`
+        .seer-waiting-cls-1 {
+          fill: none;
+          stroke: currentColor;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-width: 1px;
+        }
+        @keyframes seer-waiting-eyeball-animation {
+          0%, 20% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+          25% {
+            d: path('M8,5.25c1.8,0,3.25,1.75,3.74,4.36-1.36.66-2.64.88-3.74.89-1.1,0-2.38-.23-3.74-.89.49-2.61,1.94-4.36,3.74-4.36Z');
+          }
+          28% {
+            d: path('M8,5.7c1.8,0,3.25,1.75,3.74,3.91-1.36.66-2.64.88-3.74.89-1.1,0-2.38-.23-3.74-.89.49-2.16,1.94-3.91,3.74-3.91Z');
+          }
+          31% {
+            d: path('M8,5.25c1.8,0,3.25,1.75,3.74,4.36-1.36.66-2.64.88-3.74.89-1.1,0-2.38-.23-3.74-.89.49-2.61,1.94-4.36,3.74-4.36Z');
+          }
+          36%, 89% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+          92% {
+            d: path('M8,9c1.8,0,3.31.22,3.74.52-1.36.08-2.64.11-3.74.11-1.1,0-2.38-.03-3.74-.11.43-.3,1.94-.52,3.74-.52Z');
+          }
+          95%, 100% {
+            d: path('M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z');
+          }
+        }
+        @keyframes seer-waiting-pupil-animation {
+          0%, 91%, 93%, 100% {
+            transform: translateY(0);
+          }
+          92% {
+            transform: translateY(0.94px);
+          }
+        }
+        .seer-waiting-eyeball {
+          animation: seer-waiting-eyeball-animation 5s linear infinite;
+        }
+        .seer-waiting-pupil {
+          animation: seer-waiting-pupil-animation 5s linear infinite;
+        }
+      `}</style>
+          <path
+            className="seer-waiting-cls-1"
+            d="M8,3c-1.75,2-4.75,6.25-5.75,9.5,3.77.67,7.77.67,11.5,0-1-3.25-4-7.5-5.75-9.5Z"
+          />
+          <path
+            className="seer-waiting-cls-1 seer-waiting-eyeball"
+            d="M8,6.13c1.8,0,3.31,1.53,3.74,3.59-1.36.58-2.64.77-3.74.78-1.1,0-2.38-.2-3.74-.78.43-2.07,1.94-3.59,3.74-3.59Z"
+          />
+          <line
+            className="seer-waiting-cls-1 seer-waiting-pupil"
+            x1="8"
+            y1="8.06"
+            x2="8"
+            y2="8.56"
+          />
         </g>
       </SvgIcon>
     </InteractionWrapper>

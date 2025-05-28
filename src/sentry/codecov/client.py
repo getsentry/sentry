@@ -4,6 +4,7 @@ from enum import StrEnum
 from typing import TypeAlias
 
 import requests
+from django.conf import settings
 from rest_framework import status
 
 from sentry import options
@@ -28,6 +29,7 @@ class GitProvider(StrEnum):
 logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 10
+JWT_VALIDITY_WINDOW_SECONDS = 300  # 5 minutes
 
 
 class ConfigurationError(SentryAPIException):
@@ -46,7 +48,7 @@ class CodecovApiClient:
 
     def _create_jwt(self):
         now = int(datetime.datetime.now(datetime.UTC).timestamp())
-        exp = now + 300  # 5 minutes
+        exp = now + JWT_VALIDITY_WINDOW_SECONDS
         claims = {
             "iss": "https://sentry.io",
             "iat": now,
@@ -70,13 +72,10 @@ class CodecovApiClient:
            hosted on.
         """
 
-        if not (base_url := options.get("codecov.base-url")):
-            raise ConfigurationError()
-
         if not (signing_secret := options.get("codecov.api-bridge-signing-secret")):
             raise ConfigurationError()
 
-        self.base_url = base_url
+        self.base_url = settings.CODECOV_API_BASE_URL
         self.signing_secret = signing_secret
         self.custom_claims = {
             "g_u": git_provider_user,
@@ -89,7 +88,7 @@ class CodecovApiClient:
         API host with the provided params and headers.
 
         :param endpoint: The endpoint to request, without the host portion. For
-           examples: `/api/v2/gh/getsentry/users` or `/graphql`
+           example: `/api/v2/gh/getsentry/users` or `/graphql`
         :param params: Dictionary of query params.
         :param headers: Dictionary of request headers.
         """
@@ -102,7 +101,7 @@ class CodecovApiClient:
             response = requests.get(url, params=params, headers=headers, timeout=TIMEOUT_SECONDS)
         except Exception:
             logger.exception("Error when making GET request")
-            return None
+            raise
 
         return response
 
@@ -112,7 +111,7 @@ class CodecovApiClient:
         API host with the provided data and headers.
 
         :param endpoint: The endpoint to request, without the host portion. For
-           examples: `/api/v2/gh/getsentry/users` or `/graphql`
+           example: `/api/v2/gh/getsentry/users` or `/graphql`
         :param data: Dictionary of form data.
         :param headers: Dictionary of request headers.
         """
@@ -124,7 +123,7 @@ class CodecovApiClient:
             response = requests.post(url, data=data, headers=headers, timeout=TIMEOUT_SECONDS)
         except Exception:
             logger.exception("Error when making POST request")
-            return None
+            raise
 
         return response
 

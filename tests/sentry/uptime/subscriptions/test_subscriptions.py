@@ -16,7 +16,10 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.issue_platform import create_issue_platform_occurrence
+from sentry.uptime.issue_platform import (
+    build_detector_fingerprint_component,
+    create_issue_platform_occurrence,
+)
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
@@ -378,7 +381,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
     )
-    def test_no_seat_asssignment(self, _mock_check_assign_seat):
+    def test_no_seat_assignment(self, _mock_check_assign_seat):
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
                 self.project,
@@ -748,7 +751,8 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
                 ),
                 detector,
             )
-            hashed_fingerprint = md5(str(proj_sub.id).encode("utf-8")).hexdigest()
+            fingerprint = build_detector_fingerprint_component(detector).encode("utf-8")
+            hashed_fingerprint = md5(fingerprint).hexdigest()
             assert Group.objects.filter(
                 grouphash__hash=hashed_fingerprint, status=GroupStatus.UNRESOLVED
             ).exists()
@@ -765,6 +769,26 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
 
         detector.refresh_from_db()
         assert not detector.enabled
+
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_already_disabled(self, mock_disable_seat):
+        proj_sub = create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )
+        detector = get_detector(proj_sub.uptime_subscription)
+        assert detector
+
+        proj_sub.update(status=ObjectStatus.DISABLED)
+        detector.update(enabled=False)
+
+        disable_uptime_detector(detector)
+
+        mock_disable_seat.assert_not_called()
 
 
 class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
@@ -807,7 +831,7 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         proj_sub.refresh_from_db()
         proj_sub.uptime_subscription.refresh_from_db()
 
-        # Enabling the subscription marks the suscription as active again
+        # Enabling the subscription marks the subscription as active again
         with self.tasks():
             enable_uptime_detector(detector)
 
@@ -815,7 +839,7 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert proj_sub.status == ObjectStatus.ACTIVE
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
 
-        # Seat assignemnt was called
+        # Seat assignment was called
         mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
         mock_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
@@ -861,6 +885,28 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
 
         mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
         mock_assign_seat.assert_not_called()
+
+    @mock.patch("sentry.quotas.backend.check_assign_seat")
+    def test_already_enabled(self, mock_check_assign_seat):
+        proj_sub = create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )
+        detector = get_detector(proj_sub.uptime_subscription)
+        assert detector
+
+        assert detector.enabled
+        assert proj_sub.status == ObjectStatus.ACTIVE
+
+        enable_uptime_detector(detector)
+
+        # The check_assign_seat was called once during initial subscription creation
+        # On the "second" call we find it's already enabled so do nothing
+        mock_check_assign_seat.assert_called_once()
 
 
 class CheckAndUpdateRegionsTest(UptimeTestCase):
