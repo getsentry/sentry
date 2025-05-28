@@ -17,8 +17,8 @@ def filter_user_config_errors(error: ApiError) -> None:
 
                 invalid_fields[field] = f"Got {code} value: {value} for field: {field}"
                 raise IntegrationFormError(invalid_fields) from error
-            raise IntegrationFormError("Some given field was misconfigured") from error
+            raise IntegrationFormError({"detail": "Some given field was misconfigured"}) from error
     elif error.code == 410:
         raise IntegrationInstallationConfigurationError(
-            {"message": "Issues are disabled for this repo, please check your repo's permissions"}
+            {"detail": "Issues are disabled for this repo, please check your repo's permissions"}
         ) from error

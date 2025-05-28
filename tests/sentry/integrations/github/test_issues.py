@@ -339,8 +339,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         with pytest.raises(IntegrationInstallationConfigurationError) as e:
             self.install.create_issue(form_data)
 
-        assert e.value.field_errors == {
-            "message": "Issues are disabled for this repo, please check your repo's permissions"
+        assert e.value.args[0] == {
+            "detail": "Issues are disabled for this repo, please check your repo's permissions"
         }
 
         if self.should_call_api_without_proxying():
