@@ -1,7 +1,7 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
   DevServer,
@@ -349,7 +349,7 @@ const appConfig: Configuration = {
         ]
       : []),
 
-    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
