@@ -3567,6 +3567,10 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 
 
+# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
+# to the buffer service.
+SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
+
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
 
