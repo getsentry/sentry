@@ -48,6 +48,7 @@ export function getSearchInExploreTarget(
   value: string,
   kind: TraceDrawerActionKind
 ) {
+  console.log('DESCRIPTION', value);
   const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
   const search = new MutableSearch('');
 

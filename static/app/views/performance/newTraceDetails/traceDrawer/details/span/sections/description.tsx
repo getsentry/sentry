@@ -48,6 +48,14 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 
 const formatter = new SQLishFormatter();
 
+function minifySQL(sql: string): string {
+  return sql
+    .replace(/--.*$/gm, '') // remove single-line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '') // remove multi-line comments
+    .replace(/\s+/g, ' ') // collapse all whitespace
+    .trim(); // remove leading/trailing whitespace
+}
+
 export function SpanDescription({
   node,
   organization,
@@ -120,7 +128,7 @@ export function SpanDescription({
                 location,
                 node.event?.projectID,
                 SpanIndexedField.SPAN_DESCRIPTION,
-                span.description!,
+                minifySQL(span.description!),
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({

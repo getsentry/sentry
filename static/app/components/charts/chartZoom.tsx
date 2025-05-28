@@ -79,6 +79,7 @@ type Props = {
  */
 class ChartZoom extends Component<Props> {
   constructor(props: Props) {
+    console.log('ChartZoom', props);
     super(props);
 
     // Zoom history
@@ -264,6 +265,7 @@ class ChartZoom extends Component<Props> {
   };
 
   handleDataZoom = (evt: any, chart: any) => {
+    console.log('handleDataZoom', evt, chart);
     const model = chart.getModel();
     const {startValue, endValue} = model._payload.batch[0];
 

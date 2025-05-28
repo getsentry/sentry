@@ -655,9 +655,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         formatter: formatTooltip,
       }}
       xAxis={xAxis}
+      brush={{
+        mainType: 'brush',
+        toolbox: ['rect'],
+        brushMode: 'single',
+        throttleType: 'debounce',
+        throttleDelay: 100,
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        brushStyle: {},
+      }}
       yAxes={yAxes}
       {...chartZoomProps}
-      onDataZoom={props.onZoom ?? onDataZoom}
+      onDataZoom={props.onZoom}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}

@@ -330,6 +330,9 @@ export function ExploreCharts({
                       }
                     );
                   })}
+                  onZoom={params => {
+                    console.log('onZoom', params);
+                  }}
                 />
               }
               Footer={

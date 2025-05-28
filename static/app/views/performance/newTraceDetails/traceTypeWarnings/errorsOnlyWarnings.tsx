@@ -134,12 +134,19 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     tree: props.tree,
   });
 
+  console.log('performanceUsageStats', performanceUsageStats);
   const {
     data: {hasExceededPerformanceUsageLimit, subscription},
   } = usePerformanceSubscriptionDetails();
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
+
+  console.log(
+    'droppedTransactionsCount',
+    droppedTransactionsCount,
+    hasExceededPerformanceUsageLimit
+  );
 
   const hideBanner =
     droppedTransactionsCount === 0 ||
@@ -222,6 +229,8 @@ export function ErrorsOnlyWarnings({
   if (tree.type !== 'trace' || tree.shape !== TraceShape.ONLY_ERRORS) {
     return null;
   }
+
+  console.log('projectsWithNoPerformance', projectsWithNoPerformance);
 
   return projectsWithNoPerformance.length > 0 ? (
     <PerformanceSetupBanner

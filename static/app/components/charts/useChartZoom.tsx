@@ -7,6 +7,8 @@ import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
 import type {
+  EChartBrushEndHandler,
+  EChartBrushSelectedHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
@@ -32,6 +34,8 @@ interface ZoomRenderProps {
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
+  onBrushSelected: EChartBrushSelectedHandler;
+  onBrushEnd: EChartBrushEndHandler;
   toolBox: ToolboxComponentOption;
 }
 
@@ -248,6 +252,14 @@ export function useChartZoom({
     }
   }, []);
 
+  const handleBrushEnd = useCallback<EChartBrushEndHandler>((evt, chart) => {
+    console.log('brush end', evt, chart);
+  }, []);
+
+  const handleBrushSelected = useCallback<EChartBrushSelectedHandler>((evt, chart) => {
+    console.log('brush selected', evt, chart);
+  }, []);
+
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     const zoomInside = DataZoomInside({
       xAxisIndex,
@@ -260,16 +272,8 @@ export function useChartZoom({
       ToolBox(
         {},
         {
-          dataZoom: {
-            title: {
-              zoom: '',
-              back: '',
-            },
-            iconStyle: {
-              borderWidth: 0,
-              color: 'transparent',
-              opacity: 0,
-            },
+          brush: {
+            type: ['rect'],
           },
         }
       ),
@@ -282,6 +286,8 @@ export function useChartZoom({
     dataZoom: dataZoomProp,
     toolBox,
     onDataZoom: handleDataZoom,
+    onBrushEnd: handleBrushEnd,
+    onBrushSelected: handleBrushSelected,
     onFinished: handleChartFinished,
     onChartReady: handleChartReady,
   };
