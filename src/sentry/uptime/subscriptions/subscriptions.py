@@ -191,6 +191,16 @@ def create_project_uptime_subscription(
             project__organization=project.organization,
             config__mode=ProjectUptimeSubscriptionMode.MANUAL,
         ).count()
+
+        # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
+        # onboarding monitors
+        if project.organization.get_option("sentry:uptime_autodetection", False):
+            project.organization.update_option("sentry:uptime_autodetection", False)
+            for detector in get_auto_monitored_detectors_for_project(
+                project, modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING]
+            ):
+                delete_uptime_detector(detector)
+
         if (
             not override_manual_org_limit
             and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
@@ -463,15 +473,18 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     ).exists()
 
 
-def get_auto_monitored_detectors_for_project(project: Project) -> list[Detector]:
+def get_auto_monitored_detectors_for_project(
+    project: Project,
+    modes: Sequence[ProjectUptimeSubscriptionMode] | None = None,
+) -> list[Detector]:
+    if modes is None:
+        modes = [
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        ]
     return list(
         Detector.objects.filter(
-            type=UptimeDomainCheckFailure.slug,
-            project=project,
-            config__mode__in=(
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
-            ),
+            type=UptimeDomainCheckFailure.slug, project=project, config__mode__in=modes
         )
     )
 
