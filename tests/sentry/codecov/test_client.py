@@ -90,3 +90,19 @@ class TestCodecovApiClient(TestCase):
                 },
                 timeout=10,
             )
+
+    @patch("requests.post")
+    def test_query_sends_post_request_with_jwt_auth_header(self, mock_post):
+        with patch.object(self.codecov_client, "_create_jwt", return_value="test"):
+            self.codecov_client.query("query { test }", {"test": "test"}, GitProvider.GitHub)
+            mock_post.assert_called_once_with(
+                "http://example.com/graphql/sentry/github",
+                data={"query": "query { test }", "variables": {"test": "test"}},
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Token-Type": "github-token",
+                    "Authorization": "Bearer test",
+                },
+                timeout=10,
+            )
