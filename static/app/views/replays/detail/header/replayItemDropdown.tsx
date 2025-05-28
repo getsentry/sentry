@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -59,6 +60,7 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
           }
           downloadObjectAsJson(replay.getRRWebFrames(), 'rrweb');
         } catch (error) {
+          Sentry.captureException(error);
           addErrorMessage(
             'Could not export replay as rrweb data. Please wait or try again'
           );
@@ -66,13 +68,37 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
       },
       disabled: !canDownload,
     },
+    canSeeEmployeeLinks
+      ? {
+          key: 'download-replay-record',
+          label: (
+            <ItemSpacer>
+              <IconDownload />
+              {t('Download Replay Record (superuser)')}
+            </ItemSpacer>
+          ),
+          onAction: () => {
+            try {
+              if (!replay) {
+                addErrorMessage(t('Replay not found'));
+                return;
+              }
+              downloadObjectAsJson(replay.getReplay(), 'replay-record');
+            } catch (error) {
+              Sentry.captureException(error);
+              addErrorMessage('Could not export replay record. Please wait or try again');
+            }
+          },
+          disabled: !canDownload,
+        }
+      : null,
     canSeeEmployeeLinks && isMobile
       ? {
           key: 'download-1st-video',
           label: (
             <ItemSpacer>
               <IconDownload />
-              {t('Download 1st video segment (employee only)')}
+              {t('Download 1st video segment (superuser)')}
             </ItemSpacer>
           ),
           onAction: () =>
