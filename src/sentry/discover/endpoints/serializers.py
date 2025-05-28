@@ -22,6 +22,8 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
+from src.sentry.search.events.builder.errors import ErrorsQueryBuilder
+from src.sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 
 
 @extend_schema_serializer(
@@ -240,14 +242,26 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 )
 
                 equations, columns = categorize_columns(query["fields"])
-                builder = DiscoverQueryBuilder(
+
+                BuilderClass = (
+                    ErrorsQueryBuilder
+                    if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS
+                    else DiscoverQueryBuilder
+                )
+                builder_config = {}
+                if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS:
+                    builder_config["parser_config_overrides"] = ERROR_PARSER_CONFIG_OVERRIDES
+                elif data.get("queryDataset") == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
+                    builder_config["has_metrics"] = use_metrics
+
+                builder = BuilderClass(
                     dataset=Dataset.Discover,
                     params=self.context["params"],
                     query=query["query"],
                     selected_columns=columns,
                     equations=equations,
                     orderby=query.get("orderby"),
-                    config=QueryBuilderConfig(has_metrics=use_metrics),
+                    config=QueryBuilderConfig(**builder_config),
                 )
                 builder.get_snql_query().validate()
             except (InvalidSearchQuery, ArithmeticError) as err:
