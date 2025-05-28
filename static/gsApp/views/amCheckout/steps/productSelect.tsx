@@ -160,10 +160,9 @@ function ProductSelect({
               <Row justifyContent="center">
                 <Subtitle>
                   {tct(
-                    'Includes [includedBudget]/[billingInterval] of credits for [productName] services. Additional usage is drawn from your [budgetTerm] budget.',
+                    'Includes [includedBudget]/mo of credits for [productName] services. Additional usage is drawn from your [budgetTerm] budget.',
                     {
                       includedBudget,
-                      billingInterval,
                       budgetTerm:
                         activePlan.budgetTerm === 'pay-as-you-go'
                           ? 'PAYG'

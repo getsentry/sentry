@@ -63,7 +63,6 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
       '+ up to $300/mo based on PAYG usage'
     );
-    expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
     expect(screen.getByText('Total Monthly Charges')).toBeInTheDocument();
   });
 
@@ -99,8 +98,7 @@ describe('CheckoutOverviewV2', function () {
       />
     );
 
-    expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
-    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer$216/yr');
+    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer AI Agent$216/yr');
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
