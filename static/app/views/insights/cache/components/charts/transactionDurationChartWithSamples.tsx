@@ -13,8 +13,9 @@ import {
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {
+import type {
   MetricsFields,
+  SearchHook,
   SpanFields,
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
@@ -31,9 +32,9 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
     },
   });
 
-  const {search, enabled} = useTransactionDurationSearch({transaction});
+  const {search} = useTransactionDurationSearch({transaction});
 
-  const {data, isPending, error} = useTransactionDurationSeries({search, enabled});
+  const {data, isPending, error} = useTransactionDurationSeries({search});
 
   return (
     <InsightsLineChartWidget
@@ -48,7 +49,11 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   );
 }
 
-const useTransactionDurationSearch = ({transaction}: {transaction: string}) => {
+const useTransactionDurationSearch = ({
+  transaction,
+}: {
+  transaction: string;
+}): SearchHook => {
   const useEap = useInsightsEap();
   const search = useEap
     ? MutableSearch.fromQueryObject({
@@ -57,16 +62,10 @@ const useTransactionDurationSearch = ({transaction}: {transaction: string}) => {
       } satisfies SpanQueryFilters)
     : MutableSearch.fromQueryObject({transaction} satisfies SpanQueryFilters);
 
-  return {search, enabled: true};
+  return {search};
 };
 
-const useTransactionDurationSeries = ({
-  search,
-  enabled,
-}: {
-  enabled: boolean;
-  search: MutableSearch;
-}) => {
+const useTransactionDurationSeries = ({search}: {search: MutableSearch}) => {
   const useEap = useInsightsEap();
 
   const metricsResult = useMetricsSeries(
@@ -74,7 +73,7 @@ const useTransactionDurationSeries = ({
       yAxis: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
       search,
       transformAliasToInputFormat: true,
-      enabled: !useEap && enabled,
+      enabled: !useEap,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART
   );
@@ -83,7 +82,7 @@ const useTransactionDurationSeries = ({
     {
       search,
       yAxis: [`avg(${SpanFields.SPAN_DURATION})`],
-      enabled: useEap && enabled,
+      enabled: useEap,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
   );
