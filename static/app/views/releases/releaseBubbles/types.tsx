@@ -1,5 +1,5 @@
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 export interface Bucket {
   end: number;

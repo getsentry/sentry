@@ -14,6 +14,7 @@ import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -32,7 +33,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
-import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 import {
   cleanReleaseCursors,
   ReleasesDrawerFields,

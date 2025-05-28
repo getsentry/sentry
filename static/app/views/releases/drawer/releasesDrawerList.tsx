@@ -15,6 +15,7 @@ import {
   Header,
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -29,7 +30,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
-import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/releases/drawer/releasesDrawerFeatureFlagsTable';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 

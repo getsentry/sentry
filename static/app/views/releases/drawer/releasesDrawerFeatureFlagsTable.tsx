@@ -1,14 +1,14 @@
 import {useMemo} from 'react';
 
+import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import type {ColumnKey} from 'sentry/views/releases/components/featureFlagsLogTable';
-import {FeatureFlagsLogTable} from 'sentry/views/releases/components/featureFlagsLogTable';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {useDrawerFlags} from 'sentry/views/releases/utils/useDrawerFlags';
 

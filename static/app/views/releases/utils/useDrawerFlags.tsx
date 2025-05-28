@@ -1,7 +1,7 @@
+import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 interface Params {
