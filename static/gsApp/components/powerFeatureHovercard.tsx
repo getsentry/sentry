@@ -128,8 +128,11 @@ class PowerFeatureHovercard extends Component<Props> {
   }
 }
 
-const LearnMoreLink = styled('div')`
+const LearnMoreLink = styled('button')`
   ${p => linkStyles({theme: p.theme})}
+  background: none;
+  border: none;
+  padding: 0;
 
   color: ${p => p.theme.subText};
   text-decoration: underline;
