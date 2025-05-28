@@ -43,7 +43,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const orgHasAcknowledged = autofixSetupData?.setupAcknowledgement.orgHasAcknowledged;
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
-  const canStartTrial = Boolean(!trial?.isStarted);
+  const canStartTrial = Boolean(trial && !trial.isStarted);
 
   const isTouchCustomer = subscription?.type === BillingType.INVOICED;
 
