@@ -227,7 +227,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
         }),
       }),
       ...(hasSeerScanner && {
-        seerAutofix: MetricHistoryFixture({
+        seerScanner: MetricHistoryFixture({
           category: DataCategory.SEER_SCANNER,
           reserved: 0,
           prepaid: 0,
