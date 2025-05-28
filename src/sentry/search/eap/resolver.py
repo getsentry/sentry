@@ -14,7 +14,9 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationComparisonFilter,
     AggregationFilter,
     AggregationOrFilter,
+    Column,
 )
+from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -35,6 +37,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api import event_search
+from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -46,6 +49,7 @@ from sentry.search.eap.columns import (
     ResolvedAggregate,
     ResolvedAttribute,
     ResolvedConditionalAggregate,
+    ResolvedEquation,
     ResolvedFormula,
     VirtualColumnDefinition,
 )
@@ -702,7 +706,9 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(self, selected_columns: list[str]) -> tuple[
+    def resolve_columns(
+        self, selected_columns: list[str], has_aggregates: bool | None = None
+    ) -> tuple[
         list[
             ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
         ],
@@ -718,7 +724,7 @@ class SearchResolver:
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
             span.set_tag("SearchResolver.selected_columns", stripped_columns)
-        has_aggregates = False
+        has_aggregates = False if has_aggregates is None else has_aggregates
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
@@ -960,3 +966,69 @@ class SearchResolver:
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)
         return self._resolved_function_cache[column]
+
+    def resolve_equations(self, equations: list[str]) -> tuple[
+        list[ResolvedEquation],
+        list[VirtualColumnDefinition | None],
+    ]:
+        formulas = []
+        contexts = []
+        for equation in equations:
+            formula, context = self.resolve_equation(equation)
+            formulas.append(formula)
+            contexts.extend(context)
+        return formulas, contexts
+
+    def resolve_equation(self, equation: str) -> tuple[
+        ResolvedEquation,
+        list[VirtualColumnDefinition | None],
+    ]:
+        operation, fields, functions = arithmetic.parse_arithmetic(equation)
+        lhs, lhs_vcc = self._resolve_operation(operation.lhs) if operation.lhs else (None, None)
+        rhs, rhs_vcc = self._resolve_operation(operation.rhs) if operation.rhs else (None, None)
+        return (
+            ResolvedEquation(
+                public_alias=f"equation|{equation}",
+                search_type="number",  # TODO
+                operator=constants.ARITHMETIC_OPERATOR_MAP[operation.operator],
+                lhs=lhs,
+                rhs=rhs,
+                is_aggregate=len(functions) > 0,
+            ),
+            lhs_vcc + rhs_vcc,
+        )
+
+    def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
+        Column,
+        list[VirtualColumnDefinition | None],
+    ]:
+        if isinstance(operation, arithmetic.Operation):
+            lhs, vcc_lhs = self._resolve_operation(operation.lhs) if operation.lhs else (None, None)
+            rhs, vcc_rhs = self._resolve_operation(operation.rhs) if operation.rhs else (None, None)
+            vcc = []
+            if vcc_lhs:
+                vcc += vcc_lhs
+            if vcc_rhs:
+                vcc += vcc_rhs
+            return (
+                Column(
+                    formula=Column.BinaryFormula(
+                        op=constants.ARITHMETIC_OPERATOR_MAP[operation.operator],
+                        left=lhs,
+                        right=rhs,
+                    )
+                ),
+                vcc,
+            )
+        elif isinstance(operation, float):
+            return Column(literal=LiteralValue(val_double=operation)), []
+        else:
+            col, col_vcc = self.resolve_column(operation)
+            if isinstance(col, ResolvedAttribute):
+                return Column(key=col.proto_definition), [col_vcc]
+            elif isinstance(col, ResolvedAggregate):
+                return Column(aggregation=col.proto_definition), [col_vcc]
+            elif isinstance(col, ResolvedConditionalAggregate):
+                return Column(conditional_aggregation=col.proto_definition), [col_vcc]
+            elif isinstance(col, ResolvedFormula):
+                return Column(formula=col.proto_definition), [col_vcc]
