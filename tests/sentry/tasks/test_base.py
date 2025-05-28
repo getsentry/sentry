@@ -149,15 +149,15 @@ def test_capture_payload_metrics(mock_distribution):
 def test_validate_parameters_call():
     with pytest.raises(TypeError) as err:
         region_task.apply_async(args=(datetime.datetime.now(),))
-    assert "region_task was invoked with an object that cannot be JSON encoded" in str(err)
+    assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
 
     with pytest.raises(TypeError) as err:
         region_task.delay(datetime.datetime.now())
-    assert "region_task was invoked with an object that cannot be JSON encoded" in str(err)
+    assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
 
     with pytest.raises(TypeError) as err:
         region_task(datetime.datetime.now())
-    assert "region_task was invoked with an object that cannot be JSON encoded" in str(err)
+    assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
 
 
 @patch("sentry.taskworker.retry.current_task")

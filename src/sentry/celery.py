@@ -70,7 +70,7 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
         if bad is not None:
             bad_object, reason = bad
             raise TypeError(
-                "Task %s was invoked with an object that cannot be JSON "
+                "Task %s was called with a parameter that cannot be JSON "
                 "encoded (%r, reason is %s) in argument %s" % (task.name, bad_object, reason, name)
             )
 
