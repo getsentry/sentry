@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
 interface OutputCoverageFileProps {
-  stepString: string;
+  step: string;
 }
 
 type Frameworks = 'jest' | 'vitest' | 'pytest' | 'phpunit';
@@ -28,9 +28,9 @@ const GENERATE_FILE_SNIPPETS: Record<Frameworks, string> = {
   phpunit: '',
 };
 
-export function OutputCoverageFile({stepString}: OutputCoverageFileProps) {
-  const headerText = tct('Step [stepString]: Output a JUnit XML file in your CI', {
-    stepString,
+export function OutputCoverageFile({step}: OutputCoverageFileProps) {
+  const headerText = tct('Step [step]: Output a JUnit XML file in your CI', {
+    step,
   });
   const [selectedFramework, setSelectedFramework] = useState<Frameworks>('jest');
 

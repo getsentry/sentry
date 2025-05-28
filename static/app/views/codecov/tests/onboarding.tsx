@@ -45,7 +45,7 @@ export default function TestsOnboardingPage() {
           ]}
         />
         <StepsContainer>
-          <OutputCoverageFile stepString="1" />
+          <OutputCoverageFile step="1" />
         </StepsContainer>
       </OnboardingContainer>
     </LayoutGap>
