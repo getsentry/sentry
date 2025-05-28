@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import format from 'date-fns/format';
 
 import {DatePicker} from 'sentry/components/calendar';
