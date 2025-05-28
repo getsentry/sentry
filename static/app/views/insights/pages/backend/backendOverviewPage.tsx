@@ -25,7 +25,10 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
+import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
+import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
+import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -47,10 +50,7 @@ import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOve
 import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
-import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
-import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {
   useIsNextJsInsightsAvailable,
@@ -247,13 +247,13 @@ function EAPBackendOverviewPage() {
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <JobsWidget />
+                      <OverviewJobsChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <QueriesWidget />
+                      <OverviewSlowQueriesChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <CachesWidget />
+                      <OverviewCacheMissChartWidget />
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>
@@ -301,6 +301,7 @@ const StackedWidgetWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   height: 100%;
+  min-height: 502px;
 `;
 
 const TripleRowWidgetWrapper = styled('div')`

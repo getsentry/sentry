@@ -8,6 +8,7 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
+import type {EChartsInstance} from 'echarts-for-react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
@@ -69,13 +70,27 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   plottables: Plottable[];
   /**
+   * Sets the range of the Y axis.
+   *
+   * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
+   * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
+   * Default: `auto`
+   */
+  axisRange?: 'auto' | 'dataMin';
+  /**
+   * Reference to the chart instance
+   */
+  chartRef?: React.Ref<EChartsInstance>;
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
+
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -223,6 +238,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
+  const axisRangeProp = props.axisRange ?? 'auto';
+
   const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
@@ -231,7 +248,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       },
       position: 'left',
     },
-    leftYAxisType
+    leftYAxisType,
+    axisRangeProp
   );
 
   const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
@@ -247,7 +265,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
           position: 'right',
         },
-        rightYAxisType
+        rightYAxisType,
+        axisRangeProp
       )
     : undefined;
 
@@ -590,7 +609,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
       autoHeightResize
       series={allSeries}
       grid={{

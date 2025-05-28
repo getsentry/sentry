@@ -7,6 +7,8 @@ import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -30,9 +32,13 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {CreateAlertButton} from 'sentry/views/insights/common/components/createAlertButton';
+import {OpenInExploreButton} from 'sentry/views/insights/common/components/openInExploreButton';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 export interface InsightsTimeSeriesWidgetProps
@@ -50,6 +56,7 @@ export interface InsightsTimeSeriesWidgetProps
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   pageFilters?: PageFilters;
   samples?: Samples;
+  search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
@@ -57,6 +64,7 @@ export interface InsightsTimeSeriesWidgetProps
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const theme = useTheme();
+  const useEap = useInsightsEap();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const pageFiltersSelection = props.pageFilters || pageFilters.selection;
@@ -67,10 +75,17 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       version,
     })) ?? [];
 
+  const hasChartActionsEnabled =
+    organization.features.includes('insights-chart-actions') && useEap;
+  const yAxes: string[] = [];
+
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
-      const timeSeries = convertSeriesToTimeseries(serie);
+      const timeSeries = markDelayedData(
+        convertSeriesToTimeseries(serie),
+        INGESTION_DELAY
+      );
       const PlottableDataConstructor =
         props.visualizationType === 'line'
           ? Line
@@ -78,9 +93,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             ? Area
             : Bars;
 
+      yAxes.push(timeSeries.yAxis);
+
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
-        delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias: props.aliases?.[timeSeries.yAxis],
       });
@@ -139,12 +155,20 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       } as const)
     : {};
 
+  let chartType = ChartType.LINE;
+  if (props.visualizationType === 'area') {
+    chartType = ChartType.AREA;
+  } else if (props.visualizationType === 'bar') {
+    chartType = ChartType.BAR;
+  }
+
   return (
     <ChartContainer height={props.height}>
       <Widget
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
+            chartRef={props.chartRef}
             id={props.id}
             pageFilters={props.pageFilters}
             {...enableReleaseBubblesProps}
@@ -157,6 +181,17 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
           <Widget.WidgetToolbar>
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
+            )}
+            {hasChartActionsEnabled && (
+              <OpenInExploreButton
+                chartType={chartType}
+                yAxes={yAxes}
+                title={props.title}
+                search={props.search}
+              />
+            )}
+            {hasChartActionsEnabled && (
+              <CreateAlertButton yAxis={yAxes[0]} search={props.search} />
             )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
