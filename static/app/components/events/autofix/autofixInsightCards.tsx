@@ -164,8 +164,8 @@ function AutofixInsightCard({
                         type="submit"
                         priority="primary"
                         size="sm"
-                        title={t('Restart work from here')}
-                        aria-label={t('Restart work from here')}
+                        title={t('Redo work from here')}
+                        aria-label={t('Redo work from here')}
                       >
                         {'\u23CE'}
                       </Button>
