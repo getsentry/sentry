@@ -265,7 +265,9 @@ export function SeerSearch() {
                 </QueryResultItem>
               ))}
               <NoneOfTheseItem onClick={handleNoneOfTheseClick}>
-                {t('None of these')}
+                <NoneOfTheseContent>
+                  <NoneOfTheseText>{t('None of these')}</NoneOfTheseText>
+                </NoneOfTheseContent>
               </NoneOfTheseItem>
             </QueryResultsSection>
           ) : (
@@ -284,7 +286,7 @@ export function SeerSearch() {
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
                       ['feedback.source']: 'seer_search',
-                      ['feedback.owner']: 'issues',
+                      ['feedback.owner']: 'ml-ai',
                     },
                   })
                 }
@@ -430,7 +432,7 @@ const QueryResultItem = styled('div')`
 
 const NoneOfTheseItem = styled('div')`
   cursor: pointer;
-  padding: ${space(2)};
+  padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   transition: background-color 0.2s ease;
   user-select: none;
@@ -444,6 +446,20 @@ const NoneOfTheseItem = styled('div')`
   &:last-child {
     border-bottom: none;
   }
+`;
+
+const NoneOfTheseContent = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  padding: ${space(1)};
+`;
+
+const NoneOfTheseText = styled('span')`
+  font-size: ${p => p.theme.form.sm.fontSize};
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
 `;
 
 const LoadingSkeleton = styled('div')`
