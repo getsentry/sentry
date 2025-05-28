@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -20,7 +20,7 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
+import {IconChat, IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -163,17 +163,20 @@ function RootCauseDescription({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  ref,
 }: {
   cause: AutofixRootCauseData;
   groupId: string;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <CauseDescription>
       {cause.description && (
         <AutofixHighlightWrapper
+          ref={ref}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -288,6 +291,19 @@ function AutofixRootCauseDisplay({
   const [customRootCause, setCustomRootCause] = useState('');
   const cause = causes[0];
   const iconFocusRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectDescription = () => {
+    if (descriptionRef.current) {
+      // Simulate a click on the description to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      descriptionRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   if (!cause) {
     return (
@@ -328,6 +344,14 @@ function AutofixRootCauseDisplay({
               <IconFocus size="sm" color="pink400" />
             </IconWrapper>
             {t('Root Cause')}
+            <ChatButton
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+            >
+              <IconChat size="xs" />
+            </ChatButton>
           </HeaderText>
           <ButtonBar>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
@@ -404,6 +428,7 @@ function AutofixRootCauseDisplay({
                 runId={runId}
                 previousDefaultStepIndex={previousDefaultStepIndex}
                 previousInsightCount={previousInsightCount}
+                ref={descriptionRef}
               />
             </Fragment>
           )}
@@ -512,5 +537,9 @@ const TextArea = styled('textarea')`
 `;
 
 const EditButton = styled(Button)`
+  color: ${p => p.theme.subText};
+`;
+
+const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
 `;

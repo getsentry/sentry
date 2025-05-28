@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -23,7 +23,7 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconFix} from 'sentry/icons';
+import {IconAdd, IconChat, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -145,6 +145,7 @@ function SolutionDescription({
   description,
   onDeleteItem,
   onToggleActive,
+  ref,
 }: {
   groupId: string;
   onDeleteItem: (index: number) => void;
@@ -154,11 +155,13 @@ function SolutionDescription({
   description?: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <SolutionDescriptionWrapper>
       {description && (
         <AutofixHighlightWrapper
+          ref={ref}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -332,6 +335,19 @@ function AutofixSolutionDisplay({
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const iconFixRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectDescription = () => {
+    if (descriptionRef.current) {
+      // Simulate a click on the description to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      descriptionRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
@@ -418,6 +434,14 @@ function AutofixSolutionDisplay({
               <IconFix size="sm" color="green400" />
             </HeaderIconWrapper>
             {t('Solution')}
+            <ChatButton
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+            >
+              <IconChat size="xs" />
+            </ChatButton>
           </HeaderText>
           <ButtonBar gap={1}>
             <ButtonBar>
@@ -486,6 +510,7 @@ function AutofixSolutionDisplay({
             previousInsightCount={previousInsightCount}
             onDeleteItem={handleDeleteItem}
             onToggleActive={handleToggleActive}
+            ref={descriptionRef}
           />
           <AddInstructionWrapper>
             <InstructionsInputWrapper onSubmit={handleFormSubmit}>
@@ -619,4 +644,8 @@ const SubmitButton = styled(Button)`
 
 const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
+`;
+
+const ChatButton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;
