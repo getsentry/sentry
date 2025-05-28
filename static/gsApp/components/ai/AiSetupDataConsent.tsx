@@ -80,13 +80,14 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <MeetSeerHeader>MEET SEER</MeetSeerHeader>
         <Paragraph>
-          Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your
-          applications, including bugs and performance issues. Seer includes:
+          {t(
+            "Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your applications, including bugs and performance issues. Seer includes:"
+          )}
         </Paragraph>
         <BulletList>
-          <li>Issue Triage</li>
-          <li>Root Cause Analysis</li>
-          <li>Solutions & Code Changes</li>
+          <li>{t('Issue Triage')}</li>
+          <li>{t('Root Cause Analysis')}</li>
+          <li>{t('Solutions & Code Changes')}</li>
         </BulletList>
         {shouldShowBilling ? (
           isTouchCustomer ? (
