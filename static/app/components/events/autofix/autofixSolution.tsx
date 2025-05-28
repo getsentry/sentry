@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -27,6 +27,7 @@ import {IconAdd, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -370,6 +371,15 @@ function AutofixSolutionDisplay({
     );
   }, []);
 
+  useEffect(() => {
+    setSolutionItems(
+      solution.map(item => ({
+        ...item,
+        is_active: item.is_active === undefined ? true : item.is_active,
+      }))
+    );
+  }, [solution]);
+
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
@@ -429,7 +439,11 @@ function AutofixSolutionDisplay({
                       : undefined
                 }
                 size="sm"
-                priority={solutionSelected ? 'default' : 'primary'}
+                priority={
+                  !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                    ? 'primary'
+                    : 'default'
+                }
                 busy={isPending}
                 disabled={hasNoRepos || cantReadRepos}
                 onClick={() => {
