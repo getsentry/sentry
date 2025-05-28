@@ -332,6 +332,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 }: FilterKeyListBoxProps<T>) {
   const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
 
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const organization = useOrganization();
+
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
   const hiddenOptionsWithRecentsAdded = useMemo<Set<SelectKey>>(() => {
@@ -380,7 +386,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
+        <SectionedOverlay
+          ref={popoverRef}
+          fullWidth
+          showDetailsPane={showDetailsPane}
+          hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+        >
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -402,7 +413,11 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
   const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
+      <SectionedOverlay
+        ref={popoverRef}
+        width={filterKeyMenuWidth}
+        hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+      >
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
@@ -428,32 +443,53 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 }
 
 const SectionedOverlay = styled(Overlay, {
-  shouldForwardProp: prop => !['fullWidth', 'showDetailsPane', 'width'].includes(prop),
+  shouldForwardProp: prop =>
+    !['fullWidth', 'showDetailsPane', 'width', 'hasAiFeatures'].includes(prop),
 })<{
   fullWidth?: boolean;
+  hasAiFeatures?: boolean;
   showDetailsPane?: boolean;
   width?: number;
 }>`
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
-  grid-template-columns: ${p => (p.fullWidth ? '50% 50%' : '1fr')};
-  grid-template-areas:
-    'seer seer'
-    'recentFilters recentFilters'
-    'tabs tabs'
-    'list list'
-    ${p => (p.fullWidth && p.showDetailsPane ? "'list details'" : "'list list'")}
-    'footer footer';
   ${p =>
-    !p.fullWidth &&
-    css`
-      grid-template-areas:
-        'seer seer'
-        'recentFilters recentFilters'
-        'tabs tabs'
-        ${p.showDetailsPane ? "'list details'" : "'list list'"}
-        'footer footer';
-    `}
+    p.hasAiFeatures
+      ? css`
+          grid-template-rows: auto auto auto 1fr auto;
+          grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
+          grid-template-areas:
+            'seer seer'
+            'recentFilters recentFilters'
+            'tabs tabs'
+            'list list'
+            'footer footer';
+          ${p.fullWidth &&
+          css`
+            grid-template-areas:
+              'seer seer'
+              'recentFilters recentFilters'
+              'tabs tabs'
+              ${p.showDetailsPane ? "'list details'" : "'list list'"}
+              'footer footer';
+          `}
+        `
+      : css`
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
+          grid-template-areas:
+            'recentFilters recentFilters'
+            'tabs tabs'
+            'list list'
+            'footer footer';
+          ${p.fullWidth &&
+          css`
+            grid-template-areas:
+              'recentFilters recentFilters'
+              'tabs tabs'
+              ${p.showDetailsPane ? "'list details'" : "'list list'"}
+              'footer footer';
+          `}
+        `}
   overflow: hidden;
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
