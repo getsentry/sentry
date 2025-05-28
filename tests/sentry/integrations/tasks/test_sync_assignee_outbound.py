@@ -7,7 +7,7 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.testutils.asserts import assert_halt_metric, assert_success_metric
+from sentry.testutils.asserts import assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user import RpcUser
@@ -151,4 +151,4 @@ class TestSyncAssigneeOutbound(TestCase):
         mock_sync_assignee.assert_not_called()
 
         assert mock_record_event.call_count == 2
-        assert_halt_metric(mock_record_event, "organization_integration_not_found")
+        assert_success_metric(mock_record_event)
