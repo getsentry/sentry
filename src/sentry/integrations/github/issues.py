@@ -8,6 +8,7 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.github.metrics import filter_user_config_errors
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -196,7 +197,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         try:
             issue = client.create_issue(repo=repo, data=issue_data)
         except ApiError as e:
-            raise IntegrationError(self.message_from_error(e))
+            filter_user_config_errors(error=e)
 
         return {
             "key": issue["number"],
