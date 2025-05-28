@@ -264,6 +264,10 @@ function AutofixHighlightPopupContent({
 
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
+    resolveThread();
+  };
+
+  const resolveThread = () => {
     setHidden(true);
     closeCommentThread({
       thread_id: threadId,
@@ -346,6 +350,9 @@ function AutofixHighlightPopupContent({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit(e);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                resolveThread();
               }
             }}
           />

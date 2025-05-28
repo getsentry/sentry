@@ -14,6 +14,7 @@ interface AutofixHighlightWrapperProps {
   className?: string;
   displayName?: string;
   isAgentComment?: boolean;
+  ref?: React.RefObject<HTMLDivElement | null>;
   retainInsightCardIndex?: number | null;
 }
 
@@ -30,8 +31,10 @@ export function AutofixHighlightWrapper({
   isAgentComment = false,
   className,
   displayName,
+  ref,
 }: AutofixHighlightWrapperProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = ref || internalRef;
   const selection = useTextSelection(containerRef);
 
   const [shouldPersist, setShouldPersist] = useState(false);
