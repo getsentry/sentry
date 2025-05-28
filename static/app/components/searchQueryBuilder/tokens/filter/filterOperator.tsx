@@ -5,6 +5,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -89,17 +90,23 @@ function FilterKeyOperatorLabel({
   opLabel,
   includeKeyLabel,
 }: {
+  keyLabel: string;
   includeKeyLabel?: boolean;
-  keyLabel?: string;
   opLabel?: string;
 }) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
+  // getFieldDefinition can be undefined if rendered outside the search query builder
+  const fieldDefinition = getFieldDefinition?.(keyLabel);
+
   if (!includeKeyLabel) {
     return <OpLabel>{opLabel}</OpLabel>;
   }
 
   return (
     <KeyOpLabelWrapper>
-      <span>{keyLabel}</span>
+      <Tooltip title={fieldDefinition?.desc} skipWrapper>
+        <span>{keyLabel}</span>
+      </Tooltip>
       {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
     </KeyOpLabelWrapper>
   );
