@@ -13253,6 +13253,11 @@ svgo@^3.3.2:
     csso "^5.0.5"
     picocolors "^1.0.0"
 
+swc-plugin-component-annotate@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/swc-plugin-component-annotate/-/swc-plugin-component-annotate-1.2.2.tgz#a2efe19f8ee3b602975c3c82629e6c6c16b44074"
+  integrity sha512-4VSOUC/OhJIpdzNmxnQOxXcU6tINJnxBIES71mTw/3yF8N929ZSZMtWxE2gozYC58tgTY9E1pG2wPhoNT0WTiA==
+
 symbol-tree@^3.2.4:
   version "3.2.4"
   resolved "https://registry.yarnpkg.com/symbol-tree/-/symbol-tree-3.2.4.tgz#430637d248ba77e078883951fb9aa0eed7c63fa2"
