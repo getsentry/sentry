@@ -13,12 +13,8 @@ import {
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import type {
-  MetricsFields,
-  SearchHook,
-  SpanFields,
-  type SpanQueryFilters,
-} from 'sentry/views/insights/types';
+import type {SearchHook, SpanQueryFilters} from 'sentry/views/insights/types';
+import {MetricsFields, SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   samples: Samples;
