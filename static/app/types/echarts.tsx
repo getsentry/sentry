@@ -1,9 +1,15 @@
 import type {
   AxisPointerComponentOption,
+  Color,
   ECharts as EChartsType,
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
+import type {
+  Dictionary,
+  OptionDataItemObject,
+  OptionDataValue,
+} from 'echarts/types/src/util/types';
 import type EChartsReact from 'echarts-for-react';
 
 import type {Confidence} from 'sentry/types/organization';
@@ -72,8 +78,6 @@ export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventPara
  * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
  */
 interface EChartMouseEventParam {
-  // color of component (make sense when componentType is 'series')
-  color: string;
   // subtype of the component to which the clicked glyph belongs
   // i.e. 'scatter', 'line', etc
   componentSubType: string;
@@ -81,29 +85,37 @@ interface EChartMouseEventParam {
   // i.e., 'series', 'markLine', 'markPoint', 'timeLine'
   componentType: string;
   // incoming raw data item
-  data: Record<string, any>;
+  data: string | number | Record<string, any>;
   // data index in incoming data array
   dataIndex: number;
+  // data name, category name
+  name: string;
+  // incoming data value
+  value:
+    | number
+    | string
+    | OptionDataValue[]
+    | Date
+    | Dictionary<OptionDataValue>
+    | OptionDataItemObject<OptionDataValue>;
+  // color of component (make sense when componentType is 'series')
+  color?: Color;
+
   // Some series, such as sankey or graph, maintains more than
   // one types of data (nodeData and edgeData), which can be
   // distinguished from each other by dataType with its value
   // 'node' and 'edge'.
   // On the other hand, most series has only one type of data,
   // where dataType is not needed.
-  dataType: string;
-  // data name, category name
-  name: string;
-
-  seriesId: string;
+  dataType?: string;
+  seriesId?: string;
   // series index in incoming option.series (make sense when componentType is 'series')
-  seriesIndex: number;
+  seriesIndex?: number;
   // series name (make sense when componentType is 'series')
-  seriesName: string;
+  seriesName?: string;
   // series type (make sense when componentType is 'series')
   // i.e., 'line', 'bar', 'pie'
-  seriesType: string;
-  // incoming data value
-  value: number | number[];
+  seriesType?: string;
 }
 
 export type EChartMouseOutHandler = EChartEventHandler<EChartMouseEventParam>;

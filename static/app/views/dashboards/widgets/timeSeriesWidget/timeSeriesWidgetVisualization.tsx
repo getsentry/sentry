@@ -562,9 +562,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
-    batch: {dataIndex: number; seriesIndex: number},
+    batch: {dataIndex: number; seriesIndex?: number},
     handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
   ): void => {
+    if (batch.seriesIndex === undefined) {
+      return;
+    }
+
     const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
@@ -706,7 +710,7 @@ function getPlottableEventDataIndex(
   series: SeriesOption[],
   event: {
     dataIndex: number;
-    seriesIndex: number;
+    seriesIndex?: number;
   },
   affectedRange: Range<Plottable>
 ): number {
