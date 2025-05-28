@@ -87,34 +87,32 @@ export default function ActionNodeList({
 
   return (
     <Fragment>
-      {actions.map(action => (
-        <AutomationBuilderRow
-          key={`${group}.action.${action.id}`}
-          onDelete={() => {
-            onDeleteRow(action.id);
-            setActionHandlerMap(({[action.id]: _, ...rest}) => rest);
-          }}
-        >
-          {(() => {
-            const handler = actionHandlerMap[action.id];
-            if (!handler) {
-              return null;
-            }
-            return (
-              <ActionNodeContext.Provider
-                value={{
-                  action,
-                  actionId: `${group}.action.${action.id}`,
-                  onUpdate: newAction => updateAction(action.id, newAction),
-                  handler,
-                }}
-              >
-                <Node />
-              </ActionNodeContext.Provider>
-            );
-          })()}
-        </AutomationBuilderRow>
-      ))}
+      {actions.map(action => {
+        const handler = actionHandlerMap[action.id];
+        if (!handler) {
+          return null;
+        }
+        return (
+          <AutomationBuilderRow
+            key={`${group}.action.${action.id}`}
+            onDelete={() => {
+              onDeleteRow(action.id);
+              setActionHandlerMap(({[action.id]: _, ...rest}) => rest);
+            }}
+          >
+            <ActionNodeContext.Provider
+              value={{
+                action,
+                actionId: `${group}.action.${action.id}`,
+                onUpdate: newAction => updateAction(action.id, newAction),
+                handler,
+              }}
+            >
+              <Node />
+            </ActionNodeContext.Provider>
+          </AutomationBuilderRow>
+        );
+      })}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {
