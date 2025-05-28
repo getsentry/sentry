@@ -188,6 +188,7 @@ export function SeerSearch() {
           ['feedback.source']: 'trace_explorer_ai_query',
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
+          ['feedback.raw_result']: JSON.stringify(rawResult).replace(/\n/g, ''),
         },
       });
     } else {
