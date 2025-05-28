@@ -165,6 +165,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
+            chartRef={props.chartRef}
             id={props.id}
             pageFilters={props.pageFilters}
             {...enableReleaseBubblesProps}
