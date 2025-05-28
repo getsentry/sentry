@@ -27,7 +27,6 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconMegaphone} from 'sentry/icons';
-// import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
