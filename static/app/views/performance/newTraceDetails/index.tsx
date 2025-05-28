@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useLogsPageDateQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -80,20 +80,11 @@ export function TraceView() {
   );
 }
 
-// We only load logs data here to determine if a trace has associated logs and use the first log
-// to represent only-logs traces. The embedded logs components fetch their own data and support
-// pagination.
-function useInitialLogsData() {
-  const logsQueryResult = useLogsPageDateQueryResult();
-
-  return useMemo(() => logsQueryResult.data, [logsQueryResult.data]);
-}
-
 function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const logsData = useInitialLogsData();
+  const logsData = useLogsPageDataQueryResult().data;
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
   const hasTraceTabsUI = useHasTraceTabsUI();
 

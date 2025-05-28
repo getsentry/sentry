@@ -22,7 +22,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {useLogsPageDateQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -134,7 +134,7 @@ function SpanSections({
 }
 
 function LogDetails() {
-  const logsQueryResult = useLogsPageDateQueryResult();
+  const logsQueryResult = useLogsPageDataQueryResult();
   if (!logsQueryResult?.data?.length) {
     return null;
   }

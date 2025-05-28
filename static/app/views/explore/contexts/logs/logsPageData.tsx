@@ -33,7 +33,7 @@ export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
   return <_LogsPageDataProvider value={value}>{children}</_LogsPageDataProvider>;
 }
 
-export function useLogsPageDateQueryResult() {
+export function useLogsPageDataQueryResult() {
   const hasInfiniteFeature = useOrganization().features.includes('ourlogs-live-refresh');
   const pageData = useLogsPageData();
   return hasInfiniteFeature ? pageData.infiniteLogsQueryResult : pageData.logsQueryResult;

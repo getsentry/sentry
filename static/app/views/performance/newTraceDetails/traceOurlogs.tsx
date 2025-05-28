@@ -11,7 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
-  useLogsPageDateQueryResult,
+  useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
@@ -50,7 +50,7 @@ export function TraceViewLogsSection({
 }: {
   scrollContainer: React.RefObject<HTMLDivElement | null>;
 }) {
-  const tableData = useLogsPageDateQueryResult();
+  const tableData = useLogsPageDataQueryResult();
   const logsSearch = useLogsSearch();
   const hasTraceTabsUi = useHasTraceTabsUI();
 
