@@ -21,7 +21,7 @@ import {
   getSingularCategoryName,
   listDisplayNames,
 } from 'getsentry/utils/dataCategory';
-import {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 type Props = {

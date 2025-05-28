@@ -4,7 +4,7 @@ import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction'
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;

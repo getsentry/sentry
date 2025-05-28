@@ -3,7 +3,7 @@ import {
   SeerReservedBudgetCategoryFixture,
 } from 'getsentry-test/fixtures/reservedBudget';
 
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {CheckoutType, type Plan, ReservedBudgetCategoryType} from 'getsentry/types';

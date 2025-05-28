@@ -35,10 +35,10 @@ import {getSlot} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
-  CheckoutAPIData,
-  CheckoutFormData,
+  type CheckoutAPIData,
+  type CheckoutFormData,
   SelectableProduct,
-  SelectedProductData,
+  type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
