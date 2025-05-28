@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import logging
 import random
+import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -21,6 +22,7 @@ from sentry import options
 from sentry.taskworker.constants import (
     DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
     DEFAULT_REBALANCE_AFTER,
+    DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
 )
 from sentry.utils import json, metrics
 
@@ -88,6 +90,12 @@ class RequestSignatureInterceptor(InterceptorBase):
         return continuation(call_details_with_meta, request)
 
 
+class HostTemporarilyUnavailable(Exception):
+    """Raised when a host is temporarily unavailable and should be retried later."""
+
+    pass
+
+
 class TaskworkerClient:
     """
     Taskworker RPC client wrapper
@@ -102,6 +110,7 @@ class TaskworkerClient:
         num_brokers: int | None = None,
         max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
         max_consecutive_unavailable_errors: int = DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
+        temporary_unavailable_host_timeout: int = DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
     ) -> None:
         self._hosts: list[str] = (
             [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
@@ -126,6 +135,9 @@ class TaskworkerClient:
         self._max_consecutive_unavailable_errors = max_consecutive_unavailable_errors
         self._num_consecutive_unavailable_errors = 0
 
+        self._temporary_unavailable_hosts: dict[str, float] = {}
+        self._temporary_unavailable_host_timeout = temporary_unavailable_host_timeout
+
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("Connecting to %s with options %s", host, self._grpc_options)
         channel = grpc.insecure_channel(host, options=self._grpc_options)
@@ -145,26 +157,50 @@ class TaskworkerClient:
         domain, port = pattern.split(":")
         return [f"{domain}-{i}:{port}" for i in range(0, num_brokers)]
 
-    def _get_cur_stub(self) -> tuple[str, ConsumerServiceStub]:
-        if self._num_tasks_before_rebalance == 0:
-            self._cur_host = random.choice(self._hosts)
-            self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
-            self._num_consecutive_unavailable_errors = 0
-            metrics.incr(
-                "taskworker.client.loadbalancer.rebalance",
-                tags={"reason": "max_tasks_reached"},
+    def _check_consecutive_unavailable_errors(self) -> None:
+        if self._num_consecutive_unavailable_errors >= self._max_consecutive_unavailable_errors:
+            self._temporary_unavailable_hosts[self._cur_host] = (
+                time.time() + self._temporary_unavailable_host_timeout
             )
-        elif (
-            self._num_consecutive_unavailable_errors == self._max_consecutive_unavailable_errors
-            and len(self._hosts) > 1
-        ):
-            available_hosts = [h for h in self._hosts if h != self._cur_host]
+
+    def _clear_temporary_unavailable_hosts(self) -> None:
+        hosts_to_remove = []
+        for host, timeout in self._temporary_unavailable_hosts.items():
+            if time.time() >= timeout:
+                hosts_to_remove.append(host)
+
+        for host in hosts_to_remove:
+            self._temporary_unavailable_hosts.pop(host)
+
+    def _get_cur_stub(self) -> tuple[str, ConsumerServiceStub]:
+        available_hosts = [h for h in self._hosts if h not in self._temporary_unavailable_hosts]
+        if not available_hosts:
+            # If all hosts are temporarily unavailable, wait for the shortest timeout
+            current_time = time.time()
+            shortest_timeout = min(self._temporary_unavailable_hosts.values())
+            logger.info(
+                "taskworker.client.no_available_hosts",
+                extra={"sleeping for": shortest_timeout - current_time},
+            )
+            time.sleep(shortest_timeout - current_time)
+            self._clear_temporary_unavailable_hosts()
+            return self._get_cur_stub()  # try again
+
+        if self._cur_host in self._temporary_unavailable_hosts:
             self._cur_host = random.choice(available_hosts)
             self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
             self._num_consecutive_unavailable_errors = 0
             metrics.incr(
                 "taskworker.client.loadbalancer.rebalance",
-                tags={"reason": "unavailable_errors"},
+                tags={"reason": "unavailable_count_reached"},
+            )
+        elif self._num_tasks_before_rebalance == 0:
+            self._cur_host = random.choice(available_hosts)
+            self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
+            self._num_consecutive_unavailable_errors = 0
+            metrics.incr(
+                "taskworker.client.loadbalancer.rebalance",
+                tags={"reason": "max_tasks_reached"},
             )
 
         if self._cur_host not in self._host_to_stubs:
@@ -181,6 +217,7 @@ class TaskworkerClient:
         This will return None if there are no tasks to fetch.
         """
         request = GetTaskRequest(namespace=namespace)
+        self._clear_temporary_unavailable_hosts()
         try:
             with metrics.timer("taskworker.get_task.rpc"):
                 host, stub = self._get_cur_stub()
@@ -195,8 +232,10 @@ class TaskworkerClient:
                 return None
             if err.code() == grpc.StatusCode.UNAVAILABLE:
                 self._num_consecutive_unavailable_errors += 1
+                self._check_consecutive_unavailable_errors()
             raise
         self._num_consecutive_unavailable_errors = 0
+        self._temporary_unavailable_hosts.pop(host, None)
         if response.HasField("task"):
             metrics.incr(
                 "taskworker.client.get_task",
@@ -218,6 +257,7 @@ class TaskworkerClient:
         The return value is the next task that should be executed.
         """
         metrics.incr("taskworker.client.fetch_next", tags={"next": fetch_next_task is not None})
+        self._clear_temporary_unavailable_hosts()
         request = SetTaskStatusRequest(
             id=task_id,
             status=status,
@@ -228,6 +268,12 @@ class TaskworkerClient:
                 if task_id not in self._task_id_to_host:
                     metrics.incr("taskworker.client.task_id_not_in_client")
                     return None
+                if self._task_id_to_host[task_id] in self._temporary_unavailable_hosts:
+                    metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
+                    raise HostTemporarilyUnavailable(
+                        f"Host {self._task_id_to_host[task_id]} is temporarily unavailable"
+                    )
+
                 host = self._task_id_to_host.pop(task_id)
                 response = self._host_to_stubs[host].SetTaskStatus(request)
         except grpc.RpcError as err:
@@ -241,9 +287,11 @@ class TaskworkerClient:
                 return None
             if err.code() == grpc.StatusCode.UNAVAILABLE:
                 self._num_consecutive_unavailable_errors += 1
-                return None
+                self._check_consecutive_unavailable_errors()
             raise
+
         self._num_consecutive_unavailable_errors = 0
+        self._temporary_unavailable_hosts.pop(host, None)
         if response.HasField("task"):
             self._task_id_to_host[response.task.id] = host
             return response.task
