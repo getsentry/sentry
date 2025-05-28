@@ -244,20 +244,22 @@ def create_project_uptime_subscription(
         )
         detector = create_detector_from_project_subscription(uptime_monitor)
 
-        # Update status. This may have the side effect of removing or creating a
-        # remote subscription. When a new monitor is created we will ensure seat
-        # assignment, which may cause the monitor to be disabled if there are no
-        # available seat assignments.
-        match status:
-            case ObjectStatus.ACTIVE:
-                try:
-                    enable_uptime_detector(detector, ensure_assignment=True)
-                except UptimeMonitorNoSeatAvailable:
-                    # No need to do anything if we failed to handle seat
-                    # assignment. The monitor will be created, but not enabled
-                    pass
-            case ObjectStatus.DISABLED:
-                disable_uptime_detector(detector)
+        # Don't consume a seat if we're still in onboarding mode
+        if mode != ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+            # Update status. This may have the side effect of removing or creating a
+            # remote subscription. When a new monitor is created we will ensure seat
+            # assignment, which may cause the monitor to be disabled if there are no
+            # available seat assignments.
+            match status:
+                case ObjectStatus.ACTIVE:
+                    try:
+                        enable_uptime_detector(detector, ensure_assignment=True)
+                    except UptimeMonitorNoSeatAvailable:
+                        # No need to do anything if we failed to handle seat
+                        # assignment. The monitor will be created, but not enabled
+                        pass
+                case ObjectStatus.DISABLED:
+                    disable_uptime_detector(detector)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
@@ -333,14 +335,16 @@ def update_project_uptime_subscription(
             },
         )
 
-        # Update status. This may have the side effect of removing or creating a
-        # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
-        # assignment fails.
-        match status:
-            case ObjectStatus.DISABLED:
-                disable_uptime_detector(detector)
-            case ObjectStatus.ACTIVE:
-                enable_uptime_detector(detector)
+        # Don't consume a seat if we're still in onboarding mode
+        if mode != ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+            # Update status. This may have the side effect of removing or creating a
+            # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
+            # assignment fails.
+            match status:
+                case ObjectStatus.DISABLED:
+                    disable_uptime_detector(detector)
+                case ObjectStatus.ACTIVE:
+                    enable_uptime_detector(detector)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
