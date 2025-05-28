@@ -6,7 +6,7 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-// import Feature from 'sentry/components/acl/feature';
+import Feature from 'sentry/components/acl/feature';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
@@ -31,9 +31,9 @@ import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-// import useOrganization from 'sentry/utils/useOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-// import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
+import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
@@ -80,13 +80,8 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
-  // const {searchSource, query} = useSearchQueryBuilder();
+  const {searchSource} = useSearchQueryBuilder();
   const openForm = useFeedbackForm();
-  // const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  // const organization = useOrganization();
-
-  // const areAiFeaturesAllowed =
-  //   !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   if (!openForm) {
     return null;
@@ -94,18 +89,6 @@ function FeedbackFooter() {
 
   return (
     <SectionedOverlayFooter>
-      {/* <Feature features="organizations:gen-ai-explore-traces">
-        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
-          <StyledSeerButton
-            priority="primary"
-            size="xs"
-            icon={<IconSeer />}
-            onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.(query)}
-          >
-            {t('Use Seer AI')}
-          </StyledSeerButton>
-        ) : null}
-      </Feature> */}
       <Button
         size="xs"
         icon={<IconMegaphone />}
@@ -113,7 +96,7 @@ function FeedbackFooter() {
           openForm({
             messagePlaceholder: t('How can we make search better for you?'),
             tags: {
-              // search_source: searchSource,
+              search_source: searchSource,
               ['feedback.source']: 'search_query_builder',
               ['feedback.owner']: 'issues',
             },
@@ -245,21 +228,30 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const organization = useOrganization();
+
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+
   return (
     <Fragment>
-      {/* TODO: This should be gated by consent check and feature flag */}
-      <SeerButtonWrapper>
-        <SeerFullWidthButton
-          size="md"
-          icon={<SeerIcon />}
-          onClick={() => {
-            setSeerMode(true);
-          }}
-          borderless
-        >
-          {t('Ask Seer')}
-        </SeerFullWidthButton>
-      </SeerButtonWrapper>
+      <Feature features="organizations:gen-ai-explore-traces">
+        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
+          <SeerButtonWrapper>
+            <SeerFullWidthButton
+              size="md"
+              icon={<SeerIcon />}
+              onClick={() => {
+                setSeerMode(true);
+              }}
+              borderless
+            >
+              {t('Ask Seer')}
+            </SeerFullWidthButton>
+          </SeerButtonWrapper>
+        ) : null}
+      </Feature>
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
