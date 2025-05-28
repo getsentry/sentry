@@ -95,8 +95,7 @@ function FilterKeyOperatorLabel({
   opLabel?: string;
 }) {
   const {getFieldDefinition} = useSearchQueryBuilder();
-  // getFieldDefinition can be undefined if rendered outside the search query builder
-  const fieldDefinition = getFieldDefinition?.(keyLabel);
+  const fieldDefinition = getFieldDefinition(keyLabel);
 
   if (!includeKeyLabel) {
     return <OpLabel>{opLabel}</OpLabel>;
