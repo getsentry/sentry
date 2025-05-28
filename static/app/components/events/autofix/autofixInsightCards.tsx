@@ -13,7 +13,7 @@ import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRo
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
-import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -145,6 +145,8 @@ function AutofixInsightCard({
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleSubmit(e);
+                        } else if (e.key === 'Escape') {
+                          handleCancel();
                         }
                       }}
                     />
@@ -162,10 +164,10 @@ function AutofixInsightCard({
                         type="submit"
                         priority="primary"
                         size="sm"
-                        title={t('Rethink the answer')}
-                        aria-label={t('Rethink the answer')}
+                        title={t('Redo work from here')}
+                        aria-label={t('Redo work from here')}
                       >
-                        <IconRefresh size="sm" />
+                        {'\u23CE'}
                       </Button>
                     </ButtonBar>
                   </EditFormRow>
@@ -208,7 +210,7 @@ function AutofixInsightCard({
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    icon={<IconRefresh size="xs" />}
+                    icon={<FlippedReturnIcon />}
                     aria-label={t('Edit insight')}
                     title={t('Rethink the answer from here')}
                   />
@@ -372,6 +374,8 @@ function CollapsibleChainLink({
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSubmit(e);
+                      } else if (e.key === 'Escape') {
+                        handleCancel();
                       }
                     }}
                   />
@@ -388,10 +392,10 @@ function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Rethink the answer')}
-                      aria-label={t('Rethink the answer')}
+                      title={t('Redo work from here')}
+                      aria-label={t('Redo work from here')}
                     >
-                      <IconRefresh size="sm" />
+                      {'\u23CE'}
                     </Button>
                   </ButtonBar>
                 </EditFormRow>
@@ -402,10 +406,12 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               onClick={() => setIsAdding(true)}
-              icon={<IconRefresh size="sm" />}
               title={t('Give feedback and rethink the answer')}
               aria-label={t('Give feedback and rethink the answer')}
-            />
+            >
+              <RethinkLabel>{t('Rethink this answer')}</RethinkLabel>
+              <FlippedReturnIcon />
+            </AddButton>
           ))}
       </RethinkButtonContainer>
     </VerticalLineContainer>
@@ -819,4 +825,21 @@ const AddButton = styled(Button)`
   }
 `;
 
+function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
+  return <CheckpointIcon {...props}>{'\u21A9'}</CheckpointIcon>;
+}
+
 export default AutofixInsightCards;
+
+const CheckpointIcon = styled('span')`
+  transform: scaleY(-1);
+  margin-bottom: ${space(0.5)};
+`;
+
+const RethinkLabel = styled('span')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-right: ${space(0.5)};
+`;
