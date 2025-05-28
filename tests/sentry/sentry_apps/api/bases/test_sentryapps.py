@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test.utils import override_settings
@@ -268,6 +266,6 @@ class IntegrationPlatformEndpointTest(TestCase):
 
         assert response.status_code == 500
         assert response.data == error.to_public_dict()
-        assert response.data == {
-            "detail": f"An issue occured during the integration platform process. Sentry error ID: {mock.ANY}"
-        }
+        assert response.data["detail"].startswith(
+            "An issue occured during the integration platform process. Sentry error ID: "
+        )
