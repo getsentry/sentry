@@ -37,5 +37,6 @@ class AnomalyDetectionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: int) -> DetectorPriorityLevel:
-        # this is a placeholder
-        return DetectorPriorityLevel.HIGH if event_data > 1 else DetectorPriorityLevel.OK
+        # this is a placeholder, type does not matter for now
+        value: int = event_data  # type: ignore[assignment]
+        return DetectorPriorityLevel.HIGH if value > 1 else DetectorPriorityLevel.OK
