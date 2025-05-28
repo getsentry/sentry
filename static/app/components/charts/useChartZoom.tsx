@@ -31,11 +31,11 @@ const getQueryTime = (date: DateString | undefined) =>
 interface ZoomRenderProps {
   dataZoom: DataZoomComponentOption[];
   isGroupedByDate: boolean;
+  onBrushEnd: EChartBrushEndHandler;
+  onBrushSelected: EChartBrushSelectedHandler;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
-  onBrushSelected: EChartBrushSelectedHandler;
-  onBrushEnd: EChartBrushEndHandler;
   toolBox: ToolboxComponentOption;
 }
 
