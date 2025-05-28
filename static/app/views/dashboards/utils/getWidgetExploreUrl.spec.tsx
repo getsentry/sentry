@@ -156,4 +156,34 @@ describe('getWidgetExploreUrl', () => {
       '&query=%28span.description%3Atest%29%20release%3A%5B%221.0.0%22%2C%222.0.0%22%5D%20'
     );
   });
+
+  it('returns the correct url for multiple queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['count(span.duration)', 'avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'is_transaction:true',
+          orderby: '',
+          name: '',
+        },
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'is_transaction:false',
+          orderby: '',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    expect(url).toBe(
+      '/organizations/org-slug/explore/traces/compare/?interval=30m&queries=%7B%22chartType%22%3A1%2C%22fields%22%3A%5B%5D%2C%22groupBys%22%3A%5B%22span.description%22%5D%2C%22query%22%3A%22is_transaction%3Atrue%22%2C%22yAxes%22%3A%5B%22count%28span.duration%29%22%2C%22avg%28span.duration%29%22%5D%7D&queries=%7B%22chartType%22%3A1%2C%22fields%22%3A%5B%5D%2C%22groupBys%22%3A%5B%22span.description%22%5D%2C%22query%22%3A%22is_transaction%3Afalse%22%2C%22yAxes%22%3A%5B%22avg%28span.duration%29%22%5D%7D&statsPeriod=14d&title=Widget'
+    );
+  });
 });
