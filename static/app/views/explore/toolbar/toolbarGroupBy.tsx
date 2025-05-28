@@ -127,7 +127,7 @@ function ColumnEditorRow({
 
   const label = useMemo(() => {
     const tag = options.find(option => option.value === column.column);
-    return <TriggerLabel>{tag?.label ?? t('None')}</TriggerLabel>;
+    return <TriggerLabel>{tag?.label ?? column.column}</TriggerLabel>;
   }, [column.column, options]);
 
   return (

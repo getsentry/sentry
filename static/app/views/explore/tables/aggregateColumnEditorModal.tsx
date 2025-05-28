@@ -24,7 +24,10 @@ import type {
   BaseAggregateField,
   GroupBy,
 } from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {
+  isGroupBy,
+  isVisualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
@@ -64,6 +67,9 @@ export function AggregateColumnEditorModal({
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
+  const canDeleteGroupBy = tempColumns.filter(isGroupBy).length > 1;
+  const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
+
   return (
     <DragNDropContext
       columns={tempColumns}
@@ -80,7 +86,9 @@ export function AggregateColumnEditorModal({
               return (
                 <ColumnEditorRow
                   key={column.id}
-                  canDelete={editableColumns.length > 1}
+                  canDelete={
+                    isGroupBy(column.column) ? canDeleteGroupBy : canDeleteVisualize
+                  }
                   column={column}
                   options={[]}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
@@ -99,15 +107,15 @@ export function AggregateColumnEditorModal({
                   onClick={() => insertColumn({groupBy: ''})}
                   icon={<IconAdd isCircled />}
                 >
-                  {t('Add a Column')}
+                  {t('Add a Group By')}
                 </Button>
                 <Button
                   size="sm"
-                  aria-label={t('Add a Visualize')}
+                  aria-label={t('Add an Aggregation')}
                   onClick={() => insertColumn(new Visualize([DEFAULT_VISUALIZATION]))}
                   icon={<IconAdd isCircled />}
                 >
-                  {t('Add a Visualize')}
+                  {t('Add an Aggregation')}
                 </Button>
               </ButtonBar>
             </RowContainer>
@@ -154,6 +162,7 @@ function ColumnEditorRow({
 
   return (
     <RowContainer
+      data-test-id="editor-row"
       key={column.id}
       ref={setNodeRef}
       style={{
@@ -216,7 +225,7 @@ function GroupBySelector({
 
   const label = useMemo(() => {
     const tag = options.find(option => option.value === groupBy.groupBy);
-    return <TriggerLabel>{tag?.label ?? t('None')}</TriggerLabel>;
+    return <TriggerLabel>{tag?.label ?? groupBy.groupBy}</TriggerLabel>;
   }, [groupBy.groupBy, options]);
 
   const handleChange = useCallback(
@@ -228,14 +237,14 @@ function GroupBySelector({
 
   return (
     <StyledCompactSelect
-      data-test-id="editor-group-by"
+      data-test-id="editor-groupby"
       options={options}
       triggerLabel={label}
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
       triggerProps={{
-        prefix: t('Column'),
+        prefix: t('Group By'),
         style: {
           width: '100%',
         },
