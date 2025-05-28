@@ -143,7 +143,7 @@ export function getExploreUrlFromSavedQueryUrl({
   });
 }
 
-function getExploreMultiQueryUrl({
+export function getExploreMultiQueryUrl({
   organization,
   selection,
   interval,
