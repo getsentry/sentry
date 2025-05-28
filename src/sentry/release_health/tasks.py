@@ -85,19 +85,18 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
     ):
         for project_id, project_totals in totals.items():
             for environment, environment_totals in project_totals.items():
-                total_releases = len(environment_totals["releases"])
                 for release_version in environment_totals["releases"]:
                     # Ignore versions that were saved with an empty string
                     if not Release.is_valid_version(release_version):
                         continue
 
-                    threshold = 0.1 / total_releases
                     if (
                         environment
                         and environment_totals["total_sessions"] != 0
-                        and environment_totals["releases"][release_version]
-                        / environment_totals["total_sessions"]
-                        >= threshold
+                        and has_been_adopted(
+                            environment_totals["total_sessions"],
+                            environment_totals["releases"][release_version],
+                        )
                     ):
                         rpe = None
                         try:
@@ -185,3 +184,12 @@ def cleanup_adopted_releases(project_ids: Sequence[int], adopted_ids: Sequence[i
         ReleaseProjectEnvironment.objects.filter(
             project_id__in=project_ids, unadopted__isnull=True
         ).exclude(Q(adopted=None) | Q(id__in=adopted_ids)).update(unadopted=timezone.now())
+
+
+def has_been_adopted(total_sessions: int, total_sessions_for_release: int) -> bool:
+    """If the release's sessions exceed 10% of total sessions it is considered adopted.
+
+    https://docs.sentry.io/product/releases/health/#adoption-stages
+    """
+    threshold = total_sessions * 0.1
+    return total_sessions_for_release >= threshold
