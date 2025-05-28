@@ -78,7 +78,10 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
       <SingleCard>
-        <MeetSeerHeader>MEET SEER</MeetSeerHeader>
+        <Flex align="center" gap={space(1)}>
+          <MeetSeerHeader>MEET SEER</MeetSeerHeader>
+          <StyledSeerWaitingIcon size="lg" />
+        </Flex>
         <Paragraph>
           {t(
             "Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your applications, including bugs and performance issues. Seer includes:"
@@ -131,7 +134,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     )}
                   </Button>
                 )}
-                <SeerWaitingIcon size="xl" />
                 {autofixAcknowledgeMutation.isError && (
                   <ErrorText>{t('Something went wrong.')}</ErrorText>
                 )}
@@ -165,7 +167,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                   t('Enable Seer')
                 )}
               </Button>
-              <SeerWaitingIcon size="xl" />
               {autofixAcknowledgeMutation.isError && (
                 <ErrorText>{t('Something went wrong.')}</ErrorText>
               )}
@@ -214,8 +215,12 @@ const SingleCard = styled('div')`
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
+`;
+
+const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
   color: ${p => p.theme.subText};
 `;
 
