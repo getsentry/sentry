@@ -161,7 +161,7 @@ class GithubInstallationInfo(TypedDict):
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return f"{account_type}:{name} {query}".encode()
+    return f"{account_type}:{name} fork:true {query}".encode()
 
 
 def error(
