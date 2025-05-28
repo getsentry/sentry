@@ -131,6 +131,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchScreenshots",
         "tempestFetchDumps",
         "autofixAutomationTuning",
+        "transactionNameClusteringDisabled",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -225,6 +226,7 @@ E.g. `['release', 'environment']`""",
     autofixAutomationTuning = serializers.ChoiceField(
         choices=["off", "low", "medium", "high", "always"], required=False
     )
+    transactionNameClusteringDisabled = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -769,6 +771,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
+                ]
+
+        if result.get("transactionNameClusteringDisabled") is not None and features.has(
+            "organizations:disable-clustering-setting", project.organization, actor=request.user
+        ):
+            if project.update_option(
+                "performance:transaction-name-clustering-disabled",
+                bool(result["transactionNameClusteringDisabled"]),
+            ):
+                changed_proj_settings["performance:transaction-name-clustering-disabled"] = result[
+                    "transactionNameClusteringDisabled"
                 ]
 
         if result.get("autofixAutomationTuning") is not None:

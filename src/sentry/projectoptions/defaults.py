@@ -199,3 +199,6 @@ register(key="sentry:tempest_fetch_dumps", default=False)
 
 # Should autofix run automatically on new issues
 register(key="sentry:autofix_automation_tuning", default="off")
+
+# Should transaction name clustering be disabled for this project
+register(key="performance:transaction-name-clustering-disabled", default=False)
