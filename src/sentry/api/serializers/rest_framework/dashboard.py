@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import NotRequired, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -57,13 +57,6 @@ DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_
 class QueryWarning(TypedDict):
     queries: list[str | None]
     columns: dict[str, str]
-
-
-class QueryBuilderConfigDict(TypedDict):
-    equation_config: dict[str, bool]
-    use_aggregate_conditions: bool
-    parser_config_overrides: NotRequired[dict]
-    has_metrics: NotRequired[bool]
 
 
 def is_equation(field: str) -> bool:
@@ -280,25 +273,25 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
-            builder_config: QueryBuilderConfigDict = {
-                "equation_config": {
+            config = QueryBuilderConfig(
+                equation_config={
                     "auto_add": bool(not is_table or injected_orderby_equation),
                     "aggregates_only": not is_table,
                 },
-                "use_aggregate_conditions": True,
-            }
+                use_aggregate_conditions=True,
+            )
             if self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
                 DashboardWidgetTypes.ERROR_EVENTS
             ):
-                builder_config["parser_config_overrides"] = ERROR_PARSER_CONFIG_OVERRIDES
+                config.parser_config_overrides = ERROR_PARSER_CONFIG_OVERRIDES
             elif self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
                 DashboardWidgetTypes.TRANSACTION_LIKE
             ):
-                builder_config["has_metrics"] = use_metrics
+                config.has_metrics = use_metrics
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                config=QueryBuilderConfig(**builder_config),
+                config=config,
             )
 
             builder.resolve_time_conditions()
