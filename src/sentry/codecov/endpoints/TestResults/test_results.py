@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.codecov import CodecovEndpoint
+from sentry.codecov.base import CodecovEndpoint
 
 list_query = """query GetTestResults(
   $owner: String!
