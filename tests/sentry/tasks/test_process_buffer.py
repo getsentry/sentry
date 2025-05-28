@@ -1,11 +1,9 @@
 from unittest import mock
 
 import pytest
-from django.test import override_settings
 
 from sentry.models.group import Group
 from sentry.tasks.process_buffer import (
-    buffer_incr,
     get_process_lock,
     process_incr,
     process_pending,
@@ -58,35 +56,3 @@ class ProcessPendingBatchTest(TestCase):
         with self.assertNoLogs("sentry.tasks.process_buffer", level="WARNING"):
             process_pending_batch()
             assert len(mock_process_pending_batch.mock_calls) == 1
-
-
-class BufferIncrTest(TestCase):
-    @override_settings(SENTRY_BUFFER_INCR_AS_CELERY_TASK=False)
-    @mock.patch("sentry.tasks.process_buffer.buffer_incr_task")
-    def test_buffer_incr_task(self, mock_buffer_incr_task):
-        buffer_incr(Group)
-        assert len(mock_buffer_incr_task.mock_calls) == 1
-        # direct task call, no delay or apply_async
-        assert mock_buffer_incr_task.mock_calls[0][0] == ""
-        assert mock_buffer_incr_task.mock_calls[0].args == ()
-        assert mock_buffer_incr_task.mock_calls[0].kwargs == {
-            "app_label": "sentry",
-            "model_name": "group",
-            "args": (),
-            "kwargs": {},
-        }
-
-    @override_settings(SENTRY_BUFFER_INCR_AS_CELERY_TASK=True)
-    @mock.patch("sentry.tasks.process_buffer.buffer_incr_task")
-    def test_buffer_incr_task_celery(self, mock_buffer_incr_task):
-        buffer_incr(Group)
-        assert len(mock_buffer_incr_task.mock_calls) == 1
-        # call on delay method to spawn as a celery task
-        assert mock_buffer_incr_task.mock_calls[0][0] == "delay"
-        assert mock_buffer_incr_task.mock_calls[0].args == ()
-        assert mock_buffer_incr_task.mock_calls[0].kwargs == {
-            "app_label": "sentry",
-            "model_name": "group",
-            "args": (),
-            "kwargs": {},
-        }
