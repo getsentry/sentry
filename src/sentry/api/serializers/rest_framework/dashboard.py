@@ -44,6 +44,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.users.models.user import User
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.strings import oxfordize_list
+from src.sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -272,17 +273,25 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
+            builder_config = {
+                "equation_config": {
+                    "auto_add": bool(not is_table or injected_orderby_equation),
+                    "aggregates_only": not is_table,
+                },
+                "use_aggregate_conditions": True,
+            }
+            if self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
+                DashboardWidgetTypes.ERROR_EVENTS
+            ):
+                builder_config["parser_config_overrides"] = ERROR_PARSER_CONFIG_OVERRIDES
+            elif self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
+                DashboardWidgetTypes.TRANSACTION_LIKE
+            ):
+                builder_config["has_metrics"] = use_metrics
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                config=QueryBuilderConfig(
-                    equation_config={
-                        "auto_add": bool(not is_table or injected_orderby_equation),
-                        "aggregates_only": not is_table,
-                    },
-                    use_aggregate_conditions=True,
-                    has_metrics=use_metrics,
-                ),
+                config=QueryBuilderConfig(**builder_config),
             )
 
             builder.resolve_time_conditions()
@@ -384,6 +393,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
+        if data.get("widget_type"):
+            additional_context["widget_type"] = data.get("widget_type")
         if self.context.get("request") and self.context["request"].user:
             additional_context["user"] = self.context["request"].user
 

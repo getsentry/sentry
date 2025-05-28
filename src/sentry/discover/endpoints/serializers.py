@@ -22,7 +22,6 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
-from src.sentry.search.events.builder.errors import ErrorsQueryBuilder
 from src.sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 
 
@@ -243,18 +242,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
                 equations, columns = categorize_columns(query["fields"])
 
-                BuilderClass = (
-                    ErrorsQueryBuilder
-                    if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS
-                    else DiscoverQueryBuilder
-                )
                 builder_config = {}
                 if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS:
                     builder_config["parser_config_overrides"] = ERROR_PARSER_CONFIG_OVERRIDES
                 elif data.get("queryDataset") == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
                     builder_config["has_metrics"] = use_metrics
 
-                builder = BuilderClass(
+                builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
                     params=self.context["params"],
                     query=query["query"],
