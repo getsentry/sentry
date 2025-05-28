@@ -100,7 +100,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             ],
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        assert self.dc.evaluate_value(self.data_packet) == DetectorPriorityLevel.OK
+        assert self.dc.evaluate_value(self.data_packet) == DetectorPriorityLevel.OK.value
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"

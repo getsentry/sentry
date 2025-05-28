@@ -190,8 +190,7 @@ class DataCondition(DefaultFieldsModel):
             return None
 
         result = handler.evaluate_value(value, self.comparison)
-        # TODO: refactor this to return the evaluation result for anomaly detection
-        return self.get_condition_result() if result else None
+        return result if result is not None else self.get_condition_result()
 
 
 def is_slow_condition(condition: DataCondition) -> bool:
