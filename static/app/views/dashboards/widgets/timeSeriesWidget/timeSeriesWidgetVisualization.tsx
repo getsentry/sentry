@@ -8,6 +8,7 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
+import type {EChartsInstance} from 'echarts-for-react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
@@ -77,9 +78,14 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   axisRange?: 'auto' | 'dataMin';
   /**
+   * Reference to the chart instance
+   */
+  chartRef?: React.Ref<EChartsInstance>;
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
@@ -603,7 +609,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
       autoHeightResize
       series={allSeries}
       grid={{
