@@ -305,7 +305,7 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 3, 10)
             return None
 
         if not activation:

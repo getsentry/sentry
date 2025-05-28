@@ -18,7 +18,10 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
-from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER
+from sentry.taskworker.constants import (
+    DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
+    DEFAULT_REBALANCE_AFTER,
+)
 from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
@@ -98,6 +101,7 @@ class TaskworkerClient:
         host: str,
         num_brokers: int | None = None,
         max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
+        max_consecutive_unavailable_errors: int = DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
     ) -> None:
         self._hosts: list[str] = (
             [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
@@ -118,6 +122,9 @@ class TaskworkerClient:
 
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
         self._num_tasks_before_rebalance = max_tasks_before_rebalance
+
+        self._max_consecutive_unavailable_errors = max_consecutive_unavailable_errors
+        self._num_consecutive_unavailable_errors = 0
 
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("Connecting to %s with options %s", host, self._grpc_options)
@@ -142,6 +149,23 @@ class TaskworkerClient:
         if self._num_tasks_before_rebalance == 0:
             self._cur_host = random.choice(self._hosts)
             self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
+            self._num_consecutive_unavailable_errors = 0
+            metrics.incr(
+                "taskworker.client.loadbalancer.rebalance",
+                tags={"reason": "max_tasks_reached"},
+            )
+        elif (
+            self._num_consecutive_unavailable_errors == self._max_consecutive_unavailable_errors
+            and len(self._hosts) > 1
+        ):
+            available_hosts = [h for h in self._hosts if h != self._cur_host]
+            self._cur_host = random.choice(available_hosts)
+            self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
+            self._num_consecutive_unavailable_errors = 0
+            metrics.incr(
+                "taskworker.client.loadbalancer.rebalance",
+                tags={"reason": "unavailable_errors"},
+            )
 
         if self._cur_host not in self._host_to_stubs:
             self._host_to_stubs[self._cur_host] = self._connect_to_host(self._cur_host)
@@ -169,7 +193,10 @@ class TaskworkerClient:
                 # Because our current broker doesn't have any tasks, try rebalancing.
                 self._num_tasks_before_rebalance = 0
                 return None
+            if err.code() == grpc.StatusCode.UNAVAILABLE:
+                self._num_consecutive_unavailable_errors += 1
             raise
+        self._num_consecutive_unavailable_errors = 0
         if response.HasField("task"):
             metrics.incr(
                 "taskworker.client.get_task",
@@ -212,7 +239,11 @@ class TaskworkerClient:
                 # The current broker is empty, switch.
                 self._num_tasks_before_rebalance = 0
                 return None
+            if err.code() == grpc.StatusCode.UNAVAILABLE:
+                self._num_consecutive_unavailable_errors += 1
+                return None
             raise
+        self._num_consecutive_unavailable_errors = 0
         if response.HasField("task"):
             self._task_id_to_host[response.task.id] = host
             return response.task
