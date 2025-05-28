@@ -1563,6 +1563,20 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
+    # check currently supported issue categories for Seer
+    if group.issue_category not in [
+        GroupCategory.ERROR,
+        GroupCategory.PERFORMANCE,
+        GroupCategory.MOBILE,
+        GroupCategory.FRONTEND,
+        GroupCategory.DB_QUERY,
+        GroupCategory.HTTP_CLIENT,
+    ] or group.issue_category in [
+        GroupCategory.REPLAY,
+        GroupCategory.FEEDBACK,
+    ]:
+        return
+
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
         "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
@@ -1614,5 +1628,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
 GENERIC_POST_PROCESS_PIPELINE = [
     process_snoozes,
     process_inbox_adds,
+    kick_off_seer_automation,
     process_rules,
 ]
