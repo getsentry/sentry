@@ -58,7 +58,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -132,7 +135,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -140,7 +146,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         )
         response = self.do_request(
             {
-                "field": ["id", "span_id"],
+                "field": ["id", "span_id", "item_id"],
                 "query": "",
                 "orderby": "id",
                 "project": self.project.id,
@@ -153,14 +159,15 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         meta = response.data["meta"]
         assert len(data) == 2
         for obj in data:
-            assert obj["id"] == obj["span_id"]
+            assert obj["id"] == obj["item_id" if self.is_eap else "span_id"]
         assert meta["dataset"] == self.dataset
 
     def test_sentry_tags_vs_tags(self):
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"transaction.method": "foo"}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ],
             is_eap=self.is_eap,
@@ -186,7 +193,8 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"transaction.method": "foo"}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ],
             is_eap=self.is_eap,
@@ -515,12 +523,18 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 self.create_span(
                     {
                         "measurements": {
-                            "messaging.message.body.size": {"value": 1024, "unit": "byte"},
+                            "messaging.message.body.size": {
+                                "value": 1024,
+                                "unit": "byte",
+                            },
                             "messaging.message.receive.latency": {
                                 "value": 1000,
                                 "unit": "millisecond",
                             },
-                            "messaging.message.retry.count": {"value": 2, "unit": "none"},
+                            "messaging.message.retry.count": {
+                                "value": 2,
+                                "unit": "none",
+                            },
                         },
                         "sentry_tags": {
                             "transaction": "queue-processor",
@@ -699,14 +713,30 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_frozen",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_slow",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_total",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            (
+                "stall_count",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -825,7 +855,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     duration=2000,
                     start_ts=self.ten_mins_ago,
                 ),
@@ -1215,7 +1248,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"user.email": "test@test.com"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
@@ -1294,7 +1330,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
     def test_free_text_wildcard_filter(self):
         spans = [
             self.create_span(
-                {"description": "barbarbar", "sentry_tags": {"status": "invalid_argument"}},
+                {
+                    "description": "barbarbar",
+                    "sentry_tags": {"status": "invalid_argument"},
+                },
                 start_ts=self.ten_mins_ago,
             ),
             self.create_span(
@@ -1337,7 +1376,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -1393,7 +1435,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ["description", "tags[foo,number]", "tags[foo,string]", "tags[foo]"],
+                "field": [
+                    "description",
+                    "tags[foo,number]",
+                    "tags[foo,string]",
+                    "tags[foo]",
+                ],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -1426,7 +1473,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ["description", "tags[foo,    number]", "tags[foo, string]", "tags[foo]"],
+                "field": [
+                    "description",
+                    "tags[foo,    number]",
+                    "tags[foo, string]",
+                    "tags[foo]",
+                ],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -1454,7 +1506,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success", "foo": "five"},
+                    },
                     measurements={"foo": {"value": 8}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -1699,7 +1754,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         )
 
     @mock.patch(
-        "sentry.utils.snuba_rpc._snuba_pool.urlopen", side_effect=urllib3.exceptions.TimeoutError
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen",
+        side_effect=urllib3.exceptions.TimeoutError,
     )
     def test_timeout(self, mock_rpc):
         response = self.do_request(
@@ -2248,14 +2304,30 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_frozen",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_slow",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_total",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            (
+                "stall_count",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -2617,7 +2689,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 1", "sentry_tags": {"status_code": "500"}},
+                    {
+                        "description": "description 1",
+                        "sentry_tags": {"status_code": "500"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2626,7 +2701,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 1", "sentry_tags": {"status_code": "200"}},
+                    {
+                        "description": "description 1",
+                        "sentry_tags": {"status_code": "200"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2635,7 +2713,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    {
+                        "description": "description 2",
+                        "sentry_tags": {"status_code": "500"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2644,7 +2725,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    {
+                        "description": "description 2",
+                        "sentry_tags": {"status_code": "500"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2790,7 +2874,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"trace.status": status}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"trace.status": status}},
+                    start_ts=self.ten_mins_ago,
                 )
                 for status in statuses
             ],
@@ -2982,7 +3067,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"release": "foo"}}, duration=100, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"release": "foo"}},
+                    duration=100,
+                    start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
                     {"sentry_tags": {"release": "bar"}},
@@ -3071,10 +3158,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans.extend(
             [
                 self.create_span(
-                    {"sentry_tags": {"ttfd": "ttfd", "ttid": ""}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"ttfd": "ttfd", "ttid": ""}},
+                    start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"ttfd": "", "ttid": ""}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"ttfd": "", "ttid": ""}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ]
         )
@@ -3708,7 +3797,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                             "score.ratio.lcp": {"value": 1.0},
                             "score.ratio.inp": {"value": 0.0},
                         },
-                        "sentry_tags": {"transaction": "foo_transaction", "browser.name": "Chrome"},
+                        "sentry_tags": {
+                            "transaction": "foo_transaction",
+                            "browser.name": "Chrome",
+                        },
                     }
                 ),
                 self.create_span(
@@ -3720,7 +3812,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                             "score.ratio.lcp": {"value": 0.0},
                             "score.ratio.inp": {"value": 0.0},
                         },
-                        "sentry_tags": {"transaction": "bar_transaction", "browser.name": "Chrome"},
+                        "sentry_tags": {
+                            "transaction": "bar_transaction",
+                            "browser.name": "Chrome",
+                        },
                     }
                 ),
                 self.create_span(
@@ -3790,7 +3885,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                             "score.ratio.lcp": {"value": 1.0},
                             "score.ratio.inp": {"value": 0.0},
                         },
-                        "sentry_tags": {"transaction": "foo_transaction", "browser.name": "Chrome"},
+                        "sentry_tags": {
+                            "transaction": "foo_transaction",
+                            "browser.name": "Chrome",
+                        },
                     }
                 ),
             ],
@@ -4014,7 +4112,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["description", "tags[http.response.status_code,number]", "count()"],
+                "field": [
+                    "description",
+                    "tags[http.response.status_code,number]",
+                    "count()",
+                ],
                 "query": "!tags[http.response.status_code,number]:200",
                 "orderby": "description",
                 "project": self.project.id,
@@ -4394,7 +4496,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"user.email": "test@test.com"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
@@ -4431,7 +4536,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"user.email": "test@test.com"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
@@ -4536,7 +4644,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 self.create_span(
                     {
                         "description": "foo",
-                        "sentry_tags": {"ttid": "ttid", "app_start_type": "warm", "os.name": "iOS"},
+                        "sentry_tags": {
+                            "ttid": "ttid",
+                            "app_start_type": "warm",
+                            "os.name": "iOS",
+                        },
                     },
                     start_ts=self.ten_mins_ago,
                 ),
