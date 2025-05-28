@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import usePrevious from 'sentry/utils/usePrevious';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -49,8 +50,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
         <TimeSeriesWidgetVisualization
           plottables={data.map(
             timeSeries =>
-              new Bars(timeSeries, {
-                delay: INGESTION_DELAY,
+              new Bars(markDelayedData(timeSeries, INGESTION_DELAY), {
                 stack: 'all',
               })
           )}
