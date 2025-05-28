@@ -43,10 +43,6 @@ import {AuthenticatorHeader} from './components/authenticatorHeader';
 type GetFieldsOpts = {
   authenticator: Authenticator;
   /**
-   * Callback when u2f device is activated
-   */
-  handleWebAuthn: (params: any) => void;
-  /**
    * Flag to track if totp has been sent
    */
   hasSentCode: boolean;
@@ -68,7 +64,6 @@ const getFields = ({
   hasSentCode,
   sendingCode,
   onSmsReset,
-  handleWebAuthn,
 }: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
@@ -131,12 +126,14 @@ const getFields = ({
   if (authenticator.id === 'u2f') {
     const deviceNameField = form.find(({name}) => name === 'deviceName')!;
     return [
+      () => <WebAuthnEnroll challengeData={authenticator.challenge} />,
       deviceNameField,
       () => (
-        <WebAuthnEnroll
-          challengeData={authenticator.challenge}
-          onWebAuthn={handleWebAuthn}
-        />
+        <Actions key="confirm">
+          <Button priority="primary" type="submit">
+            {t('Confirm')}
+          </Button>
+        </Actions>
       ),
     ];
   }
@@ -263,22 +260,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
-  // Handle u2f device tap
-  handleWebAuthn = async (tapData: any) => {
-    const data = {deviceName: this.formModel.getValue('deviceName'), ...tapData};
-
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(this.enrollEndpoint, {data});
-    } catch (err) {
-      this.handleEnrollError();
-      return;
-    }
-
-    this.handleEnrollSuccess();
-  };
-
   // Currently only TOTP uses this
   handleTotpSubmit = async (dataModel: any) => {
     if (!this.state.authenticator) {
@@ -302,6 +283,20 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     this.handleEnrollSuccess();
   };
 
+  // Handle webAuthn
+  handleWebAuthn = async (dataModel: any) => {
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {data: dataModel});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
+  };
+
   handleSubmit: FormProps['onSubmit'] = data => {
     const id = this.state.authenticator?.id;
 
@@ -311,6 +306,10 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
     if (id === 'sms') {
       this.handleSmsSubmit(data);
+      return;
+    }
+    if (id === 'u2f') {
+      this.handleWebAuthn(data);
       return;
     }
   };
@@ -402,7 +401,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       hasSentCode,
       sendingCode,
       onSmsReset: this.handleSmsReset,
-      handleWebAuthn: this.handleWebAuthn,
     });
 
     // Attempt to extract `defaultValue` from server generated form fields
