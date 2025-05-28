@@ -51,6 +51,7 @@ const formGroups: JsonFormObject[] = [
         label: 'Enable Spam Detection',
         help: 'Toggles whether or not to enable auto spam detection in User Feedback.',
         getData: data => ({options: data}),
+        visible: ({features}) => features.has('user-feedback-spam-ingest'),
       },
     ],
   },

@@ -6,15 +6,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
 type ExploreParams = Parameters<typeof getExploreUrl>[0];
 
 interface ToolbarProps {
   onOpenFullScreen: () => void;
   exploreParams?: Omit<ExploreParams, 'organization' | 'selection'>;
+  loaderSource?: LoadableChartWidgetProps['loaderSource'];
 }
 
-export function Toolbar({exploreParams, onOpenFullScreen}: ToolbarProps) {
+export function Toolbar({exploreParams, onOpenFullScreen, loaderSource}: ToolbarProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const exploreUrl =
@@ -44,13 +46,15 @@ export function Toolbar({exploreParams, onOpenFullScreen}: ToolbarProps) {
           ]}
         />
       ) : null}
-      <Button
-        size="xs"
-        aria-label={t('Open Full-Screen View')}
-        borderless
-        icon={<IconExpand />}
-        onClick={onOpenFullScreen}
-      />
+      {loaderSource !== 'releases-drawer' && (
+        <Button
+          size="xs"
+          aria-label={t('Open Full-Screen View')}
+          borderless
+          icon={<IconExpand />}
+          onClick={onOpenFullScreen}
+        />
+      )}
     </Widget.WidgetToolbar>
   );
 }

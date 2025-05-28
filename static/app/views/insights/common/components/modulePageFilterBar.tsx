@@ -104,7 +104,13 @@ export function ModulePageFilterBar({
       >
         {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
           otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
-        <div style={{width: '100px', position: 'absolute', height: '100%'}} />
+        <div
+          style={{
+            position: 'absolute',
+            width: '100px',
+            height: '36px' /* default button height */,
+          }}
+        />
       </Tooltip>
       {/* Requires an extra div, else the pagefilterbar will grow to fill the height
       of the readout ribbon which results in buttons being very large. */}

@@ -1,6 +1,8 @@
 import {Fragment, type MouseEventHandler} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -19,12 +21,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
+import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
-  label: string;
+  group: PrimaryNavGroup;
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
@@ -135,42 +139,73 @@ export function SidebarMenu({
   );
 }
 
+function SidebarNavLink({
+  children,
+  to,
+  activeTo = to,
+  analyticsKey,
+  group,
+}: SidebarItemLinkProps) {
+  const organization = useOrganization();
+  const {layout, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
+  const theme = useTheme();
+  const location = useLocation();
+  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
+  const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
+
+  const {hoverProps} = useHover({
+    onHoverStart: () => {
+      setActivePrimaryNavGroup(group);
+    },
+  });
+
+  return (
+    <NavLink
+      to={to}
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
+      onClick={() => {
+        recordPrimaryItemClick(analyticsKey, organization);
+      }}
+      aria-selected={activePrimaryNavGroup === group ? true : isActive}
+      aria-current={isActive ? 'page' : undefined}
+      isMobile={layout === NavLayout.MOBILE}
+      {...hoverProps}
+    >
+      {layout === NavLayout.MOBILE ? (
+        <Fragment>
+          {theme.isChonk ? null : <InteractionStateLayer />}
+          {children}
+          {label}
+        </Fragment>
+      ) : (
+        <Fragment>
+          <NavLinkIconContainer>{children}</NavLinkIconContainer>
+          <NavLinkLabel>{label}</NavLinkLabel>
+        </Fragment>
+      )}
+    </NavLink>
+  );
+}
+
 export function SidebarLink({
   children,
   to,
   activeTo = to,
   analyticsKey,
-  label,
+  group,
 }: SidebarItemLinkProps) {
-  const theme = useTheme();
-  const organization = useOrganization();
-  const location = useLocation();
-  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const {layout} = useNavContext();
+  const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
     <SidebarItem label={label} showLabel>
-      <NavLink
+      <SidebarNavLink
         to={to}
-        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-        onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
-        aria-selected={isActive}
-        aria-current={isActive ? 'page' : undefined}
-        isMobile={layout === NavLayout.MOBILE}
+        activeTo={activeTo}
+        analyticsKey={analyticsKey}
+        group={group}
       >
-        {layout === NavLayout.MOBILE ? (
-          <Fragment>
-            {theme.isChonk ? null : <InteractionStateLayer />}
-            {children}
-            {label}
-          </Fragment>
-        ) : (
-          <Fragment>
-            <NavLinkIconContainer>{children}</NavLinkIconContainer>
-            <NavLinkLabel>{label}</NavLinkLabel>
-          </Fragment>
-        )}
-      </NavLink>
+        {children}
+      </SidebarNavLink>
     </SidebarItem>
   );
 }
@@ -378,14 +413,15 @@ const ChonkNavLink = chonkStyled(Link, {
     }
   }
 
-  &:hover {
+  &:hover,
+  &[aria-selected='true'] {
     color: ${p => p.theme.tokens.content.muted};
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.gray100};
     }
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.purple400};
 
     &::before { opacity: 1; }
@@ -415,7 +451,8 @@ const StyledNavLink = styled(Link, {
       padding-bottom: ${space(1)};
       gap: ${space(0.5)};
 
-      &:hover {
+      &:hover,
+      &[aria-selected='true'] {
         ${NavLinkIconContainer} {
           &::before {
             opacity: 0.06;
@@ -431,7 +468,7 @@ const StyledNavLink = styled(Link, {
         }
       }
 
-      &[aria-selected='true'] {
+      &[aria-current='page'] {
         color: ${p.theme.purple400};
 
         ${NavLinkIconContainer} {

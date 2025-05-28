@@ -1,7 +1,7 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
+import {uuid4} from '@sentry/core';
 
-import type FormModel from 'sentry/components/forms/model';
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
+import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
   DataConditionGroupLogicType,
@@ -10,12 +10,12 @@ import {
 
 export function useAutomationBuilderReducer() {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
-    (state, action, formModel?: FormModel): AutomationBuilderState => {
+    (state, action): AutomationBuilderState => {
       switch (action.type) {
         case 'ADD_WHEN_CONDITION':
           return addWhenCondition(state, action);
         case 'REMOVE_WHEN_CONDITION':
-          return removeWhenCondition(state, action, formModel);
+          return removeWhenCondition(state, action);
         case 'UPDATE_WHEN_CONDITION':
           return updateWhenCondition(state, action);
         case 'UPDATE_WHEN_LOGIC_TYPE':
@@ -23,11 +23,11 @@ export function useAutomationBuilderReducer() {
         case 'ADD_IF':
           return addIf(state, action);
         case 'REMOVE_IF':
-          return removeIf(state, action, formModel);
+          return removeIf(state, action);
         case 'ADD_IF_CONDITION':
           return addIfCondition(state, action);
         case 'REMOVE_IF_CONDITION':
-          return removeIfCondition(state, action, formModel);
+          return removeIfCondition(state, action);
         case 'UPDATE_IF_CONDITION':
           return updateIfCondition(state, action);
         case 'UPDATE_IF_CONDITION_TYPE':
@@ -35,7 +35,7 @@ export function useAutomationBuilderReducer() {
         case 'ADD_IF_ACTION':
           return addIfAction(state, action);
         case 'REMOVE_IF_ACTION':
-          return removeIfAction(state, action, formModel);
+          return removeIfAction(state, action);
         case 'UPDATE_IF_ACTION':
           return updateIfAction(state, action);
         case 'UPDATE_IF_LOGIC_TYPE':
@@ -56,12 +56,12 @@ export function useAutomationBuilderReducer() {
       [dispatch]
     ),
     removeWhenCondition: useCallback(
-      (index: number) => dispatch({type: 'REMOVE_WHEN_CONDITION', index}),
+      (id: string) => dispatch({type: 'REMOVE_WHEN_CONDITION', id}),
       [dispatch]
     ),
     updateWhenCondition: useCallback(
-      (index: number, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_WHEN_CONDITION', index, comparison}),
+      (id: string, comparison: Record<string, any>) =>
+        dispatch({type: 'UPDATE_WHEN_CONDITION', id, comparison}),
       [dispatch]
     ),
     updateWhenLogicType: useCallback(
@@ -71,52 +71,52 @@ export function useAutomationBuilderReducer() {
     ),
     addIf: useCallback(() => dispatch({type: 'ADD_IF'}), [dispatch]),
     removeIf: useCallback(
-      (groupIndex: number) => dispatch({type: 'REMOVE_IF', groupIndex}),
+      (groupId: string) => dispatch({type: 'REMOVE_IF', groupId}),
       [dispatch]
     ),
     addIfCondition: useCallback(
-      (groupIndex: number, conditionType: DataConditionType) =>
-        dispatch({type: 'ADD_IF_CONDITION', groupIndex, conditionType}),
+      (groupId: string, conditionType: DataConditionType) =>
+        dispatch({type: 'ADD_IF_CONDITION', groupId, conditionType}),
       [dispatch]
     ),
     removeIfCondition: useCallback(
-      (groupIndex: number, conditionIndex: number) =>
-        dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex}),
+      (groupId: string, conditionId: string) =>
+        dispatch({type: 'REMOVE_IF_CONDITION', groupId, conditionId}),
       [dispatch]
     ),
     updateIfConditionType: useCallback(
-      (groupIndex: number, conditionIndex: number, conditionType: DataConditionType) =>
+      (groupId: string, conditionId: string, conditionType: DataConditionType) =>
         dispatch({
           type: 'UPDATE_IF_CONDITION_TYPE',
-          groupIndex,
-          conditionIndex,
+          groupId,
+          conditionId,
           conditionType,
         }),
       [dispatch]
     ),
     updateIfCondition: useCallback(
-      (groupIndex: number, conditionIndex: number, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_IF_CONDITION', groupIndex, conditionIndex, comparison}),
+      (groupId: string, conditionId: string, comparison: Record<string, any>) =>
+        dispatch({type: 'UPDATE_IF_CONDITION', groupId, conditionId, comparison}),
       [dispatch]
     ),
     addIfAction: useCallback(
-      (groupIndex: number, actionType: ActionType) =>
-        dispatch({type: 'ADD_IF_ACTION', groupIndex, actionType}),
+      (groupId: string, actionId: string, actionHandler: ActionHandler) =>
+        dispatch({type: 'ADD_IF_ACTION', groupId, actionId, actionHandler}),
       [dispatch]
     ),
     removeIfAction: useCallback(
-      (groupIndex: number, actionIndex: number) =>
-        dispatch({type: 'REMOVE_IF_ACTION', groupIndex, actionIndex}),
+      (groupId: string, actionId: string) =>
+        dispatch({type: 'REMOVE_IF_ACTION', groupId, actionId}),
       [dispatch]
     ),
     updateIfAction: useCallback(
-      (groupIndex: number, actionIndex: number, data: Record<string, any>) =>
-        dispatch({type: 'UPDATE_IF_ACTION', groupIndex, actionIndex, data}),
+      (groupId: string, actionId: string, data: Record<string, any>) =>
+        dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, data}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
-      (groupIndex: number, logicType: DataConditionGroupLogicType) =>
-        dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupIndex, logicType}),
+      (groupId: string, logicType: DataConditionGroupLogicType) =>
+        dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupId, logicType}),
       [dispatch]
     ),
   };
@@ -135,30 +135,26 @@ interface AutomationBuilderState {
 // 2. The AutomationActions interface
 interface AutomationActions {
   addIf: () => void;
-  addIfAction: (groupIndex: number, actionType: ActionType) => void;
-  addIfCondition: (groupIndex: number, conditionType: DataConditionType) => void;
+  addIfAction: (groupId: string, actionId: string, actionHandler: ActionHandler) => void;
+  addIfCondition: (groupId: string, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
-  removeIf: (groupIndex: number) => void;
-  removeIfAction: (groupIndex: number, actionIndex: number) => void;
-  removeIfCondition: (groupIndex: number, conditionIndex: number) => void;
-  removeWhenCondition: (index: number) => void;
-  updateIfAction: (
-    groupIndex: number,
-    actionIndex: number,
-    data: Record<string, any>
-  ) => void;
+  removeIf: (groupId: string) => void;
+  removeIfAction: (groupId: string, actionId: string) => void;
+  removeIfCondition: (groupId: string, conditionId: string) => void;
+  removeWhenCondition: (id: string) => void;
+  updateIfAction: (groupId: string, actionId: string, data: Record<string, any>) => void;
   updateIfCondition: (
-    groupIndex: number,
-    conditionIndex: number,
+    groupId: string,
+    conditionId: string,
     comparison: Record<string, any>
   ) => void;
   updateIfConditionType: (
-    groupIndex: number,
-    conditionIndex: number,
+    groupId: string,
+    conditionId: string,
     conditionType: DataConditionType
   ) => void;
-  updateIfLogicType: (groupIndex: number, logicType: DataConditionGroupLogicType) => void;
-  updateWhenCondition: (index: number, comparison: Record<string, any>) => void;
+  updateIfLogicType: (groupId: string, logicType: DataConditionGroupLogicType) => void;
+  updateWhenCondition: (id: string, comparison: Record<string, any>) => void;
   updateWhenLogicType: (logicType: DataConditionGroupLogicType) => void;
 }
 
@@ -185,7 +181,7 @@ export const initialAutomationBuilderState: AutomationBuilderState = {
   },
   actionFilters: [
     {
-      id: 'if.0',
+      id: '0',
       logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
       conditions: [],
     },
@@ -198,13 +194,13 @@ type AddWhenConditionAction = {
 };
 
 type RemoveWhenConditionAction = {
-  index: number;
+  id: string;
   type: 'REMOVE_WHEN_CONDITION';
 };
 
 type UpdateWhenConditionAction = {
   comparison: Record<string, any>;
-  index: number;
+  id: string;
   type: 'UPDATE_WHEN_CONDITION';
 };
 
@@ -218,57 +214,58 @@ type AddIfAction = {
 };
 
 type RemoveIfAction = {
-  groupIndex: number;
+  groupId: string;
   type: 'REMOVE_IF';
 };
 
 type AddIfConditionAction = {
   conditionType: DataConditionType;
-  groupIndex: number;
+  groupId: string;
   type: 'ADD_IF_CONDITION';
 };
 
 type RemoveIfConditionAction = {
-  conditionIndex: number;
-  groupIndex: number;
+  conditionId: string;
+  groupId: string;
   type: 'REMOVE_IF_CONDITION';
 };
 
 type UpdateIfConditionTypeAction = {
-  conditionIndex: number;
+  conditionId: string;
   conditionType: DataConditionType;
-  groupIndex: number;
+  groupId: string;
   type: 'UPDATE_IF_CONDITION_TYPE';
 };
 
 type UpdateIfConditionAction = {
   comparison: Record<string, any>;
-  conditionIndex: number;
-  groupIndex: number;
+  conditionId: string;
+  groupId: string;
   type: 'UPDATE_IF_CONDITION';
 };
 
 type AddIfActionAction = {
-  actionType: ActionType;
-  groupIndex: number;
+  actionHandler: ActionHandler;
+  actionId: string;
+  groupId: string;
   type: 'ADD_IF_ACTION';
 };
 
 type RemoveIfActionAction = {
-  actionIndex: number;
-  groupIndex: number;
+  actionId: string;
+  groupId: string;
   type: 'REMOVE_IF_ACTION';
 };
 
 type UpdateIfActionAction = {
-  actionIndex: number;
+  actionId: string;
   data: Record<string, any>;
-  groupIndex: number;
+  groupId: string;
   type: 'UPDATE_IF_ACTION';
 };
 
 type UpdateIfLogicTypeAction = {
-  groupIndex: number;
+  groupId: string;
   logicType: DataConditionGroupLogicType;
   type: 'UPDATE_IF_LOGIC_TYPE';
 };
@@ -300,6 +297,7 @@ function addWhenCondition(
       conditions: [
         ...state.triggers.conditions,
         {
+          id: uuid4(),
           comparison_type: action.conditionType,
           comparison: {},
         },
@@ -310,23 +308,14 @@ function addWhenCondition(
 
 function removeWhenCondition(
   state: AutomationBuilderState,
-  action: RemoveWhenConditionAction,
-  formModel?: FormModel
+  action: RemoveWhenConditionAction
 ): AutomationBuilderState {
-  const {index} = action;
-  if (formModel) {
-    for (const key of formModel.fields.keys()) {
-      if (key.startsWith(`triggers.conditions.${index}.`)) {
-        formModel.removeField(key);
-      }
-    }
-  }
-
+  const {id} = action;
   return {
     ...state,
     triggers: {
       ...state.triggers,
-      conditions: [...state.triggers.conditions.filter((_, i) => i !== index)],
+      conditions: [...state.triggers.conditions.filter(c => c.id !== id)],
     },
   };
 }
@@ -335,14 +324,13 @@ function updateWhenCondition(
   state: AutomationBuilderState,
   action: UpdateWhenConditionAction
 ): AutomationBuilderState {
+  const {id, comparison} = action;
   return {
     ...state,
     triggers: {
       ...state.triggers,
-      conditions: state.triggers.conditions.map((c, i) =>
-        i === action.index
-          ? {...c, comparison: {...c.comparison, ...action.comparison}}
-          : c
+      conditions: state.triggers.conditions.map(c =>
+        c.id === id ? {...c, comparison: {...c.comparison, ...comparison}} : c
       ),
     },
   };
@@ -371,7 +359,7 @@ function addIf(
     actionFilters: [
       ...state.actionFilters,
       {
-        id: state.actionFilters.length.toString(),
+        id: uuid4(),
         conditions: [],
         logicType: DataConditionGroupLogicType.ANY,
       },
@@ -381,20 +369,12 @@ function addIf(
 
 function removeIf(
   state: AutomationBuilderState,
-  action: RemoveIfAction,
-  formModel?: FormModel
+  action: RemoveIfAction
 ): AutomationBuilderState {
-  const {groupIndex} = action;
-  if (formModel) {
-    for (const key of formModel.fields.keys()) {
-      if (key.startsWith(`actionFilters.${groupIndex}.`)) {
-        formModel.removeField(key);
-      }
-    }
-  }
+  const {groupId} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.filter((_, i) => i !== groupIndex),
+    actionFilters: state.actionFilters.filter(group => group.id !== groupId),
   };
 }
 
@@ -402,11 +382,11 @@ function addIfCondition(
   state: AutomationBuilderState,
   action: AddIfConditionAction
 ): AutomationBuilderState {
-  const {groupIndex, conditionType} = action;
+  const {groupId, conditionType} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
@@ -414,6 +394,7 @@ function addIfCondition(
         conditions: [
           ...group.conditions,
           {
+            id: uuid4(),
             comparison_type: conditionType,
             comparison: {},
           },
@@ -425,26 +406,18 @@ function addIfCondition(
 
 function removeIfCondition(
   state: AutomationBuilderState,
-  action: RemoveIfConditionAction,
-  formModel?: FormModel
+  action: RemoveIfConditionAction
 ): AutomationBuilderState {
-  const {groupIndex, conditionIndex} = action;
-  if (formModel) {
-    for (const key of formModel.fields.keys()) {
-      if (key.startsWith(`actionFilters.${groupIndex}.conditions.${conditionIndex}.`)) {
-        formModel.removeField(key);
-      }
-    }
-  }
+  const {groupId, conditionId} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
         ...group,
-        conditions: group.conditions.filter((_, j) => j !== conditionIndex),
+        conditions: group.conditions.filter(c => c.id !== conditionId),
       };
     }),
   };
@@ -454,17 +427,17 @@ function updateIfConditionType(
   state: AutomationBuilderState,
   action: UpdateIfConditionTypeAction
 ): AutomationBuilderState {
-  const {groupIndex, conditionIndex, conditionType} = action;
+  const {groupId, conditionId, conditionType} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
         ...group,
-        conditions: group.conditions.map((c, j) =>
-          j === conditionIndex ? {...c, comparison_type: conditionType} : c
+        conditions: group.conditions.map(c =>
+          c.id === conditionId ? {...c, comparison_type: conditionType} : c
         ),
       };
     }),
@@ -475,17 +448,17 @@ function updateIfCondition(
   state: AutomationBuilderState,
   action: UpdateIfConditionAction
 ): AutomationBuilderState {
-  const {groupIndex, conditionIndex, comparison} = action;
+  const {groupId, conditionId, comparison} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
         ...group,
-        conditions: group.conditions.map((c, j) =>
-          j === conditionIndex ? {...c, comparison: {...c.comparison, ...comparison}} : c
+        conditions: group.conditions.map(c =>
+          c.id === conditionId ? {...c, comparison: {...c.comparison, ...comparison}} : c
         ),
       };
     }),
@@ -496,11 +469,11 @@ function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
-  const {groupIndex, actionType} = action;
+  const {groupId, actionId, actionHandler} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
@@ -508,8 +481,13 @@ function addIfAction(
         actions: [
           ...(group.actions ?? []),
           {
-            type: actionType,
-            data: {},
+            id: actionId,
+            type: actionHandler.type,
+            data: {
+              ...(actionHandler.sentryApp
+                ? {targetIdentifier: actionHandler.sentryApp.id}
+                : {}),
+            },
           },
         ],
       };
@@ -519,26 +497,18 @@ function addIfAction(
 
 function removeIfAction(
   state: AutomationBuilderState,
-  action: RemoveIfActionAction,
-  formModel?: FormModel
+  action: RemoveIfActionAction
 ): AutomationBuilderState {
-  const {groupIndex, actionIndex} = action;
-  if (formModel) {
-    for (const key of formModel.fields.keys()) {
-      if (key.startsWith(`actionFilters.${groupIndex}.actions.${actionIndex}.`)) {
-        formModel.removeField(key);
-      }
-    }
-  }
+  const {groupId, actionId} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
         ...group,
-        actions: group.actions?.filter((_, j) => j !== actionIndex),
+        actions: group.actions?.filter(a => a.id !== actionId),
       };
     }),
   };
@@ -548,19 +518,19 @@ function updateIfAction(
   state: AutomationBuilderState,
   action: UpdateIfActionAction
 ): AutomationBuilderState {
-  const {groupIndex, actionIndex, data} = action;
+  const {groupId, actionId, data} = action;
   // special case for integrationId which is outside of data
   if ('integrationId' in data) {
     return {
       ...state,
-      actionFilters: state.actionFilters.map((group, i) => {
-        if (i !== groupIndex) {
+      actionFilters: state.actionFilters.map(group => {
+        if (group.id !== groupId) {
           return group;
         }
         return {
           ...group,
-          actions: group.actions?.map((d, j) =>
-            j === actionIndex ? {...d, integrationId: data.integrationId} : d
+          actions: group.actions?.map(a =>
+            a.id === actionId ? {...a, integrationId: data.integrationId} : a
           ),
         };
       }),
@@ -568,14 +538,14 @@ function updateIfAction(
   }
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) => {
-      if (i !== groupIndex) {
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
         return group;
       }
       return {
         ...group,
-        actions: group.actions?.map((d, j) =>
-          j === actionIndex ? {...d, data: {...d.data, ...data}} : d
+        actions: group.actions?.map(a =>
+          a.id === actionId ? {...a, data: {...a.data, ...data}} : a
         ),
       };
     }),
@@ -586,11 +556,11 @@ function updateIfLogicType(
   state: AutomationBuilderState,
   action: UpdateIfLogicTypeAction
 ): AutomationBuilderState {
-  const {groupIndex, logicType} = action;
+  const {groupId, logicType} = action;
   return {
     ...state,
-    actionFilters: state.actionFilters.map((group, i) =>
-      i === groupIndex ? {...group, logicType} : group
+    actionFilters: state.actionFilters.map(group =>
+      group.id === groupId ? {...group, logicType} : group
     ),
   };
 }

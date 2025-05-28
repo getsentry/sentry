@@ -577,6 +577,17 @@ export const generateButtonTheme = (colors: Colors, alias: Aliases): ButtonColor
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
+  transparent: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: 'transparent',
+    backgroundActive: 'transparent',
+    border: 'transparent',
+    borderActive: 'transparent',
+    borderTranslucent: 'transparent',
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
+  },
 });
 
 export const generateAlertTheme = (colors: Colors, alias: Aliases): AlertColors => ({
@@ -955,7 +966,7 @@ type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'un
 type LevelColors = Record<Level, string>;
 
 // @TODO(jonasbadalic): Disabled is not a button variant, it's a state
-type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
+type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled' | 'transparent';
 type ButtonColors = Record<
   Button,
   {

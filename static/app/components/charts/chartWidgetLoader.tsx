@@ -1,5 +1,6 @@
 import {captureException} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
+import type {EChartsInstance} from 'echarts-for-react';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -12,6 +13,8 @@ interface Props extends LoadableChartWidgetProps {
    * ID of the Chart
    */
   id: ChartId;
+
+  ref?: React.Ref<EChartsInstance>;
 }
 // We need to map the widget id to the dynamic import because we want the import paths to be statically analyzable.
 const CHART_MAP = {
@@ -155,6 +158,34 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
     ),
+  overviewAgentsRunsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'
+    ),
+  overviewAgentsDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'
+    ),
+  overviewApiLatencyChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
+    ),
+  overviewCacheMissChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'
+    ),
+  overviewJobsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewJobsChartWidget'),
+  overviewPageloadsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
+    ),
+  overviewRequestsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewSlowQueriesChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
+    ),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**
@@ -201,5 +232,5 @@ export function ChartWidgetLoader(props: Props) {
     return <Placeholder height="100%" error={t('Error loading widget')} />;
   }
 
-  return <Component {...props} />;
+  return <Component {...props} chartRef={props.ref} />;
 }

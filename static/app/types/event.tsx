@@ -678,6 +678,12 @@ export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 type EventUser = {
   data?: string | null;
   email?: string;
+  geo?: {
+    city?: string;
+    country_code?: string;
+    region?: string;
+    subdivision?: string;
+  };
   id?: string;
   ip_address?: string;
   name?: string | null;

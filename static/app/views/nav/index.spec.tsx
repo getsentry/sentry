@@ -78,6 +78,16 @@ describe('Nav', function () {
       body: {},
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/explore/saved/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/`,
+      body: [],
+    });
+
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       options: {
@@ -183,6 +193,16 @@ describe('Nav', function () {
       expect(
         within(container).getByRole('link', {name: /Starred View 1/})
       ).toBeInTheDocument();
+    });
+
+    it('previews secondary nav when hovering over other primary items', async function () {
+      renderNav();
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+      await screen.findByRole('link', {name: 'Traces'});
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
+      await screen.findByRole('link', {name: 'All Dashboards'});
     });
 
     describe('sections', function () {

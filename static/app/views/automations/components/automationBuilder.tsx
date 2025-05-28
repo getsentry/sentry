@@ -10,6 +10,7 @@ import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextBu
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -75,13 +76,14 @@ export default function AutomationBuilder() {
         group="triggers"
         onAddRow={type => actions.addWhenCondition(type)}
         onDeleteRow={index => actions.removeWhenCondition(index)}
-        updateCondition={(index, comparison) =>
-          actions.updateWhenCondition(index, comparison)
-        }
+        updateCondition={(id, comparison) => actions.updateWhenCondition(id, comparison)}
       />
 
-      {state.actionFilters.map((_, index) => (
-        <ActionFilterBlock key={index} groupIndex={index} />
+      {state.actionFilters.map(actionFilter => (
+        <ActionFilterBlock
+          key={`actionFilters.${actionFilter.id}`}
+          actionFilter={actionFilter}
+        />
       ))}
       <span>
         <PurpleTextButton
@@ -101,15 +103,14 @@ export default function AutomationBuilder() {
 }
 
 interface ActionFilterBlockProps {
-  groupIndex: number;
+  actionFilter: DataConditionGroup;
 }
 
-function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
-  const {state, actions} = useAutomationBuilderContext();
-  const actionFilterBlock = state.actionFilters[groupIndex];
+function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
+  const {actions} = useAutomationBuilderContext();
 
   return (
-    <IfThenWrapper key={`actionFilters.${groupIndex}`}>
+    <IfThenWrapper>
       <Step>
         <Flex column gap={space(0.75)}>
           <Flex justify="space-between">
@@ -129,13 +130,15 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
                       inline={false}
                       isSearchable={false}
                       isClearable={false}
-                      name={`actionFilters.${groupIndex}.logicType`}
+                      name={`actionFilters.${actionFilter.id}.logicType`}
                       required
                       flexibleControlStateSize
                       options={FILTER_MATCH_OPTIONS}
                       size="xs"
-                      value={actionFilterBlock?.logicType}
-                      onChange={value => actions.updateIfLogicType(groupIndex, value)}
+                      value={actionFilter.logicType}
+                      onChange={value =>
+                        actions.updateIfLogicType(actionFilter.id, value)
+                      }
                     />
                   </EmbeddedWrapper>
                 ),
@@ -146,7 +149,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
               size="sm"
               icon={<IconDelete />}
               borderless
-              onClick={() => actions.removeIf(groupIndex)}
+              onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />
           </Flex>
@@ -154,15 +157,15 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
             // TODO: replace constant dataConditionTypes with DataConditions API response
             dataConditionTypes={FILTER_DATA_CONDITION_TYPES}
             placeholder={t('Filter by...')}
-            group={`actionFilters.${groupIndex}`}
-            conditions={actionFilterBlock?.conditions || []}
-            onAddRow={type => actions.addIfCondition(groupIndex, type)}
-            onDeleteRow={index => actions.removeIfCondition(groupIndex, index)}
-            updateCondition={(index, comparison) =>
-              actions.updateIfCondition(groupIndex, index, comparison)
+            group={`actionFilters.${actionFilter.id}`}
+            conditions={actionFilter?.conditions || []}
+            onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
+            onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
+            updateCondition={(id, comparison) =>
+              actions.updateIfCondition(actionFilter.id, id, comparison)
             }
-            updateConditionType={(index, type) =>
-              actions.updateIfConditionType(groupIndex, index, type)
+            updateConditionType={(id, type) =>
+              actions.updateIfConditionType(actionFilter.id, id, type)
             }
           />
         </Flex>
@@ -175,14 +178,12 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
         </StepLead>
         {/* TODO: add actions dropdown here */}
         <ActionNodeList
-          // TODO: replace constant availableActions with API response
-          availableActions={[]}
           placeholder={t('Select an action')}
-          group={`actionFilters.${groupIndex}`}
-          actions={actionFilterBlock?.actions || []}
-          onAddRow={type => actions.addIfAction(groupIndex, type)}
-          onDeleteRow={index => actions.removeIfAction(groupIndex, index)}
-          updateAction={(index, data) => actions.updateIfAction(groupIndex, index, data)}
+          group={`actionFilters.${actionFilter.id}`}
+          actions={actionFilter?.actions || []}
+          onAddRow={(id, type) => actions.addIfAction(actionFilter.id, id, type)}
+          onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
+          updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
         />
       </Step>
     </IfThenWrapper>

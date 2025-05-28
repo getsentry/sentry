@@ -77,9 +77,6 @@ const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
-// Storybook related flag configuration
-const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
-
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
 const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
@@ -412,9 +409,7 @@ const appConfig: webpack.Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
+      'type-loader': path.resolve(__dirname, 'static/app/stories/type-loader.ts'),
     },
   },
 
@@ -777,6 +772,29 @@ const minificationPlugins = [
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
+
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Only enable in production, annotating is slow in development
+        enabled: true,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -811,27 +829,5 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      enabled: true,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;
