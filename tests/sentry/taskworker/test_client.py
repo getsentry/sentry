@@ -556,15 +556,95 @@ def test_client_loadbalance_on_unavailable():
             # Fetch from the first channel, host should be unavailable
             with pytest.raises(grpc.RpcError, match="host is unavailable"):
                 client.get_task()
+            assert client._num_consecutive_unavailable_errors == 1
 
             # Fetch from the first channel, host should be unavailable
             with pytest.raises(grpc.RpcError, match="host is unavailable"):
                 client.get_task()
+            assert client._num_consecutive_unavailable_errors == 2
 
             # Fetch from the first channel, host should be unavailable
             with pytest.raises(grpc.RpcError, match="host is unavailable"):
                 client.get_task()
+            assert client._num_consecutive_unavailable_errors == 3
 
             # Should rebalance to the second host and receive task
             task = client.get_task()
             assert task and task.id == "1"
+            assert client._num_consecutive_unavailable_errors == 0
+
+
+def test_client_single_host_unavailable():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient(
+            "localhost:50051", num_brokers=1, max_consecutive_unavailable_errors=3
+        )
+
+        for _ in range(3):
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+
+        # Should still be using the same host
+        assert client._cur_host == "localhost-0:50051"
+
+
+def test_client_reset_errors_after_success():
+    """Test that errors reset after a successful request"""
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient(
+            "localhost:50051", num_brokers=1, max_consecutive_unavailable_errors=3
+        )
+
+        # Get one error
+        with pytest.raises(grpc.RpcError, match="host is unavailable"):
+            client.get_task()
+        assert client._num_consecutive_unavailable_errors == 1
+
+        # Get a successful response
+        task = client.get_task()
+        assert task and task.id == "1"
+        assert client._num_consecutive_unavailable_errors == 0
+
+        # Get another error - should start counting from 0 again
+        with pytest.raises(grpc.RpcError, match="host is unavailable"):
+            client.get_task()
+        assert client._num_consecutive_unavailable_errors == 1
