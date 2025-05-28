@@ -3,6 +3,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -14,12 +15,12 @@ const {
 } = SpanMetricsField;
 
 interface Props {
-  enabled: boolean;
   search: MutableSearch;
+  enabled?: boolean;
   pageFilters?: PageFilters;
 }
 
-export function useResourceSummarySeriesSearch(groupId?: string) {
+export function useResourceSummarySeriesSearch(groupId?: string): SearchHook {
   const filters = useResourceModuleFilters();
 
   const search = MutableSearch.fromQueryObject({

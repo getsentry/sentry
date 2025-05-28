@@ -5,6 +5,7 @@ import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/se
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
+import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {NORMALIZED_DESCRIPTION, SPAN_DOMAIN, SPAN_SELF_TIME, USER_GEO_SUBREGION} =
@@ -32,12 +33,12 @@ const buildDiscoverQueryConditions = (appliedFilters: ModuleFilters) => {
 };
 
 interface Props {
-  enabled: boolean;
   search: MutableSearch;
+  enabled?: boolean;
   pageFilters?: PageFilters;
 }
 
-export function useResourceLandingSeriesSearch() {
+export function useResourceLandingSeriesSearch(): SearchHook {
   const filters = useResourceModuleFilters();
 
   const spanTimeChartsFilters: ModuleFilters = {
