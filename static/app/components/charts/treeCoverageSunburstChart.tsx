@@ -147,7 +147,9 @@ export function TreeCoverageSunburstChart({
                 setBreadCrumbs(params.data.fullPath);
               }
             },
-            click: (params: Parameters<EChartClickHandler>[0]) => {
+            click: (
+              params: Parameters<EChartClickHandler<ProcessedTreeCoverageSunburstData>>[0]
+            ) => {
               if (typeof params.data !== 'object') {
                 return;
               }
@@ -160,8 +162,8 @@ export function TreeCoverageSunburstChart({
                 }
 
                 setRenderData(() => {
-                  if (params.data.depth > 0 && parent) {
-                    const children = bfsFilter(node, params.data?.depth + 1);
+                  if ((params.data.depth ?? 0) > 0 && parent) {
+                    const children = bfsFilter(node, (params.data?.depth ?? 0) + 1);
 
                     return {
                       ...parent,
@@ -171,7 +173,7 @@ export function TreeCoverageSunburstChart({
                     } satisfies ProcessedTreeCoverageSunburstData;
                   }
 
-                  return bfsFilter(node, params.data?.depth + 2);
+                  return bfsFilter(node, (params.data?.depth ?? 0) + 2);
                 });
               }
             },

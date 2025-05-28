@@ -72,12 +72,13 @@ export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventPar
 
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
 
+type EChartMouseEventData = string | number | Record<string, any>;
 /**
  * XXX: These are incomplete types and can also vary depending on the component type
  *
  * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
  */
-interface EChartMouseEventParam {
+interface EChartMouseEventParam<T = EChartMouseEventData> {
   // subtype of the component to which the clicked glyph belongs
   // i.e. 'scatter', 'line', etc
   componentSubType: string;
@@ -85,7 +86,7 @@ interface EChartMouseEventParam {
   // i.e., 'series', 'markLine', 'markPoint', 'timeLine'
   componentType: string;
   // incoming raw data item
-  data: string | number | Record<string, any>;
+  data: T;
   // data index in incoming data array
   dataIndex: number;
   // data name, category name
@@ -118,11 +119,17 @@ interface EChartMouseEventParam {
   seriesType?: string;
 }
 
-export type EChartMouseOutHandler = EChartEventHandler<EChartMouseEventParam>;
+export type EChartMouseOutHandler<T = EChartMouseEventData> = EChartEventHandler<
+  EChartMouseEventParam<T>
+>;
 
-export type EChartMouseOverHandler = EChartEventHandler<EChartMouseEventParam>;
+export type EChartMouseOverHandler<T = EChartMouseEventData> = EChartEventHandler<
+  EChartMouseEventParam<T>
+>;
 
-export type EChartClickHandler = EChartEventHandler<EChartMouseEventParam>;
+export type EChartClickHandler<T = EChartMouseEventData> = EChartEventHandler<
+  EChartMouseEventParam<T>
+>;
 
 export type EChartDataZoomHandler = EChartEventHandler<{
   /**
