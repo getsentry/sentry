@@ -136,23 +136,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                   <ErrorText>{t('Something went wrong.')}</ErrorText>
                 )}
               </ButtonWrapper>
-              <LegalText>
-                {tct(
-                  'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
-                  {
-                    dataLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
-                    ),
-                  }
-                )}
-                {canStartTrial && (
-                  <React.Fragment>
-                    <br />
-                    <br />
-                    {t('By clicking above, you will begin a 14 day free trial.')}
-                  </React.Fragment>
-                )}
-              </LegalText>
+              {canStartTrial && (
+                <LegalText>
+                  {t('By clicking above, you will begin a 14 day free trial.')}
+                </LegalText>
+              )}
             </Fragment>
           )
         ) : (
@@ -182,19 +170,19 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 <ErrorText>{t('Something went wrong.')}</ErrorText>
               )}
             </ButtonWrapper>
-            {!orgHasAcknowledged && (
-              <LegalText>
-                {tct(
-                  'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
-                  {
-                    dataLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
-                    ),
-                  }
-                )}
-              </LegalText>
-            )}
           </Fragment>
+        )}
+        {!orgHasAcknowledged && (
+          <LegalText>
+            {tct(
+              'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
+              {
+                dataLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
+                ),
+              }
+            )}
+          </LegalText>
         )}
       </SingleCard>
     </ConsentItemsContainer>
