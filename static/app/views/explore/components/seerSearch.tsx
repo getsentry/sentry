@@ -230,10 +230,8 @@ export function SeerSearch() {
   return (
     <SeerContainer onBlur={handleBlur}>
       <SearchForm onSubmit={handleSubmit}>
-        <SearchInputContainer>
-          <PositionedSearchIconContainer>
-            <SearchIcon size="sm" />
-          </PositionedSearchIconContainer>
+        <SearchInputContainer isDropdownOpen={isDropdownOpen}>
+          <SearchIcon size="sm" />
           <SearchInput
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -334,29 +332,41 @@ const SearchForm = styled('form')`
   width: 100%;
 `;
 
-const SearchInputContainer = styled('div')`
-  position: relative;
+const SearchInputContainer = styled('div')<{isDropdownOpen: boolean}>`
+  display: flex;
+  align-items: center;
   width: 100%;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
+  background: ${p => p.theme.background};
+
+  &:focus-within {
+    border-color: ${p => p.theme.purple300};
+    box-shadow: ${p => p.theme.purple300} 0 0 0 1px;
+  }
 `;
 
 const SearchInput = styled(Input)<{isDropdownOpen: boolean}>`
+  flex: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1.5)} ${space(2)};
-  padding-left: ${space(4)};
+  border: none;
   border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
   border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
 
   &::placeholder {
     color: ${p => p.theme.subText};
   }
+
+  &:focus {
+    outline: none;
+    box-shadow: none;
+  }
 `;
 
 const DropdownContent = styled('div')`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-top: none;
@@ -367,6 +377,7 @@ const DropdownContent = styled('div')`
   display: flex;
   flex-direction: column;
   min-height: 300px;
+  z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
 const SeerContent = styled('div')`
@@ -386,26 +397,15 @@ const SeerFooter = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.subText};
   height: 22px;
-`;
-
-const PositionedSearchIconContainer = styled('div')`
-  position: absolute;
-  left: ${space(1.5)};
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  height: 100%;
+  margin-left: ${space(1.5)};
+  margin-right: ${space(1)};
+  flex-shrink: 0;
 `;
 
 const PositionedCloseButtonContainer = styled('div')`
-  position: absolute;
-  right: ${space(1)};
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
+  margin-left: auto;
+  margin-right: ${space(1)};
+  flex-shrink: 0;
 `;
 
 const QueryResultsSection = styled('div')`
@@ -460,8 +460,6 @@ const NoneOfTheseItem = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   transition: background-color 0.2s ease;
   user-select: none;
-  position: relative;
-  z-index: 1;
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
