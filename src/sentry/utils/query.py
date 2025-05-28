@@ -185,6 +185,10 @@ class RangeQuerySetWrapper:
             if cur_value is None:
                 break
 
+            if len(results) < self.step:
+                # we do  not have enough results to completely fill out the current step/page
+                break
+
             has_results = num > start
 
 
