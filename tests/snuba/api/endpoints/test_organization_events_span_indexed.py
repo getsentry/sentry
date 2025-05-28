@@ -146,7 +146,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         )
         response = self.do_request(
             {
-                "field": ["id", "span_id", "item_id"],
+                "field": ["id", "span_id"],
                 "query": "",
                 "orderby": "id",
                 "project": self.project.id,
@@ -159,7 +159,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         meta = response.data["meta"]
         assert len(data) == 2
         for obj in data:
-            assert obj["id"] == obj["item_id" if self.is_eap else "span_id"]
+            assert obj["id"] == obj["span_id"]
         assert meta["dataset"] == self.dataset
 
     def test_sentry_tags_vs_tags(self):
