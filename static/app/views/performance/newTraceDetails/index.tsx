@@ -231,6 +231,6 @@ const FlexBox = styled('div')`
 
 const TraceInnerLayout = styled(FlexBox)`
   padding: ${space(2)} ${space(3)};
-  overflow-y: scroll;
   flex-grow: 1;
+  overflow-y: scroll;
 `;
