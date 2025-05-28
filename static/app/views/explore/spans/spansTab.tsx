@@ -143,14 +143,14 @@ interface SpanTabSearchSectionProps {
   datePageFilterProps: PickableDays;
 }
 
-function SearchToggle({
+function SpansSearchBar({
   eapSpanSearchQueryBuilderProps,
 }: {
   eapSpanSearchQueryBuilderProps: any;
 }) {
-  const {seerMode} = useSearchQueryBuilder();
+  const {displaySeerResults} = useSearchQueryBuilder();
 
-  return seerMode ? (
+  return displaySeerResults ? (
     <SeerSearch />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
@@ -230,7 +230,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
               <EnvironmentPageFilter />
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <SearchToggle
+            <SpansSearchBar
               eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
             />
           </FilterSection>
