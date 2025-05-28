@@ -146,7 +146,7 @@ class SpansBuffer:
         span_buffer_root_timeout_secs: int = 10,
         segment_page_size: int = 100,
         max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
-        max_segment_spans: int = 1000,
+        max_segment_spans: int = 1001,
         redis_ttl: int = 3600,
     ):
         self.assigned_shards = list(assigned_shards)
