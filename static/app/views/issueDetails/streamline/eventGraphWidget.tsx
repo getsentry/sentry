@@ -89,13 +89,8 @@ function EventGraphLoadedWidget({
       Title={<Widget.WidgetTitle title={t('Events')} />}
       Visualization={
         <EventGraph
-<<<<<<< HEAD
-          event={undefined}
-          ref={chartRef}
-=======
           ref={chartRef}
           event={event}
->>>>>>> f8648b2c5ec (feat(flags): Add feature flags to bubbles + drawer)
           eventView={eventView}
           group={group}
           showSummary={false}
