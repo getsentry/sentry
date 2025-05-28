@@ -55,7 +55,13 @@ export function OverlayArrow({
       >
         <defs>
           <mask id={strokeMaskId}>
-            <rect x="0" y={-strokeWidth} width="100%" height="100%" fill="white" />
+            <rect
+              x="0"
+              y={-strokeWidth}
+              width="100%"
+              height={h + strokeWidth + 4}
+              fill="white"
+            />
           </mask>
           <mask id={fillMaskId}>
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
@@ -100,6 +106,7 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
 
   path.stroke {
     stroke: ${p => p.theme[p.border]};
+    stroke-width: ${p => (p.theme.isChonk ? '2px' : undefined)};
   }
   path.fill {
     fill: ${p => p.theme[p.background]};
