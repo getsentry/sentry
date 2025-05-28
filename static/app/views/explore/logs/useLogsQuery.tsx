@@ -436,10 +436,6 @@ export function useInfiniteLogsQuery({
     return Promise.resolve();
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
-  const previousPageHasData =
-    parseLinkHeader(data?.pages?.[0]?.[2]?.getResponseHeader('Link') ?? null)?.previous
-      ?.results ?? false;
-
   const nextPageHasData =
     parseLinkHeader(
       data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
@@ -465,8 +461,6 @@ export function useInfiniteLogsQuery({
     fetchPreviousPage: _fetchPreviousPage,
     hasNextPage,
     hasPreviousPage,
-    previousPageHasData,
-    nextPageHasData,
     isFetchingNextPage,
     isFetchingPreviousPage,
   };

@@ -8,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
-import {useInfiniteLogsHasMoreData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -74,7 +73,6 @@ function getRootDuration(event: TraceTree.TraceEvent | null) {
 export function Meta(props: MetaProps) {
   const traceNode = props.tree.root.children[0]!;
   const {timestamp} = useTraceQueryParams();
-  const hasMoreInfiniteLogs = useInfiniteLogsHasMoreData();
 
   const uniqueErrorIssues = useMemo(() => {
     if (!traceNode) {
@@ -168,7 +166,7 @@ export function Meta(props: MetaProps) {
         <MetaSection
           rightAlignBody
           headingText={t('Logs')}
-          bodyText={hasMoreInfiniteLogs ? '>' : '' + (props.logs?.length ?? 0)}
+          bodyText={props.logs?.length ?? 0}
         />
       ) : null}
     </MetaWrapper>
