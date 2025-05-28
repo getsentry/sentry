@@ -134,11 +134,11 @@ export function TreeCoverageSunburstChart({
         <ReactEchartsCore
           echarts={echarts}
           onEvents={{
-            mouseover: (params: Parameters<EChartMouseOverHandler>[0]) => {
-              if (typeof params.data !== 'object') {
-                return;
-              }
-
+            mouseover: (
+              params: Parameters<
+                EChartMouseOverHandler<ProcessedTreeCoverageSunburstData>
+              >[0]
+            ) => {
               const splitPaths = params.data.fullPath.split('/');
 
               if (splitPaths.length > 2) {
@@ -150,10 +150,6 @@ export function TreeCoverageSunburstChart({
             click: (
               params: Parameters<EChartClickHandler<ProcessedTreeCoverageSunburstData>>[0]
             ) => {
-              if (typeof params.data !== 'object') {
-                return;
-              }
-
               if (params?.data?.type === 'dir') {
                 const parent = rootNode.edges.get(params.data.fullPath);
                 const node = rootNode.nodeMap.get(params.data?.fullPath);
