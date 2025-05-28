@@ -194,7 +194,7 @@ def iter_adopted_releases(totals: Totals) -> Iterator[AdoptedRelease]:
 
 def valid_environment(environment_name: str, environment_session_count: int) -> bool:
     """An environment is valid if it has a name and has at least one session."""
-    return environment_name and environment_session_count > 0
+    return bool(environment_name) and environment_session_count > 0
 
 
 def valid_and_adopted_release(
