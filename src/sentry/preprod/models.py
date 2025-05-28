@@ -85,7 +85,7 @@ class PreprodArtifact(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project")
 
     # Nullable in case the file upload fails
-    file = FlexibleForeignKey("sentry.File", null=True)
+    file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     # The date the artifact was built. E.g. an artifact could be built on 05/21/2025,
     # but the user uploaded it on 05/22/2025.
