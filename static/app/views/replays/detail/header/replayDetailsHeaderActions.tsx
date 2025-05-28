@@ -5,8 +5,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
-import ConfigureMobileReplayCard from 'sentry/components/replays/configureMobileReplayCard';
-import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
+import ConfigureReplayCard from 'sentry/components/replays/header/configureReplayCard';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
@@ -32,7 +31,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderProcessingError={({replayRecord, projectSlug}) => (
         <ButtonActionsWrapper>
           <FeedbackButton />
-          <ConfigureReplayCard />
+          <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
           <ReplayItemDropdown replayRecord={replayRecord} projectSlug={projectSlug} />
         </ButtonActionsWrapper>
       )}
@@ -40,11 +39,10 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
       {({replay}) => (
         <ButtonActionsWrapper>
           {replay.isVideoReplay() ? <FeedbackWidgetButton /> : <FeedbackButton />}
-          {replay.isVideoReplay() ? (
-            <ConfigureMobileReplayCard replayRecord={replay.getReplay()} />
-          ) : (
-            <ConfigureReplayCard />
-          )}
+          <ConfigureReplayCard
+            isMobile={replay.isVideoReplay()}
+            replayRecord={replay.getReplay()}
+          />
           <ReplayItemDropdown
             replayRecord={replay.getReplay()}
             projectSlug={readerResult.projectSlug}
