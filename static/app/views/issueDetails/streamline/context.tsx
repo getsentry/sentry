@@ -82,6 +82,9 @@ export const enum SectionKey {
   REGRESSION_EVENT_COMPARISON = 'regression-event-comparison',
   REGRESSION_POTENTIAL_CAUSES = 'regression-potential-causes',
   REGRESSION_AFFECTED_TRANSACTIONS = 'regression-affected-transactions',
+
+  AI_INPUT = 'ai-input',
+  AI_OUTPUT = 'ai-output',
 }
 
 /**
