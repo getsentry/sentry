@@ -361,7 +361,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
-        simple_sentry_field("item_id"),
+        ResolvedAttribute(
+            public_alias="span_id",
+            internal_name="sentry.item_id",
+            search_type="string",
+            validator=is_span_id,
+        ),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
         simple_sentry_field("transaction.op"),
