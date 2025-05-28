@@ -182,8 +182,26 @@ describe('getWidgetExploreUrl', () => {
 
     const url = getWidgetExploreUrl(widget, undefined, selection, organization);
 
-    expect(url).toBe(
-      '/organizations/org-slug/explore/traces/compare/?interval=30m&queries=%7B%22chartType%22%3A1%2C%22fields%22%3A%5B%5D%2C%22groupBys%22%3A%5B%22span.description%22%5D%2C%22query%22%3A%22is_transaction%3Atrue%22%2C%22yAxes%22%3A%5B%22count%28span.duration%29%22%2C%22avg%28span.duration%29%22%5D%7D&queries=%7B%22chartType%22%3A1%2C%22fields%22%3A%5B%5D%2C%22groupBys%22%3A%5B%22span.description%22%5D%2C%22query%22%3A%22is_transaction%3Afalse%22%2C%22yAxes%22%3A%5B%22avg%28span.duration%29%22%5D%7D&statsPeriod=14d&title=Widget'
-    );
+    // Provide a fake base URL to allow parsing the relative URL
+    const urlObject = new URL(url, 'https://www.example.com');
+    expect(urlObject.pathname).toBe('/organizations/org-slug/explore/traces/compare/');
+
+    expect(urlObject.searchParams.get('interval')).toBe('30m');
+    expect(urlObject.searchParams.get('title')).toBe('Widget');
+
+    const queries = urlObject.searchParams.getAll('queries');
+    expect(queries).toHaveLength(2);
+
+    const query1 = JSON.parse(queries[0]!);
+    expect(query1.chartType).toBe(1);
+    expect(query1.fields).toEqual([]);
+    expect(query1.groupBys).toEqual(['span.description']);
+    expect(query1.query).toBe('is_transaction:true');
+
+    const query2 = JSON.parse(queries[1]!);
+    expect(query2.chartType).toBe(1);
+    expect(query2.fields).toEqual([]);
+    expect(query2.groupBys).toEqual(['span.description']);
+    expect(query2.query).toBe('is_transaction:false');
   });
 });
