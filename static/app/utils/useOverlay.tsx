@@ -145,7 +145,7 @@ function useOverlay({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   disableTrigger,
-  strategy = 'fixed',
+  strategy = 'absolute',
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
