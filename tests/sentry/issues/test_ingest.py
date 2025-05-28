@@ -583,7 +583,6 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "initial_priority": occurrence.priority,
         }
 
-    # TODO: maybe we write a test here to make sure that the right metadata is being populated?
     def test_populates_feedback_metadata(self) -> None:
         occurrence = self.build_occurrence(
             type=FeedbackGroup.type_id,
@@ -592,6 +591,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "associated_event_id": "55798fee4d21425c8689c980cde794f2",
             },
         )
         event = self.store_event(data={}, project_id=self.project.id)
@@ -608,6 +608,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "name": "Name Test",
             "source": "crash report widget",
             "initial_priority": occurrence.priority,
+            "associated_event_id": "55798fee4d21425c8689c980cde794f2",
         }
 
 
