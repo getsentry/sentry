@@ -433,6 +433,7 @@ class StatefulDetectorHandler(
         to create a detector occurrence.
         """
         detector_result: IssueOccurrence | StatusChangeMessage
+        event_data = None
 
         # TODO ensure this is not a duplicate packet or reprocessing
 
@@ -566,8 +567,8 @@ class StatefulGroupingDetectorHandler(
         is_triggered = new_status != DetectorPriorityLevel.OK
         self.state_manager.enqueue_state_update(group_key, is_triggered, new_status)
 
-        event_data = None
         result: StatusChangeMessage | IssueOccurrence
+        event_data = None
 
         if new_status == DetectorPriorityLevel.OK:
             result = StatusChangeMessage(
