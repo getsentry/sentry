@@ -300,8 +300,7 @@ export function EventGraph({
 
   const flagSeries = useFlagSeries({
     event,
-    // flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : flags,
-    flags,
+    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
