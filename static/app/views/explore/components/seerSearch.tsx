@@ -27,7 +27,7 @@ interface Visualization {
   y_axes: string[];
 }
 
-export function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
+function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
   return (
     <QueryResultsHeader>
       {loading ? <StyledSeerLoadingIcon /> : <StyledIconSeer />}
@@ -36,7 +36,7 @@ export function SeerHeader({title, loading = false}: {title: string; loading?: b
   );
 }
 
-export function SeerSearchSkeleton() {
+function SeerSearchSkeleton() {
   return (
     <LoadingSkeleton>
       <SeerHeader title={t('Seer is thinking...')} loading />
