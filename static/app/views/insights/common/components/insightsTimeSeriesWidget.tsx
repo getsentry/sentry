@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -81,7 +82,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
-      const timeSeries = convertSeriesToTimeseries(serie);
+      const timeSeries = markDelayedData(
+        convertSeriesToTimeseries(serie),
+        INGESTION_DELAY
+      );
       const PlottableDataConstructor =
         props.visualizationType === 'line'
           ? Line
@@ -93,7 +97,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
-        delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias: props.aliases?.[timeSeries.yAxis],
       });

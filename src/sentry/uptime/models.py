@@ -349,6 +349,15 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
         return None
 
 
+def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
+    """
+    Given a detector get the matching uptime subscription
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
+
+
 def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
     """
     Given a detector get the matching project subscription
