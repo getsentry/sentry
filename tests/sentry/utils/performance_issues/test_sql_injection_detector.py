@@ -26,8 +26,8 @@ class SQLInjectionDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_sql_injection_detection(self):
-        injection_event = get_event("sql-injection/sql-injection-event")
+    def test_sql_injection_detection_in_query_params(self):
+        injection_event = get_event("sql-injection/sql-injection-event-query")
 
         problems = self.find_problems(injection_event)
         assert len(problems) == 1
@@ -37,7 +37,21 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = '?'"
         assert problem.evidence_data is not None
-        assert problem.evidence_data["vulnerable_query_keys"] == ["username"]
+        assert problem.evidence_data["vulnerable_parameters"] == ["username"]
+        assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
+
+    def test_sql_injection_detection_in_body(self):
+        injection_event = get_event("sql-injection/sql-injection-event-body")
+
+        problems = self.find_problems(injection_event)
+        assert len(problems) == 1
+        problem = problems[0]
+        assert problem.type == DBInjectionVulnerabilityGroupType
+        assert problem.fingerprint == "1-1020-841b1fd77bae6e89b3570a2ab0bf43d3c8cfbac6"
+        assert problem.op == "db"
+        assert problem.desc == "SELECT * FROM users WHERE username = '?'"
+        assert problem.evidence_data is not None
+        assert problem.evidence_data["vulnerable_parameters"] == ["username"]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
 
     def test_sql_injection_on_non_vulnerable_query(self):

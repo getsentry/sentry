@@ -56,23 +56,30 @@ class SQLInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
-        self.extract_user_inputs(event)
+        self.extract_request_data(event)
 
-    def extract_user_inputs(self, event: dict[str, Any]) -> None:
+    def extract_request_data(self, event: dict[str, Any]) -> None:
         """
-        Extracts valid user inputs from the query string of the event. There are a couple conditions we filter for:
-        First, any queries where the key and value are the same are ignored. This is so that when we look for user inputs in the description, we don't match on the key.
-        Second, if the query value is a SQL keyword, it is ignored. For example, we don't want to match on the value "SELECT" in the query string.
+        Extracts valid request data from the query string and body of the event. There are a couple conditions we filter for:
+        First, any pairs where the key and value are the same are ignored. This is so that when we look for user inputs in the description, we don't match on the key.
+        Second, if the value is a SQL keyword, it is ignored. For example, we don't want to match on the value "SELECT".
         """
         self.query_string = event.get("request", {}).get("query_string", None)
+        self.request_body = event.get("request", {}).get("data", None)
         self.request_url = event.get("request", {}).get("url", None)
 
-        if not self.query_string:
+        if not self.query_string and not self.request_body:
             return
 
-        valid_queries = []
+        valid_parameters = []
+        request_data = []
 
-        for query_pair in self.query_string:
+        if self.query_string:
+            request_data.extend(self.query_string)
+        if self.request_body:
+            request_data.extend(self.request_body.items())
+
+        for query_pair in request_data:
             query_value = query_pair[1].upper()
             query_key = query_pair[0].upper()
 
@@ -80,9 +87,9 @@ class SQLInjectionDetector(PerformanceDetector):
                 continue
             if query_value in SQL_KEYWORDS:
                 continue
-            valid_queries.append(query_pair)
+            valid_parameters.append(query_pair)
 
-        self.user_inputs = valid_queries
+        self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
         if not SQLInjectionDetector.is_span_eligible(span):
@@ -91,16 +98,16 @@ class SQLInjectionDetector(PerformanceDetector):
         description = span.get("description") or ""
         op = span.get("op") or ""
         spans_involved = [span["span_id"]]
-        vulnerable_query_keys = []
+        vulnerable_parameters = []
 
-        for user_input in self.user_inputs:
-            query_value = user_input[1]
-            query_key = user_input[0]
-            if query_value in description:
-                description = description.replace(query_value, "?")
-                vulnerable_query_keys.append(query_key)
+        for parameter in self.request_parameters:
+            value = parameter[1]
+            key = parameter[0]
+            if value in description:
+                description = description.replace(value, "?")
+                vulnerable_parameters.append(key)
 
-        if len(vulnerable_query_keys) == 0:
+        if len(vulnerable_parameters) == 0:
             return
 
         fingerprint = self._fingerprint(description)
@@ -119,7 +126,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_query_keys": vulnerable_query_keys,
+                "vulnerable_parameters": vulnerable_parameters,
                 "request_url": self.request_url,
             },
             evidence_display=[
