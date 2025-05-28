@@ -350,7 +350,23 @@ const Feature = styled('div')`
 const IllustrationContainer = styled('div')`
   display: none;
 
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: block;
+    position: absolute;
+    bottom: 84px;
+    right: 12px;
+    height: 175px;
+    width: 200px;
+    overflow: hidden;
+    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    pointer-events: none;
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: block;
     position: absolute;
     bottom: 84px;
