@@ -983,33 +983,47 @@ class SearchResolver:
         ResolvedEquation,
         list[VirtualColumnDefinition | None],
     ]:
+        """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
+        it'll help callers with extra information, like the existence of aggregates and the search type
+        """
         operation, fields, functions = arithmetic.parse_arithmetic(equation)
-        lhs, lhs_vcc = self._resolve_operation(operation.lhs) if operation.lhs else (None, None)
-        rhs, rhs_vcc = self._resolve_operation(operation.rhs) if operation.rhs else (None, None)
+        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
         return (
             ResolvedEquation(
                 public_alias=f"equation|{equation}",
-                search_type="number",  # TODO
+                # Type of equations can become complex very quickly. We could try to make sure all the columns have the
+                # same type and return that, but then ratios would have types eg. (p75/p50), as well managing multiple
+                # column types is strange too (p75+count). Keeping this as just `number` for now
+                search_type="number",
                 operator=constants.ARITHMETIC_OPERATOR_MAP[operation.operator],
                 lhs=lhs,
                 rhs=rhs,
                 is_aggregate=len(functions) > 0,
             ),
-            lhs_vcc + rhs_vcc,
+            lhs_contexts + rhs_contexts,
         )
 
     def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
         Column,
-        list[VirtualColumnDefinition | None],
+        list[VirtualColumnDefinition],
     ]:
+        """This function is to recursively step into the branches of the arithmetic to resolve branches to Columns for
+        the RPC, but we can't only use this since we want the resolver to return a ResolvedEquation so the resolver API
+        matches between resolved arithmetic and columns
+        """
         if isinstance(operation, arithmetic.Operation):
-            lhs, vcc_lhs = self._resolve_operation(operation.lhs) if operation.lhs else (None, None)
-            rhs, vcc_rhs = self._resolve_operation(operation.rhs) if operation.rhs else (None, None)
+            lhs, lhs_contexts = (
+                self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+            )
+            rhs, rhs_contexts = (
+                self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+            )
             vcc = []
-            if vcc_lhs:
-                vcc += vcc_lhs
-            if vcc_rhs:
-                vcc += vcc_rhs
+            if lhs_contexts:
+                vcc += lhs_contexts
+            if rhs_contexts:
+                vcc += rhs_contexts
             return (
                 Column(
                     formula=Column.BinaryFormula(
@@ -1023,12 +1037,15 @@ class SearchResolver:
         elif isinstance(operation, float):
             return Column(literal=LiteralValue(val_double=operation)), []
         else:
-            col, col_vcc = self.resolve_column(operation)
+            # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
+            col, context = self.resolve_column(operation)
             if isinstance(col, ResolvedAttribute):
-                return Column(key=col.proto_definition), [col_vcc]
+                key = "key"
             elif isinstance(col, ResolvedAggregate):
-                return Column(aggregation=col.proto_definition), [col_vcc]
+                key = "aggregation"
             elif isinstance(col, ResolvedConditionalAggregate):
-                return Column(conditional_aggregation=col.proto_definition), [col_vcc]
+                key = "conditional_aggregation"
             elif isinstance(col, ResolvedFormula):
-                return Column(formula=col.proto_definition), [col_vcc]
+                key = "formula"
+            contexts = [context] if context is not None else []
+            return Column(**{key: col.proto_definition}), contexts

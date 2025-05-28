@@ -4741,9 +4741,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             ],
             is_eap=self.is_eap,
         )
+        equation = "equation|count() * 2"
         response = self.do_request(
             {
-                "field": ["span.status", "description", "equation|count() * 2"],
+                "field": ["span.status", "description", equation],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -4759,15 +4760,16 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             {
                 "span.status": "invalid_argument",
                 "description": "bar",
-                "equation|count() * 2": 2,
+                equation: 2,
             },
             {
                 "span.status": "success",
                 "description": "foo",
-                "equation|count() * 2": 2,
+                equation: 2,
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "number"
 
     @pytest.mark.xfail(reason="Confidence isn't being returned by the RPC currently")
     def test_equation_with_extrapolation(self):
@@ -4856,3 +4858,4 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "number"
