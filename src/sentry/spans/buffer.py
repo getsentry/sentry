@@ -116,6 +116,7 @@ class Span(NamedTuple):
     parent_span_id: str | None
     project_id: int
     payload: bytes
+    end_timestamp_precise: float
     is_segment_span: bool = False
 
     def effective_parent_id(self):
@@ -193,7 +194,9 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
-                    p.sadd(set_key, *[span.payload for span in subsegment])
+                    p.zadd(
+                        set_key, {span.payload: span.end_timestamp_precise for span in subsegment}
+                    )
 
                 p.execute()
 
@@ -428,13 +431,13 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.sscan(key, cursor=cursor, count=self.segment_page_size)
+                    p.zscan(key, cursor=cursor, count=self.segment_page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
-            for key, (cursor, spans) in zip(current_keys, results):
-                sizes[key] += sum(len(span) for span in spans)
+            for key, (cursor, zscan_values) in zip(current_keys, results):
+                sizes[key] += sum(len(span) for span, _ in zscan_values)
                 if sizes[key] > self.max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.error("Skipping too large segment, byte size %s", sizes[key])
@@ -443,15 +446,7 @@ class SpansBuffer:
                     del cursors[key]
                     continue
 
-                payloads[key].extend(spans)
-                if len(payloads[key]) > self.max_segment_spans:
-                    metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
-                    logger.error("Skipping too large segment, span count %s", len(payloads[key]))
-
-                    del payloads[key]
-                    del cursors[key]
-                    continue
-
+                payloads[key].extend(span for span, _ in zscan_values)
                 if cursor == 0:
                     del cursors[key]
                 else:
