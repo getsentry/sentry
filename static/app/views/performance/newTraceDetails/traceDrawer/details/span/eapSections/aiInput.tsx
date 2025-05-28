@@ -1,10 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,6 +14,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
@@ -161,14 +160,21 @@ export function AIInputSection({
       title={t('Input')}
       disableCollapsePersistence
     >
+      {/* If parsing fails, we'll just show the raw string */}
       {typeof aiInput === 'string' ? (
-        <MultilineText>{aiInput}</MultilineText>
+        <TraceDrawerComponents.MultilineText>
+          {aiInput}
+        </TraceDrawerComponents.MultilineText>
       ) : (
         <Fragment>
           {aiInput.map((message, index) => (
             <Fragment key={index}>
-              <MessageLabel>{roleHeadings[message.role]}</MessageLabel>
-              <MultilineText>{message.content}</MultilineText>
+              <TraceDrawerComponents.MultilineTextLabel>
+                {roleHeadings[message.role]}
+              </TraceDrawerComponents.MultilineTextLabel>
+              <TraceDrawerComponents.MultilineText>
+                {message.content}
+              </TraceDrawerComponents.MultilineText>
             </Fragment>
           ))}
         </Fragment>
@@ -176,22 +182,3 @@ export function AIInputSection({
     </FoldSection>
   );
 }
-
-const MultilineText = styled('div')`
-  white-space: pre-wrap;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
-  &:not(:last-child) {
-    margin-bottom: ${space(1.5)};
-  }
-
-  & p {
-    margin: 0;
-  }
-`;
-
-const MessageLabel = styled('div')`
-  font-weight: bold;
-  margin-bottom: ${space(1)};
-`;

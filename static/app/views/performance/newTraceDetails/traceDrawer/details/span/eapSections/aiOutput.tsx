@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -13,6 +12,7 @@ import {
 } from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
@@ -57,37 +57,29 @@ export function AIOutputSection({
       disableCollapsePersistence
     >
       {responseText && (
-        <MultilineText>
-          <strong>{t('Response')}</strong>
-          <br />
-          {responseText}
-        </MultilineText>
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Response')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <TraceDrawerComponents.MultilineText>
+            {responseText}
+          </TraceDrawerComponents.MultilineText>
+        </Fragment>
       )}
       {toolCalls && (
-        <MultilineText>
-          <strong>{t('Tool Calls')}</strong>
-          <br />
-          <StructuredData
-            value={tryParseJson(toolCalls)}
-            maxDefaultDepth={2}
-            withAnnotatedText
-          />
-        </MultilineText>
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Tool Calls')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <TraceDrawerComponents.MultilineText>
+            <StructuredData
+              value={tryParseJson(toolCalls)}
+              maxDefaultDepth={2}
+              withAnnotatedText
+            />
+          </TraceDrawerComponents.MultilineText>
+        </Fragment>
       )}
     </FoldSection>
   );
 }
-
-const MultilineText = styled('div')`
-  white-space: pre-wrap;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
-  &:not(:last-child) {
-    margin-bottom: ${space(1.5)};
-  }
-
-  & p {
-    margin: 0;
-  }
-`;

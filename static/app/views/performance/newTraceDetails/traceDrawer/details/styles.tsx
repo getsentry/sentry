@@ -1331,6 +1331,21 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
+const MultilineText = styled('div')`
+  white-space: pre-wrap;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)};
+  &:not(:last-child) {
+    margin-bottom: ${space(1.5)};
+  }
+`;
+
+const MultilineTextLabel = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${space(1)};
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
@@ -1362,6 +1377,8 @@ const TraceDrawerComponents = {
   TraceDataSection,
   SectionCardGroup,
   DropdownMenuWithPortal,
+  MultilineText,
+  MultilineTextLabel,
 };
 
 export {TraceDrawerComponents};
