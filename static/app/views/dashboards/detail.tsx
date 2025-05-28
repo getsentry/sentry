@@ -433,7 +433,11 @@ class DashboardDetail extends Component<Props, State> {
   handleBeforeUnload = (event: BeforeUnloadEvent) => {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
-    if (defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard)) {
+    if (
+      defined(modifiedDashboard) &&
+      !isEqual(modifiedDashboard, dashboard) &&
+      this.isEditingDashboard
+    ) {
       event.preventDefault();
       event.returnValue = '';
     }
