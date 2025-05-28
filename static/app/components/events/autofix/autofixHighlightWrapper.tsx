@@ -47,7 +47,12 @@ export function AutofixHighlightWrapper({
 
   return (
     <React.Fragment>
-      <Wrapper ref={containerRef} className={className} isSelected={!!selection}>
+      <Wrapper
+        ref={containerRef}
+        className={className}
+        isSelected={!!selection}
+        title={selection ? undefined : 'Click to chat about this with Seer'}
+      >
         {children}
       </Wrapper>
 
@@ -76,10 +81,6 @@ const Wrapper = styled('div')<{isSelected: boolean}>`
       !p.isSelected &&
       css`
         cursor: pointer;
-
-        * {
-          ${p.theme.tooltipUnderline('gray200')};
-        }
       `};
   }
 `;
