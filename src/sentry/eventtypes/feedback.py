@@ -1,11 +1,16 @@
+import logging
+
 from sentry.eventtypes.base import BaseEvent
 from sentry.utils.safe import get_path
+
+logger = logging.getLogger(__name__)
 
 
 class FeedbackEvent(BaseEvent):
     key = "feedback"
 
     def extract_metadata(self, data):
+        logger.info("Extract metadata called in the FeedbackEvent class")
         contact_email = get_path(data, "contexts", "feedback", "contact_email")
         message = get_path(data, "contexts", "feedback", "message")
         name = get_path(data, "contexts", "feedback", "name")
