@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class ConvertOrgSavedSearchesToViewsTest(TestMigrations):
-    migrate_from = "0872_fix_drift_deleted_columns"
-    migrate_to = "0873_convert_org_saved_searches_to_views"
+    migrate_from = "0913_split_discover_dataset_dashboards_self_hosted"
+    migrate_to = "0914_convert_org_saved_searches_to_views"
 
     def setup_initial_state(self):
         self.org = self.create_organization()
