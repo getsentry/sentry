@@ -23,7 +23,7 @@ import type {
   ReservedBudgetForCategory,
   Subscription,
 } from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview, isAm3DsPlan} from 'getsentry/utils/billing';
 import {isSeer, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
@@ -192,7 +192,16 @@ function Overview({location, subscription, promotionData}: Props) {
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
-    const showAllBudgetTotals = subscription.hadCustomDynamicSampling;
+    const seerReservedBudget = subscription.reservedBudgets?.find(
+      rb => rb.apiName === ReservedBudgetCategoryType.SEER
+    );
+    const hasSeer = (seerReservedBudget?.reservedBudget ?? 0) > 0;
+
+    const hasActiveSeerTrial =
+      subscription.productTrials?.some(pt => isSeer(pt.category)) ?? false;
+
+    const showAllBudgetTotals =
+      subscription.hadCustomDynamicSampling || hasSeer || hasActiveSeerTrial;
 
     // Ensure relevant categories in reservedBudgetCategoryInfo have reservedSpend initialized
     // and safely access source properties.
