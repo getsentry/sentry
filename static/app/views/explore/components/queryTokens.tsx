@@ -5,13 +5,14 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface QueryTokensProps {
   groupBys?: string[];
   query?: string;
   sort?: string;
   statsPeriod?: string;
-  visualizations?: Array<{y_axes: string[]}>;
+  visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
 }
 
 function QueryTokens({
@@ -44,8 +45,8 @@ function QueryTokens({
       <Token key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
         {visualizations.map((visualization, vIdx) =>
-          visualization.y_axes.map(y_axis => (
-            <ExploreVisualizes key={`${vIdx}-${y_axis}`}>{y_axis}</ExploreVisualizes>
+          visualization.yAxes.map(yAxis => (
+            <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
           ))
         )}
       </Token>

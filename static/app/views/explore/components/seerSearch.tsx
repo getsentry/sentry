@@ -23,8 +23,8 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface Visualization {
-  chart_type: ChartType;
-  y_axes: string[];
+  chartType: ChartType;
+  yAxes: string[];
 }
 
 function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
@@ -55,13 +55,25 @@ function SeerSearchSkeleton() {
   );
 }
 
+interface SeerSearchQuery {
+  groupBys: string[];
+  query: string;
+  sort: string;
+  statsPeriod: string;
+  visualizations: Visualization[];
+}
+
+interface SeerSearchResult {
+  queries: SeerSearchQuery[];
+}
+
 export function SeerSearch() {
   const {setDisplaySeerResults} = useSearchQueryBuilder();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
 
-  const [rawResult, setRawResult] = useState<any>(null);
+  const [rawResult, setRawResult] = useState<SeerSearchResult | null>(null);
   const api = useApi();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -93,7 +105,19 @@ export function SeerSearch() {
       return result;
     },
     onSuccess: result => {
-      setRawResult(result);
+      setRawResult({
+        queries: result.queries.map((query: any) => ({
+          query: query?.query,
+          groupBys: query?.group_by ?? [],
+          visualizations:
+            query?.visualization?.map((v: any) => ({
+              chartType: v?.chart_type,
+              yAxes: v?.y_axes,
+            })) ?? [],
+          statsPeriod: query?.stats_period ?? '',
+          sort: query?.sort ?? '',
+        })),
+      });
     },
     onError: (error: Error) => {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
@@ -130,18 +154,12 @@ export function SeerSearch() {
   };
 
   const handleApply = useCallback(
-    (result: any) => {
+    (result: SeerSearchQuery) => {
       if (!result) {
         return;
       }
 
-      const {
-        query,
-        visualization,
-        group_by: groupBy,
-        sort,
-        stats_period: statsPeriod,
-      } = result;
+      const {query, visualizations, groupBys, sort, statsPeriod} = result;
 
       const selection = {
         ...pageFilters.selection,
@@ -152,12 +170,12 @@ export function SeerSearch() {
           utc: pageFilters.selection.datetime.utc,
         },
       };
-      const mode = groupBy.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
+      const mode = groupBys.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
       const visualize =
-        visualization?.map((v: Visualization) => ({
-          chartType: v.chart_type,
-          yAxes: v.y_axes,
+        visualizations?.map((v: Visualization) => ({
+          chartType: v.chartType,
+          yAxes: v.yAxes,
         })) ?? [];
 
       const url = getExploreUrl({
@@ -165,7 +183,7 @@ export function SeerSearch() {
         selection,
         query,
         visualize,
-        groupBy,
+        groupBy: groupBys,
         sort,
         mode,
       });
@@ -174,7 +192,7 @@ export function SeerSearch() {
         organization,
         query,
         visualize_count: visualize.length,
-        group_by_count: groupBy?.length ?? 0,
+        group_by_count: groupBys?.length ?? 0,
       });
 
       navigate(url, {replace: true, preventScrollReset: true});
@@ -249,7 +267,7 @@ export function SeerSearch() {
           ) : rawResult?.queries && rawResult.queries.length > 0 ? (
             <QueryResultsSection>
               <SeerHeader title={t('Do any of these queries look right to you?')} />
-              {rawResult.queries.map((query: any, index: number) => (
+              {rawResult.queries.map((query: SeerSearchQuery, index: number) => (
                 <QueryResultItem
                   key={index}
                   onClick={e => {
