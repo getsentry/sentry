@@ -406,7 +406,12 @@ describe('provisionSubscriptionAction', function () {
 
     expect(within(container).queryByText(/accepted spans/i)).not.toBeInTheDocument();
     expect(within(container).queryByText(/stored spans/i)).not.toBeInTheDocument();
-    expect(within(container).queryByText(/reserved cost-per-/i)).not.toBeInTheDocument();
+    expect(
+      within(container).queryByText(/reserved cost-per-event stored spans/i)
+    ).not.toBeInTheDocument();
+    expect(
+      within(container).queryByText(/reserved cost-per-event accepted spans/i)
+    ).not.toBeInTheDocument();
     expect(
       within(container).queryByText(/reserved spans budget/i)
     ).not.toBeInTheDocument();
