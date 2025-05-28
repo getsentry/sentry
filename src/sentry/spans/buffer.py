@@ -194,8 +194,9 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
-                    mapping = {span.payload: span.end_timestamp_precise for span in subsegment}
-                    p.zadd(set_key, mapping)
+                    p.zadd(
+                        set_key, {span.payload: span.end_timestamp_precise for span in subsegment}
+                    )
 
                 p.execute()
 
