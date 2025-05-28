@@ -755,7 +755,8 @@ class GitHubInstallationError(StrEnum):
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
     MISSING_INTEGRATION = "Integration does not exist."
-    INVALID_INSTALLATION = "User does not have access to given installation"
+    INVALID_INSTALLATION = "User does not have access to given installation."
+    FEATURE_NOT_AVAILABLE = "Your organization does not have access to this feature."
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -834,7 +835,6 @@ class OAuthLoginView(PipelineView):
             if self.active_user_organization is not None and features.has(
                 "organizations:github-multi-org",
                 organization=self.active_user_organization.organization,
-                actor=request.user,
             ):
                 owner_orgs = self._get_owner_github_organizations()
 
@@ -887,11 +887,18 @@ class OAuthLoginView(PipelineView):
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
+        has_scm_multi_org = (
+            features.has(
+                "organizations:integrations-scm-multi-org",
+                organization=self.active_user_organization.organization,
+            )
+            if self.active_user_organization is not None
+            else False
+        )
 
         if self.active_user_organization is None or not features.has(
             "organizations:github-multi-org",
             organization=self.active_user_organization.organization,
-            actor=request.user,
         ):
             return pipeline.next_step()
 
@@ -915,6 +922,14 @@ class GithubOrganizationSelection(PipelineView):
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
 
+                if not has_scm_multi_org:
+                    lifecycle.record_failure(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+                    return error(
+                        request,
+                        self.active_user_organization,
+                        error_short=GitHubInstallationError.FEATURE_NOT_AVAILABLE,
+                    )
+
                 # Verify that the given GH installation belongs to the person installing the pipeline
                 installation_ids = [
                     installation["installation_id"] for installation in installation_info
@@ -936,7 +951,10 @@ class GithubOrganizationSelection(PipelineView):
             return self.render_react_view(
                 request=request,
                 pipeline_name="githubInstallationSelect",
-                props={"installation_info": installation_info},
+                props={
+                    "installation_info": installation_info,
+                    "has_scm_multi_org": has_scm_multi_org,
+                },
             )
 
 
@@ -979,7 +997,6 @@ class GitHubInstallation(PipelineView):
                 if features.has(
                     "organizations:github-multi-org",
                     organization=self.active_user_organization.organization,
-                    actor=request.user,
                 ):
                     try:
                         integration = Integration.objects.get(

@@ -9,9 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixFeedback,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
@@ -30,7 +28,6 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -41,7 +38,6 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
-  feedback?: AutofixFeedback;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -286,7 +282,6 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
-  feedback,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
@@ -335,15 +330,6 @@ function AutofixRootCauseDisplay({
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
-            <AutofixThumbsUpDownButtons
-              thumbsUpDownType="root_cause"
-              feedback={feedback}
-              groupId={groupId}
-              runId={runId}
-            />
-            <DividerWrapper>
-              <Divider />
-            </DividerWrapper>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -527,8 +513,4 @@ const TextArea = styled('textarea')`
 
 const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const DividerWrapper = styled('div')`
-  margin: 0 ${space(1)};
 `;

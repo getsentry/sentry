@@ -21,7 +21,12 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_PATH
 from sentry.testutils.cases import TestCase
@@ -193,6 +198,58 @@ class VstsIssueSyncTest(VstsIssueBase):
             {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
         ]
 
+    @patch(
+        "sentry.integrations.vsts.client.VstsApiClient.create_work_item",
+        side_effect=ApiError(
+            "Error Communicating with Azure DevOps (HTTP 400): TF401320: Rule Error for field xxx. Error code: Required, HasValues, LimitedToValues, AllowsOldValue, InvalidEmpty."
+        ),
+    )
+    @responses.activate
+    def test_create_issue_integration_form_error(self, create_work_item):
+        form_data = {
+            "title": "Hello",
+            "description": "Fix this.",
+            "project": "0987654321",
+            "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
+        }
+        with pytest.raises(IntegrationFormError):
+            self.integration.create_issue(form_data)
+
+    @responses.activate
+    def test_create_issue_title_too_long(self):
+        responses.add(
+            responses.PATCH,
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
+            body=WORK_ITEM_RESPONSE,
+            content_type="application/json",
+        )
+
+        long_title = "A" * 200  # Title longer than VSTS's 128 character limit
+        expected_title = "A" * 125 + "..."
+
+        form_data = {
+            "title": long_title,
+            "description": "Fix this.",
+            "project": "0987654321",
+            "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
+        }
+        assert self.integration.create_issue(form_data) == {
+            "key": self.issue_id,
+            "description": "Fix this.",
+            "title": expected_title,
+            "metadata": {"display_name": "Fabrikam-Fiber-Git#309"},
+        }
+        request = responses.calls[-1].request
+        assert request.headers["Content-Type"] == "application/json-patch+json"
+        payload = orjson.loads(request.body)
+        assert payload == [
+            {"op": "add", "path": "/fields/System.Title", "value": expected_title},
+            # Adds both a comment and a description.
+            # See method for details.
+            {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
+            {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
+        ]
+
     @responses.activate
     def test_create_issue_failure(self):
         form_data = {
@@ -200,7 +257,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "description": "Goodnight, sweet prince",
         }
 
-        with pytest.raises(ValueError):
+        with pytest.raises(IntegrationFormError):
             self.integration.create_issue(form_data)
 
     @responses.activate
