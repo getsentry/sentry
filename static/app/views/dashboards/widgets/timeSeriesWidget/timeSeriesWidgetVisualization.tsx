@@ -9,7 +9,6 @@ import type {
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
@@ -133,7 +132,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const chartRef = useRef<EChartsReactCore | null>(null);
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
