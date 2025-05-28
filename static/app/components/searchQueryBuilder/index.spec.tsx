@@ -425,7 +425,8 @@ describe('SearchQueryBuilder', function () {
         expect(recentFilterKeys[1]).toHaveTextContent('browser');
         expect(recentFilterKeys[2]).toHaveTextContent('is');
 
-        await userEvent.click(recentFilterKeys[0]!);
+        await userEvent.hover(recentFilterKeys[0]!);
+        await userEvent.keyboard('{enter}{enter}');
 
         expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
       });
