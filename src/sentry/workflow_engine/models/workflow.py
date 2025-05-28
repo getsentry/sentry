@@ -34,7 +34,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # The workflow's status - used for tracking deletion state
     status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
-    # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
+    # Required as the 'when' condition for the workflow, this evaluates states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup", null=True, blank=True
     )
@@ -77,6 +77,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
+        # TODO - investigate circular import issue
         from sentry.workflow_engine.processors.data_condition_group import (
             process_data_condition_group,
         )
