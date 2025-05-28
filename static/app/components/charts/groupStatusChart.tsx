@@ -55,13 +55,16 @@ function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
+    const chartColors = theme.chart.colors[0][0];
+
     const marklineColor = isChonkTheme(theme)
-      ? theme.colors.content.muted
+      ? theme.colors.content.accent
       : theme.gray200;
     const marklineLabelColor = isChonkTheme(theme)
-      ? theme.colors.content.primary
+      ? theme.colors.content.muted
       : theme.gray300;
-    const chartColor = isChonkTheme(theme) ? theme.colors.content.primary : theme.gray300;
+
+    const chartColor = isChonkTheme(theme) ? chartColors : theme.gray300;
 
     const markLine = MarkLine({
       silent: true,
@@ -127,7 +130,7 @@ function GroupStatusChart({
               showXAxisLine
               hideZeros={hideZeros}
               markLineLabelSide="right"
-              barOpacity={0.4}
+              barOpacity={theme.isChonk ? 1 : 0.4}
               height={showMarkLine ? 36 : height}
               isGroupedByDate
               showTimeInTooltip
