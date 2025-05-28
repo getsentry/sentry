@@ -1,5 +1,6 @@
 __all__ = [
     "AgeComparisonConditionHandler",
+    "AnomalyDetectionHandler",
     "AssignedToConditionHandler",
     "EventAttributeConditionHandler",
     "EventCreatedByDetectorConditionHandler",
@@ -26,6 +27,7 @@ __all__ = [
 ]
 
 from .age_comparison_handler import AgeComparisonConditionHandler
+from .anomaly_detection_handler import AnomalyDetectionHandler
 from .assigned_to_handler import AssignedToConditionHandler
 from .event_attribute_handler import EventAttributeConditionHandler
 from .event_created_by_detector_handler import EventCreatedByDetectorConditionHandler
