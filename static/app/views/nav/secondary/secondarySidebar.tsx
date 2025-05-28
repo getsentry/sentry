@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {SECONDARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
+import {useNavContext} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {
@@ -14,7 +16,10 @@ import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 export function SecondarySidebar() {
   const {currentStepId} = useStackedNavigationTour();
   const stepId = currentStepId ?? StackedNavigationTour.ISSUES;
-  const activeNavGroup = useActiveNavGroup();
+  const {activePrimaryNavGroup} = useNavContext();
+  const defaultActiveNavGroup = useActiveNavGroup();
+
+  const activeNavGroup = activePrimaryNavGroup ?? defaultActiveNavGroup;
 
   return (
     <SecondarySidebarWrapper
@@ -22,9 +27,19 @@ export function SecondarySidebar() {
       description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
       title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      <SecondarySidebarInner>
-        <SecondaryNavContent group={activeNavGroup} />
-      </SecondarySidebarInner>
+      <AnimatePresence mode="wait" initial={false}>
+        <MotionDiv
+          key={activeNavGroup}
+          initial={{x: -10, opacity: 0}}
+          animate={{x: 0, opacity: 1}}
+          exit={{x: 10, opacity: 0}}
+          transition={{duration: 0.08, ease: 'easeOut'}}
+        >
+          <SecondarySidebarInner>
+            <SecondaryNavContent group={activeNavGroup} />
+          </SecondarySidebarInner>
+        </MotionDiv>
+      </AnimatePresence>
     </SecondarySidebarWrapper>
   );
 }
@@ -41,4 +56,9 @@ const SecondarySidebarWrapper = styled(NavTourElement)`
 
 const SecondarySidebarInner = styled(SecondaryNav)`
   height: 100%;
+`;
+
+const MotionDiv = styled(motion.div)`
+  height: 100%;
+  width: 100%;
 `;
