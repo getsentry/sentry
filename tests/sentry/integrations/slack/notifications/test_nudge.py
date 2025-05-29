@@ -35,5 +35,7 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
         assert blocks[1]["elements"][0]["value"] == "all_slack"
 
         # Slack requires callback_id to handle enablement
-        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
-        assert callback_id == {"enable_notifications": True}
+        context_params = orjson.loads(
+            orjson.loads(self.mock_post.call_args.kwargs["blocks"])[0]["block_id"]
+        )
+        assert context_params == {"enable_notifications": True}

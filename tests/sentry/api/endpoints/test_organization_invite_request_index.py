@@ -232,8 +232,10 @@ class OrganizationInviteRequestCreateTest(
             == f"You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         member = OrganizationMember.objects.get(email="eric@localhost")
-        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
-        assert callback_id == {
+        context_params = orjson.loads(
+            orjson.loads(self.mock_post.call_args.kwargs["blocks"])[0]["block_id"]
+        )
+        assert context_params == {
             "member_id": member.id,
             "member_email": "eric@localhost",
         }
