@@ -10,8 +10,38 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
 from tests.sentry.workflow_engine.test_base import DataConditionHandlerMixin
-from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel, WorkflowEventData
+from tests.sentry.workflow_engine.endpoints.validators.test_base_data_condition import (
+    MockDataConditionEnum,
+    MockDataConditionHandlerDictComparison,
+)
+from sentry.workflow_engine.registry import condition_handler_registry
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+
+class MockDataConditionEnum(IntEnum):
+    FOO = 1
+    BAR = 2
+
+
+class MockDataConditionHandlerDictComparison(DataConditionHandler):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "baz": {"type": "integer", "enum": [*MockDataConditionEnum]},
+        },
+        "required": ["baz"],
+        "additionalProperties": False,
+    }
+
+    @staticmethod
+    def evaluate_value(
+        event_data: WorkflowEventData, comparison: dict[str, MockDataConditionEnum]
+    ) -> DetectorPriorityLevel:
+        return (
+            DetectorPriorityLevel.HIGH if comparison["baz"].value > 1 else DetectorPriorityLevel.OK
+        )
 
 
 class GetConditionResultTest(TestCase):
@@ -45,6 +75,28 @@ class GetConditionResultTest(TestCase):
 
 
 class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.workflow_triggers = self.create_data_condition_group()
+        self.dict_comparison_dc = self.create_data_condition(
+            type="test",
+            comparison={
+                "baz": MockDataConditionEnum.FOO,
+            }
+        )
+        condition_handler_registry.registrations[Condition.REAPPEARED_EVENT] = (
+            MockDataConditionHandlerDictComparison
+        )
+        self.workflow_triggers = self.create_data_condition_group()
+        self.dict_comparison_dc = self.create_data_condition(
+            type=Condition.REAPPEARED_EVENT,
+            comparison={
+                "baz": MockDataConditionEnum.BAR,
+            },
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.workflow_triggers,
+        )
+
     def test(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
@@ -52,20 +104,12 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
         assert dc.evaluate_value(1) is None
 
-    def test_non_bool_result(self):
-        _, _, _, self.workflow_triggers = self.create_detector_and_workflow()
-        dc = self.create_data_condition(
-            type=Condition.ANOMALY_DETECTION,
-            comparison={
-                "sensitivity": AnomalyDetectionSensitivity.MEDIUM,
-                "seasonality": AnomalyDetectionSeasonality.AUTO,
-                "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-            },
-            condition_result=DetectorPriorityLevel.HIGH,
-            condition_group=self.workflow_triggers,
-        )
-        assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
-        assert dc.evaluate_value(0) == DetectorPriorityLevel.OK
+    def test_dict_comparison_result_high(self):
+        assert self.dict_comparison_dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
+
+    def test_dict_comparison_result_ok(self):
+        self.dict_comparison_dc.update(comparison={"baz": MockDataConditionEnum.FOO})
+        assert self.dict_comparison_dc.evaluate_value(0) == DetectorPriorityLevel.OK
 
     def test_bad_condition(self):
         with pytest.raises(ValueError):
