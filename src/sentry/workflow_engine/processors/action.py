@@ -96,22 +96,6 @@ def create_workflow_fire_histories(
     return WorkflowFireHistory.objects.bulk_create(fire_histories)
 
 
-def create_workflow_fire_histories_from_statuses(
-    statuses: BaseQuerySet[WorkflowActionGroupStatus], event_data: WorkflowEventData
-) -> list[WorkflowFireHistory]:
-    # Create WorkflowFireHistory objects for workflows we fire actions for
-    workflow_ids = set(statuses.values_list("workflow_id", flat=True))
-    fire_histories = [
-        WorkflowFireHistory(
-            workflow_id=workflow_id,
-            group=event_data.event.group,
-            event_id=event_data.event.event_id,
-        )
-        for workflow_id in workflow_ids
-    ]
-    return WorkflowFireHistory.objects.bulk_create(fire_histories)
-
-
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
@@ -255,7 +239,7 @@ def filter_recently_fired_workflow_actions(
     )
 
     # TODO: write this in a single spot
-    # create_workflow_fire_histories_from_statuses(event_data=event_data, statuses=statuses)
+    # create_workflow_fire_histories
 
     return Action.objects.filter(id__in=action_ids).distinct()
 
