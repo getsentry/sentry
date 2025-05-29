@@ -8,7 +8,6 @@ import type {
   CustomSeriesRenderItemReturn,
   ElementEvent,
 } from 'echarts';
-import type {EChartsInstance} from 'echarts-for-react';
 import debounce from 'lodash/debounce';
 import moment from 'moment-timezone';
 
@@ -397,14 +396,18 @@ export function useReleaseBubbles({
     (e: ReactEchartsRef | null) => {
       chartRef.current = e;
 
-      const echartsInstance: EChartsInstance = e?.getEchartsInstance?.();
+      const echartsInstance = e?.getEchartsInstance?.();
       const highlightedBuckets = new Set();
 
       const handleMouseMove = (params: ElementEvent) => {
+        if (!echartsInstance) {
+          return;
+        }
+
         // Tracks movement across the chart and highlights the corresponding release bubble
         const pointInPixel = [params.offsetX, params.offsetY];
         const pointInGrid = echartsInstance.convertFromPixel('grid', pointInPixel);
-        const series = echartsInstance.getOption().series;
+        const series = echartsInstance.getOption().series as Series[];
         const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
 
         // No release bubble series found (shouldn't happen)
@@ -480,7 +483,7 @@ export function useReleaseBubbles({
       };
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID) {
+        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
 
@@ -515,7 +518,7 @@ export function useReleaseBubbles({
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID) {
+        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
 
@@ -538,7 +541,7 @@ export function useReleaseBubbles({
           return;
         }
 
-        const series = echartsInstance.getOption().series;
+        const series = echartsInstance.getOption().series as Series[];
         const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
         // We could find and include a `dataIndex` to be specific about which
         // bubble to "downplay", but I think it's ok to downplay everything
@@ -549,7 +552,11 @@ export function useReleaseBubbles({
       };
 
       const handleLegendSelectChanged = (params: LegendSelectChangedParams) => {
-        if (params.name !== 'Releases' || !('Releases' in params.selected)) {
+        if (
+          params.name !== 'Releases' ||
+          !('Releases' in params.selected) ||
+          !echartsInstance
+        ) {
           return;
         }
         const selected = params.selected.Releases;
@@ -583,6 +590,7 @@ export function useReleaseBubbles({
         echartsInstance.on('mouseover', handleMouseOver);
         echartsInstance.on('mouseout', handleMouseOut);
         echartsInstance.on('globalout', handleGlobalOut);
+        // @ts-expect-error ECharts types `params` as unknown
         echartsInstance.on('legendselectchanged', handleLegendSelectChanged);
         echartsInstance.getZr().on('mousemove', handleMouseMove);
       }

@@ -8,8 +8,6 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type {EChartsInstance} from 'echarts-for-react';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
@@ -80,7 +78,7 @@ export interface TimeSeriesWidgetVisualizationProps
   /**
    * Reference to the chart instance
    */
-  chartRef?: React.Ref<EChartsInstance>;
+  chartRef?: React.Ref<ReactEchartsRef>;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -133,7 +131,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const chartRef = useRef<EChartsReactCore | null>(null);
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
@@ -566,9 +564,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
-    batch: {dataIndex: number; seriesIndex: number},
+    batch: {dataIndex: number; seriesIndex?: number},
     handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
   ): void => {
+    if (batch.seriesIndex === undefined) {
+      return;
+    }
+
     const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
@@ -710,7 +712,7 @@ function getPlottableEventDataIndex(
   series: SeriesOption[],
   event: {
     dataIndex: number;
-    seriesIndex: number;
+    seriesIndex?: number;
   },
   affectedRange: Range<Plottable>
 ): number {
