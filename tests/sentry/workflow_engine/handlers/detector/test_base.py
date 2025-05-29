@@ -11,7 +11,7 @@ from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
     DetectorHandler,
     DetectorOccurrence,
-    StatefulGroupingDetectorHandler,
+    StatefulDetectorHandler,
 )
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
 from sentry.workflow_engine.models import DataPacket, Detector
@@ -54,7 +54,7 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
     )
 
 
-class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]):
+class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
     def test_get_empty_counter_state(self):
         return {name: None for name in self.state_manager.counter_names}
 
@@ -62,10 +62,10 @@ class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]
         return data_packet.packet.get("dedupe", 0)
 
     def extract_value(self, data_packet: DataPacket[dict]) -> int:
-        return data_packet.packet.get("value", 0)
+        if data_packet.packet.get("value"):
+            return data_packet.packet["value"]
 
-    def extract_group_values(self, data_packet: DataPacket[dict]) -> dict[str | None, int | None]:
-        return data_packet.packet.get("group_vals", {})
+        return data_packet.packet.get("group_vals", 0)
 
     def create_occurrence(
         self,
@@ -212,7 +212,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
     def assert_updates(
         self,
-        handler: StatefulGroupingDetectorHandler,
+        handler: StatefulDetectorHandler,
         group_key: DetectorGroupKey | None,
         dedupe_value: int | None,
         counter_updates: DetectorCounters | None,

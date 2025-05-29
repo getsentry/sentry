@@ -46,7 +46,6 @@ from sentry.incidents.utils.process_update_helpers import (
 )
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    MetricDetectorUpdate,
     QuerySubscriptionUpdate,
 )
 from sentry.models.project import Project
@@ -336,13 +335,13 @@ class SubscriptionProcessor:
 
         if aggregation_value is not None:
             if has_metric_alert_processing:
-                packet = MetricDetectorUpdate(
+                packet = QuerySubscriptionUpdate(
                     entity=subscription_update.get("entity", ""),
                     subscription_id=subscription_update["subscription_id"],
                     values={"value": aggregation_value},
                     timestamp=self.last_update,
                 )
-                data_packet = DataPacket[MetricDetectorUpdate](
+                data_packet = DataPacket[QuerySubscriptionUpdate](
                     source_id=str(self.subscription.id), packet=packet
                 )
                 # temporarily skip processing any anomaly detection alerts

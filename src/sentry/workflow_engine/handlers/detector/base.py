@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 DataPacketType = TypeVar("DataPacketType")
 DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
 
-# TODO - get more info about how this is used in issue platform
 EventData = dict[str, Any]
 
 
@@ -79,7 +78,6 @@ class DetectorOccurrence:
         )
 
 
-# TODO - DetectorHandler -> AbstractDetectorHandler? (then DetectorHandler is the base implementation)
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     def __init__(self, detector: Detector):
         self.detector = detector
@@ -125,7 +123,9 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         pass
 
     @abc.abstractmethod
-    def extract_value(self, data_packet: DataPacket[DataPacketType]) -> DataPacketEvaluationType:
+    def extract_value(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> DataPacketEvaluationType | dict[DetectorGroupKey, DataPacketEvaluationType]:
         """
         Extracts the evaluation value from the data packet to be processed.
 
@@ -133,11 +133,10 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         """
         pass
 
-    # TODO should this be a required method? :thinking:
     @abc.abstractmethod
     def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
         """
-        Extracts the deduplication value from a passed data packet. This duplication
+        Extracts the de-duplication value from a passed data packet. This duplication
         value is used to determine if we've already processed data to this point or not.
 
         This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
