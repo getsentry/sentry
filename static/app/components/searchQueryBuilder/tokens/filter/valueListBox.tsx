@@ -66,6 +66,12 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     return null;
   }
 
+  const showSearchingLoader =
+    isLoading &&
+    anyItemsShowing &&
+    !!listBoxRef.current &&
+    listBoxRef.current.scrollHeight <= listBoxRef.current.clientHeight;
+
   const valueListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SectionedOverlay ref={popoverRef}>
@@ -87,6 +93,11 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               size="sm"
               style={{maxWidth: overlayProps.style!.maxWidth}}
             />
+            {showSearchingLoader ? (
+              <LoadingWrapper height="32px" width="100%">
+                <LoadingIndicator size={24} />
+              </LoadingWrapper>
+            ) : null}
             <Footer isMultiSelect={isMultiSelect} canUseWildcard={canUseWildcard} />
           </Fragment>
         )}
