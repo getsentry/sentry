@@ -1,20 +1,59 @@
+from enum import IntEnum
 from typing import Any
 from unittest import mock
 
 from rest_framework.serializers import ValidationError
 
 from sentry.testutils.cases import TestCase
+from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.endpoints.validators.base import (
     AbstractDataConditionValidator,
     BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import Condition
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import (
+    DataConditionHandler,
+    DetectorPriorityLevel,
+    WorkflowEventData,
+)
+
+try:
+    type_mock = mock.Mock()
+    condition_handler_registry.register("test")(type_mock)
+except AlreadyRegisteredError:
+    # Ensure "test" is mocked for tests, but don't fail if already registered here.
+    pass
+
+
+class MockDataConditionEnum(IntEnum):
+    FOO = 1
+    BAR = 2
 
 
 class MockDataConditionHandler(DataConditionHandler):
     comparison_json_schema = {"type": "number"}
     condition_result_schema = {"type": "boolean"}
+
+
+# @condition_handler_registry.register(Condition.TESTCASE)
+class MockDataConditionHandlerDictComparison(DataConditionHandler):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "baz": {"type": "int", "enum": [*MockDataConditionEnum]},
+        },
+        "required": ["baz"],
+        "additionalProperties": False,
+    }
+
+    def evaluate_value(
+        event_data: WorkflowEventData, comparison: dict[str, int]
+    ) -> DetectorPriorityLevel:
+        return (
+            DetectorPriorityLevel.HIGH if comparison["baz"].value > 1 else DetectorPriorityLevel.OK
+        )
 
 
 @mock.patch(
