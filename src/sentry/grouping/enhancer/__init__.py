@@ -815,7 +815,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
                 enhancements = Enhancements.from_rules_text(
-                    f.read(), id=filename, version=3, referrer="default_rules"
+                    f.read(), id=filename, referrer="default_rules"
                 )
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
