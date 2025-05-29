@@ -7,13 +7,13 @@ import type {Location} from 'history';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
+import {Tabs} from 'sentry/components/core/tabs';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -32,6 +32,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
@@ -80,6 +81,7 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
+    shouldUseOTelFriendlyUI: boolean;
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
@@ -181,12 +183,19 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
-  const eventView = generateEventView({location, transactionName, organization});
+  const eventView = generateEventView({
+    location,
+    organization,
+    transactionName,
+    shouldUseOTelFriendlyUI,
+  });
 
   if (!defined(projectId)) {
     // Using a discover query to get the projects associated

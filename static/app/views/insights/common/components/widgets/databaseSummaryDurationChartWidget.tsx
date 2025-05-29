@@ -15,9 +15,10 @@ export default function DatabaseSummaryDurationChartWidget(
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
+  const search = MutableSearch.fromQueryObject(filters);
   const {isPending, data, error} = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(filters),
+      search,
       yAxis: [`${DEFAULT_DURATION_AGGREGATE}(${SpanMetricsField.SPAN_SELF_TIME})`],
       enabled: Boolean(groupId),
       transformAliasToInputFormat: true,
@@ -28,6 +29,7 @@ export default function DatabaseSummaryDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="databaseSummaryDurationChartWidget"
       title={getDurationChartTitle('db')}
       series={[data[`${DEFAULT_DURATION_AGGREGATE}(${SpanMetricsField.SPAN_SELF_TIME})`]]}

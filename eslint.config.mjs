@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -67,6 +68,10 @@ const enableTypeAwareLinting = (function () {
 })();
 // eslint-disable-next-line no-console
 console.log('Computed env settings:', {enableTypeAwareLinting});
+
+// Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
+const MDXIgnore = ['**/*.mdx'];
 
 const restrictedImportPaths = [
   {
@@ -475,7 +480,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/typescript-eslint/type-aware-linting',
+    ignores: MDXIgnore,
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
+    rules: enableTypeAwareLinting
+      ? {
+          '@typescript-eslint/await-thenable': 'error',
+          '@typescript-eslint/consistent-type-exports': 'error',
+          '@typescript-eslint/consistent-type-imports': 'error',
+          '@typescript-eslint/no-array-delete': 'error',
+          '@typescript-eslint/no-base-to-string': 'error',
+          '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/prefer-optional-chain': 'error',
+        }
+      : {},
+  },
+  {
     name: 'plugin/typescript-eslint/custom',
+    ignores: MDXIgnore,
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
@@ -519,23 +543,6 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  {
-    name: 'plugin/typescript-eslint/type-aware-linting',
-    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
-    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
-    rules: enableTypeAwareLinting
-      ? {
-          '@typescript-eslint/await-thenable': 'error',
-          '@typescript-eslint/consistent-type-exports': 'error',
-          '@typescript-eslint/consistent-type-imports': 'error',
-          '@typescript-eslint/no-array-delete': 'error',
-          '@typescript-eslint/no-base-to-string': 'error',
-          '@typescript-eslint/no-for-in-array': 'error',
-          '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-          '@typescript-eslint/prefer-optional-chain': 'error',
-        }
-      : {},
-  },
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -1000,5 +1007,12 @@ export default typescript.config([
       // Allow imports from gsApp into getsentry-test fixtures
       'no-restricted-imports': 'off',
     },
+  },
+
+  // MDX Configuration
+  {
+    ...mdx.flat,
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
   },
 ]);

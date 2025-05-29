@@ -6,6 +6,7 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
+import {AssignedToNode} from 'sentry/views/automations/components/actionFilters/assignedTo';
 import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
 import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
 import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
@@ -66,6 +67,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue age'),
       dataCondition: <AgeComparisonNode />,
+    },
+  ],
+  [
+    DataConditionType.ASSIGNED_TO,
+    {
+      label: t('Issue assignment'),
+      dataCondition: <AssignedToNode />,
     },
   ],
   [
@@ -181,3 +189,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
 ]);
+
+export const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> =
+  {
+    [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  };
