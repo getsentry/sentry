@@ -225,7 +225,7 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, Any]:
+def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, dict[str, Any]]:
     settings = get_merged_settings(project_id)
 
     return {

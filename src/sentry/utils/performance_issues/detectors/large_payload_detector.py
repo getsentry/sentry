@@ -24,8 +24,6 @@ from ..types import Span
 EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
 EXTENSION_ALLOW_LIST = ("JSON",)
 
-MINIMUM_SPAN_DURATION = timedelta(milliseconds=100)  # ms
-
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
     __slots__ = "stored_problems"
@@ -108,7 +106,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not op.startswith("http"):
             return False
 
-        if get_span_duration(span) < self.settings.get("minimum_span_duration"):
+        if get_span_duration(span) < timedelta(
+            milliseconds=self.settings.get("minimum_span_duration")
+        ):
             return False
 
         normalized_description = description.strip().upper()
