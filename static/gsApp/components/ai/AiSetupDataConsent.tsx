@@ -51,6 +51,8 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   const isTouchCustomer = subscription?.type === BillingType.INVOICED;
 
+  const userHasBillingAccess = organization.access.includes('org:billing');
+
   const autofixAcknowledgeMutation = useMutation({
     mutationFn: () => {
       return promptsUpdate(api, {
@@ -146,6 +148,14 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                           autofixAcknowledgeMutation.mutate();
                         }}
                         size="md"
+                        disabled={!userHasBillingAccess}
+                        title={
+                          userHasBillingAccess
+                            ? undefined
+                            : t(
+                                "You don't have access to manage billing. Contact a billing admin for your org."
+                              )
+                        }
                       >
                         {t('Add Budget')}
                       </AddBudgetButton>
