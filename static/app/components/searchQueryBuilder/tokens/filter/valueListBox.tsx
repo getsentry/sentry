@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
@@ -100,6 +100,34 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   );
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
+  const listBoxRefCallback = useCallback((element: HTMLUListElement | null) => {
+    listBoxRef.current = element;
+
+    if (!element) return undefined;
+
+    const refsToSync = [listBoxRef, popoverRef];
+
+    constrainAndAlignListBox({
+      popoverRef,
+      refsToSync,
+      referenceRef: wrapperRef,
+    });
+
+    const observer = new ResizeObserver(() => {
+      constrainAndAlignListBox({
+        popoverRef,
+        refsToSync,
+        referenceRef: wrapperRef,
+      });
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!isOpen || (!anyItemsShowing && !isLoading)) {
     return null;
   }
@@ -115,33 +143,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           <Fragment>
             <StyledListBox
               {...listBoxProps}
-              ref={element => {
-                listBoxRef.current = element;
-
-                if (!element) return undefined;
-
-                const refsToSync = [listBoxRef, popoverRef];
-
-                constrainAndAlignListBox({
-                  popoverRef,
-                  refsToSync,
-                  referenceRef: wrapperRef,
-                });
-
-                const observer = new ResizeObserver(() => {
-                  constrainAndAlignListBox({
-                    popoverRef,
-                    refsToSync,
-                    referenceRef: wrapperRef,
-                  });
-                });
-
-                observer.observe(element);
-
-                return () => {
-                  observer.disconnect();
-                };
-              }}
+              ref={listBoxRefCallback}
               listState={state}
               hasSearch={!!filterValue}
               hiddenOptions={hiddenOptions}
