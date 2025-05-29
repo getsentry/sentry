@@ -15,7 +15,7 @@ import grpc
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask, TaskActivation
 
-from sentry.taskworker.client import TaskworkerClient
+from sentry.taskworker.client import HostTemporarilyUnavailable, TaskworkerClient
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
 from sentry.taskworker.workerchild import ProcessingResult, child_process
 from sentry.utils import metrics
@@ -263,6 +263,13 @@ class TaskWorker:
                 extra={"task_id": result.task_id, "error": e},
             )
             return None
+        except HostTemporarilyUnavailable as e:
+            logger.info(
+                "taskworker.send_update_task.temporarily_unavailable",
+                extra={"task_id": result.task_id, "error": str(e)},
+            )
+            self._processed_tasks.put(result)
+            return None
 
     def start_spawn_children_thread(self) -> None:
         def spawn_children_thread() -> None:
@@ -305,7 +312,7 @@ class TaskWorker:
                 extra={"error": e, "processing_pool": self._processing_pool_name},
             )
 
-            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
+            self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 2, 10)
             return None
 
         if not activation:

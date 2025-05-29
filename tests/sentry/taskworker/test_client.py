@@ -17,7 +17,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.client import TaskworkerClient
+from sentry.taskworker.client import HostTemporarilyUnavailable, TaskworkerClient
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -528,3 +528,233 @@ def test_client_loadbalance_on_notfound():
             assert client._task_id_to_host == {
                 "2": "localhost-2:50051",
             }
+
+
+@django_db_all
+def test_client_loadbalance_on_unavailable():
+    channel_0 = MockChannel()
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+
+    channel_1 = MockChannel()
+    channel_1.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.side_effect = [channel_0, channel_1]
+        with patch("sentry.taskworker.client.random.choice") as mock_randchoice:
+            mock_randchoice.side_effect = [
+                "localhost-0:50051",
+                "localhost-1:50051",
+            ]
+            client = TaskworkerClient(
+                "localhost:50051", num_brokers=2, max_consecutive_unavailable_errors=3
+            )
+
+            # Fetch from the first channel, host should be unavailable
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+            assert client._num_consecutive_unavailable_errors == 1
+
+            # Fetch from the first channel, host should be unavailable
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+            assert client._num_consecutive_unavailable_errors == 2
+
+            # Fetch from the first channel, host should be unavailable
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+            assert client._num_consecutive_unavailable_errors == 3
+
+            # Should rebalance to the second host and receive task
+            task = client.get_task()
+            assert task and task.id == "1"
+            assert client._num_consecutive_unavailable_errors == 0
+
+
+@django_db_all
+def test_client_single_host_unavailable():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+
+    with (patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel,):
+        mock_channel.return_value = channel
+        client = TaskworkerClient(
+            "localhost:50051",
+            num_brokers=1,
+            max_consecutive_unavailable_errors=3,
+            temporary_unavailable_host_timeout=2,
+        )
+
+        for _ in range(3):
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+        assert client._num_consecutive_unavailable_errors == 3
+
+        # Verify host was marked as temporarily unavailable
+        assert "localhost-0:50051" in client._temporary_unavailable_hosts
+        assert isinstance(client._temporary_unavailable_hosts["localhost-0:50051"], float)
+
+        client.get_task()
+        assert client._cur_host == "localhost-0:50051"
+
+
+@django_db_all
+def test_client_reset_errors_after_success():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient(
+            "localhost:50051", num_brokers=1, max_consecutive_unavailable_errors=3
+        )
+
+        with pytest.raises(grpc.RpcError, match="host is unavailable"):
+            client.get_task()
+        assert client._num_consecutive_unavailable_errors == 1
+
+        task = client.get_task()
+        assert task and task.id == "1"
+        assert client._num_consecutive_unavailable_errors == 0
+
+        with pytest.raises(grpc.RpcError, match="host is unavailable"):
+            client.get_task()
+        assert client._num_consecutive_unavailable_errors == 1
+
+
+@django_db_all
+def test_client_update_task_host_unavailable():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+
+    current_time = 1000.0
+
+    def mock_time():
+        return current_time
+
+    with (
+        patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel,
+        patch("sentry.taskworker.client.time.time", side_effect=mock_time),
+    ):
+        mock_channel.return_value = channel
+        client = TaskworkerClient(
+            "localhost:50051",
+            num_brokers=1,
+            max_consecutive_unavailable_errors=3,
+            temporary_unavailable_host_timeout=10,
+        )
+
+        # Get a task to establish the host mapping
+        task = client.get_task()
+        assert task and task.id == "1"
+        assert "1" in client._task_id_to_host
+        host = client._task_id_to_host["1"]
+
+        # Make the host temporarily unavailable
+        for _ in range(3):
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+        assert client._num_consecutive_unavailable_errors == 3
+        assert host in client._temporary_unavailable_hosts
+
+        # Try to update the task
+        with pytest.raises(
+            HostTemporarilyUnavailable, match=f"Host: {host} is temporarily unavailable"
+        ):
+            client.update_task(
+                task_id="1", status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
+            )
+
+        # Task get skipped, but still be in the mapping since we didn't process it
+        assert "1" in client._task_id_to_host
+        assert client._task_id_to_host["1"] == host
