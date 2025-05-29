@@ -126,6 +126,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     return () => {
       observer.disconnect();
     };
+    // all deps are refs but because they're props, the linter complains
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isOpen || (!anyItemsShowing && !isLoading)) {
