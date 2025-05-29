@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0914_increase_orgmember_user_email_max_length"),
+        ("sentry", "0913_split_discover_dataset_dashboards_self_hosted"),
     ]
 
     operations = [
