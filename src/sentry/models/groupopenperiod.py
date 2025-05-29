@@ -247,7 +247,13 @@ def update_group_open_period(
             activity = (
                 Activity.objects.filter(
                     group=group,
-                    type=ActivityType.SET_RESOLVED.value,
+                    type__in=[
+                        ActivityType.SET_RESOLVED.value,
+                        ActivityType.SET_RESOLVED_BY_AGE.value,
+                        ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                        ActivityType.SET_RESOLVED_IN_COMMIT.value,
+                        ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+                    ],
                 )
                 .order_by("-datetime")
                 .first()

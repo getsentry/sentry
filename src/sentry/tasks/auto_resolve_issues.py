@@ -106,13 +106,14 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
+        resolution_time = django_timezone.now()
         happened = Group.objects.filter(
             id=group.id,
             status=GroupStatus.UNRESOLVED,
             last_seen__lte=cutoff,
         ).update(
             status=GroupStatus.RESOLVED,
-            resolved_at=django_timezone.now(),
+            resolved_at=resolution_time,
             substatus=None,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
