@@ -89,42 +89,22 @@ type UsageProps = {
   displayMode: 'usage' | 'cost';
   organization: Organization;
   subscription: Subscription;
-  // /**
-  //  * All category totals when needed for reserved budgets.
-  //  */
-  // allTotalsByCategory?: Record<string, BillingStatTotal>;
   /**
-   * Do not allow the table to be expansded
+   * Do not allow the table to be expanded
    */
   disableTable?: boolean;
   /**
    * Event breakdown totals used by Performance Units
    */
   eventTotals?: Record<string, BillingStatTotal>;
-  // /**
-  //  * Gifted budget for the current billing period.
-  //  */
-  // freeBudget?: number | null;
   /**
    * Gifted events for the current billing period.
    */
   freeUnits?: number;
-  // /**
-  //  * The prepaid budget (reserved + gifted) if any
-  //  */
-  // prepaidBudget?: number | null;
   /**
    * Total events allowed for the current usage period including gifted
    */
   prepaidUnits?: number;
-  // /**
-  //  * The reserved budget if any
-  //  */
-  // reservedBudget?: number | null;
-  // /**
-  //  * The reserved spend if any
-  //  */
-  // reservedSpend?: number | null;
   /**
    * The reserved amount or null if the account doesn't have this category.
    */
@@ -159,10 +139,6 @@ type CombinedUsageProps = {
   productGroup: ReservedBudget;
   subscription: Subscription;
   /**
-   * Do not allow the table to be expansded
-   */
-  disableTable?: boolean;
-  /**
    * Gifted budget for the current billing period.
    */
   freeBudget?: number | null;
@@ -174,10 +150,6 @@ type CombinedUsageProps = {
    * The reserved spend if any
    */
   reservedSpend?: number | null;
-  /**
-   * Show event breakdown
-   */
-  showEventBreakdown?: boolean;
   /**
    * If soft cap is enabled, the type of soft cap in use: true forward or on-demand
    */
@@ -467,11 +439,6 @@ export function UsageTotals({
     calculateCategoryPrepaidUsage(category, subscription, prepaid, null, undefined, null);
   const unusedPrepaidWidth =
     reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 100;
-  // const totalCategorySpend =
-  //   (hasReservedBudget
-  //     ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
-  //         ?.totalReservedSpend ?? 0)
-  //     : prepaidPrice) + categoryOnDemandSpent;
   const totalCategorySpend = prepaidPrice + categoryOnDemandSpent;
 
   // Shared on demand spend is gone, another category has spent all of it
@@ -488,7 +455,7 @@ export function UsageTotals({
   const showOnDemand =
     !onDemandIsGoneAndCategorySpentNone && hasOnDemand && totalMaxOndemandBudget !== 0;
 
-  const isDisplayingSpend = displayMode === 'cost'; // || hasReservedBudget; // always display as spend for reserved budgets
+  const isDisplayingSpend = displayMode === 'cost';
 
   // Calculate the width of the reserved bar relative to on demand
   let reservedMaxWidth = showOnDemand ? (reserved === 0 ? 0 : 50) : 100;
@@ -779,23 +746,6 @@ export function UsageTotals({
             totals={total}
             subscription={subscription}
           />
-          {/* Show additional tables for shared reserved budget categories */}
-          {/* {hasReservedBudget &&
-            subscription.hadCustomDynamicSampling &&
-            allTotalsByCategory &&
-            subscription.reservedBudgets?.map(budget =>
-              Object.entries(budget.categories)
-                // Filter out the current category since it's already shown from logic above
-                .filter(([categoryKey]) => categoryKey !== category)
-                .map(([categoryKey]) => (
-                  <UsageTotalsTable
-                    key={categoryKey}
-                    category={categoryKey as DataCategory}
-                    totals={allTotalsByCategory?.[categoryKey] ?? EMPTY_STAT_TOTAL}
-                    subscription={subscription}
-                  />
-                ))
-            )} */}
 
           {showEventBreakdown &&
             Object.entries(eventTotals).map(([key, eventTotal]) => {
