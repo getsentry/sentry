@@ -21,11 +21,11 @@ export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
   });
 }
 
-export function useDataConditionsQuery(group: DataConditionHandlerGroupType) {
+export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {
   const {slug} = useOrganization();
 
   return useApiQuery<DataConditionHandler[]>(
-    [`/organizations/${slug}/data-conditions/`, {query: {group}}],
+    [`/organizations/${slug}/data-conditions/`, {query: {group: groupType}}],
     {
       staleTime: Infinity,
       retry: false,

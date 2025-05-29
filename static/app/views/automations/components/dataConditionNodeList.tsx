@@ -58,13 +58,13 @@ export default function DataConditionNodeList({
     const frequencyOptions: Option[] = [];
     const eventAttributeOptions: Option[] = [];
 
-    dataConditionHandlers.forEach(handler => {
-      const percentageTypes = [
-        DataConditionType.EVENT_FREQUENCY_PERCENT,
-        DataConditionType.PERCENT_SESSIONS_PERCENT,
-        DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
-      ];
+    const percentageTypes = [
+      DataConditionType.EVENT_FREQUENCY_PERCENT,
+      DataConditionType.PERCENT_SESSIONS_PERCENT,
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    ];
 
+    dataConditionHandlers.forEach(handler => {
       if (percentageTypes.includes(handler.type)) {
         return; // Skip percentage types so that frequency conditions are not duplicated
       }
@@ -96,7 +96,7 @@ export default function DataConditionNodeList({
       {
         key: DataConditionHandlerSubgroupType.FREQUENCY,
         label: t('Filter by Frequency'),
-        options: Array.from(new Set(frequencyOptions)),
+        options: frequencyOptions,
       },
       {
         key: DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES,
