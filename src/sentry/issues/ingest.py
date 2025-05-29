@@ -156,6 +156,9 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
+        associated_event_id = occurrence.evidence_data.get("associated_event_id")
+        if associated_event_id:
+            event_metadata["associated_event_id"] = associated_event_id
 
     return {
         "type": event_type.key,

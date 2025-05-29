@@ -262,7 +262,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="byte",
         ),
         simple_measurements_field(
-            "messaging.message.receive.latency", search_type="millisecond", secondary_alias=True
+            "messaging.message.receive.latency",
+            search_type="millisecond",
+            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="messaging.message.receive.latency",
@@ -359,7 +361,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
-        simple_sentry_field("span_id"),
+        ResolvedAttribute(
+            public_alias="span_id",
+            internal_name="sentry.item_id",
+            search_type="string",
+        ),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
         simple_sentry_field("transaction.op"),
