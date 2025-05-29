@@ -37,11 +37,9 @@ logger = logging.getLogger(__name__)
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
 
-# TODO: Move 3 to the end when we're ready for it to be the default
-VERSIONS = [
-    3,  # Enhancements with this version run the split enhancements experiment
-    2,  # The current default version
-]
+# TODO: Version 2 can be removed once all events with that config have expired, 90 days after this
+# comment is merged
+VERSIONS = [2, 3]
 LATEST_VERSION = VERSIONS[-1]
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
