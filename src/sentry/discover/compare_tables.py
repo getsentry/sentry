@@ -67,14 +67,16 @@ def compare_tables_for_dashboard_widget_queries(
     dashboard: Dashboard = widget.dashboard
     organization: Organization = dashboard.organization
     projects: list[Project] = dashboard.projects.all()
-    project = projects.first()
     if len(list(projects)) == 0:
         return {
             "passed": False,
             "reason": CompareTableResult.NO_PROJECT,
             "fields": None,
             "widget_query": widget_query,
+            "mismatches": None,
         }
+
+    project = projects[0]
 
     fields = widget_query.fields
     if len(fields) == 0:
@@ -83,6 +85,7 @@ def compare_tables_for_dashboard_widget_queries(
             "reason": CompareTableResult.NO_FIELDS,
             "fields": None,
             "widget_query": widget_query,
+            "mismatches": None,
         }
 
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
@@ -110,7 +113,7 @@ def compare_tables_for_dashboard_widget_queries(
         logger.info("Metrics query failed: %s", e)
         has_metrics_error = True
 
-    environments = dashboard.filters.get("environment", [])
+    environments = dashboard.filters.get("environment", []) if dashboard.filters is not None else []
 
     snuba_params = SnubaParams(
         environments=environments,
@@ -134,7 +137,7 @@ def compare_tables_for_dashboard_widget_queries(
             query_string=eap_query_parts["query"],
             selected_columns=eap_query_parts["selected_columns"],
             orderby=eap_query_parts["orderby"],
-            offset=None,
+            offset=0,
             limit=1,
             referrer="dashboards.transactions_spans_comparison",
             config=SearchResolverConfig(),
@@ -150,6 +153,7 @@ def compare_tables_for_dashboard_widget_queries(
             "reason": CompareTableResult.BOTH_FAILED,
             "fields": fields,
             "widget_query": widget_query,
+            "mismatches": None,
         }
     elif has_metrics_error:
         return {
@@ -157,6 +161,7 @@ def compare_tables_for_dashboard_widget_queries(
             "reason": CompareTableResult.METRICS_FAILED,
             "fields": fields,
             "widget_query": widget_query,
+            "mismatches": None,
         }
     elif has_snql_eap_error:
         return {
@@ -164,6 +169,7 @@ def compare_tables_for_dashboard_widget_queries(
             "reason": CompareTableResult.SNQL_EAP_FAILED,
             "fields": fields,
             "widget_query": widget_query,
+            "mismatches": None,
         }
     else:
         passed, mismatches = compare_table_results(metrics_query_result, snql_eap_result)

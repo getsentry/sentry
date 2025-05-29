@@ -214,4 +214,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         )
         assert comparison_result["passed"] is False
         assert comparison_result["reason"] == CompareTableResult.FIELD_NOT_FOUND
-        assert "failure_rate()" in comparison_result["mismatches"]
+        assert (
+            comparison_result["mismatches"] is not None
+            and "failure_rate()" in comparison_result["mismatches"]
+        )
