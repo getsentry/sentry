@@ -14,6 +14,7 @@ interface AutofixHighlightWrapperProps {
   className?: string;
   displayName?: string;
   isAgentComment?: boolean;
+  ref?: React.RefObject<HTMLDivElement | null>;
   retainInsightCardIndex?: number | null;
 }
 
@@ -30,8 +31,10 @@ export function AutofixHighlightWrapper({
   isAgentComment = false,
   className,
   displayName,
+  ref,
 }: AutofixHighlightWrapperProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = ref || internalRef;
   const selection = useTextSelection(containerRef);
 
   const [shouldPersist, setShouldPersist] = useState(false);
@@ -47,7 +50,12 @@ export function AutofixHighlightWrapper({
 
   return (
     <React.Fragment>
-      <Wrapper ref={containerRef} className={className} isSelected={!!selection}>
+      <Wrapper
+        ref={containerRef}
+        className={className}
+        isSelected={!!selection}
+        title={selection ? undefined : 'Click to chat about this with Seer'}
+      >
         {children}
       </Wrapper>
 
@@ -76,10 +84,6 @@ const Wrapper = styled('div')<{isSelected: boolean}>`
       !p.isSelected &&
       css`
         cursor: pointer;
-
-        * {
-          ${p.theme.tooltipUnderline('gray200')};
-        }
       `};
   }
 `;
