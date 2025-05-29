@@ -38,25 +38,32 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
+// Some rules can be enabled/disabled via env vars.
+// This is useful for CI, where we want to run the linter with the most strict
+// and slowest settings, and for pre-commit, where we want to run the linter
+// faster.
+// Some output is provided to help people toggle these settings locally.
+const enableTypeAwareLinting = (function () {
+  // If we ask for something specific, use that.
+  if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
+    return Boolean(JSON.parse(process.env.SENTRY_ESLINT_TYPEAWARE));
+  }
+
+  // If we're inside a pre-commit hook, defer to whether we're in CI.
+  if (
+    process.env.SENTRY_PRECOMMIT !== undefined &&
+    Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT))
+  ) {
+    return process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+  }
+
+  // By default, enable type-aware linting.
+  return true;
+})();
+
 // Exclude MDX files from type-aware linting
 // https://github.com/orgs/mdx-js/discussions/2454
-const MDXIgnore = ['**/*.mdx'];
-
-// lint rules that need type information need to go here
-export const typeAwareLintRules = {
-  name: 'plugin/typescript-eslint/type-aware-linting',
-  ignores: MDXIgnore,
-  rules: {
-    '@typescript-eslint/await-thenable': 'error',
-    '@typescript-eslint/no-array-delete': 'error',
-    '@typescript-eslint/no-base-to-string': 'error',
-    '@typescript-eslint/no-for-in-array': 'error',
-    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-    '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/consistent-type-exports': 'error',
-    '@typescript-eslint/consistent-type-imports': 'error',
-  },
-};
+const globMDX = '**/*.mdx';
 
 const restrictedImportPaths = [
   {
@@ -167,20 +174,21 @@ export default typescript.config([
         experimentalDecorators: undefined,
 
         // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
-        jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
+        jsDocParsingMode: 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
-        project: process.env.SENTRY_DETECT_DEPRECATIONS ? './tsconfig.json' : false,
+        // `projectService` is recommended
+        project: false,
 
         // https://typescript-eslint.io/packages/parser/#projectservice
-        // `projectService` is recommended, but slower, with our current tsconfig files.
-        projectService: true,
+        // Specifies using TypeScript APIs to generate type information for rules.
+        projectService: enableTypeAwareLinting,
         tsconfigRootDir: import.meta.dirname,
       },
     },
     linterOptions: {
       noInlineConfig: false,
-      reportUnusedDisableDirectives: 'error',
+      reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
     },
     settings: {
       react: {
@@ -463,10 +471,27 @@ export default typescript.config([
       'react-hooks/rules-of-hooks': 'error',
     },
   },
-  typeAwareLintRules,
+  {
+    name: 'plugin/typescript-eslint/type-aware-linting',
+    ignores: [globMDX],
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
+    rules: enableTypeAwareLinting
+      ? {
+          '@typescript-eslint/await-thenable': 'error',
+          '@typescript-eslint/consistent-type-exports': 'error',
+          '@typescript-eslint/consistent-type-imports': 'error',
+          '@typescript-eslint/no-array-delete': 'error',
+          '@typescript-eslint/no-base-to-string': 'error',
+          '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/prefer-optional-chain': 'error',
+        }
+      : {},
+  },
   {
     name: 'plugin/typescript-eslint/custom',
-    ignores: MDXIgnore,
+    ignores: [globMDX],
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
@@ -503,11 +528,11 @@ export default typescript.config([
       '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/base.ts
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/recommended.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
   {
@@ -561,14 +586,6 @@ export default typescript.config([
           destructuredArrayIgnorePattern: '^_',
         },
       ],
-    },
-  },
-  {
-    name: 'plugin/typescript-eslint/process.env.SENTRY_DETECT_DEPRECATIONS=1',
-    rules: {
-      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
-        ? 'error'
-        : 'off',
     },
   },
   {
