@@ -1,7 +1,10 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useInteractOutside} from '@react-aria/interactions';
 
-import {NAV_SIDEBAR_COLLAPSE_DELAY_MS} from 'sentry/views/nav/constants';
+import {
+  NAV_SIDEBAR_COLLAPSE_DELAY_MS,
+  NAV_SIDEBAR_OPEN_DELAY_MS,
+} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 
 const IGNORE_ELEMENTS = [
@@ -73,14 +76,23 @@ export function useCollapsedNav() {
 
     const navParentEl = navParentRef.current;
     let closeTimer: NodeJS.Timeout;
+    let openTimer: NodeJS.Timeout;
 
     const hoverIn = () => {
       clearTimeout(closeTimer);
+      clearTimeout(openTimer);
+
       isHoveredRef.current = true;
-      setIsOpen(true);
+
+      openTimer = setTimeout(() => {
+        setIsOpen(true);
+      }, NAV_SIDEBAR_OPEN_DELAY_MS);
     };
 
     const hoverOut = () => {
+      clearTimeout(openTimer);
+      clearTimeout(closeTimer);
+
       isHoveredRef.current = false;
 
       closeTimer = setTimeout(() => {
