@@ -192,7 +192,7 @@ def adopt_release_project_environments(models: list[ReleaseProjectEnvironment]) 
 
 def find_adopted_but_missing_releases(
     adopted_releases: list[AdoptedRelease],
-    found_rows: list[AdoptedRelease],
+    found_rows: list[tuple[int, str, str]],
 ) -> list[AdoptedRelease]:
     """Return a list of adopted releases which do not exist in the database.
 
