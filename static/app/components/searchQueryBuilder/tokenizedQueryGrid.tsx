@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
@@ -38,7 +38,7 @@ function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
   const {dispatch} = useSearchQueryBuilder();
   const autoFocused = useRef(!autoFocus);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (autoFocused.current) {
       return; // already focused
     }

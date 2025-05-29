@@ -307,6 +307,25 @@ def test_update_task_not_found():
 
 
 @django_db_all
+def test_update_task_unavailable_retain_task_to_host():
+    channel = MockChannel()
+    channel.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "broker down"),
+    )
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.return_value = channel
+        client = TaskworkerClient("localhost:50051", 1)
+        client._task_id_to_host = {"abc123": "localhost-0:50051"}
+        with pytest.raises(MockGrpcError) as err:
+            client.update_task(
+                "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+            )
+        assert "broker down" in str(err.value)
+        assert client._task_id_to_host == {"abc123": "localhost-0:50051"}
+
+
+@django_db_all
 def test_client_loadbalance():
     channel_0 = MockChannel()
     channel_0.add_response(

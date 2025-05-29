@@ -168,6 +168,7 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
         {chart ? (
           <div style={{height: chartHeight}}>
             <ChartWidgetLoader
+              ref={chartRef}
               id={chart}
               height={chartHeight}
               pageFilters={pageFilters}

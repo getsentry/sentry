@@ -262,27 +262,30 @@ class TaskworkerClient:
             status=status,
             fetch_next_task=fetch_next_task,
         )
-        try:
-            if task_id not in self._task_id_to_host:
-                metrics.incr("taskworker.client.task_id_not_in_client")
-                return None
-            if self._task_id_to_host[task_id] in self._temporary_unavailable_hosts:
-                metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
-                raise HostTemporarilyUnavailable(
-                    f"Host {self._task_id_to_host[task_id]} is temporarily unavailable"
-                )
 
-            host = self._task_id_to_host.pop(task_id)
+        host = self._task_id_to_host.get(task_id, None)
+        if host is None:
+            metrics.incr("taskworker.client.task_id_not_in_client")
+            return None
+        try:
+            if host in self._temporary_unavailable_hosts:
+                metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
+                raise HostTemporarilyUnavailable(f"Host: {host} is temporarily unavailable")
+
             with metrics.timer("taskworker.update_task.rpc", tags={"host": host}):
                 response = self._host_to_stubs[host].SetTaskStatus(request)
+                del self._task_id_to_host[task_id]
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                del self._task_id_to_host[task_id]
+
                 # The current broker is empty, switch.
                 self._num_tasks_before_rebalance = 0
+
                 return None
             if err.code() == grpc.StatusCode.UNAVAILABLE:
                 self._num_consecutive_unavailable_errors += 1

@@ -2,7 +2,10 @@ import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import {DATA_TYPE, FIELD_ALIASES} from 'sentry/views/insights/browser/resources/settings';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useResourceSummarySeries} from 'sentry/views/insights/common/components/widgets/hooks/useResourceSummarySeries';
+import {
+  useResourceSummarySeries,
+  useResourceSummarySeriesSearch,
+} from 'sentry/views/insights/common/components/widgets/hooks/useResourceSummarySeries';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -17,9 +20,12 @@ export default function ResourceSummaryAverageSizeChartWidget(
 ) {
   const {groupId} = useParams();
 
+  const {search, enabled} = useResourceSummarySeriesSearch(groupId);
+
   const {data, isPending, error} = useResourceSummarySeries({
-    groupId,
+    search,
     pageFilters: props.pageFilters,
+    enabled,
   });
 
   if (data) {
@@ -33,6 +39,7 @@ export default function ResourceSummaryAverageSizeChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="resourceSummaryAverageSizeChartWidget"
       title={t('Average %s Size', DATA_TYPE)}
       series={[

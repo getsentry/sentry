@@ -118,6 +118,9 @@ export type ReplayEventParameters = {
     fullscreen: boolean;
     user_email: string;
   };
+  'replay.view-html': {
+    breadcrumb_type: string;
+  };
 };
 
 type ReplayEventKey = keyof ReplayEventParameters;
@@ -151,4 +154,5 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
+  'replay.view-html': 'Clicked "View HTML" in Replay Breadcrumb',
 };
