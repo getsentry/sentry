@@ -146,7 +146,7 @@ def filter_recently_fired_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
-    # dual write to WorkflowGroupStatus
+    # dual write to WorkflowActionGroupStatus
     filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
     create_workflow_fire_histories(filtered_actions, event_data)
@@ -180,7 +180,7 @@ def update_workflow_action_group_statuses(
     action_statuses: dict[int, list[WorkflowActionGroupStatus]],
     workflows: BaseQuerySet[Workflow],
     group: Group,
-) -> BaseQuerySet[WorkflowActionGroupStatus]:
+) -> set[int]:
     status_ids: set[int] = set()
     workflow_frequencies = {
         workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
@@ -189,17 +189,21 @@ def update_workflow_action_group_statuses(
 
     for action_id, statuses in action_statuses.items():
         for status in statuses:
-            if (now - status.last_updated) < workflow_frequencies.get(status.workflow_id, 0):
+            if (now - status.date_updated) >= workflow_frequencies.get(status.workflow_id, 0):
                 # we should fire the workflow for this action
                 status_ids.add(status.id)
 
-    statuses = WorkflowActionGroupStatus.objects.filter(id__in=status_ids, date_updated__lt=now)
-    statuses.update(date_updated=now)
+    workflow_action_statuses = WorkflowActionGroupStatus.objects.filter(
+        id__in=status_ids, date_updated__lt=now
+    )
+    action_ids = {status.action_id for status in workflow_action_statuses}
+    workflow_action_statuses.update(date_updated=now)
 
     # handle actions that don't have a status
     missing_statuses: list[WorkflowActionGroupStatus] = []
     for action_id, expected_workflows in action_to_workflows.items():
-        actual_workflows = action_statuses.get(action_id, set())
+        wags = action_statuses.get(action_id, [])
+        actual_workflows = {status.workflow_id for status in wags}
         missing_workflows = expected_workflows - actual_workflows
 
         for workflow_id in missing_workflows:
@@ -208,15 +212,15 @@ def update_workflow_action_group_statuses(
                     workflow_id=workflow_id, action_id=action_id, group=group, date_updated=now
                 )
             )
+            action_ids.add(action_id)
 
-    new_statuses = WorkflowActionGroupStatus.objects.bulk_create(
+    WorkflowActionGroupStatus.objects.bulk_create(
         missing_statuses,
         batch_size=1000,
         ignore_conflicts=True,
-        returning=True,
     )
 
-    return statuses.union(new_statuses)
+    return action_ids
 
 
 def filter_recently_fired_workflow_actions(
@@ -226,7 +230,7 @@ def filter_recently_fired_workflow_actions(
         condition_group__in=filtered_action_groups
     ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
 
-    action_to_workflows: dict[int, set[int]] = defaultdict(list)
+    action_to_workflows: dict[int, set[int]] = defaultdict(set)
     workflow_ids: set[int] = set()
 
     for action_id, workflow_id in data_condition_group_actions:
@@ -236,14 +240,14 @@ def filter_recently_fired_workflow_actions(
     workflows = Workflow.objects.filter(id__in=workflow_ids)
 
     now = timezone.now()
-    statuses = get_workflow_group_action_statuses(
+    action_statuses = get_workflow_group_action_statuses(
         action_to_workflows=action_to_workflows,
         group=event_data.event.group,
     )
-    statuses = update_workflow_action_group_statuses(
+    action_ids = update_workflow_action_group_statuses(
         now=now,
         action_to_workflows=action_to_workflows,
-        action_statuses=statuses,
+        action_statuses=action_statuses,
         workflows=workflows,
         group=event_data.event.group,
     )
@@ -251,7 +255,6 @@ def filter_recently_fired_workflow_actions(
     # TODO: write this in a single spot
     # create_workflow_fire_histories_from_statuses(event_data=event_data, statuses=statuses)
 
-    action_ids = statuses.values_list("action_id", flat=True)
     return Action.objects.filter(id__in=action_ids).distinct()
 
 
