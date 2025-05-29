@@ -306,13 +306,13 @@ class StatefulDetectorHandler(
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
 
-        for group_key, evaluation_value in group_data_values.items():
+        for group_key in group_data_values.keys():
             state_data: DetectorStateData = state[group_key]
             if dedupe_value <= state_data.dedupe_value:
                 metrics.incr("workflow_engine.detector.skipping_already_processed_update")
