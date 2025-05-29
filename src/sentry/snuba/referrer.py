@@ -680,6 +680,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
     API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
     API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
+    API_TRACE_VIEW_LOGS = "api.trace-view.logs"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
