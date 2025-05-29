@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
+from django.middleware.csrf import get_token
 from django.template import loader
 from django.utils import timezone
 
@@ -39,6 +40,10 @@ def render_to_response(
     status: int = 200,
     content_type: str = "text/html",
 ) -> HttpResponse:
+    # Ensure CSRF token is generated and cookie is set
+    if request is not None:
+        get_token(request)
+
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
     response["Content-Type"] = content_type
