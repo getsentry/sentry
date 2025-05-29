@@ -220,7 +220,7 @@ export function ScreenCharts({additionalFilters}: Props) {
       <Fragment>
         <Container>
           <FourChartContainer>
-            <ChartsContainerItem key="deviceClass">
+            <ChartsContainerItem key="deviceClassTtid">
               <ScreensBarChart
                 chartOptions={[
                   {
@@ -240,11 +240,11 @@ export function ScreenCharts({additionalFilters}: Props) {
                   },
                 ]}
                 chartKey="spansChart"
-                chartHeight={80}
+                chartHeight={160}
                 isLoading={isDeviceClassEventsLoading}
               />
             </ChartsContainerItem>
-            <ChartsContainerItem key="xyz">
+            <ChartsContainerItem key="ttidSeries">
               <InsightsLineChartWidget
                 search={search}
                 title={t('Average TTID')}
@@ -252,9 +252,12 @@ export function ScreenCharts({additionalFilters}: Props) {
                 isLoading={isSeriesLoading}
                 error={seriesError}
                 aliases={chartAliases}
+                showReleaseAs="none"
+                showLegend="always"
+                height={'100%'}
               />
             </ChartsContainerItem>
-            <ChartsContainerItem key="deviceClass">
+            <ChartsContainerItem key="deviceClassTtfd">
               <ScreensBarChart
                 chartOptions={[
                   {
@@ -274,11 +277,11 @@ export function ScreenCharts({additionalFilters}: Props) {
                   },
                 ]}
                 chartKey="spansChart"
-                chartHeight={80}
+                chartHeight={160}
                 isLoading={isDeviceClassEventsLoading}
               />
             </ChartsContainerItem>
-            <ChartsContainerItem key="xyz">
+            <ChartsContainerItem key="ttfdSeries">
               <InsightsLineChartWidget
                 search={search}
                 title={t('Average TTFD')}
@@ -286,6 +289,9 @@ export function ScreenCharts({additionalFilters}: Props) {
                 isLoading={isSeriesLoading}
                 error={seriesError}
                 aliases={chartAliases}
+                showReleaseAs="none"
+                showLegend="always"
+                height={'100%'}
               />
             </ChartsContainerItem>
           </FourChartContainer>
@@ -297,6 +303,8 @@ export function ScreenCharts({additionalFilters}: Props) {
               isLoading={isSeriesLoading}
               error={seriesError}
               aliases={chartAliases}
+              showReleaseAs="none"
+              showLegend="always"
               height={'100%'}
             />
           </ChartsContainerItem>
@@ -314,12 +322,11 @@ const FourChartContainer = styled('div')`
   gap: ${space(2)};
 `;
 
-const ChartsContainerItem = styled('div')`
-  flex: 1;
-`;
+const ChartsContainerItem = styled('div')``;
 
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 2fr 1fr;
   grid-column-gap: ${space(2)};
+  padding-bottom: ${space(2)};
 `;

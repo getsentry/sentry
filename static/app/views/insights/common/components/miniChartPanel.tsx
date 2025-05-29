@@ -13,7 +13,7 @@ type Props = {
 
 export default function MiniChartPanel({title, children, button, subtitle}: Props) {
   return (
-    <Panel>
+    <StyledPanel>
       <PanelBody>
         {(title || button || subtitle) && (
           <HeaderContainer>
@@ -26,9 +26,13 @@ export default function MiniChartPanel({title, children, button, subtitle}: Prop
         )}
         {children}
       </PanelBody>
-    </Panel>
+    </StyledPanel>
   );
 }
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+`;
 
 const ChartLabel = styled('p')`
   /* @TODO(jonasbadalic) This should be a title component and not a p */
