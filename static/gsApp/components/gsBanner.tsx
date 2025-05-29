@@ -1033,11 +1033,11 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILES,
       categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
     },
-    '/insights/backend/crons/': {
+    '/insights/crons/': {
       product: DataCategory.MONITOR_SEATS,
       categories: [DataCategory.MONITOR_SEATS],
     },
-    '/insights/backend/uptime/': {
+    '/insights/uptime/': {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
     },

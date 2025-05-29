@@ -544,7 +544,7 @@ export function SourceMapsDebuggerModal({
         <DebuggerSection title={t('Why Configure Source Maps?')}>
           <p>
             {t(
-              "With properly configured source maps, you'll see the code that was writting instead of minified, obfuscated code. This makes debugging significantly easier and faster."
+              "With properly configured source maps, you'll see the code that was written instead of minified, obfuscated code. This makes debugging significantly easier and faster."
             )}
           </p>
           <p>
