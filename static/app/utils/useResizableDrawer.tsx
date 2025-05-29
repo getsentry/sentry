@@ -221,7 +221,7 @@ export function useResizableDrawer(
       pointerVectorRef.current = [evt.clientX, evt.clientY];
 
       document.addEventListener('mousemove', onMouseMove, {passive: true});
-      document.addEventListener('mouseup', onMouseUp);
+      document.addEventListener('mouseup', onMouseUp, {passive: true});
     },
     [onMouseMove, onMouseUp]
   );
