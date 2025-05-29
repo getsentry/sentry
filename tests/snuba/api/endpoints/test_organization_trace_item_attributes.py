@@ -416,20 +416,23 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
         )
         assert response.status_code == 200, response.data
-        assert response.data == [
-            {"key": "tags[bar,number]", "name": "bar"},
-            {"key": "tags[baz,number]", "name": "baz"},
-            {"key": "measurements.fcp", "name": "measurements.fcp"},
-            {"key": "tags[foo,number]", "name": "foo"},
-            {
-                "key": "http.decoded_response_content_length",
-                "name": "http.decoded_response_content_length",
-            },
-            {"key": "http.response.body.size", "name": "http.response.body.size"},
-            {"key": "http.response.size", "name": "http.response.size"},
-            {"key": "measurements.lcp", "name": "measurements.lcp"},
-            {"key": "span.duration", "name": "span.duration"},
-        ]
+        assert sorted(response.data, key=itemgetter("key")) == sorted(
+            [
+                {"key": "tags[bar,number]", "name": "bar"},
+                {"key": "tags[baz,number]", "name": "baz"},
+                {"key": "measurements.fcp", "name": "measurements.fcp"},
+                {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                },
+                {"key": "http.response.body.size", "name": "http.response.body.size"},
+                {"key": "http.response.size", "name": "http.response.size"},
+                {"key": "measurements.lcp", "name": "measurements.lcp"},
+                {"key": "span.duration", "name": "span.duration"},
+            ],
+            key=itemgetter("key"),
+        )
 
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):

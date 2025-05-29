@@ -178,6 +178,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             "organizations:performance-sentry-conventions-fields", organization, actor=request.user
         )
 
+        sentry_sdk.set_tag("feature.use_sentry_conventions", use_sentry_conventions)
+
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
@@ -239,9 +241,11 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
                     attribute_keys[attr_key["name"]] = attr_key
 
-                return list(attribute_keys.values())
+                attributes = list(attribute_keys.values())
+                sentry_sdk.set_context("api_response", {"attributes": attributes})
+                return attributes
 
-            return list(
+            attributes = list(
                 filter(
                     lambda x: not is_sentry_convention_replacement_attribute(
                         x["name"], trace_item_type
@@ -255,6 +259,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     ],
                 )
             )
+            sentry_sdk.set_context("api_response", {"attributes": attributes})
+            return attributes
 
         return self.paginate(
             request=request,

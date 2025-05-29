@@ -1,5 +1,5 @@
 {
-  "_generated": "This file is generated. Do not modify it directly. See scripts/generate_deprecated_attributes_json.ts",
+  "_generated": "This file is generated. Do not modify it directly. See scripts/generate_deprecated_attributes_json.ts in (sentry/sentry-conventions)[https://github.com/getsentry/sentry-conventions]",
   "attributes": [
     {
       "key": "environment",
