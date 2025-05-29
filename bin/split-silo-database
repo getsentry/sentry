@@ -1,17 +1,37 @@
 #!/usr/bin/env python
 
+import contextlib
+import os
+from collections.abc import Generator
+from typing import ContextManager
+
 import click
 from django.apps import apps
 
 from sentry.runner import configure
-from sentry.runner.commands.devservices import get_docker_client
 from sentry.silo.base import SiloMode
 
 configure()
 
+import docker
 from django.conf import settings
 
 from sentry.models.organizationmapping import OrganizationMapping
+
+
+@contextlib.contextmanager
+def get_docker_client() -> Generator[docker.DockerClient]:
+    def _client() -> ContextManager[docker.DockerClient]:
+        raw_socket_path = os.path.expanduser("~/.colima/default/docker.sock")
+        return contextlib.closing(docker.DockerClient(base_url=f"unix://{raw_socket_path}"))
+
+    with contextlib.ExitStack() as ctx:
+        try:
+            client = ctx.enter_context(_client())
+        except docker.errors.DockerException:
+            click.echo("Failed to connect to docker. Is it running?")
+            raise
+        yield client
 
 
 def exec_run(container, command):
