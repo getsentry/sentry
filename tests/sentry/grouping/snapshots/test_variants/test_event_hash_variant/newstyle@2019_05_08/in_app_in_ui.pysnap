@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:36.661991+00:00'
+created: '2025-05-12T23:41:49.479426+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -79,7 +79,7 @@ app:
               "<compiler-generated>"
             function*
               "AnyTableViewController.tableView"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "<compiler-generated>"
             function*
