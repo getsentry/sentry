@@ -62,7 +62,7 @@ function SeerBetaClosingAlert() {
           <b>Seer beta is ending soon</b>
         </span>
         <span>
-          Thanks for trying Seer. FYI: Starting June 10, Seer will require a $20/month
+          Thanks for trying Seer. FYI: Starting June 10th, Seer will require a $20/month
           subscription to continue scanning and fixing issues.
         </span>
         <ExternalLink href="https://docs.sentry.io/pricing/">Learn more</ExternalLink>
