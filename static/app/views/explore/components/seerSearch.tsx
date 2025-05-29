@@ -35,7 +35,7 @@ interface SeerSearchQuery {
   visualizations: Visualization[];
 }
 
-interface SeerSearchResult {
+interface SeerSearchResults {
   queries: SeerSearchQuery[];
 }
 
@@ -73,7 +73,7 @@ export function SeerSearch() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
 
-  const [rawResult, setRawResult] = useState<SeerSearchResult | null>(null);
+  const [rawResult, setRawResult] = useState<SeerSearchResults | null>(null);
   const api = useApi();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -203,12 +203,13 @@ export function SeerSearch() {
 
     if (openForm) {
       openForm({
-        messagePlaceholder: t('Why was this query incorrect?'),
+        messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
           ['feedback.source']: 'trace_explorer_ai_query',
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(rawResult).replace(/\n/g, ''),
+          ['feedback.num_queries_returned']: rawResult?.queries?.length ?? 0,
         },
       });
     } else {
@@ -328,7 +329,7 @@ const SearchInputContainer = styled('div')<{isDropdownOpen: boolean}>`
 const SearchInput = styled(Input)<{isDropdownOpen: boolean}>`
   flex: 1;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
   border: none;
   border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
   border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
