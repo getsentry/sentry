@@ -175,12 +175,12 @@ def get_workflow_group_action_statuses(action_to_workflows: dict[int, set[int]],
 
 
 def update_workflow_action_group_statuses(
-    now: datetime,
     action_to_workflows: dict[int, set[int]],
     action_statuses: dict[int, list[WorkflowActionGroupStatus]],
     workflows: BaseQuerySet[Workflow],
     group: Group,
 ) -> set[int]:
+    now = timezone.now()
     status_ids: set[int] = set()
     workflow_frequencies = {
         workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
@@ -220,6 +220,7 @@ def update_workflow_action_group_statuses(
         ignore_conflicts=True,
     )
 
+    # TODO: need to know the exact workflow that fired the action
     return action_ids
 
 
@@ -239,13 +240,11 @@ def filter_recently_fired_workflow_actions(
 
     workflows = Workflow.objects.filter(id__in=workflow_ids)
 
-    now = timezone.now()
     action_statuses = get_workflow_group_action_statuses(
         action_to_workflows=action_to_workflows,
         group=event_data.event.group,
     )
     action_ids = update_workflow_action_group_statuses(
-        now=now,
         action_to_workflows=action_to_workflows,
         action_statuses=action_statuses,
         workflows=workflows,
