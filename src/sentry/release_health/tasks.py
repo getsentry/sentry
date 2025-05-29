@@ -84,11 +84,13 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
         "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates"
     ):
         adopted_releases = list(iter_adopted_releases(totals))
-        release_models = query_adopted_release_project_environments(adopted_releases)
-        adopt_release_project_environments(release_models)
-        adopted_ids.extend(m.id for m in release_models)
+        release_project_environments = query_adopted_release_project_environments(adopted_releases)
+        adopt_release_project_environments(release_project_environments)
+        adopted_ids.extend(m.id for m in release_project_environments)
 
-        missing_releases = find_adopted_but_missing_releases(adopted_releases, release_models)
+        missing_releases = find_adopted_but_missing_releases(
+            adopted_releases, release_project_environments
+        )
         for adopted_release in missing_releases:
             metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
             try:
