@@ -43,12 +43,6 @@ invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 // and slowest settings, and for pre-commit, where we want to run the linter
 // faster.
 // Some output is provided to help people toggle these settings locally.
-// eslint-disable-next-line no-console
-console.log('Relevant env vars:', {
-  'process.env.CI': process.env.CI,
-  'process.env.SENTRY_ESLINT_TYPEAWARE': process.env.SENTRY_ESLINT_TYPEAWARE,
-  'process.env.SENTRY_PRECOMMIT': process.env.SENTRY_PRECOMMIT,
-});
 const enableTypeAwareLinting = (function () {
   // If we ask for something specific, use that.
   if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
@@ -66,8 +60,6 @@ const enableTypeAwareLinting = (function () {
   // By default, enable type-aware linting.
   return true;
 })();
-// eslint-disable-next-line no-console
-console.log('Computed env settings:', {enableTypeAwareLinting});
 
 // Exclude MDX files from type-aware linting
 // https://github.com/orgs/mdx-js/discussions/2454
