@@ -129,8 +129,8 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             update_group_open_period(
                 group=group,
                 new_status=GroupStatus.RESOLVED,
-                activity=activity,
-                should_reopen_open_period=False,
+                resolution_time=resolution_time,
+                resolution_activity=activity,
             )
 
             kick_off_status_syncs.apply_async(

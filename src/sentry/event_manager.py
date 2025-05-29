@@ -89,11 +89,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import (
-    GroupOpenPeriod,
-    get_latest_open_period,
-    has_initial_open_period,
-)
+from sentry.models.groupopenperiod import create_open_period, has_initial_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -1502,13 +1498,7 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    if features.has("organizations:issue-open-periods", project.organization):
-        GroupOpenPeriod.objects.create(
-            group=group,
-            project_id=project.id,
-            date_started=group.first_seen,
-            date_ended=None,
-        )
+    create_open_period(group, group.first_seen)
     return group
 
 
@@ -1717,19 +1707,8 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if features.has(
-            "organizations:issue-open-periods", group.project.organization
-        ) and has_initial_open_period(group):
-            latest_open_period = get_latest_open_period(group)
-            # There are some historical cases where we log multiple regressions for the same group,
-            # but we only want to create a new open period for the first regression
-            if latest_open_period and latest_open_period.date_ended is None:
-                GroupOpenPeriod.objects.create(
-                    group=group,
-                    project_id=group.project_id,
-                    date_started=date,
-                    date_ended=None,
-                )
+        if has_initial_open_period(group):
+            create_open_period(group, date)
 
     return is_regression
 

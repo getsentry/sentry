@@ -645,8 +645,8 @@ def process_group_resolution(
         update_group_open_period(
             group=group,
             new_status=GroupStatus.RESOLVED,
-            activity=activity,
-            should_reopen_open_period=False,
+            resolution_time=now,
+            resolution_activity=activity,
         )
 
 
