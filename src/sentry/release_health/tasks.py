@@ -105,6 +105,9 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                 if updates:
                     rpe.update(**updates)
 
+                # Emit metric indicating updated. Not interested in the actual row being
+                # updated. More that this step completed successfully.
+                metrics.incr("sentry.tasks.process_projects_with_sessions.updated_rpe")
             except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
                 metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
                 try:
