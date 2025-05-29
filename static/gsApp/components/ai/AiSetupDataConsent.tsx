@@ -50,6 +50,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     shouldShowBilling && organization.features.includes('seer-added');
 
   const isTouchCustomer = subscription?.type === BillingType.INVOICED;
+  const isSponsoredCustomer = subscription?.type === BillingType.PARTNER;
 
   const userHasBillingAccess = organization.access.includes('org:billing');
 
@@ -109,9 +110,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           <li>{t('Solutions & Code Changes')}</li>
         </BulletList>
         {shouldShowBilling ? (
-          isTouchCustomer ? (
+          isTouchCustomer || isSponsoredCustomer ? (
             <TouchCustomerMessage>
-              {t('Contact your customer success manager to get access to Seer.')}
+              {isTouchCustomer
+                ? t('Contact your customer success manager to get access to Seer.')
+                : t('Seer is not available on Sponsored plans.')}
             </TouchCustomerMessage>
           ) : (
             <Fragment>
