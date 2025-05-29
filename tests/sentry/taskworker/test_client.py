@@ -749,7 +749,7 @@ def test_client_update_task_host_unavailable():
 
         # Try to update the task
         with pytest.raises(
-            HostTemporarilyUnavailable, match=f"Host {host} is temporarily unavailable"
+            HostTemporarilyUnavailable, match=f"Host: {host} is temporarily unavailable"
         ):
             client.update_task(
                 task_id="1", status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
