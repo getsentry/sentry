@@ -601,19 +601,6 @@ class EnhancementsTest(TestCase):
             "function:kangaroo -group",  # Split of `function:kangaroo -app -group`
         ]
 
-    def test_obeys_version_for_splitting_choice(self):
-        enhancements = Enhancements.from_rules_text(self.rules_text)
-        assert enhancements.classifier_rules == []
-        assert enhancements.contributes_rules == []
-
-        enhancements = Enhancements.from_rules_text(self.rules_text, version=2)
-        assert enhancements.classifier_rules == []
-        assert enhancements.contributes_rules == []
-
-        enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
-        assert len(enhancements.classifier_rules) > 0
-        assert len(enhancements.contributes_rules) > 0
-
     def test_adds_split_rules_to_base_enhancements(self):
         for base in ENHANCEMENT_BASES.values():
             # Make these sets so checking in them is faster
@@ -884,7 +871,9 @@ class AssembleStacktraceComponentTest(TestCase):
         # In this case, even after we force the system frame not to contribute, we'll still have
         # another contributing frame, so we'll use rust's `contributing: True` for the stacktrace
         # component.
-        with mock.patch.object(enhancements1, "rust_enhancements", mock_rust_enhancements1):
+        with mock.patch.object(
+            enhancements1, "contributes_rust_enhancements", mock_rust_enhancements1
+        ):
             stacktrace_component1 = enhancements1.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
@@ -902,7 +891,9 @@ class AssembleStacktraceComponentTest(TestCase):
 
         # In this case, once we force the system frame not to contribute, we won't have any
         # contributing frames, so we'll force `contributing: False` for the stacktrace component.
-        with mock.patch.object(enhancements2, "rust_enhancements", mock_rust_enhancements2):
+        with mock.patch.object(
+            enhancements2, "contributes_rust_enhancements", mock_rust_enhancements2
+        ):
             stacktrace_component2 = enhancements2.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,

@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:07.867238+00:00'
+created: '2025-05-12T23:41:14.420857+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -408,7 +408,7 @@ system:
       chained-exception*
         exception*
           stacktrace*
-            frame
+            frame (ignored by stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -575,7 +575,7 @@ system:
             "Address already in use"
         exception*
           stacktrace*
-            frame
+            frame (ignored by stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -686,7 +686,7 @@ system:
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
           stacktrace*
-            frame
+            frame (ignored by stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
