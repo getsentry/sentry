@@ -162,6 +162,10 @@ class SQLInjectionDetector(PerformanceDetector):
         if not description:
             return False
 
+        description = description.strip()
+        if description[:6].upper() != "SELECT":
+            return False
+
         return True
 
     def _fingerprint(self, description: str) -> str:
