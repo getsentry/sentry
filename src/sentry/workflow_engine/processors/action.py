@@ -138,7 +138,9 @@ def filter_recently_fired_actions(
     return filtered_actions
 
 
-def get_workflow_group_action_statuses(action_to_workflows_ids: dict[int, set[int]], group: Group):
+def get_workflow_group_action_statuses(
+    action_to_workflows_ids: dict[int, set[int]], group: Group
+) -> dict[int, list[WorkflowActionGroupStatus]]:
     all_statuses = WorkflowActionGroupStatus.objects.filter(
         group=group, action_id__in=action_to_workflows_ids.keys()
     )
