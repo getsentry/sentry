@@ -1,4 +1,5 @@
 import logging
+import random
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -146,7 +147,13 @@ class EventLifecycle:
         }
 
         if isinstance(outcome_reason, BaseException):
-            log_params["exc_info"] = outcome_reason
+            # (iamrajjoshi): Log the full exception 50% of the time otherwise log the repr of the exception
+            # This is an experiment to dogfood Sentry logs
+            #  Logs are paid by bytes, we save money by making optimizations like this - we should try to dogfood from a similar perspective
+            if random.random() < 0.5:
+                log_params["exc_info"] = outcome_reason
+            else:
+                log_params["exception_summary"] = repr(outcome_reason)
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
