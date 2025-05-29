@@ -138,9 +138,13 @@ function getSelectedValuesFromText(
   return parsed.items
     .filter(item => item.value?.value)
     .map(item => {
-      return (
-        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? ''
-      );
+      const value =
+        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? '';
+
+      const valueText = item.value?.text ?? '';
+      const selected = text.charAt(text.indexOf(valueText) + valueText.length) === ',';
+
+      return {value, selected};
     });
 }
 
@@ -317,7 +321,7 @@ function useFilterSuggestions({
 }: {
   ctrlKeyPressed: boolean;
   filterValue: string;
-  selectedValues: string[];
+  selectedValues: Array<{selected: boolean; value: string}>;
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
@@ -421,7 +425,7 @@ function useFilterSuggestions({
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
       .flatMap(group => group.suggestions)
-      .filter(suggestion => !selectedValues.includes(suggestion.value));
+      .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
@@ -431,13 +435,13 @@ function useFilterSuggestions({
           ...selectedValues.map(value => {
             const matchingSuggestion = suggestionGroups
               .flatMap(group => group.suggestions)
-              .find(suggestion => suggestion.value === value);
+              .find(suggestion => suggestion.value === value.value);
 
             if (matchingSuggestion) {
-              return createItem(matchingSuggestion, true);
+              return createItem(matchingSuggestion, value.selected);
             }
 
-            return createItem({value}, true);
+            return createItem({value: value.value}, value.selected);
           }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
@@ -446,7 +450,7 @@ function useFilterSuggestions({
         sectionText: group.sectionText,
         items: getItemsWithKeys(
           group.suggestions
-            .filter(suggestion => !selectedValues.includes(suggestion.value))
+            .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value))
             .map(suggestion => createItem(suggestion))
         ),
       })),
@@ -648,10 +652,13 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValuesUnescaped.includes(value)) {
+        if (selectedValuesUnescaped.map(v => v.value).includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            selectedValuesUnescaped.map(escapeTagValue).join(',')
+            selectedValuesUnescaped
+              .filter(v => (v.selected ? v.value !== value : true))
+              .map(v => escapeTagValue(v.value))
+              .join(',')
           );
 
           dispatch({
