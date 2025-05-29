@@ -10,6 +10,7 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 interface DeletableTokenProps<T> {
   children: React.ReactNode;
@@ -111,7 +112,10 @@ const FloatingCloseButton = styled('button')`
   &:hover {
     outline: none;
     border: none;
-    background: ${p => p.theme.button.default.backgroundActive};
+    background: ${p =>
+      isChonkTheme(p.theme)
+        ? p.theme.button.default.background
+        : p.theme.button.default.backgroundActive};
   }
 
   &:focus-visible {
