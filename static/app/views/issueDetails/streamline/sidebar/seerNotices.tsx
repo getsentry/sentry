@@ -19,11 +19,12 @@ import {useProjectSeerPreferences} from 'sentry/components/events/autofix/prefer
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
@@ -34,6 +35,40 @@ interface SeerNoticesProps {
   groupId: string;
   project: Project;
   hasGithubIntegration?: boolean;
+}
+
+// Temporary Seer beta closing alert
+function SeerBetaClosingAlert() {
+  const {isDismissed, dismiss} = useDismissAlert({
+    key: 'seer-beta-closing-alert-dismissed',
+  });
+  if (isDismissed) return null;
+  return (
+    <StyledAlert
+      type="info"
+      showIcon
+      trailingItems={
+        <Button
+          aria-label="dismiss"
+          icon={<IconClose />}
+          onClick={dismiss}
+          size="zero"
+          borderless
+        />
+      }
+    >
+      <AlertBody>
+        <span>
+          <b>Seer beta is ending soon</b>
+        </span>
+        <span>
+          Thanks for trying Seer. FYI: Starting June 10, Seer will require a $20/month
+          subscription to continue scanning and fixing issues.
+        </span>
+        <ExternalLink href="https://docs.sentry.io/pricing/">Learn more</ExternalLink>
+      </AlertBody>
+    </StyledAlert>
+  );
 }
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
@@ -120,18 +155,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   return (
     <NoticesContainer>
-      <StyledAlert type="info" showIcon>
-        <AlertBody>
-          <span>
-            <b>Seer beta is ending soon</b>
-          </span>
-          <span>
-            Thanks for trying Seer. FYI: Starting June 10, Seer will require a $20/month
-            subscription to continue scanning and fixing issues.
-          </span>
-          <ExternalLink href="https://docs.sentry.io/pricing/">Learn more</ExternalLink>
-        </AlertBody>
-      </StyledAlert>
+      <SeerBetaClosingAlert />
       {/* Collapsed summary */}
       {anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
