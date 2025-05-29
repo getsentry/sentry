@@ -10,7 +10,7 @@ import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 // import type RequestError from 'sentry/utils/requestError/requestError';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {

@@ -35,8 +35,7 @@ export default function ReplayLoadingState({
   // Determines if there is an attachment error whose status is 429 (failed because too many requests were made)
   const throttledErrorExists =
     (readerResult.fetchError && readerResult.fetchError.status === 429) ||
-    (readerResult.attachmentError &&
-      readerResult.attachmentError.find(error => error.status === 429));
+    readerResult.attachmentError?.find(error => error.status === 429);
 
   // Note that if there are attachment errors and none of them are a 429, I think that just falls back to a regular processingError
 
