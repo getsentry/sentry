@@ -333,7 +333,7 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "detection_enabled": settings["http_overhead_detection_enabled"],
         },
         DetectorType.SQL_INJECTION: {
-            "detection_enabled": settings["database_injection_detection_enabled"]
+            "detection_enabled": settings["database_query_injection_detection_enabled"]
         },
     }
 

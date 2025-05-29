@@ -52,7 +52,7 @@ class InternalProjectOptions(Enum):
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
     TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
     FUNCTION_DURATION_REGRESSION = "function_duration_regression_detection_enabled"
-    DATABASE_INJECTION = "database_injection_detection_enabled"
+    DATABASE_QUERY_INJECTION = "database_query_injection_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -85,7 +85,7 @@ internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
-    InternalProjectOptions.DATABASE_INJECTION.value: DBQueryInjectionVulnerabilityGroupType,
+    InternalProjectOptions.DATABASE_QUERY_INJECTION.value: DBQueryInjectionVulnerabilityGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: dict[str, str] = {
@@ -156,7 +156,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
-    database_injection_detection_enabled = serializers.BooleanField(required=False)
+    database_query_injection_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_disabled_threshold_options(payload, current_settings):
