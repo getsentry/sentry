@@ -247,6 +247,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "http.decoded_response_content_length",
             "http.response_content_length",
             "http.response_transfer_size",
+            "http.response.body.size",
         ]:
             self.store_segment(
                 self.project.id,
@@ -374,6 +375,61 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"key": "foo", "name": "foo"},
                 {"key": "span.description", "name": "span.description"},
                 {"key": "project", "name": "project"},
+            ],
+            key=itemgetter("key"),
+        )
+
+    def test_tags_list_sentry_conventions(self):
+        for tag in [
+            "foo",
+            "bar",
+            "baz",
+            "lcp",
+            "fcp",
+            "http.decoded_response_content_length",
+            "http.response_content_length",
+            "http.response_transfer_size",
+            "http.response.body.size",
+        ]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:16],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                measurements={tag: 0},
+                is_eap=True,
+            )
+
+        response = self.do_request(
+            {
+                "attributeType": "number",
+            },
+            features={
+                "organizations:visibility-explore-view": True,
+                "organizations:performance-sentry-conventions-fields": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert sorted(response.data, key=itemgetter("key")) == sorted(
+            [
+                {"key": "tags[bar,number]", "name": "bar"},
+                {"key": "tags[baz,number]", "name": "baz"},
+                {"key": "measurements.fcp", "name": "measurements.fcp"},
+                {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                },
+                {"key": "http.response.body.size", "name": "http.response.body.size"},
+                {"key": "http.response.size", "name": "http.response.size"},
+                {"key": "measurements.lcp", "name": "measurements.lcp"},
+                {"key": "span.duration", "name": "span.duration"},
             ],
             key=itemgetter("key"),
         )
