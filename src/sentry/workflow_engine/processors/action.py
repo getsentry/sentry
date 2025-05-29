@@ -206,12 +206,15 @@ def update_workflow_action_group_statuses(
         actual_workflows = {status.workflow_id for status in wags}
         missing_workflows = expected_workflows - actual_workflows
 
-        for workflow_id in missing_workflows:
-            missing_statuses.append(
+        missing_statuses.extend(
+            [
                 WorkflowActionGroupStatus(
                     workflow_id=workflow_id, action_id=action_id, group=group, date_updated=now
                 )
-            )
+                for workflow_id in missing_workflows
+            ]
+        )
+        if missing_workflows:
             action_ids.add(action_id)
 
     WorkflowActionGroupStatus.objects.bulk_create(
