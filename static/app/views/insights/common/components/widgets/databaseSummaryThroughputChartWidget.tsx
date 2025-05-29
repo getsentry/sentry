@@ -13,9 +13,11 @@ export default function DatabaseSummaryThroughputChartWidget(
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
+  const search = MutableSearch.fromQueryObject(filters);
+
   const {isPending, data, error} = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(filters),
+      search,
       yAxis: ['epm()'],
       enabled: Boolean(groupId),
       transformAliasToInputFormat: true,
@@ -26,6 +28,7 @@ export default function DatabaseSummaryThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="databaseSummaryThroughputChartWidget"
       title={getThroughputChartTitle('db')}
       series={[data['epm()']]}

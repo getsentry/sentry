@@ -8,6 +8,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -118,8 +119,8 @@ const BodyCell = memo(function BodyCell({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
 
   const project = useMemo(
     () => projects.find(p => p.slug === dataRow.project),
@@ -128,16 +129,11 @@ const BodyCell = memo(function BodyCell({
 
   const traceViewTarget = getTraceDetailsUrl({
     eventId: dataRow.traceId,
-    timestamp: dataRow.timestamp,
-    source: TraceViewSources.SCREEN_LOADS_MODULE,
+    source: TraceViewSources.LLM_MODULE, // TODO: change source to AGENT_MONITORING
     organization,
     location,
     traceSlug: dataRow.traceId,
-    dateSelection: {
-      start: selection.datetime.start,
-      end: selection.datetime.end,
-      statsPeriod: selection.datetime.period,
-    },
+    dateSelection: normalizeDateTimeParams(selection),
   });
 
   switch (column.key) {

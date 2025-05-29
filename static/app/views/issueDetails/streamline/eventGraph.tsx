@@ -19,6 +19,8 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
+import {useIntersectionFlags} from 'sentry/components/featureFlags/hooks/useIntersectionFlags';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -41,7 +43,6 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -269,6 +270,15 @@ export function EventGraph({
     }
   );
 
+  const {data: flags} = useIntersectionFlags({
+    event,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      period: eventView.statsPeriod,
+    },
+  });
+
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
       navigate(
@@ -286,6 +296,11 @@ export function EventGraph({
     group,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
     onReleaseClick: handleReleaseLineClick,
+  });
+
+  const flagSeries = useFlagSeries({
+    event,
+    flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -331,14 +346,6 @@ export function EventGraph({
     },
     [connectReleaseBubbleChartRef]
   );
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-    event,
-  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
