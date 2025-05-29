@@ -21,6 +21,7 @@ export function OrganizationSelectHeader({
     <OrgControlWrapper>
       {t('Settings for Organization')}
       <StyledSelectControl
+        allowEmpty
         options={organizations.map(org => {
           return {
             label: org.name,
