@@ -40,7 +40,7 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
-import {SpanFields} from 'sentry/views/insights/types';
+import {type SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,

@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {type MutableSearch} from 'sentry/utils/tokenizeSearch';
 // TODO(release-drawer): Only used in httpSamplesPanel, should be easy to move data fetching in here
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanFields} from 'sentry/views/insights/types';
+import {type SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
   groupBy: SpanFields[];

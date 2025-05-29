@@ -5,7 +5,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
-import {SpanFields} from 'sentry/views/insights/types';
+import {type SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   chartType: ChartType;
