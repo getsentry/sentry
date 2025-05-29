@@ -1792,9 +1792,9 @@ function buildRoutes() {
       <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
         {projectsChildRoutes}
       </Route>
+      <Redirect from={`${FRONTEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
       <Redirect from={`${BACKEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
       <Redirect from={`${BACKEND_LANDING_SUB_PATH}/crons/`} to="/insights/crons/" />
-      <Redirect from={`${FRONTEND_LANDING_SUB_PATH}/crons/`} to="/insights/crons/" />
       <Route path="uptime/">
         <IndexRoute
           component={make(() => import('sentry/views/insights/uptime/views/overview'))}
