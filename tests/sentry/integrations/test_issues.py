@@ -123,7 +123,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(group_id=group.id, type=ActivityType.SET_RESOLVED.value)
             assert activity.data == {
                 "integration_id": integration.id,
@@ -182,7 +184,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(
                 group_id=group.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -330,7 +334,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(
                 group_id=group.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -396,7 +402,9 @@ class IssueSyncIntegration(TestCase):
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
             )
 
-            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            group = Group.objects.get(id=group.id)
+            assert group.status == GroupStatus.RESOLVED
+            assert group.resolved_at is not None
             activity = Activity.objects.get(
                 group_id=group.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
