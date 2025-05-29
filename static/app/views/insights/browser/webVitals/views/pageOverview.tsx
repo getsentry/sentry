@@ -4,9 +4,9 @@ import omit from 'lodash/omit';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tabs} from 'sentry/components/core/tabs';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';

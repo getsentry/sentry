@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -100,6 +101,12 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         good_url = reverse(self.endpoint, args=[self.organization.slug, 7654])
         bad_url = good_url.replace("7654", "not-an-id")
         assert_status_code(self.client.get(bad_url), 404)
+
+    def test_pending_deletion(self):
+        detector = self.create_detector()
+        detector.status = ObjectStatus.PENDING_DELETION
+        detector.save()
+        self.get_error_response(self.organization.slug, detector.id, status_code=404)
 
 
 @region_silo_test
@@ -252,6 +259,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
                 event=audit_log.get_event_id("DETECTOR_REMOVE"),
                 actor=self.user,
             ).exists()
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
 
     def test_error_group_type(self):
         """

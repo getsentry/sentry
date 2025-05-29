@@ -664,11 +664,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
           c.errors.add(error);
         }
+
         if (isBrowserRequestSpan(c.value)) {
           const serverRequestHandler = c.parent?.children.find(n =>
             isServerRequestHandlerTransactionNode(n)
           );
-          if (serverRequestHandler) {
+
+          if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
             serverRequestHandler.parent!.children =
               serverRequestHandler.parent!.children.filter(
                 n => n !== serverRequestHandler
@@ -678,6 +680,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
+
       c.children.sort(traceChronologicalSort);
     });
 
@@ -1854,6 +1857,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   // Only supports parent/child swaps (the only ones we need)
+  // E.g. needed for swapping SSR spans: https://github.com/getsentry/rfcs/blob/main/text/0138-achieving-order-between-pageload-and-srr-spans.md
   static Swap({
     parent,
     child,

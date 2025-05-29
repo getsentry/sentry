@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 
 import orjson
 import sentry_sdk
@@ -101,7 +102,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[KafkaPayload]:
+def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
     if not options.get("standalone-spans.process-segments-consumer.enable"):
         return []
 
@@ -109,24 +110,28 @@ def _process_message(message: Message[KafkaPayload]) -> list[KafkaPayload]:
         value = message.payload.value
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
-        return [_serialize_payload(span) for span in processed]
+        return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         # TODO: revise error handling
         sentry_sdk.capture_exception()
         return []
 
 
-def _serialize_payload(span: Span) -> KafkaPayload:
+def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPayload]:
     item = convert_span_to_item(span)
-    return KafkaPayload(
-        key=None,
-        value=item.SerializeToString(),
-        headers=[
-            ("item_type", str(item.item_type).encode("ascii")),
-            ("project_id", str(span["project_id"]).encode("ascii")),
-        ],
+    return Value(
+        KafkaPayload(
+            key=None,
+            value=item.SerializeToString(),
+            headers=[
+                ("item_type", str(item.item_type).encode("ascii")),
+                ("project_id", str(span["project_id"]).encode("ascii")),
+            ],
+        ),
+        {},
+        timestamp,
     )
 
 
-def _unfold_segment(spans: list[KafkaPayload]):
-    return [Value(span, {}) for span in spans if span is not None]
+def _unfold_segment(spans: list[Value[KafkaPayload]]):
+    return [span for span in spans if span is not None]

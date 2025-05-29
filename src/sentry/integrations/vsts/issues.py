@@ -15,7 +15,12 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.activity import Activity
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
@@ -31,6 +36,12 @@ if TYPE_CHECKING:
 VSTS_IDENTITY_DELETED_ERROR_SUBSTRING = [
     "is currently Deleted within the following Microsoft Entra tenant"
 ]
+
+VSTS_ISSUE_TITLE_MAX_LENGTH = 128
+
+# Represents error codes caused by misconfiguration when creating a ticket
+# Example: Error Communicating with Azure DevOps (HTTP 400): TF401320: Rule Error for field xxx. Error code: Required, HasValues, LimitedToValues, AllowsOldValue, InvalidEmpty.
+VSTS_INTEGRATION_FORM_ERROR_CODES_SUBSTRINGS = ["TF401320"]
 
 
 class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
@@ -59,6 +70,16 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
             substring in str(exc) for substring in VSTS_IDENTITY_DELETED_ERROR_SUBSTRING
         ):
             raise ApiUnauthorized(text=str(exc))
+        elif isinstance(exc, ApiError) and any(
+            substring in str(exc) for substring in VSTS_INTEGRATION_FORM_ERROR_CODES_SUBSTRINGS
+        ):
+            # Parse the field name from the error message
+            # Example: TF401320: Rule Error for field Empowered Team. Error code: Required, HasValues, LimitedToValues, AllowsOldValue, InvalidEmpty.
+            try:
+                field_name = str(exc).split("Error for field ")[1].split(".")[0]
+                raise IntegrationFormError(field_errors={field_name: f"{field_name} is required."})
+            except IndexError:
+                raise IntegrationFormError()
         raise super().raise_error(exc, identity)
 
     def get_project_choices(
@@ -193,13 +214,16 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         """
         project_id = data.get("project")
         if project_id is None:
-            raise ValueError("Azure DevOps expects project")
+            raise IntegrationFormError({"project": "Project is required."})
 
         client = self.get_client()
 
         title = data["title"]
         description = data["description"]
         item_type = data["work_item_type"]
+
+        if len(title) > VSTS_ISSUE_TITLE_MAX_LENGTH:
+            title = title[: VSTS_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
 
         try:
             created_item = client.create_work_item(
@@ -283,6 +307,8 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "issue_key": external_issue.key,
                 },
             )
+        except Exception as e:
+            self.raise_error(e)
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
@@ -336,6 +362,8 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "exception": error,
                 },
             )
+        except Exception as e:
+            self.raise_error(e)
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         done_states = self._get_done_statuses(data["project"])
