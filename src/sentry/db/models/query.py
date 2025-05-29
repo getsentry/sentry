@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import operator
+import re
 from functools import reduce
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -179,13 +180,12 @@ def create_or_update(
 def in_iexact(column: str, values: Any) -> Q:
     """Operator to test if any of the given values are (case-insensitive)
     matching to values in the given column."""
-    from operator import or_
+    if not values:
+        return Q(**{f"{column}__in": []})
 
-    query = f"{column}__iexact"
-    # if values is empty, have a default value for the reduce call that will essentially resolve a column in []
-    query_in = f"{column}__in"
-
-    return reduce(or_, [Q(**{query: v}) for v in values], Q(**{query_in: []}))
+    escaped_values = [re.escape(str(v)) for v in values]
+    pattern = f"^({'|'.join(escaped_values)})$"
+    return Q(**{f"{column}__iregex": pattern})
 
 
 def in_icontains(column: str, values: Any) -> Q:
