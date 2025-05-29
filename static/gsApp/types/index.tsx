@@ -969,8 +969,7 @@ export type ReservedBudgetForCategory = {
   apiName: string;
   freeBudget: number;
   prepaidBudget: number;
-  reservedCpe: number;
-  // in cents
+  reservedCpe: number; // in cents
   reservedSpend: number;
   totalReservedBudget: number;
 };
