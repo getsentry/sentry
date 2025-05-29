@@ -48,8 +48,9 @@ class MockDataConditionHandlerDictComparison(DataConditionHandler):
         "additionalProperties": False,
     }
 
+    @staticmethod
     def evaluate_value(
-        event_data: WorkflowEventData, comparison: dict[str, int]
+        event_data: WorkflowEventData, comparison: dict[str, MockDataConditionEnum]
     ) -> DetectorPriorityLevel:
         return (
             DetectorPriorityLevel.HIGH if comparison["baz"].value > 1 else DetectorPriorityLevel.OK
