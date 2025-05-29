@@ -231,7 +231,11 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentsincremental
     incremental: DEV_MODE,
     futureDefaults: true,
-    css: true,
+    // Native css parsing not working in production
+    // Build production bundle and open the entrypoints/sentry.css file
+    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
+    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
+    css: false,
   },
   module: {
     /**
@@ -273,13 +277,21 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css/,
-        type: 'css',
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: ['less-loader'],
-        type: 'css',
+        use: [
+          {
+            loader: rspack.CssExtractRspackPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -322,6 +334,16 @@ const appConfig: Configuration = {
     new rspack.ProvidePlugin({
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
+    }),
+
+    /**
+     * Extract CSS into separate files.
+     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
+     */
+    new rspack.CssExtractRspackPlugin({
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: 'entrypoints/[name].css',
     }),
 
     /**
