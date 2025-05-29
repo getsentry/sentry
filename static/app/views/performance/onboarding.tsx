@@ -264,7 +264,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }
 
   return (
-    <Fragment>
+    <PerformanceOnboardingContainer>
       {noPerformanceSupport && (
         <UnsupportedAlert projectSlug={project.slug} featureName="Performance" />
       )}
@@ -306,9 +306,13 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
           )}
         </FeatureTourModal>
       </LegacyOnboardingPanel>
-    </Fragment>
+    </PerformanceOnboardingContainer>
   );
 }
+
+const PerformanceOnboardingContainer = styled('div')`
+  grid-column: 1/-1;
+`;
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {

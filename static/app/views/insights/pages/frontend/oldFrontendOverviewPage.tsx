@@ -234,7 +234,12 @@ export function OldFrontendOverviewPage() {
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
                 >
@@ -259,13 +264,6 @@ export function OldFrontendOverviewPage() {
                     />
                   </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
