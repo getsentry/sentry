@@ -135,7 +135,7 @@ export function MultiQueryModeChart({
     isTopN
   );
 
-  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
+  const chartType = queryParts.chartType ?? determineDefaultChartType(yAxes);
 
   const visualizationType =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
