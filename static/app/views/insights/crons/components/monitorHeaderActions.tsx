@@ -40,7 +40,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgSlug}/insights/backend/crons/`,
+        pathname: `/organizations/${orgSlug}/insights/crons/`,
         query: endpointOptions.query,
       })
     );

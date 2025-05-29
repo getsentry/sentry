@@ -51,10 +51,10 @@ function FilterBar({
             }}
             menuFooter={
               <ButtonBar gap={1}>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/backend/crons/">
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
                 </LinkButton>
-                <LinkButton size="xs" icon={<IconOpen />} to="/insights/backend/uptime/">
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
                   {t('Uptime Overview')}
                 </LinkButton>
               </ButtonBar>
