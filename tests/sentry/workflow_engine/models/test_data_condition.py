@@ -86,7 +86,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         )
         condition_handler_registry.registrations[Condition.REAPPEARED_EVENT] = (
             MockDataConditionHandlerDictComparison
-        )
+        )  # type:ignore[assignment]
         self.workflow_triggers = self.create_data_condition_group()
         self.dict_comparison_dc = self.create_data_condition(
             type=Condition.REAPPEARED_EVENT,
