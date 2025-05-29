@@ -301,10 +301,12 @@ describe('Nav', function () {
         await userEvent.hover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'true'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
 
         // Moving pointer away should hide the sidebar
         await userEvent.unhover(

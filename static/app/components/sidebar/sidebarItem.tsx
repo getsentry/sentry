@@ -369,17 +369,17 @@ const getActiveStyle = ({
     `;
   }
   return css`
-    color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
+    color: ${isChonkTheme(theme) ? theme.tokens.content.accent : theme.white};
 
     &:active,
     &:focus,
     &:hover {
-      color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
+      color: ${isChonkTheme(theme) ? theme.tokens.content.accent : theme.white};
     }
 
     &:before {
       background-color: ${!!theme && isChonkTheme(theme)
-        ? theme.colors.chonk.blue400
+        ? theme.tokens.graphics.accent
         : theme.active};
     }
   `;
@@ -449,7 +449,7 @@ const StyledSidebarItem = styled(Link, {
         `;
       }
       return css`
-        color: ${isChonkTheme(p.theme) ? p.theme.colors.chonk.blue400 : p.theme.white};
+        color: ${isChonkTheme(p.theme) ? p.theme.colors.content.accent : p.theme.white};
       `;
     }}
   }

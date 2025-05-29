@@ -8,8 +8,6 @@ const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
   ModuleName.MOBILE_VITALS,
-  ModuleName.CRONS,
-  ModuleName.UPTIME,
   ModuleName.SESSIONS,
   ModuleName.AGENTS,
 ] as const;
