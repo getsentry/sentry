@@ -9,14 +9,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 // TODO(release-drawer): Only used in mobile/screenload/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
