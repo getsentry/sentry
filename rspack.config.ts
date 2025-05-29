@@ -6,7 +6,7 @@ import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RuleSetRule,
+  SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
@@ -167,7 +167,13 @@ for (const locale of supportedLocales) {
   };
 }
 
-const swcReactLoaderConfig: RuleSetRule['options'] = {
+const swcReactLoaderConfig: SwcLoaderOptions = {
+  env: {
+    // https://swc.rs/docs/configuration/compilation#envmode
+    mode: 'usage',
+    // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+    coreJs: '3.41',
+  },
   jsc: {
     experimental: {
       plugins: [
