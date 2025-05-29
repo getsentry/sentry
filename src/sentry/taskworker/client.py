@@ -173,6 +173,7 @@ class TaskworkerClient:
             self._temporary_unavailable_hosts.pop(host)
 
     def _get_cur_stub(self) -> tuple[str, ConsumerServiceStub]:
+        self._clear_temporary_unavailable_hosts()
         available_hosts = [h for h in self._hosts if h not in self._temporary_unavailable_hosts]
         if not available_hosts:
             # If all hosts are temporarily unavailable, wait for the shortest timeout
@@ -183,7 +184,6 @@ class TaskworkerClient:
                 extra={"sleeping for": shortest_timeout - current_time},
             )
             time.sleep(shortest_timeout - current_time)
-            self._clear_temporary_unavailable_hosts()
             return self._get_cur_stub()  # try again
 
         if self._cur_host in self._temporary_unavailable_hosts:
@@ -217,7 +217,6 @@ class TaskworkerClient:
         This will return None if there are no tasks to fetch.
         """
         request = GetTaskRequest(namespace=namespace)
-        self._clear_temporary_unavailable_hosts()
         try:
             host, stub = self._get_cur_stub()
             with metrics.timer("taskworker.get_task.rpc", tags={"host": host}):
