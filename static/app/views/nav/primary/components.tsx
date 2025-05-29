@@ -400,7 +400,7 @@ const ChonkNavLink = chonkStyled(Link, {
     width: 4px;
     height: 20px;
     border-radius: ${p => p.theme.radius.micro};
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
@@ -423,7 +423,7 @@ const ChonkNavLink = chonkStyled(Link, {
   }
 
   &[aria-current='page'] {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.tokens.content.accent};
 
     &::before { opacity: 1; }
     ${NavLinkIconContainer} {
