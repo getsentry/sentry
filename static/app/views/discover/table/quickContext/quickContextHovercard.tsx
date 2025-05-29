@@ -178,6 +178,7 @@ const StyledHovercard = styled(Hovercard)`
   ${Body} {
     padding: 0;
   }
+  overflow: hidden;
   min-width: max-content;
 `;
 
