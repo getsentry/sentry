@@ -1,5 +1,4 @@
 import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import type {Layouts} from 'react-grid-layout';

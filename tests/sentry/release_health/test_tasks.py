@@ -13,7 +13,11 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
-from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
+from sentry.release_health.tasks import (
+    has_been_adopted,
+    monitor_release_adoption,
+    process_projects_with_sessions,
+)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -544,3 +548,13 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
 
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend
+
+
+def test_has_been_adopted():
+    """An adopted session has at least 10% of the environment's sessions."""
+    assert has_been_adopted(10, 1)
+    assert has_been_adopted(100, 10)
+    assert has_been_adopted(1000, 100)
+    assert not has_been_adopted(100, 0)
+    assert not has_been_adopted(100, 1)
+    assert not has_been_adopted(100, 9)

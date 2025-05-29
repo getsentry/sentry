@@ -11,15 +11,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
-  useLogsPageData,
+  useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
@@ -45,23 +45,24 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export function TraceViewLogsSection() {
-  const tableData = useLogsPageData();
+export function TraceViewLogsSection({
+  scrollContainer,
+}: {
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
+}) {
+  const tableData = useLogsPageDataQueryResult();
   const logsSearch = useLogsSearch();
   const hasTraceTabsUi = useHasTraceTabsUI();
 
   if (hasTraceTabsUi) {
     return (
       <StyledPanel>
-        <LogsSectionContent tableData={tableData.logsData} />
+        <LogsSectionContent scrollContainer={scrollContainer} />
       </StyledPanel>
     );
   }
 
-  if (
-    !tableData?.logsData ||
-    (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
-  ) {
+  if (!tableData || (tableData.data?.length === 0 && logsSearch.isEmpty())) {
     return null;
   }
 
@@ -73,15 +74,20 @@ export function TraceViewLogsSection() {
       initialCollapse={false}
       disableCollapsePersistence
     >
-      <LogsSectionContent tableData={tableData.logsData} />
+      <LogsSectionContent scrollContainer={scrollContainer} />
     </FoldSection>
   );
 }
 
-function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
+function LogsSectionContent({
+  scrollContainer,
+}: {
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
+}) {
   const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
+  const hasInfiniteFeature = organization.features.includes('ourlogs-live-refresh');
 
   return (
     <Fragment>
@@ -95,7 +101,11 @@ function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult})
         onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
-        <LogsTable tableData={tableData} showHeader={false} />
+        {hasInfiniteFeature ? (
+          <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+        ) : (
+          <LogsTable showHeader={false} />
+        )}
       </TableContainer>
     </Fragment>
   );

@@ -21,15 +21,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_empty_string, is_event_id, is_span_id
-
-
-def validate_event_id(value: str | list[str]) -> bool:
-    if isinstance(value, list):
-        return all([is_event_id(item) for item in value])
-    else:
-        return is_event_id(value)
-
+from sentry.utils.validators import is_empty_string, is_event_id_or_list, is_span_id
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -125,7 +117,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=validate_event_id,
+            validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="transaction",
@@ -180,7 +172,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
-            search_type="number",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="ai.total_cost",
@@ -270,7 +262,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="byte",
         ),
         simple_measurements_field(
-            "messaging.message.receive.latency", search_type="millisecond", secondary_alias=True
+            "messaging.message.receive.latency",
+            search_type="millisecond",
+            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="messaging.message.receive.latency",
@@ -367,7 +361,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
-        simple_sentry_field("span_id"),
+        ResolvedAttribute(
+            public_alias="span_id",
+            internal_name="sentry.item_id",
+            search_type="string",
+        ),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
         simple_sentry_field("transaction.op"),

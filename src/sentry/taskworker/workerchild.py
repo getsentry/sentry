@@ -83,6 +83,17 @@ def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
+def status_name(status: TaskActivationStatus.ValueType) -> str:
+    """Convert a TaskActivationStatus to a human readable name"""
+    if status == TASK_ACTIVATION_STATUS_COMPLETE:
+        return "complete"
+    if status == TASK_ACTIVATION_STATUS_FAILURE:
+        return "failure"
+    if status == TASK_ACTIVATION_STATUS_RETRY:
+        return "retry"
+    return f"unknown-{status}"
+
+
 def child_process(
     child_tasks: queue.Queue[TaskActivation],
     processed_tasks: queue.Queue[ProcessingResult],
@@ -310,6 +321,13 @@ def child_process(
                 )
                 span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
+            # TODO(taskworker) remove this when doing cleanup
+            # The `__start_time` parameter is spliced into task parameters by
+            # sentry.celery.SentryTask._add_metadata and needs to be removed
+            # from kwargs like sentry.tasks.base.instrumented_task does.
+            if "__start_time" in kwargs:
+                kwargs.pop("__start_time")
+
             try:
                 task_func(*args, **kwargs)
                 transaction.set_status(SPANSTATUS.OK)
@@ -334,7 +352,7 @@ def child_process(
                 "taskname": activation.taskname,
                 "execution_duration": execution_duration,
                 "execution_latency": execution_latency,
-                "status": status,
+                "status": status_name(status),
             },
         )
         metrics.incr(
@@ -342,7 +360,7 @@ def child_process(
             tags={
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
-                "status": status,
+                "status": status_name(status),
                 "processing_pool": processing_pool_name,
             },
         )

@@ -12,7 +12,6 @@ import {
   StatusIndicator,
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
-import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -44,7 +43,7 @@ const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-const emptyCell = <Text>{'\u2014'}</Text>;
+const emptyCell = '\u2014';
 
 /**
  * Represents the 'completion' of a check-in.
@@ -281,11 +280,11 @@ function OffScheduleIndicator({checkIn}: OffScheduleIndicatorProps) {
 
   const title = dueToMissingInProgress
     ? tct(
-        'This check-in was received [earlyBy] before it was expected. This may be due to the missing in-progress check-in, as your job reported a duration of [jobDuration] without sending an in-progress. Your grace period for the first check-in is [checkInMargin].',
+        'This check-in was recorded [earlyBy] earlier than expected. This may be due to a missing in-progress check-in, as your job reported a duration of [jobDuration] without sending one. The grace period for your monitor before the check-in is considered missed is [checkInMargin].',
         {earlyBy, jobDuration, checkInMargin}
       )
     : tct(
-        'This check-in was Received [earlyBy] before it was expected. This is likely due to a misconfiguration.',
+        'This check-in was recorded [earlyBy] earlier than expected, which may indicate a configuration issue.',
         {earlyBy}
       );
 

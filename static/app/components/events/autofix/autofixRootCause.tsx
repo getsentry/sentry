@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -9,9 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixFeedback,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
@@ -22,7 +20,7 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
+import {IconChat, IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -30,7 +28,6 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -41,7 +38,6 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
-  feedback?: AutofixFeedback;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -167,17 +163,20 @@ function RootCauseDescription({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  ref,
 }: {
   cause: AutofixRootCauseData;
   groupId: string;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <CauseDescription>
       {cause.description && (
         <AutofixHighlightWrapper
+          ref={ref}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -286,13 +285,25 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
-  feedback,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
   const [customRootCause, setCustomRootCause] = useState('');
   const cause = causes[0];
   const iconFocusRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectDescription = () => {
+    if (descriptionRef.current) {
+      // Simulate a click on the description to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      descriptionRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   if (!cause) {
     return (
@@ -333,17 +344,16 @@ function AutofixRootCauseDisplay({
               <IconFocus size="sm" color="pink400" />
             </IconWrapper>
             {t('Root Cause')}
+            <ChatButton
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+            >
+              <IconChat size="xs" />
+            </ChatButton>
           </HeaderText>
           <ButtonBar>
-            <AutofixThumbsUpDownButtons
-              thumbsUpDownType="root_cause"
-              feedback={feedback}
-              groupId={groupId}
-              runId={runId}
-            />
-            <DividerWrapper>
-              <Divider />
-            </DividerWrapper>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -418,6 +428,7 @@ function AutofixRootCauseDisplay({
                 runId={runId}
                 previousDefaultStepIndex={previousDefaultStepIndex}
                 previousInsightCount={previousInsightCount}
+                ref={descriptionRef}
               />
             </Fragment>
           )}
@@ -529,6 +540,7 @@ const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
 `;
 
-const DividerWrapper = styled('div')`
-  margin: 0 ${space(1)};
+const ChatButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  margin-left: -${space(0.5)};
 `;

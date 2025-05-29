@@ -147,8 +147,8 @@ export function updateVisualizeAggregate({
   oldArgument,
 }: {
   newAggregate: string;
-  oldAggregate: string;
-  oldArgument: string;
+  oldAggregate?: string;
+  oldArgument?: string;
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -161,11 +161,19 @@ export function updateVisualizeAggregate({
     // and carry the argument if it's the same type, reset to a default
     // if it's not the same type. Just hard coding it for now for simplicity
     // as `count_unique` is the only aggregate that takes a string.
-    return `${AggregationKey.COUNT_UNIQUE}(${SpanIndexedField.SPAN_OP})`;
+    return `${newAggregate}(${SpanIndexedField.SPAN_OP})`;
+  }
+
+  if (newAggregate === AggregationKey.EPM || newAggregate === AggregationKey.EPS) {
+    return `${newAggregate}()`;
   }
 
   // switching away from count_unique means we need to reset the field
-  if (oldAggregate === AggregationKey.COUNT_UNIQUE) {
+  if (
+    oldAggregate === AggregationKey.COUNT_UNIQUE ||
+    oldAggregate === AggregationKey.EPM ||
+    oldAggregate === AggregationKey.EPS
+  ) {
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
