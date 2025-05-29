@@ -1,12 +1,54 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {t} from 'sentry/locale';
+import Link from 'sentry/components/links/link';
+import {IconInfo, IconSync} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
-const CODECOV_PLACEHOLDER_REPOS = ['test repo 1', 'test-repo-2', 'Test Repo 3'];
+const CODECOV_PLACEHOLDER_REPOS = ['test repo 1', 'test-repo-2', 'Sample-two'];
+
+function SyncRepoButton() {
+  return (
+    <StyledButtonContainer>
+      <StyledButton
+        borderless
+        aria-label={t('Sync Now')}
+        // TODO: Adjust when sync endpoint is ready
+        onClick={() => {}}
+        size="xs"
+        icon={<IconSync />}
+      >
+        sync now
+      </StyledButton>
+    </StyledButtonContainer>
+  );
+}
+
+interface MenuFooterProps {
+  repoAccessLink: string;
+}
+
+function MenuFooter({repoAccessLink}: MenuFooterProps) {
+  return (
+    <FooterTip>
+      <IconInfo size="xs" />
+      <span>
+        {tct(
+          'Sentry only displays the repos that have given information to. Manage [repoAccessLink] in GitHub.',
+          {
+            // TODO: adjust link when backend gives specific GH installation
+            repoAccessLink: <Link to={repoAccessLink}>repo access</Link>,
+          }
+        )}
+      </span>
+    </FooterTip>
+  );
+}
 
 export interface RepoSelectorProps {
   onChange: (data: string) => void;
@@ -52,10 +94,14 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
 
   return (
     <CompactSelect
+      searchable
+      searchPlaceholder={t('search by repository name')}
       options={options}
       value={repository ?? ''}
       onChange={handleChange}
       menuWidth={'16rem'}
+      menuBody={<SyncRepoButton />}
+      menuFooter={<MenuFooter repoAccessLink="placeholder" />}
       trigger={
         trigger ??
         ((triggerProps, isOpen) => {
@@ -79,6 +125,34 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
     />
   );
 }
+
+const StyledButton = styled(Button)`
+  display: inline-flex;
+  text-transform: uppercase;
+  color: ${p => p.theme.tokens.content.muted};
+  padding: ${space(1)};
+  &:hover * {
+    background-color: transparent;
+    border-color: transparent;
+  }
+`;
+
+const StyledButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin: 0 ${space(0.5)} ${space(0.5)} 0;
+`;
+
+const FooterTip = styled('p')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin: 0;
+`;
 
 const TriggerLabelWrap = styled('span')`
   position: relative;

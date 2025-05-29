@@ -1,3 +1,7 @@
+import styled from '@emotion/styled';
+
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {tct} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import SortableHeader from 'sentry/views/codecov/tests/testAnalyticsTable/sortableHeader';
@@ -9,16 +13,17 @@ type TableHeaderParams = {
   sort?: Sort;
 };
 
-type FlakyTestTooltipProps = {
-  date: string;
-};
+function FlakyTestsTooltip() {
+  const {codecovPeriod} = useCodecovContext();
+  const dateRange = codecovPeriod
+    ? Object.values(getArbitraryRelativePeriod(codecovPeriod))
+    : '24 hours';
 
-function FlakyTestsTooltip({date}: FlakyTestTooltipProps) {
   return (
     <p>
       {tct(
-        `Shows how often a flake occurs by tracking how many times a test goes from fail to pass or pass to fail on a given branch and commit within the last [date]`,
-        {date}
+        `Shows how often a flake occurs by tracking how many times a test goes from fail to pass or pass to fail on a given branch and commit within the [dateRange]`,
+        {dateRange: <StyledDateRange>{dateRange}</StyledDateRange>}
       )}
       .
     </p>
@@ -27,8 +32,6 @@ function FlakyTestsTooltip({date}: FlakyTestTooltipProps) {
 
 export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
   const {key, name} = column;
-  // TODO: adjust when the date selector is completed
-  const date = '30 days';
 
   const alignment = RIGHT_ALIGNED_FIELDS.has(key) ? 'right' : 'left';
 
@@ -39,8 +42,13 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
       fieldName={key}
       label={name}
       {...(key === 'flakeRate' && {
-        tooltip: <FlakyTestsTooltip date={date} />,
+        tooltip: <FlakyTestsTooltip />,
       })}
     />
   );
 };
+
+const StyledDateRange = styled('span')`
+  text-transform: lowercase;
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
