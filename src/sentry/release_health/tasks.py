@@ -85,6 +85,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
     release_project_environments = query_adopted_release_project_environments(adopted_releases)
     adopt_release_project_environments(release_project_environments)
     adopted_ids = [m.id for m in release_project_environments]
+    metrics.incr("sentry.tasks.process_projects_with_sessions.updated_rpe", amount=len(adopted_ids))
 
     # For any release which was missing we still need to adopt it still but we may need to
     # create some other rows first.
