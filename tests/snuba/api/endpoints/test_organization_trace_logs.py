@@ -184,7 +184,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 ),
                 self.create_ourlog(
                     {"body": "bar", "trace_id": trace_id_2},
-                    timestamp=self.ten_mins_ago,
+                    timestamp=self.eleven_mins_ago,
                     project=project2,
                 ),
             ]
