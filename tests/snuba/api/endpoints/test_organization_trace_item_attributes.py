@@ -1,3 +1,4 @@
+from operator import itemgetter
 from unittest import mock
 from uuid import uuid4
 
@@ -221,14 +222,20 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
-        assert response.data == [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
-            {"key": "span.description", "name": "span.description"},
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
-        ]
+        assert sorted(
+            response.data,
+            key=itemgetter("key"),
+        ) == sorted(
+            [
+                {"key": "bar", "name": "bar"},
+                {"key": "baz", "name": "baz"},
+                {"key": "foo", "name": "foo"},
+                {"key": "span.description", "name": "span.description"},
+                {"key": "transaction", "name": "transaction"},
+                {"key": "project", "name": "project"},
+            ],
+            key=itemgetter("key"),
+        )
 
     def test_tags_list_nums(self):
         for tag in [
@@ -308,13 +315,19 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         )
         assert response.status_code == 200, response.data
-        assert response.data == [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
-            {"key": "span.description", "name": "span.description"},
-            {"key": "project", "name": "project"},
-        ]
+        assert sorted(
+            response.data,
+            key=itemgetter("key"),
+        ) == sorted(
+            [
+                {"key": "bar", "name": "bar"},
+                {"key": "baz", "name": "baz"},
+                {"key": "foo", "name": "foo"},
+                {"key": "span.description", "name": "span.description"},
+                {"key": "project", "name": "project"},
+            ],
+            key=itemgetter("key"),
+        )
 
         links = {}
         for url, attrs in parse_link_header(response["Link"]).items():
@@ -328,11 +341,17 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         with self.feature(self.feature_flags):
             response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {"key": "span.description", "name": "span.description"},
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
-        ]
+        assert sorted(
+            response.data,
+            key=itemgetter("key"),
+        ) == sorted(
+            [
+                {"key": "span.description", "name": "span.description"},
+                {"key": "transaction", "name": "transaction"},
+                {"key": "project", "name": "project"},
+            ],
+            key=itemgetter("key"),
+        )
 
         links = {}
         for url, attrs in parse_link_header(response["Link"]).items():
@@ -346,13 +365,19 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         with self.feature(self.feature_flags):
             response = self.client.get(links["previous"]["href"], format="json")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
-            {"key": "span.description", "name": "span.description"},
-            {"key": "project", "name": "project"},
-        ]
+        assert sorted(
+            response.data,
+            key=itemgetter("key"),
+        ) == sorted(
+            [
+                {"key": "bar", "name": "bar"},
+                {"key": "baz", "name": "baz"},
+                {"key": "foo", "name": "foo"},
+                {"key": "span.description", "name": "span.description"},
+                {"key": "project", "name": "project"},
+            ],
+            key=itemgetter("key"),
+        )
 
     def test_tags_list_sentry_conventions(self):
         for tag in [

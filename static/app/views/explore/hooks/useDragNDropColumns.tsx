@@ -3,7 +3,7 @@ import type {DragEndEvent} from '@dnd-kit/core';
 import {arrayMove} from '@dnd-kit/sortable';
 
 export type Column<T> = {
-  column: T | undefined;
+  column: T;
   id: number;
 };
 
@@ -13,8 +13,8 @@ interface UseDragAndDropColumnsProps<T> {
   setColumns: (columns: T[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
-function extractColumns<T>(editableColumns: Array<Column<T>>, defaultColumn: () => T) {
-  return editableColumns.map(({column}) => column ?? defaultColumn());
+function extractColumns<T>(editableColumns: Array<Column<T>>) {
+  return editableColumns.map(({column}) => column);
 }
 
 export function useDragNDropColumns<T>({
@@ -42,14 +42,14 @@ export function useDragNDropColumns<T>({
 
   const [nextId, setNextId] = useState(editableColumns.length + 1);
 
-  function insertColumn() {
+  function insertColumn(column?: T) {
     setEditableColumns(oldEditableColumns => {
       const newEditableColumns = oldEditableColumns.slice();
-      newEditableColumns.push({id: nextId, column: undefined});
+      newEditableColumns.push({id: nextId, column: column ?? defaultColumn()});
 
       setNextId(nextId + 1); // make sure to increment the id for the next time
 
-      setColumns(extractColumns(newEditableColumns, defaultColumn), 'insert');
+      setColumns(extractColumns(newEditableColumns), 'insert');
 
       return newEditableColumns;
     });
@@ -60,7 +60,7 @@ export function useDragNDropColumns<T>({
       const newEditableColumns = [...oldEditableColumns];
       newEditableColumns[i]!.column = column;
 
-      setColumns(extractColumns(newEditableColumns, defaultColumn), 'update');
+      setColumns(extractColumns(newEditableColumns), 'update');
 
       return newEditableColumns;
     });
@@ -68,17 +68,12 @@ export function useDragNDropColumns<T>({
 
   function deleteColumnAtIndex(i: number) {
     setEditableColumns(oldEditableColumns => {
-      if (oldEditableColumns.length === 1) {
-        setColumns([defaultColumn()], 'delete');
-        return [{id: 1, column: undefined}];
-      }
+      const newEditableColumns =
+        oldEditableColumns.length === 1
+          ? [{id: 1, column: defaultColumn()}]
+          : [...oldEditableColumns.slice(0, i), ...oldEditableColumns.slice(i + 1)];
 
-      const newEditableColumns = [
-        ...oldEditableColumns.slice(0, i),
-        ...oldEditableColumns.slice(i + 1),
-      ];
-
-      setColumns(extractColumns(newEditableColumns, defaultColumn), 'delete');
+      setColumns(extractColumns(newEditableColumns), 'delete');
 
       return newEditableColumns;
     });
@@ -94,7 +89,7 @@ export function useDragNDropColumns<T>({
       setEditableColumns(oldEditableColumns => {
         const newEditableColumns = arrayMove(oldEditableColumns, oldIndex, newIndex);
 
-        setColumns(extractColumns(newEditableColumns, defaultColumn), 'reorder');
+        setColumns(extractColumns(newEditableColumns), 'reorder');
 
         return newEditableColumns;
       });

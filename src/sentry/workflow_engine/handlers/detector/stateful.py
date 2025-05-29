@@ -273,8 +273,6 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    thresholds: DetectorThresholds = {}
-
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
 
@@ -284,21 +282,28 @@ class StatefulDetectorHandler(
         self._thresholds: DetectorThresholds = {
             DetectorPriorityLevel.OK: 1,  # Make sure the OK level is always set
             **default_thresholds,
-            **(self.thresholds or {}),  # Allow each handler to override
+            **(self.thresholds),  # Allow each handler to override
             **(thresholds or {}),  # Allow each instance to override
         }
 
         self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
 
+    @property
+    def thresholds(self) -> DetectorThresholds:
+        """
+        Configure default thresholds at the detector level.
+        """
+        return {}
+
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
         priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
 
         if self.detector.workflow_condition_group is None:
-            # TODO - Should this default to _all_ levels or no levels?
-            return priority_levels
+            return []
 
+        # TODO - Is this something that should be provided by the detector itself rather
+        # than having to query the db for each level? Maybe we can cache this on the detector
+        # so we reduce the number of queries throughout the system.
         condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
             condition_result__in=priority_levels
         ).values_list("condition_result", flat=True)
@@ -380,6 +385,10 @@ class StatefulDetectorHandler(
         return results
 
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        """
+        A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
+        By default the fingerprint will be the detector id and group key.
+        """
         return []
 
     def create_resolve_message(self) -> StatusChangeMessage:
@@ -424,6 +433,7 @@ class StatefulDetectorHandler(
         to create a detector occurrence.
         """
         detector_result: IssueOccurrence | StatusChangeMessage
+        event_data = None
 
         # TODO ensure this is not a duplicate packet or reprocessing
 
@@ -557,8 +567,8 @@ class StatefulGroupingDetectorHandler(
         is_triggered = new_status != DetectorPriorityLevel.OK
         self.state_manager.enqueue_state_update(group_key, is_triggered, new_status)
 
-        event_data = None
         result: StatusChangeMessage | IssueOccurrence
+        event_data = None
 
         if new_status == DetectorPriorityLevel.OK:
             result = StatusChangeMessage(
