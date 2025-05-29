@@ -110,6 +110,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     userCount: int
     firstSeen: datetime
     lastSeen: datetime
+    lifetime: dict[str, Any]
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -372,6 +373,8 @@ class GroupSerializerBase(Serializer, ABC):
             group_dict["isUnhandled"] = attrs["is_unhandled"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
+        if "lifetime" in attrs and attrs["lifetime"]:
+            group_dict["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
         return group_dict
 
     @abstractmethod
@@ -1025,7 +1028,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
+        """
+        Returns the filtered seen stats for each error issue in the list. With
+        `organizations:issue-details-lifetime-stats`, it will also return the
+        non-filtered lifetime stats for the issue.
+        """
+        result = self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
                 start=self.start,
@@ -1037,11 +1045,29 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
+        if features.has(
+            "organizations:issue-details-lifetime-stats", error_issue_list[0].project.organization
+        ):
+            lifetime_result = self._parse_seen_stats_results(
+                self._execute_error_seen_stats_query(
+                    item_list=error_issue_list,
+                ),
+                error_issue_list,
+                use_result_first_seen_times_seen=False,
+            )
+            for item in error_issue_list:
+                result[item].update({"lifetime": lifetime_result.get(item, {})})
+        return result
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
+        """
+        Returns the filtered seen stats for each non-error (issue platform) issue in the list. With
+        `organizations:issue-details-lifetime-stats`, it will also return the
+        non-filtered lifetime stats for the issue.
+        """
+        result = self._parse_seen_stats_results(
             self._execute_generic_seen_stats_query(
                 item_list=generic_issue_list,
                 start=self.start,
@@ -1053,6 +1079,19 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
+        if features.has(
+            "organizations:issue-details-lifetime-stats", generic_issue_list[0].project.organization
+        ):
+            lifetime_result = self._parse_seen_stats_results(
+                self._execute_generic_seen_stats_query(
+                    item_list=generic_issue_list,
+                ),
+                generic_issue_list,
+                use_result_first_seen_times_seen=False,
+            )
+            for item in generic_issue_list:
+                result[item].update({"lifetime": lifetime_result.get(item, {})})
+        return result
 
     @staticmethod
     def _execute_error_seen_stats_query(
