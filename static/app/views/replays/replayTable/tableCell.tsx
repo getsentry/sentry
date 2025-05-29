@@ -19,6 +19,7 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconNot,
   IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -29,7 +30,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
-import {isNativePlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -525,10 +525,12 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
     return <Item isArchived />;
   }
 
-  if (isNativePlatform(replay.platform)) {
+  if (name === null && version === null) {
     return (
       <Item>
-        <SmallText>{t('N/A')}</SmallText>
+        {/* <SmallCode>{t('null')}</SmallCode> */}
+        {/* <Tag icon={<IconNot />} /> */}
+        <IconNot size="xs" color="gray300" />
       </Item>
     );
   }
@@ -779,8 +781,4 @@ const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
 const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
   right: 0%;
   left: unset;
-`;
-
-const SmallText = styled('small')`
-  font-size: ${p => p.theme.fontSizeSmall};
 `;

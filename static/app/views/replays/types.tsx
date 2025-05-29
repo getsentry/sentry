@@ -142,7 +142,6 @@ export const REPLAY_LIST_FIELDS = [
   'is_archived',
   'os.name',
   'os.version',
-  'platform',
   'project_id',
   'started_at',
   'user',
@@ -162,7 +161,6 @@ export type ReplayListRecord = Pick<
   | 'id'
   | 'is_archived'
   | 'os'
-  | 'platform'
   | 'project_id'
   | 'started_at'
   | 'user'
