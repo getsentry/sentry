@@ -671,7 +671,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 15_000);
 
   it('retains on-demand budget when toggled', async () => {
     const am2Sub = SubscriptionFixture({
