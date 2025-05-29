@@ -100,14 +100,14 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                 try:
                     release = Release.objects.get_or_create(
                         organization_id=org_id,
-                        version=adopted_release["name"],
+                        version=adopted_release["version"],
                         defaults={
                             "status": ReleaseStatus.OPEN,
                         },
                     )[0]
                 except IntegrityError:
                     release = Release.objects.get(
-                        organization_id=org_id, version=adopted_release["name"]
+                        organization_id=org_id, version=adopted_release["version"]
                     )
                 except ValidationError:
                     release = None
@@ -115,7 +115,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                         "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
                         extra={
                             "org_id": org_id,
-                            "release_version": adopted_release["name"],
+                            "release_version": adopted_release["version"],
                         },
                     )
 
@@ -157,8 +157,8 @@ def cleanup_adopted_releases(project_ids: Sequence[int], adopted_ids: Sequence[i
 
 class AdoptedRelease(TypedDict):
     environment: str
-    name: str
     project_id: int
+    version: str
 
 
 def query_adopted_release_project_environments(
@@ -168,7 +168,7 @@ def query_adopted_release_project_environments(
     query_filters = Q()
     for release in adopted_releases:
         query_filters |= Q(
-            release__version=release["name"],
+            release__version=release["version"],
             project_id=release["project_id"],
             environment__name=release["environment"],
         )
@@ -209,7 +209,7 @@ def find_adopted_but_missing_releases(
         return (m.project_id, m.environment.name, m.release.version)
 
     def hash_release(q: AdoptedRelease) -> tuple[int, str, str]:
-        return (q["project_id"], q["environment"], q["name"])
+        return (q["project_id"], q["environment"], q["version"])
 
     return find_missing(adopted_releases, hash_release, found_rows, hash_model)
 
@@ -239,14 +239,14 @@ def iter_adopted_releases(totals: Totals) -> Iterator[AdoptedRelease]:
     for p_id, p_totals in totals.items():
         for e_name, e_totals in p_totals.items():
             if valid_environment(e_name, e_totals["total_sessions"]):
-                for release_name, release_count in e_totals["releases"].items():
+                for release_version, release_count in e_totals["releases"].items():
                     if valid_and_adopted_release(
-                        release_name, release_count, e_totals["total_sessions"]
+                        release_version, release_count, e_totals["total_sessions"]
                     ):
                         yield {
                             "environment": e_name,
-                            "name": release_name,
                             "project_id": p_id,
+                            "version": release_version,
                         }
 
 

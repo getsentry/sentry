@@ -458,28 +458,41 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            <SubscribeAction
-              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
-              disabled={disabled}
-              disablePriority
-              group={group}
-              onClick={handleClick(onToggleSubscribe)}
-              icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-              size="sm"
-            />
+            {!hasStreamlinedUI && (
+              <SubscribeAction
+                className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+                disabled={disabled}
+                disablePriority
+                group={group}
+                onClick={handleClick(onToggleSubscribe)}
+                icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+                size="sm"
+              />
+            )}
           </Fragment>
         ))}
       {hasStreamlinedUI && (
-        <Button
-          size="sm"
-          onClick={openShareModal}
-          icon={<IconUpload />}
-          aria-label={t('Share')}
-          title={t('Share Issue')}
-          disabled={disabled}
-          analyticsEventKey="issue_details.share_action_clicked"
-          analyticsEventName="Issue Details: Share Action Clicked"
-        />
+        <Fragment>
+          <SubscribeAction
+            className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+            disabled={disabled}
+            disablePriority
+            group={group}
+            onClick={handleClick(onToggleSubscribe)}
+            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+            size="sm"
+          />
+          <Button
+            size="sm"
+            onClick={openShareModal}
+            icon={<IconUpload />}
+            aria-label={t('Share')}
+            title={t('Share Issue')}
+            disabled={disabled}
+            analyticsEventKey="issue_details.share_action_clicked"
+            analyticsEventName="Issue Details: Share Action Clicked"
+          />
+        </Fragment>
       )}
       <DropdownMenu
         triggerProps={{
