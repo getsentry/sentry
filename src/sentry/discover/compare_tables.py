@@ -66,7 +66,7 @@ def compare_tables_for_dashboard_widget_queries(
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
     organization: Organization = dashboard.organization
-    projects: list[Project] = dashboard.projects.all()
+    projects: list[Project] = list(dashboard.projects.all())
     if len(list(projects)) == 0:
         return {
             "passed": False,
