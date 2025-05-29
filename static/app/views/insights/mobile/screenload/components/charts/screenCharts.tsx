@@ -240,7 +240,7 @@ export function ScreenCharts({additionalFilters}: Props) {
                   },
                 ]}
                 chartKey="spansChart"
-                chartHeight={160}
+                chartHeight={150}
                 isLoading={isDeviceClassEventsLoading}
               />
             </ChartsContainerItem>
@@ -277,7 +277,7 @@ export function ScreenCharts({additionalFilters}: Props) {
                   },
                 ]}
                 chartKey="spansChart"
-                chartHeight={160}
+                chartHeight={150}
                 isLoading={isDeviceClassEventsLoading}
               />
             </ChartsContainerItem>
