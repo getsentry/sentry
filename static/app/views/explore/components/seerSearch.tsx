@@ -27,6 +27,18 @@ interface Visualization {
   yAxes: string[];
 }
 
+interface SeerSearchQuery {
+  groupBys: string[];
+  query: string;
+  sort: string;
+  statsPeriod: string;
+  visualizations: Visualization[];
+}
+
+interface SeerSearchResult {
+  queries: SeerSearchQuery[];
+}
+
 function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
   return (
     <QueryResultsHeader>
@@ -53,18 +65,6 @@ function SeerSearchSkeleton() {
       </SkeletonCellsContainer>
     </LoadingSkeleton>
   );
-}
-
-interface SeerSearchQuery {
-  groupBys: string[];
-  query: string;
-  sort: string;
-  statsPeriod: string;
-  visualizations: Visualization[];
-}
-
-interface SeerSearchResult {
-  queries: SeerSearchQuery[];
 }
 
 export function SeerSearch() {
@@ -145,14 +145,6 @@ export function SeerSearch() {
     setIsDropdownOpen(true);
   };
 
-  const handleBlur = (e: React.FocusEvent) => {
-    setTimeout(() => {
-      if (!e.currentTarget.contains(document.activeElement as Node)) {
-        setIsDropdownOpen(false);
-      }
-    }, 100);
-  };
-
   const handleApply = useCallback(
     (result: SeerSearchQuery) => {
       if (!result) {
@@ -202,10 +194,7 @@ export function SeerSearch() {
     [organization, pageFilters.selection, navigate, setDisplaySeerResults]
   );
 
-  const handleNoneOfTheseClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const handleNoneOfTheseClick = () => {
     trackAnalytics('trace.explorer.ai_query_rejected', {
       organization,
       natural_language_query: searchQuery,
@@ -228,7 +217,7 @@ export function SeerSearch() {
   };
 
   return (
-    <SeerContainer onBlur={handleBlur}>
+    <SeerContainer>
       <SearchForm onSubmit={handleSubmit}>
         <SearchInputContainer isDropdownOpen={isDropdownOpen}>
           <SearchIcon size="sm" />
@@ -266,17 +255,7 @@ export function SeerSearch() {
             <QueryResultsSection>
               <SeerHeader title={t('Do any of these queries look right to you?')} />
               {rawResult.queries.map((query: SeerSearchQuery, index: number) => (
-                <QueryResultItem
-                  key={index}
-                  onClick={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleApply(query);
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  style={{cursor: 'pointer'}}
-                >
+                <QueryResultItem key={index} onClick={() => handleApply(query)}>
                   <QueryTokens
                     groupBys={query.groupBys}
                     query={query.query}
@@ -287,9 +266,7 @@ export function SeerSearch() {
                 </QueryResultItem>
               ))}
               <NoneOfTheseItem onClick={handleNoneOfTheseClick}>
-                <NoneOfTheseContent>
-                  <NoneOfTheseText>{t('None of these')}</NoneOfTheseText>
-                </NoneOfTheseContent>
+                <NoneOfTheseContent>{t('None of these')}</NoneOfTheseContent>
               </NoneOfTheseItem>
             </QueryResultsSection>
           ) : (
@@ -307,7 +284,7 @@ export function SeerSearch() {
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: 'seer_search',
+                      ['feedback.source']: 'seer_trace_explorer_search',
                       ['feedback.owner']: 'ml-ai',
                     },
                   })
@@ -464,6 +441,8 @@ const NoneOfTheseItem = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   transition: background-color 0.2s ease;
   user-select: none;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -478,14 +457,6 @@ const NoneOfTheseContent = styled('div')`
   display: flex;
   gap: ${space(1)};
   padding: ${space(1)};
-`;
-
-const NoneOfTheseText = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
 `;
 
 const LoadingSkeleton = styled('div')`
