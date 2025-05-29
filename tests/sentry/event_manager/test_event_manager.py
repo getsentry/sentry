@@ -247,6 +247,57 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     @with_feature("organizations:issue-open-periods")
+    def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
+        ts = before_now(minutes=5).isoformat()
+
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1.
+        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        assert group.is_resolved()
+
+        resolved_at = before_now(minutes=4)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_BY_AGE.value,
+            datetime=resolved_at,
+        )
+
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
+        event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert not group.is_resolved()
+        assert send_robust.called
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
+        assert len(open_periods) == 2
+        open_period = open_periods[0]
+        assert open_period.date_started == event2.datetime
+        assert open_period.date_ended is None
+        open_period = open_periods[1]
+        assert open_period.date_started == group.first_seen
+        assert open_period.date_ended == resolved_at
+
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
 
@@ -263,8 +314,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).update(
-            date_ended=resolved_at
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_at,
+        )
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
         )
 
         manager = EventManager(
@@ -1001,8 +1059,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         resolved_at = before_now(minutes=4)
-        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).update(
-            date_ended=resolved_at
+        activity = Activity.objects.create(
+            group=event.group,
+            project=event.group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_at,
+        )
+        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+            resolution_activity=activity,
         )
 
         mock_is_resolved.return_value = True
