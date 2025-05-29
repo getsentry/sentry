@@ -970,6 +970,7 @@ export type ReservedBudgetMetricHistory = {
 };
 
 export type ReservedBudgetForCategory = {
+  apiName: string;
   freeBudget: number;
   prepaidBudget: number;
   reservedCpe: number; // in cents

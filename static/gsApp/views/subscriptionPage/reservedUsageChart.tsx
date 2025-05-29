@@ -37,14 +37,15 @@ import {
 } from 'sentry/views/organizationStats/usageChart/utils';
 
 import {GIGABYTE} from 'getsentry/constants';
-import type {
-  BillingMetricHistory,
-  BillingStat,
-  BillingStats,
-  CustomerUsage,
-  Plan,
-  ReservedBudgetForCategory,
-  Subscription,
+import {
+  type BillingMetricHistory,
+  type BillingStat,
+  type BillingStats,
+  type CustomerUsage,
+  type Plan,
+  ReservedBudgetCategoryType,
+  type ReservedBudgetForCategory,
+  type Subscription,
 } from 'getsentry/types';
 import {
   displayBudgetName,
@@ -487,51 +488,54 @@ function ReservedUsageChart({
 
     if (categoryStats) {
       if (isReservedBudgetCategory) {
-        if ([DataCategory.SPANS, DataCategory.SPANS_INDEXED].includes(category)) {
-          if (subscription.hadCustomDynamicSampling) {
-            const statsByDateAndCategory = categoryStats.reduce(
-              (acc, stat) => {
+        const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
+        if (
+          budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
+          (budgetType === ReservedBudgetCategoryType.DYNAMIC_SAMPLING &&
+            subscription.hadCustomDynamicSampling)
+        ) {
+          const statsByDateAndCategory = categoryStats.reduce(
+            (acc, stat) => {
+              if (stat) {
+                acc[stat.date] = {[category]: [stat]};
+              }
+              return acc;
+            },
+            {} as Record<string, Record<string, BillingStats>>
+          );
+          dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
+            statsByDateAndCategory,
+            transform,
+            subscription,
+            reservedBudgetCategoryInfo,
+          });
+        } else {
+          const otherCategory =
+            category === DataCategory.SPANS
+              ? DataCategory.SPANS_INDEXED
+              : DataCategory.SPANS;
+          const otherCategoryStats = usageStats[otherCategory] ?? [];
+          const statsByCategory = {
+            [category]: categoryStats,
+            [otherCategory]: otherCategoryStats,
+          };
+          const statsByDateAndCategory = Object.entries(statsByCategory).reduce(
+            (acc, [budgetCategory, stats]) => {
+              stats.forEach(stat => {
                 if (stat) {
-                  acc[stat.date] = {[category]: [stat]};
+                  acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
                 }
-                return acc;
-              },
-              {} as Record<string, Record<string, BillingStats>>
-            );
-            dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
-              statsByDateAndCategory,
-              transform,
-              subscription,
-              reservedBudgetCategoryInfo,
-            });
-          } else {
-            const otherCategory =
-              category === DataCategory.SPANS
-                ? DataCategory.SPANS_INDEXED
-                : DataCategory.SPANS;
-            const otherCategoryStats = usageStats[otherCategory] ?? [];
-            const statsByCategory = {
-              [category]: categoryStats,
-              [otherCategory]: otherCategoryStats,
-            };
-            const statsByDateAndCategory = Object.entries(statsByCategory).reduce(
-              (acc, [budgetCategory, stats]) => {
-                stats.forEach(stat => {
-                  if (stat) {
-                    acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
-                  }
-                });
-                return acc;
-              },
-              {} as Record<string, Record<string, BillingStats>>
-            );
-            dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
-              statsByDateAndCategory,
-              transform,
-              subscription,
-              reservedBudgetCategoryInfo,
-            });
-          }
+              });
+              return acc;
+            },
+            {} as Record<string, Record<string, BillingStats>>
+          );
+          dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
+            statsByDateAndCategory,
+            transform,
+            subscription,
+            reservedBudgetCategoryInfo,
+          });
         }
       } else if (displayMode === 'cost') {
         dataCategoryMetadata.chartData = mapCostStatsToChart({

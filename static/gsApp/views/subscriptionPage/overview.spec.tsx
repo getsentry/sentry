@@ -11,6 +11,7 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {
   render,
@@ -124,8 +125,8 @@ describe('Subscription > Overview', () => {
         screen.queryByText('Stored spans usage this period')
       ).not.toBeInTheDocument();
     } else if (isAm3DsPlan(subscription.plan) && !subscription.isEnterpriseTrial) {
+      expect(screen.getByText('Spans budget')).toBeInTheDocument();
       if (subscription.hadCustomDynamicSampling) {
-        expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
         expect(
           screen.getByText('Accepted Spans Included in Subscription')
         ).toBeInTheDocument();
@@ -133,7 +134,6 @@ describe('Subscription > Overview', () => {
           screen.getByText('Stored Spans Included in Subscription')
         ).toBeInTheDocument();
       } else {
-        expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
         expect(screen.queryByText('Accepted spans')).not.toBeInTheDocument();
         expect(screen.queryByText('Stored spans')).not.toBeInTheDocument();
       }
@@ -153,7 +153,9 @@ describe('Subscription > Overview', () => {
 
     expect(await screen.findByText('Overview')).toBeInTheDocument();
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Manage subscription'})
+    ).not.toBeInTheDocument();
     assertUsageCards(subscription);
   });
 
@@ -168,7 +170,9 @@ describe('Subscription > Overview', () => {
 
     expect(await screen.findByText('Overview')).toBeInTheDocument();
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Manage subscription'})
+    ).not.toBeInTheDocument();
     assertUsageCards(subscription);
   });
 
@@ -178,6 +182,7 @@ describe('Subscription > Overview', () => {
       isEnterpriseTrial: true,
       plan: 'am3_t_ent_ds',
       planTier: PlanTier.AM3,
+      canSelfServe: false,
     });
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -185,8 +190,29 @@ describe('Subscription > Overview', () => {
 
     expect(await screen.findByText('Overview')).toBeInTheDocument();
     expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Manage subscription'})
+    ).not.toBeInTheDocument();
     assertUsageCards(subscription);
+  });
+
+  it('renders with Seer', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+    });
+    SubscriptionStore.set(organization.slug, seerSubscription);
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(await screen.findByText('Overview')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-plan')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Manage subscription'})).toBeInTheDocument();
+    assertUsageCards(seerSubscription);
+
+    // TODO(isabella): need to update fixtures so this can be added to assertUsageCards
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
   });
 
   it('renders for am3', async function () {

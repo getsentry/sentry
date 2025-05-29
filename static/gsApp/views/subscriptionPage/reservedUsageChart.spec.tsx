@@ -302,6 +302,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 2000_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -429,6 +430,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 1500_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
       spansIndexed: {
         freeBudget: 0,
@@ -436,6 +438,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 2_00,
         reservedSpend: 500_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -513,6 +516,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 2000_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 
@@ -608,6 +612,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 1_00,
         reservedSpend: 1250_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
       spansIndexed: {
         freeBudget: 0,
@@ -615,6 +620,7 @@ describe('mapReservedBudgetStatsToChart', () => {
         reservedCpe: 2_00,
         reservedSpend: 750_00,
         totalReservedBudget: 2000_00,
+        apiName: 'dynamicSampling',
       },
     };
 

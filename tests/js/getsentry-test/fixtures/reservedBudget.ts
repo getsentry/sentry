@@ -77,7 +77,7 @@ export function SeerReservedBudgetCategoryFixture(props: ReservedBudgetCategoryP
 export function SeerReservedBudgetFixture(props: BudgetProps) {
   const defaultProps = {
     id: '',
-    reservedBudget: 20_00,
+    reservedBudget: 25_00,
     categories: {
       [DataCategory.SEER_AUTOFIX]: ReservedBudgetMetricHistoryFixture({
         reservedCpe: 1_00,

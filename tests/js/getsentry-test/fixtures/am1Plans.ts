@@ -29,7 +29,7 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
-  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 

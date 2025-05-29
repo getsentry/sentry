@@ -3,6 +3,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {
   DynamicSamplingReservedBudgetFixture,
   ReservedBudgetMetricHistoryFixture,
+  SeerReservedBudgetFixture,
 } from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
@@ -221,6 +222,31 @@ export function SubscriptionFixture(props: Props): TSubscription {
   };
 }
 
+export function SubscriptionWithSeerFixture(props: Props): TSubscription {
+  const subscription = SubscriptionFixture(props);
+  subscription.categories = {
+    ...subscription.categories,
+    seerAutofix: MetricHistoryFixture({
+      category: DataCategory.SEER_AUTOFIX,
+      reserved: RESERVED_BUDGET_QUOTA,
+      prepaid: RESERVED_BUDGET_QUOTA,
+      order: 27,
+    }),
+    seerScanner: MetricHistoryFixture({
+      category: DataCategory.SEER_SCANNER,
+      reserved: RESERVED_BUDGET_QUOTA,
+      prepaid: RESERVED_BUDGET_QUOTA,
+      order: 28,
+    }),
+  };
+  subscription.reservedBudgetCategories = [
+    DataCategory.SEER_AUTOFIX,
+    DataCategory.SEER_SCANNER,
+  ];
+  subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+  return subscription;
+}
+
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
   const {organization, ...params} = props;
   const planData = {plan: 'am2_business_ent_auf', ...params};
@@ -397,6 +423,7 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     ...props,
     plan: planData.plan,
     planTier: planData.planTier,
+    canSelfServe: false,
   });
   subscription.hasReservedBudgets = true;
   subscription.reservedBudgetCategories = [
