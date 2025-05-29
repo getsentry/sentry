@@ -131,7 +131,7 @@ export default function TicketRuleModal({
       integrationId: instance.integration,
       query: initialConfigQuery,
     }),
-    {staleTime: Infinity, retry: false}
+    {staleTime: Infinity, retry: false, refetchOnMount: 'always'}
   );
 
   // After the first fetch, update this config cache state
