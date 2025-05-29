@@ -9,11 +9,10 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
-import PlatformIcon from 'sentry/components/replays/platformIcon';
+import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
-import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {
   IconCalendar,
   IconCursorArrow,
@@ -30,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import {isNativePlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -501,7 +501,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -525,15 +525,18 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
     return <Item isArchived />;
   }
 
-  const sdkName = replay.sdk.name;
-  if (sdkName && replayMobilePlatforms.some(platform => sdkName.includes(platform))) {
-    return <div />;
+  if (isNativePlatform(replay.platform)) {
+    return (
+      <Item>
+        <SmallText>{t('N/A')}</SmallText>
+      </Item>
+    );
   }
   return (
     <Item>
       <Container>
         <Tooltip title={`${name} ${version}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -776,4 +779,8 @@ const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
 const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
   right: 0%;
   left: unset;
+`;
+
+const SmallText = styled('small')`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
