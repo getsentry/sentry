@@ -43,6 +43,7 @@ import {
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -307,8 +308,9 @@ export default function IssueViewsList() {
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
   const defaultProject = useDefaultProject();
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!organization.features.includes('enforce-stacked-navigation')) {
+  if (!prefersStackedNav) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
