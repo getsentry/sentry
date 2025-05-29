@@ -43,9 +43,6 @@ class CompareTableResultDict(TypedDict):
 
 
 def compare_table_results(metrics_query_result: EventsResponse, snql_eap_result: EAPResponse):
-    # print("Comparing table results")
-    # print("Metrics query result: %s", metrics_query_result)
-    # print("EAP query result: %s", snql_eap_result)
     eap_data_row = snql_eap_result["data"][0] if len(snql_eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
@@ -110,7 +107,6 @@ def compare_tables_for_dashboard_widget_queries(
         )
 
     except Exception as e:
-        # print(e)
         logger.info("Metrics query failed: %s", e)
         has_metrics_error = True
 
@@ -145,7 +141,6 @@ def compare_tables_for_dashboard_widget_queries(
             sampling_mode=cast(SAMPLING_MODES, "NORMAL"),
         )
     except Exception as e:
-        # print(e)
         logger.info("EAP query failed: %s", e)
         has_snql_eap_error = True
 
