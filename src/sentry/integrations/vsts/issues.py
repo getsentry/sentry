@@ -307,6 +307,8 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "issue_key": external_issue.key,
                 },
             )
+        except Exception as e:
+            self.raise_error(e)
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
@@ -360,6 +362,8 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "exception": error,
                 },
             )
+        except Exception as e:
+            self.raise_error(e)
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         done_states = self._get_done_statuses(data["project"])
