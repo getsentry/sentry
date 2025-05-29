@@ -50,4 +50,5 @@ export const renderTableHeader = ({column, sort}: TableHeaderParams) => {
 
 const StyledDateRange = styled('span')`
   text-transform: lowercase;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
