@@ -390,7 +390,6 @@ export function UsageTotals({
   showEventBreakdown = false,
   disableTable,
   displayMode,
-  // allTotalsByCategory,
 }: UsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
@@ -407,12 +406,11 @@ export function UsageTotals({
     isAbbreviated: category !== DataCategory.ATTACHMENTS,
   };
 
-  // const hasReservedBudget = reservedUnits === RESERVED_BUDGET_QUOTA;
   const free = freeUnits;
   const reserved = reservedUnits;
   const prepaid = prepaidUnits;
 
-  const displayGifts = free && !isUnlimitedReserved(reservedUnits);
+  const displayGifts = !!(free && !isUnlimitedReserved(reservedUnits));
   const reservedTestId = displayGifts ? `gifted-${category}` : `reserved-${category}`;
   const hasOnDemand =
     hasOnDemandBudgetsFeature(organization, subscription) ||
@@ -543,7 +541,6 @@ export function UsageTotals({
                 {getPlanCategoryName({
                   plan: subscription.planDetails,
                   category,
-                  // intentionally not passing hadCustomDynamicSampling as we only show a combined card under "spans" regardless
                 })}{' '}
                 {getTitle()}
                 {productTrial && (
@@ -846,6 +843,7 @@ export function CombinedUsageTotals({
   const apiName = productGroup.apiName;
   const reservedBudget = productGroup.reservedBudget;
   const freeBudget = productGroup.freeBudget;
+  const prepaidBudget = reservedBudget + freeBudget;
   const prepaidPercentUsed = productGroup.percentUsed;
   const unusedPrepaidWidth = 100 - prepaidPercentUsed;
 
@@ -901,8 +899,19 @@ export function CombinedUsageTotals({
   const hasAvailableProductTrial = productTrial && !productTrial?.isStarted;
 
   const doesNotHaveProduct = reservedBudget === 0 && !productTrial?.isStarted;
-  const shouldUpsell =
-    doesNotHaveProduct && subscription.canSelfServe && !productTrial?.isStarted;
+  const canSelfServe = subscription.canSelfServe;
+  const shouldUpsell = doesNotHaveProduct && canSelfServe && !productTrial?.isStarted;
+
+  const shouldCompressCategories =
+    apiName === ReservedBudgetCategoryType.DYNAMIC_SAMPLING &&
+    !subscription.hadCustomDynamicSampling;
+  const parentCategoryForCompression = shouldCompressCategories
+    ? DataCategory.SPANS
+    : undefined;
+  const compressedReservedSpend = Object.values(productGroup.categories).reduce(
+    (acc, categoryHistory) => acc + categoryHistory.reservedSpend,
+    0
+  );
 
   function getTitle(): React.ReactNode | null {
     if (productTrial?.isStarted) {
@@ -1010,14 +1019,16 @@ export function CombinedUsageTotals({
             ) : (
               !doesNotHaveProduct && (
                 <ButtonGroup>
-                  <LinkButton
-                    data-test-id={`manage-${apiName}`}
-                    size="sm"
-                    to={`/settings/${organization.slug}/billing/checkout/?referrer=${apiName}-usage-card`}
-                    icon={<IconOpen />}
-                  >
-                    {t('Manage')}
-                  </LinkButton>
+                  {canSelfServe && (
+                    <LinkButton
+                      data-test-id={`manage-${apiName}`}
+                      size="sm"
+                      to={`/settings/${organization.slug}/billing/checkout/?referrer=${apiName}-usage-card`}
+                      icon={<IconOpen />}
+                    >
+                      {t('Manage')}
+                    </LinkButton>
+                  )}
 
                   <AcceptedSummary>
                     <Button
@@ -1050,11 +1061,27 @@ export function CombinedUsageTotals({
                   <PlanUseBarGroup style={{width: `${reservedMaxWidth}%`}}>
                     {
                       <Fragment>
-                        {Object.entries(productGroup.categories).map(
-                          ([rbCategory, rbInfo]) => {
-                            return (
-                              <Fragment key={`${rbCategory}-reserved`}>
-                                {rbInfo.reservedSpend > 0 && (
+                        {shouldCompressCategories ? (
+                          <PlanUseBar
+                            style={{
+                              width: `${(compressedReservedSpend / reservedBudget) * 100}%`,
+                              backgroundColor:
+                                categoryToColors[
+                                  parentCategoryForCompression as DataCategory
+                                ]?.reserved,
+                            }}
+                            key={`${parentCategoryForCompression}-reserved`}
+                          />
+                        ) : (
+                          Object.entries(productGroup.categories)
+                            .filter(
+                              ([category, _]) =>
+                                !shouldCompressCategories ||
+                                category === parentCategoryForCompression
+                            )
+                            .map(([rbCategory, rbInfo]) => {
+                              if (rbInfo.reservedSpend > 0) {
+                                return (
                                   <PlanUseBar
                                     style={{
                                       width: `${(rbInfo.reservedSpend / reservedBudget) * 100}%`,
@@ -1062,11 +1089,12 @@ export function CombinedUsageTotals({
                                         categoryToColors[rbCategory as DataCategory]
                                           ?.reserved,
                                     }}
+                                    key={`${rbCategory}-reserved`}
                                   />
-                                )}
-                              </Fragment>
-                            );
-                          }
+                                );
+                              }
+                              return null;
+                            })
                         )}
                       </Fragment>
                     }
@@ -1124,8 +1152,13 @@ export function CombinedUsageTotals({
                   <LegendPriceWrapper>
                     {
                       <LegendContainer>
-                        {Object.entries(productGroup.categories).map(
-                          ([category, categoryInfo]) => {
+                        {Object.entries(productGroup.categories)
+                          .filter(
+                            ([category, _]) =>
+                              !shouldCompressCategories ||
+                              category === parentCategoryForCompression
+                          )
+                          .map(([category, categoryInfo]) => {
                             const {reserved: reservedColor} =
                               categoryToColors[category as DataCategory] ?? {};
                             const categoryName = getPlanCategoryName({
@@ -1151,67 +1184,77 @@ export function CombinedUsageTotals({
                                     ? UNLIMITED
                                     : formatPercentage(
                                         Math.round(
-                                          (categoryInfo.reservedSpend / reservedBudget) *
-                                            100
+                                          (shouldCompressCategories
+                                            ? productGroup.percentUsed
+                                            : categoryInfo.reservedSpend /
+                                              reservedBudget) * 100
                                         ) / 100
                                       )}{' '}
                                   of{' '}
-                                  {reservedBudget === 0
+                                  {prepaidBudget === 0
                                     ? 0
                                     : formatCurrency(
-                                        roundUpToNearestDollar(reservedBudget)
+                                        roundUpToNearestDollar(prepaidBudget)
                                       )}
                                 </LegendPriceSubText>
                               </Fragment>
                             );
-                          }
-                        )}
-                        {showOnDemand &&
-                          Object.keys(productGroup.categories).map(category => {
-                            const {ondemand: ondemandColor} =
-                              categoryToColors[category as DataCategory] ?? {};
-                            const categoryName = getPlanCategoryName({
-                              plan: subscription.planDetails,
-                              category: category as DataCategory,
-                              hadCustomDynamicSampling:
-                                subscription.hadCustomDynamicSampling,
-                              title: true,
-                              capitalize: false,
-                            });
-                            const {
-                              onDemandCategorySpend,
-                              onDemandCategoryMax,
-                              onDemandTotalAvailable,
-                            } = calculateCategoryOnDemandUsage(
-                              category as DataCategory,
-                              subscription
-                            );
-                            return (
-                              <Fragment key={category}>
-                                {
-                                  <LegendBudgetContainer>
-                                    <LegendDot style={{backgroundColor: ondemandColor}} />
-                                    <LegendTitle>
-                                      {displayBudgetName(subscription.planDetails, {
-                                        title: true,
-                                      })}{' '}
-                                      {categoryName}
-                                    </LegendTitle>
-                                    <LegendPrice>
-                                      {formatCurrency(onDemandCategorySpend)} of{' '}
-                                      {formatCurrency(onDemandCategoryMax)}{' '}
-                                      {/* Shared on demand was used in another category, display the max */}
-                                      {onDemandTotalAvailable !== onDemandCategoryMax && (
-                                        <Fragment>
-                                          ({formatCurrency(onDemandTotalAvailable)} max)
-                                        </Fragment>
-                                      )}
-                                    </LegendPrice>
-                                  </LegendBudgetContainer>
-                                }
-                              </Fragment>
-                            );
                           })}
+                        {showOnDemand &&
+                          Object.keys(productGroup.categories)
+                            .filter(
+                              category =>
+                                !shouldCompressCategories ||
+                                category === parentCategoryForCompression
+                            )
+                            .map(category => {
+                              const {ondemand: ondemandColor} =
+                                categoryToColors[category as DataCategory] ?? {};
+                              const categoryName = getPlanCategoryName({
+                                plan: subscription.planDetails,
+                                category: category as DataCategory,
+                                hadCustomDynamicSampling:
+                                  subscription.hadCustomDynamicSampling,
+                                title: true,
+                                capitalize: false,
+                              });
+                              const {
+                                onDemandCategorySpend,
+                                onDemandCategoryMax,
+                                onDemandTotalAvailable,
+                              } = calculateCategoryOnDemandUsage(
+                                category as DataCategory,
+                                subscription
+                              );
+                              return (
+                                <Fragment key={category}>
+                                  {
+                                    <LegendBudgetContainer>
+                                      <LegendDot
+                                        style={{backgroundColor: ondemandColor}}
+                                      />
+                                      <LegendTitle>
+                                        {displayBudgetName(subscription.planDetails, {
+                                          title: true,
+                                        })}{' '}
+                                        {categoryName}
+                                      </LegendTitle>
+                                      <LegendPrice>
+                                        {formatCurrency(onDemandCategorySpend)} of{' '}
+                                        {formatCurrency(onDemandCategoryMax)}{' '}
+                                        {/* Shared on demand was used in another category, display the max */}
+                                        {onDemandTotalAvailable !==
+                                          onDemandCategoryMax && (
+                                          <Fragment>
+                                            ({formatCurrency(onDemandTotalAvailable)} max)
+                                          </Fragment>
+                                        )}
+                                      </LegendPrice>
+                                    </LegendBudgetContainer>
+                                  }
+                                </Fragment>
+                              );
+                            })}
                       </LegendContainer>
                     }
                   </LegendPriceWrapper>
@@ -1247,25 +1290,19 @@ export function CombinedUsageTotals({
       </CardBody>
       {state.expanded && (
         <Fragment>
-          {(subscription.hadCustomDynamicSampling ||
-            apiName !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING) &&
-            allTotalsByCategory &&
-            Object.keys(productGroup.categories).map(category => {
-              if (
-                category === DataCategory.SPANS_INDEXED &&
-                !subscription.hadCustomDynamicSampling
-              ) {
-                return null;
-              }
-              return (
-                <UsageTotalsTable
-                  key={category}
-                  category={category as DataCategory}
-                  totals={allTotalsByCategory?.[category] ?? EMPTY_STAT_TOTAL}
-                  subscription={subscription}
-                />
-              );
-            })}
+          {Object.keys(productGroup.categories).map(category => {
+            if (shouldCompressCategories && category !== parentCategoryForCompression) {
+              return null;
+            }
+            return (
+              <UsageTotalsTable
+                key={category}
+                category={category as DataCategory}
+                totals={allTotalsByCategory?.[category] ?? EMPTY_STAT_TOTAL}
+                subscription={subscription}
+              />
+            );
+          })}
         </Fragment>
       )}
     </SubscriptionCard>

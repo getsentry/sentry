@@ -24,7 +24,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {hasAccessToSubscriptionOverview, isAm3DsPlan} from 'getsentry/utils/billing';
+import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 import {sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
@@ -193,18 +193,6 @@ function Overview({location, subscription, promotionData}: Props) {
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
-    // const showAllBudgetTotals = subscription.hadCustomDynamicSampling ? true : false;
-    if (
-      !subscription.hadCustomDynamicSampling &&
-      isAm3DsPlan(subscription.plan) &&
-      !subscription.isEnterpriseTrial
-    ) {
-      // if the customer has not yet stated using custom DS in the current period,
-      // just show one spans UsageTotalsTable
-      reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
-        reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
-    }
-
     return (
       <TotalsWrapper>
         {sortCategories(subscription.categories)
@@ -214,20 +202,21 @@ function Overview({location, subscription, promotionData}: Props) {
           )
           .map(categoryHistory => {
             const category = categoryHistory.category;
-            // Stored spans are combined into the accepted spans category's table
-            // if (category === DataCategory.SPANS_INDEXED) {
-            //   return null;
-            // }
-
             // The usageData does not include details for seat-based categories.
             // For now we will handle the monitor category specially
-
             let monitor_usage: number | undefined = 0;
             if (category === DataCategory.MONITOR_SEATS) {
               monitor_usage = subscription.categories.monitorSeats?.usage;
             }
             if (category === DataCategory.UPTIME) {
               monitor_usage = subscription.categories.uptime?.usage;
+            }
+
+            if (
+              category === DataCategory.SPANS_INDEXED &&
+              !subscription.hadCustomDynamicSampling
+            ) {
+              return null; // TODO(data categories): DS enterprise trial should have a reserved budget too, but currently just has unlimited
             }
 
             const categoryTotals: BillingStatTotal =
@@ -273,16 +262,10 @@ function Overview({location, subscription, promotionData}: Props) {
                 subscription={subscription}
                 organization={organization}
                 displayMode={displayMode}
-                // reservedBudget={reservedBudgetCategoryInfo[category]?.totalReservedBudget}
-                // prepaidBudget={reservedBudgetCategoryInfo[category]?.prepaidBudget}
-                // reservedSpend={reservedBudgetCategoryInfo[category]?.reservedSpend}
-                // freeBudget={reservedBudgetCategoryInfo[category]?.freeBudget}
-                // If there are reserved budgets and all the budgets should have separate breakdowns
-                // we need to be able to access other categories' usageData.totals
-                // allTotalsByCategory={showAllBudgetTotals ? usageData.totals : undefined}
               />
             );
           })}
+
         {subscription.reservedBudgets?.map(reservedBudget => {
           let softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null = null;
           let trueForward = false;

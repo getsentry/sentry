@@ -5,19 +5,22 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {GIGABYTE, RESERVED_BUDGET_QUOTA, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
-import UsageTotals, {
+import {
   calculateCategoryOnDemandUsage,
   calculateCategoryPrepaidUsage,
+  CombinedUsageTotals,
+  UsageTotals,
 } from 'getsentry/views/subscriptionPage/usageTotals';
 
 describe('Subscription > UsageTotals', function () {
@@ -280,153 +283,6 @@ describe('Subscription > UsageTotals', function () {
     expect(
       screen.queryByRole('columnheader', {name: 'Profile Events'})
     ).not.toBeInTheDocument();
-  });
-
-  it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
-    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      hadCustomDynamicSampling: true,
-    });
-    render(
-      <UsageTotals
-        showEventBreakdown
-        category={DataCategory.SPANS}
-        totals={totals}
-        eventTotals={{spans: totals}}
-        reservedUnits={RESERVED_BUDGET_QUOTA}
-        prepaidUnits={RESERVED_BUDGET_QUOTA}
-        prepaidBudget={100_000_00}
-        reservedBudget={100_000_00}
-        reservedSpend={40_000_00}
-        subscription={dsSubscription}
-        organization={organization}
-        displayMode="usage"
-        allTotalsByCategory={{
-          spans: totals,
-          spansIndexed: totals,
-        }}
-      />
-    );
-
-    expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
-    expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
-      '$100,000.00 Reserved'
-    );
-    expect(screen.getByText('$60,000')).toBeInTheDocument();
-    expect(screen.getByText('40% of $100,000')).toBeInTheDocument();
-
-    // Expand usage table
-    await userEvent.click(screen.getByRole('button'));
-
-    expect(
-      screen.getByRole('row', {name: 'Accepted Spans Quantity % of Accepted Spans'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Accepted Spans'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Stored Spans'})).toBeInTheDocument();
-  });
-
-  it('renders spans with reserved budgets without dynamic sampling', async function () {
-    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      hadCustomDynamicSampling: false,
-    });
-    render(
-      <UsageTotals
-        showEventBreakdown
-        category={DataCategory.SPANS}
-        totals={totals}
-        eventTotals={{spans: totals}}
-        reservedUnits={RESERVED_BUDGET_QUOTA}
-        prepaidUnits={RESERVED_BUDGET_QUOTA}
-        prepaidBudget={100_000_00}
-        reservedBudget={100_000_00}
-        reservedSpend={60_000_00}
-        subscription={dsSubscription}
-        organization={organization}
-        displayMode="usage"
-      />
-    );
-
-    expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
-    expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
-      '$100,000.00 Reserved'
-    );
-    expect(screen.getByText('$60,000')).toBeInTheDocument();
-    expect(screen.getByText('60% of $100,000')).toBeInTheDocument();
-
-    // Expand usage table
-    await userEvent.click(screen.getByRole('button'));
-
-    expect(
-      screen.getByRole('row', {name: 'Spans Quantity % of Spans'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Spans'})).toBeInTheDocument();
-  });
-
-  it('renders reserved budget categories with gifted budget', function () {
-    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      hadCustomDynamicSampling: true,
-    });
-    render(
-      <UsageTotals
-        category={DataCategory.SPANS}
-        totals={totals}
-        eventTotals={{spans: totals}}
-        reservedUnits={RESERVED_BUDGET_QUOTA}
-        prepaidUnits={RESERVED_BUDGET_QUOTA}
-        prepaidBudget={110_000_00}
-        reservedBudget={100_000_00}
-        reservedSpend={60_000_00}
-        freeBudget={10_000_00}
-        subscription={dsSubscription}
-        organization={organization}
-        displayMode="usage"
-        allTotalsByCategory={{
-          spans: totals,
-          spansIndexed: totals,
-        }}
-      />
-    );
-
-    expect(screen.getByTestId('gifted-spans')).toHaveTextContent(
-      '$100,000.00 Reserved + $10,000.00 Gifted'
-    );
-    expect(
-      screen.getByText('Accepted Spans Included in Subscription')
-    ).toBeInTheDocument();
-    expect(screen.getByText('40% of $110,000')).toBeInTheDocument();
-    expect(screen.getByText('Stored Spans Included in Subscription')).toBeInTheDocument();
-    expect(screen.getByText('20% of $110,000')).toBeInTheDocument();
-  });
-
-  it('renders reserved budget categories with soft cap', function () {
-    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      hadCustomDynamicSampling: true,
-    });
-    render(
-      <UsageTotals
-        category={DataCategory.SPANS}
-        totals={totals}
-        eventTotals={{spans: totals}}
-        reservedUnits={RESERVED_BUDGET_QUOTA}
-        prepaidUnits={RESERVED_BUDGET_QUOTA}
-        prepaidBudget={100_000_00}
-        reservedBudget={100_000_00}
-        reservedSpend={60_000_00}
-        softCapType="ON_DEMAND"
-        subscription={dsSubscription}
-        organization={organization}
-        displayMode="usage"
-      />
-    );
-
-    expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
-      '$100,000.00 Reserved (On Demand)'
-    );
   });
 
   it('formats units', async function () {
@@ -1167,6 +1023,200 @@ describe('Subscription > UsageTotals', function () {
   });
 });
 
+describe('Subscription > CombinedUsageTotals', function () {
+  const totals = UsageTotalFixture({
+    accepted: 26,
+    dropped: 10,
+    droppedOverQuota: 7,
+    droppedSpikeProtection: 1,
+    droppedOther: 2,
+  });
+
+  const organization = OrganizationFixture();
+  let subscription!: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+  });
+
+  afterEach(() => {
+    SubscriptionStore.init();
+  });
+
+  it('always renders reserved budgets in spend mode', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandMaxSpend: 10_00,
+    });
+    seerSubscription.planTier = 'am3'; // TODO: fix subscription fixture to set planTier properly
+
+    render(
+      <CombinedUsageTotals
+        showEventBreakdown
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByTestId('reserved-seer')).toHaveTextContent('$25.00 Reserved');
+    expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('Pay-as-you-go Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('Pay-as-you-go Issue Scans')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+
+    expect(
+      screen.getByRole('row', {name: 'Issue Fixes Quantity % of Issue Fixes'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Issue Scans Quantity % of Issue Scans'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
+  });
+
+  it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
+    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      hadCustomDynamicSampling: true,
+    });
+    render(
+      <CombinedUsageTotals
+        showEventBreakdown
+        productGroup={dsSubscription.reservedBudgets![0]!}
+        subscription={dsSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          spans: totals,
+          spansIndexed: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Spans budget')).toBeInTheDocument();
+    expect(screen.getByTestId('reserved-dynamicSampling')).toHaveTextContent(
+      '$100,000.00 Reserved'
+    );
+    expect(screen.getByText('$60,000')).toBeInTheDocument();
+    expect(screen.getByText('40% of $100,000')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button'));
+
+    expect(
+      screen.getByRole('row', {name: 'Accepted Spans Quantity % of Accepted Spans'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Accepted Spans'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Stored Spans Quantity % of Stored Spans'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Stored Spans'})).toBeInTheDocument();
+  });
+
+  it('renders spans with reserved budgets without dynamic sampling', async function () {
+    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      hadCustomDynamicSampling: false,
+    });
+    render(
+      <CombinedUsageTotals
+        showEventBreakdown
+        productGroup={dsSubscription.reservedBudgets![0]!}
+        subscription={dsSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          spans: totals,
+          spansIndexed: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Spans budget')).toBeInTheDocument();
+    expect(screen.getByTestId('reserved-dynamicSampling')).toHaveTextContent(
+      '$100,000.00 Reserved'
+    );
+    expect(screen.getByText('$60,000')).toBeInTheDocument();
+    expect(screen.getByText('60% of $100,000')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+
+    expect(
+      screen.getByRole('row', {name: 'Spans Quantity % of Spans'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Spans'})).toBeInTheDocument();
+  });
+
+  it('renders reserved budget categories with gifted budget', function () {
+    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      hadCustomDynamicSampling: true,
+    });
+    dsSubscription.reservedBudgets![0]!.freeBudget = 10_000_00;
+    render(
+      <CombinedUsageTotals
+        showEventBreakdown
+        productGroup={dsSubscription.reservedBudgets![0]!}
+        subscription={dsSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          spans: totals,
+          spansIndexed: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('gifted-dynamicSampling')).toHaveTextContent(
+      '$100,000.00 Reserved + $10,000.00 Gifted'
+    );
+    expect(
+      screen.getByText('Accepted Spans Included in Subscription')
+    ).toBeInTheDocument();
+    expect(screen.getByText('40% of $110,000')).toBeInTheDocument();
+    expect(screen.getByText('Stored Spans Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('20% of $110,000')).toBeInTheDocument();
+  });
+
+  it('renders reserved budget categories with soft cap', function () {
+    const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
+      organization,
+      hadCustomDynamicSampling: true,
+    });
+    render(
+      <CombinedUsageTotals
+        showEventBreakdown
+        productGroup={dsSubscription.reservedBudgets![0]!}
+        subscription={dsSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          spans: totals,
+          spansIndexed: totals,
+        }}
+        softCapType="ON_DEMAND"
+      />
+    );
+
+    expect(screen.getByTestId('reserved-dynamicSampling')).toHaveTextContent(
+      '$100,000.00 Reserved (On Demand)'
+    );
+  });
+});
+
 describe('calculateCategoryPrepaidUsage', () => {
   const organization = OrganizationFixture();
   it('calculates prepaid usage of 50%', () => {
@@ -1592,45 +1642,6 @@ describe('hasReservedQuotaFunctionality', function () {
 
     expect(screen.getByTestId('gifted-errors')).toHaveTextContent(
       '100K Reserved + 50K Gifted'
-    );
-  });
-
-  it('renders reserved budget quota when using budget-based reserved', function () {
-    render(
-      <UsageTotals
-        category={DataCategory.SPANS}
-        totals={UsageTotalFixture({accepted: 100})}
-        reservedUnits={RESERVED_BUDGET_QUOTA}
-        prepaidUnits={RESERVED_BUDGET_QUOTA}
-        reservedBudget={100_000_00}
-        subscription={subscription}
-        organization={organization}
-        displayMode="usage"
-      />
-    );
-
-    expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
-      '$100,000.00 Reserved'
-    );
-  });
-
-  it('renders reserved budget quota with gifted budget when both present', function () {
-    render(
-      <UsageTotals
-        category={DataCategory.SPANS}
-        totals={UsageTotalFixture({accepted: 100})}
-        reservedUnits={RESERVED_BUDGET_QUOTA}
-        prepaidUnits={RESERVED_BUDGET_QUOTA}
-        reservedBudget={100_000_00}
-        freeBudget={10_000_00}
-        subscription={subscription}
-        organization={organization}
-        displayMode="usage"
-      />
-    );
-
-    expect(screen.getByTestId('gifted-spans')).toHaveTextContent(
-      '$100,000.00 Reserved + $10,000.00 Gifted'
     );
   });
 });
