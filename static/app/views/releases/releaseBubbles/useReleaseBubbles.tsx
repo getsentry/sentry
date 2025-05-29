@@ -8,7 +8,6 @@ import type {
   CustomSeriesRenderItemReturn,
   ElementEvent,
 } from 'echarts';
-import type EChartsReact from 'echarts-for-react';
 import debounce from 'lodash/debounce';
 import moment from 'moment-timezone';
 
@@ -325,7 +324,7 @@ export function useReleaseBubbles({
     defined(endTimeToUse) && !Array.isArray(endTimeToUse)
       ? new Date(endTimeToUse).getTime()
       : Date.now();
-  const chartRef = useRef<EChartsReact | null>(null);
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
   const defaultBubbleXAxis = useMemo(
