@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
 from sentry.issues.grouptype import (
-    DBInjectionVulnerabilityGroupType,
+    DBQueryInjectionVulnerabilityGroupType,
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
@@ -85,7 +85,7 @@ internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
-    InternalProjectOptions.DATABASE_INJECTION.value: DBInjectionVulnerabilityGroupType,
+    InternalProjectOptions.DATABASE_INJECTION.value: DBQueryInjectionVulnerabilityGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: dict[str, str] = {

@@ -506,7 +506,7 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
 class DBInjectionVulnerabilityGroupType(GroupType):
     type_id = 1020
     slug = "db_injection_vulnerability"
-    description = "Potential Database Injection Vulnerability"
+    description = "Potential Database Query Injection Vulnerability"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
