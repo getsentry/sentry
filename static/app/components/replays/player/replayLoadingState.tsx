@@ -32,15 +32,23 @@ export default function ReplayLoadingState({
 }) {
   const organization = useOrganization();
 
+  // Determines if there is an attachment error whose status is 429 (failed because too many requests were made)
+  const throttledErrorExists =
+    (readerResult.fetchError && readerResult.fetchError.status === 429) ||
+    (readerResult.attachmentError &&
+      readerResult.attachmentError.find(error => error.status === 429));
+
+  // Note that if there are attachment errors and none of them are a 429, I think that just falls back to a regular processingError
+
+  // Separate message shown for throttled requests, so not to confuse the user by saying a replay doesn't exist when it actually might
+  if (throttledErrorExists) {
+    return renderThrottled ? (
+      renderThrottled(readerResult)
+    ) : (
+      <ReplayRequestsThrottledAlert />
+    );
+  }
   if (readerResult.fetchError) {
-    if (readerResult.fetchError.status === 429) {
-      // Separate message shown for throttled requests, so not to confuse the user by saying a replay doesn't exist when it actually might
-      return renderThrottled ? (
-        renderThrottled(readerResult)
-      ) : (
-        <ReplayRequestsThrottledAlert />
-      );
-    }
     return renderError ? (
       renderError(readerResult)
     ) : (

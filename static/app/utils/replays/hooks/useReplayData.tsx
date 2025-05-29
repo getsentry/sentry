@@ -38,9 +38,10 @@ type Options = {
 };
 
 interface Result {
+  attachmentError: undefined | RequestError[];
   attachments: unknown[];
   errors: ReplayError[];
-  fetchError: undefined | RequestError;
+  fetchError: undefined | RequestError; // (TODO: remove) error has an unknown type in useFetchParallelPages as well, and we are just passing that along so this also has an unknown type
   fetching: boolean;
   onRetry: () => void;
   projectSlug: string | null;
@@ -292,6 +293,7 @@ function useReplayData({
       attachments: attachmentPages.flat(2),
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
+      attachmentError: fetchAttachmentsError ?? undefined,
       // fetchError: new RequestError('GET', '', new Error(), {
       //   getResponseHeader: header => null,
       //   responseJSON: null,
