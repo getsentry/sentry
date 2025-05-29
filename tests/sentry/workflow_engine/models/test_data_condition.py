@@ -1,11 +1,9 @@
 from enum import IntEnum
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import (
     DataConditionHandler,
@@ -18,6 +16,26 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 class MockDataConditionEnum(IntEnum):
     FOO = 1
     BAR = 2
+
+
+class MockDataConditionHandlerDictComparison(DataConditionHandler):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "baz": {"type": "int", "enum": [*MockDataConditionEnum]},
+        },
+        "required": ["baz"],
+        "additionalProperties": False,
+    }
+
+    @staticmethod
+    def evaluate_value(
+        event_data: WorkflowEventData, comparison: dict[str, MockDataConditionEnum]
+    ) -> DetectorPriorityLevel:
+        return (
+            DetectorPriorityLevel.HIGH if comparison["baz"].value > 1 else DetectorPriorityLevel.OK
+        )
 
 
 class GetConditionResultTest(TestCase):
@@ -51,41 +69,16 @@ class GetConditionResultTest(TestCase):
 
 
 class EvaluateValueTest(BaseWorkflowTest):
-    def setUp(self) -> None:
-        super().setUp()
-        self.registry = Registry[DataConditionHandler](enable_reverse_lookup=False)
-        self.registry_patcher = patch(
-            "sentry.workflow_engine.registry.condition_handler_registry",
-            new=self.registry,
+    def setUp(self):
+        self.workflow_triggers = self.create_data_condition_group()
+        self.dict_comparison_dc = self.create_data_condition(
+            type=Condition.REAPPEARED_EVENT,  # XXX: arbitrary, just needs to not be in CONDITION_OPS
+            comparison=True,  # set for REAPPEARED_EVENT so it passes enforce_data_condition_json_schema on create
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.workflow_triggers,
         )
-        self.registry_patcher.start()
-
-        # @self.registry.register(Condition.REAPPEARED_EVENT)
-
-    class MockDataConditionHandlerDictComparison(DataConditionHandler):
-        group = DataConditionHandler.Group.DETECTOR_TRIGGER
-        comparison_json_schema = {
-            "type": "object",
-            "properties": {
-                "baz": {"type": "int", "enum": [*MockDataConditionEnum]},
-            },
-            "required": ["baz"],
-            "additionalProperties": False,
-        }
-
-        @staticmethod
-        def evaluate_value(
-            event_data: WorkflowEventData, comparison: dict[str, MockDataConditionEnum]
-        ) -> DetectorPriorityLevel:
-            return (
-                DetectorPriorityLevel.HIGH
-                if comparison["baz"].value > 1
-                else DetectorPriorityLevel.OK
-            )
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        self.registry_patcher.stop()
+        self.dict_comparison_dc.update(comparison={"baz": MockDataConditionEnum.BAR})
+        self.handler = MockDataConditionHandlerDictComparison()
 
     def test(self):
         dc = self.create_data_condition(
@@ -94,29 +87,17 @@ class EvaluateValueTest(BaseWorkflowTest):
         assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
         assert dc.evaluate_value(1) is None
 
-    @mock.patch(
-        "sentry.workflow_engine.registry.condition_handler_registry.get",
-        return_value=MockDataConditionHandlerDictComparison,
-    )
-    def test_dict_comparison_result_high(self, mock_dc_handler):
-        self.workflow_triggers = self.create_data_condition_group()
-        self.dict_comparison_dc = self.create_data_condition(
-            type=Condition.REAPPEARED_EVENT,
-            comparison={
-                "baz": MockDataConditionEnum.FOO,
-            },
-            condition_result=DetectorPriorityLevel.HIGH,
-            condition_group=self.workflow_triggers,
+    def test_dict_comparison_result_high(self):
+        assert (
+            self.handler.evaluate_value(None, {"baz": MockDataConditionEnum.BAR})
+            == DetectorPriorityLevel.HIGH
         )
 
-        assert self.dict_comparison_dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
-
-    # @mock.patch(
-    #     "sentry.workflow_engine.registry.condition_handler_registry.get",
-    #     return_value=MockDataConditionHandlerDictComparison,
-    # )
     def test_dict_comparison_result_ok(self):
-        assert self.dict_comparison_dc.evaluate_value(0) == DetectorPriorityLevel.OK
+        assert (
+            self.handler.evaluate_value(None, {"baz": MockDataConditionEnum.FOO})
+            == DetectorPriorityLevel.OK
+        )
 
     def test_bad_condition(self):
         with pytest.raises(ValueError):
