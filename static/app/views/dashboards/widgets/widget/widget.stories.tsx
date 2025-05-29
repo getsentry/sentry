@@ -14,8 +14,8 @@ import {Widget} from './widget';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 
-export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(types.exported);
+export default Storybook.story('Widget', story => {
+  Storybook.APIReference(types.exported);
 
   story('Getting Started', () => {
     return (

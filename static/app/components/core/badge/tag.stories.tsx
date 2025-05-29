@@ -9,8 +9,8 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge/tag.tsx';
 
-export default Storybook.story('Tag', (story, APIReference) => {
-  APIReference(types.Tag);
+export default Storybook.story('Tag', story => {
+  Storybook.APIReference(types.Tag);
   story('Default', () => {
     return (
       <Fragment>

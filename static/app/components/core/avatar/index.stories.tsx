@@ -11,8 +11,8 @@ import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/avatar/projectAvatar';
 
-export default Storybook.story('Avatar', (story, APIReference) => {
-  APIReference(types.Avatar);
+export default Storybook.story('Avatar', story => {
+  Storybook.APIReference(types.Avatar);
   story('User', () => {
     return (
       <Fragment>

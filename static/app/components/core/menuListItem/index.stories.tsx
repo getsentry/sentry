@@ -7,8 +7,8 @@ import {space} from 'sentry/styles/space';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/menuListItem';
 
-export default Storybook.story('MenuListItem', (story, APIReference) => {
-  APIReference(types.MenuListItem);
+export default Storybook.story('MenuListItem', story => {
+  Storybook.APIReference(types.MenuListItem);
 
   story('focused', () => {
     return <SizeVariants isFocused />;

@@ -72,8 +72,8 @@ const releases = [
   },
 ].filter(hasTimestamp);
 
-export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
-  APIReference(types.TimeSeriesWidgetVisualization);
+export default Storybook.story('TimeSeriesWidgetVisualization', story => {
+  Storybook.APIReference(types.TimeSeriesWidgetVisualization);
 
   story('Getting Started', () => {
     return (

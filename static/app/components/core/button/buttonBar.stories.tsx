@@ -7,8 +7,8 @@ import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button/buttonBar';
 
-export default Storybook.story('ButtonBar', (story, APIReference) => {
-  APIReference(types.ButtonBar);
+export default Storybook.story('ButtonBar', story => {
+  Storybook.APIReference(types.ButtonBar);
 
   story('Default', () => {
     const [active, setActive] = useState('One');

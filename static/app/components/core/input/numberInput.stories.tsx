@@ -7,8 +7,8 @@ import {NumberInput} from './numberInput';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input/numberInput';
 
-export default Storybook.story('NumberInput', (story, APIReference) => {
-  APIReference(types.NumberInput);
+export default Storybook.story('NumberInput', story => {
+  Storybook.APIReference(types.NumberInput);
 
   story('Default', () => {
     return (

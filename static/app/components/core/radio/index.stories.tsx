@@ -8,8 +8,8 @@ import {space} from 'sentry/styles/space';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/radio';
 
-export default Storybook.story('Radio', (story, APIReference) => {
-  APIReference(types.Radio);
+export default Storybook.story('Radio', story => {
+  Storybook.APIReference(types.Radio);
 
   story('Default', () => {
     return (

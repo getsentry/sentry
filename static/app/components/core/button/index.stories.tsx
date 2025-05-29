@@ -7,8 +7,8 @@ import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';
 
-export default Storybook.story('Button', (story, APIReference) => {
-  APIReference(types.Button);
+export default Storybook.story('Button', story => {
+  Storybook.APIReference(types.Button);
 
   story('Default', () => {
     const theme = useTheme();

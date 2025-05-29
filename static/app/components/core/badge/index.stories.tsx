@@ -6,8 +6,8 @@ import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge';
 
-export default Storybook.story('Badge', (story, APIReference) => {
-  APIReference(types.Badge);
+export default Storybook.story('Badge', story => {
+  Storybook.APIReference(types.Badge);
   story('Default', () => {
     return (
       <Fragment>

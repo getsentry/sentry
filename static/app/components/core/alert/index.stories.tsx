@@ -21,8 +21,8 @@ const RECOMMENDED_USAGE: Partial<AlertProps> = {
   showIcon: true,
 };
 
-export default Storybook.story('Alert', (story, APIReference) => {
-  APIReference(types.Alert);
+export default Storybook.story('Alert', story => {
+  Storybook.APIReference(types.Alert);
   story('Default', () => {
     return (
       <Fragment>

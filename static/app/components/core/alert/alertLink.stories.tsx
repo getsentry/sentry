@@ -17,8 +17,8 @@ const ALERT_LINK_VARIANTS: Array<AlertLinkProps['type']> = [
   'muted',
 ];
 
-export default Storybook.story('AlertLink', (story, APIReference) => {
-  APIReference(types.AlertLink);
+export default Storybook.story('AlertLink', story => {
+  Storybook.APIReference(types.AlertLink);
   story('Default', () => {
     return (
       <Fragment>

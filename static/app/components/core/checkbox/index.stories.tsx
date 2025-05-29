@@ -8,8 +8,8 @@ import {space} from 'sentry/styles/space';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/checkbox/index.tsx';
 
-export default Storybook.story('Checkbox', (story, APIReference) => {
-  APIReference(types.Checkbox);
+export default Storybook.story('Checkbox', story => {
+  Storybook.APIReference(types.Checkbox);
 
   story('Default', () => {
     return (

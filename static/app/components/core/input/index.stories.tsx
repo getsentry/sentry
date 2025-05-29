@@ -8,8 +8,8 @@ import {space} from 'sentry/styles/space';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input';
 
-export default Storybook.story('Input', (story, APIReference) => {
-  APIReference(types.Input);
+export default Storybook.story('Input', story => {
+  Storybook.APIReference(types.Input);
 
   story('Sizes', () => {
     return (

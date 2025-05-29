@@ -6,8 +6,8 @@ import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
-export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {
-  APIReference(types.ChartWidgetLoader);
+export default Storybook.story('ChartWidgetLoader', story => {
+  Storybook.APIReference(types.ChartWidgetLoader);
 
   story('Getting Started', () => {
     return (

@@ -11,8 +11,8 @@ import {InputGroup} from './inputGroup';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input/inputGroup';
 
-export default Storybook.story('InputGroup', (story, APIReference) => {
-  APIReference(types.InputGroup);
+export default Storybook.story('InputGroup', story => {
+  Storybook.APIReference(types.InputGroup);
 
   story('Default', () => {
     return (

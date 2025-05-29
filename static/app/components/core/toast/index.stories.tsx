@@ -20,8 +20,8 @@ function makeToastProps(type: 'success' | 'error' | 'loading' | 'undo'): ToastPr
     },
   };
 }
-export default Storybook.story('Toast', (story, APIReference) => {
-  APIReference(types.Toast);
+export default Storybook.story('Toast', story => {
+  Storybook.APIReference(types.Toast);
 
   story('Toast types', () => {
     return (

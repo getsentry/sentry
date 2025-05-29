@@ -7,8 +7,8 @@ import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/tooltip';
 
-export default Storybook.story('Tooltip', (story, APIReference) => {
-  APIReference(types.Tooltip);
+export default Storybook.story('Tooltip', story => {
+  Storybook.APIReference({types: types.Tooltip});
 
   story('Default', () => {
     return (
