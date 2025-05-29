@@ -5,6 +5,7 @@ import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -120,13 +121,13 @@ export function shouldUseErrorsDiscoverDataset(
 export function getAlertRuleExploreUrl({
   rule,
   organization,
-  period,
+  timePeriod,
   projectId,
 }: {
   organization: Organization;
-  period: string;
   projectId: string;
   rule: MetricRule;
+  timePeriod: TimePeriodType;
 }) {
   if (rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return '';
@@ -138,10 +139,14 @@ export function getAlertRuleExploreUrl({
     organization,
     selection: {
       datetime: {
-        period: period === '9998m' ? '7d' : period,
-        start: null,
-        end: null,
-        utc: null,
+        period: timePeriod.usingPeriod
+          ? timePeriod.period === '9998m'
+            ? '7d'
+            : timePeriod.period
+          : null,
+        start: timePeriod.usingPeriod ? null : timePeriod.start,
+        end: timePeriod.usingPeriod ? null : timePeriod.end,
+        utc: timePeriod.utc || null,
       },
       environments: rule.environment ? [rule.environment] : [],
       projects: [parseInt(projectId, 10)],
