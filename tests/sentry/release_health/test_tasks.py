@@ -628,7 +628,7 @@ class ReleaseHealthIntegrationTestCase(TestCase, BaseMetricsTestCase):
 
         # Only the releases found in the list are updated. The remainder are unchanged.
         assert self.rpe1.adopted is not None
-        assert self.rpe2.adopted is not None
+        assert self.rpe2.adopted is not None  # type: ignore[unreachable]
         assert self.rpe3.adopted is None
         assert self.rpe4.adopted is None
 
@@ -719,5 +719,5 @@ def test_find_adopted_but_missing_releases():
 
 
 def test_find_missing():
-    difference = find_missing(list(range(10)), lambda a: a, range(5), lambda a: a)
+    difference = find_missing(list(range(10)), lambda a: a, list(range(5)), lambda a: a)
     assert difference == list(range(5, 10))

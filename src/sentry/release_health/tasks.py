@@ -209,14 +209,15 @@ def find_adopted_but_missing_releases(
 A = TypeVar("A")
 B = TypeVar("B")
 C = TypeVar("C")
+D = TypeVar("D")
 
 
 def find_missing(
-    superset: list[AdoptedRelease],
-    superset_hasher: Callable[[AdoptedRelease], A],
-    subset: list[B],
-    subset_hasher: Callable[[B], C],
-) -> list[AdoptedRelease]:
+    superset: list[A],
+    superset_hasher: Callable[[A], B],
+    subset: list[C],
+    subset_hasher: Callable[[C], D],
+) -> list[A]:
     """Return the difference of two sets.
 
     This functionally is essentially set(A) - set(B) but when the types in the superset and subset
