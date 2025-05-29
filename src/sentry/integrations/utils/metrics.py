@@ -150,7 +150,7 @@ class EventLifecycle:
             # This is an experiment to dogfood Sentry logs
             #  Logs are paid by bytes, we save money by mking optimizations like this - we should try to dogfood from a similar perspective
             log_params["exc_info"] = outcome_reason
-            log_params["exception_summary"] = repr(outcome_reason)
+            log_params["extra"]["exception_summary"] = repr(outcome_reason)
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
