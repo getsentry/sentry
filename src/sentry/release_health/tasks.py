@@ -77,70 +77,76 @@ def process_projects_with_sessions(org_id, project_ids) -> None:
         cleanup_adopted_releases(project_ids, adopted_ids)
 
 
+@metrics.wraps("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates")
 def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
-    # Using the totals calculated in sum_sessions_and_releases, mark any releases as adopted if they reach a threshold.
-    adopted_ids = []
-    with metrics.timer(
-        "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates"
-    ):
-        adopted_releases = list(iter_adopted_releases(totals))
-        release_project_environments = query_adopted_release_project_environments(adopted_releases)
-        adopt_release_project_environments(release_project_environments)
-        adopted_ids.extend(m.id for m in release_project_environments)
+    adopted_releases = list(iter_adopted_releases(totals))
+    if not adopted_releases:
+        return []
 
-        missing_releases = find_adopted_but_missing_releases(
-            adopted_releases, release_project_environments
-        )
-        for adopted_release in missing_releases:
-            metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
+    # Happy path. Query the releases and adopt them.
+    release_project_environments = query_adopted_release_project_environments(adopted_releases)
+    adopt_release_project_environments(release_project_environments)
+    adopted_ids = [m.id for m in release_project_environments]
+
+    # For any release which was missing we still need to adopt it still but we may need to
+    # create some other rows first.
+    missing_releases = find_adopted_but_missing_releases(
+        adopted_releases,
+        [
+            (m.project_id, m.environment.name, m.release.version)
+            for m in release_project_environments
+        ],
+    )
+    for adopted_release in missing_releases:
+        metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
+        try:
+            env = Environment.objects.get_or_create(
+                name=adopted_release["environment"], organization_id=org_id
+            )[0]
             try:
-                env = Environment.objects.get_or_create(
-                    name=adopted_release["environment"], organization_id=org_id
+                release = Release.objects.get_or_create(
+                    organization_id=org_id,
+                    version=adopted_release["version"],
+                    defaults={
+                        "status": ReleaseStatus.OPEN,
+                    },
                 )[0]
-                try:
-                    release = Release.objects.get_or_create(
-                        organization_id=org_id,
-                        version=adopted_release["version"],
-                        defaults={
-                            "status": ReleaseStatus.OPEN,
-                        },
-                    )[0]
-                except IntegrityError:
-                    release = Release.objects.get(
-                        organization_id=org_id, version=adopted_release["version"]
-                    )
-                except ValidationError:
-                    release = None
-                    logger.exception(
-                        "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
-                        extra={
-                            "org_id": org_id,
-                            "release_version": adopted_release["version"],
-                        },
-                    )
+            except IntegrityError:
+                release = Release.objects.get(
+                    organization_id=org_id, version=adopted_release["version"]
+                )
+            except ValidationError:
+                release = None
+                logger.exception(
+                    "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
+                    extra={
+                        "org_id": org_id,
+                        "release_version": adopted_release["version"],
+                    },
+                )
 
-                if release:
-                    release.add_project(Project.objects.get(id=adopted_release["project_id"]))
+            if release:
+                release.add_project(Project.objects.get(id=adopted_release["project_id"]))
 
-                    ReleaseEnvironment.objects.get_or_create(
-                        environment=env, organization_id=org_id, release=release
-                    )
+                ReleaseEnvironment.objects.get_or_create(
+                    environment=env, organization_id=org_id, release=release
+                )
 
-                    rpe = ReleaseProjectEnvironment.objects.create(
-                        project_id=adopted_release["project_id"],
-                        release_id=release.id,
-                        environment=env,
-                        adopted=timezone.now(),
-                    )
-                    adopted_ids.append(rpe.id)
-            except (
-                Project.DoesNotExist,
-                Environment.DoesNotExist,
-                Release.DoesNotExist,
-                ReleaseEnvironment.DoesNotExist,
-            ) as exc:
-                metrics.incr("sentry.tasks.process_projects_with_sessions.skipped_update")
-                capture_exception(exc)
+                rpe = ReleaseProjectEnvironment.objects.create(
+                    project_id=adopted_release["project_id"],
+                    release_id=release.id,
+                    environment=env,
+                    adopted=timezone.now(),
+                )
+                adopted_ids.append(rpe.id)
+        except (
+            Project.DoesNotExist,
+            Environment.DoesNotExist,
+            Release.DoesNotExist,
+            ReleaseEnvironment.DoesNotExist,
+        ) as exc:
+            metrics.incr("sentry.tasks.process_projects_with_sessions.skipped_update")
+            capture_exception(exc)
 
     return adopted_ids
 
@@ -176,14 +182,6 @@ def query_adopted_release_project_environments(
     return list(ReleaseProjectEnvironment.objects.filter(query_filters))
 
 
-def query_environments_by_names(organization_id: int, names: list[str]) -> list[Environment]:
-    return list(Environment.objects.filter(organization_id=organization_id, name__in=names))
-
-
-def query_releases_by_versions(organization_id: int, versions: list[str]) -> list[Release]:
-    return list(Release.objects.filter(organization_id=organization_id, version__in=versions))
-
-
 def adopt_release_project_environments(models: list[ReleaseProjectEnvironment]) -> None:
     """Bulk update release project environments with adopted time."""
     for model in models:
@@ -197,7 +195,7 @@ def adopt_release_project_environments(models: list[ReleaseProjectEnvironment]) 
 
 def find_adopted_but_missing_releases(
     adopted_releases: list[AdoptedRelease],
-    found_rows: list[ReleaseProjectEnvironment],
+    found_rows: list[tuple[int, str, str]],
 ) -> list[AdoptedRelease]:
     """Return a list of adopted releases which do not exist in the database.
 
@@ -205,13 +203,10 @@ def find_adopted_but_missing_releases(
     database we need to do some additional processing.
     """
 
-    def hash_model(m: ReleaseProjectEnvironment) -> tuple[int, str, str]:
-        return (m.project_id, m.environment.name, m.release.version)
-
     def hash_release(q: AdoptedRelease) -> tuple[int, str, str]:
         return (q["project_id"], q["environment"], q["version"])
 
-    return find_missing(adopted_releases, hash_release, found_rows, hash_model)
+    return find_missing(adopted_releases, hash_release, found_rows, lambda a: a)
 
 
 A = TypeVar("A")
@@ -225,6 +220,11 @@ def find_missing(
     subset: list[B],
     subset_hasher: Callable[[B], C],
 ) -> list[AdoptedRelease]:
+    """Return the difference of two sets.
+
+    This functionally is essentially set(A) - set(B) but when the types in the superset and subset
+    are different and their hash values can't be directly compared.
+    """
     found_set = {subset_hasher(member) for member in subset}
     return [release for release in superset if superset_hasher(release) not in found_set]
 
