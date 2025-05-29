@@ -10,6 +10,7 @@ import {Button} from 'sentry/components/core/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -22,6 +23,7 @@ import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType} from 'getsentry/types';
 import {getProductTrial} from 'getsentry/utils/billing';
+import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
   groupId: string;
@@ -31,7 +33,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {data: autofixSetupData, hasAutofixQuota} = useAutofixSetup({groupId});
+  const {data: autofixSetupData, hasAutofixQuota, refetch} = useAutofixSetup({groupId});
   const navigate = useNavigate();
   const subscription = useSubscription();
 
@@ -44,6 +46,8 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
   const canStartTrial = Boolean(trial && !trial.isStarted);
+  const hasSeerButNeedsPayg =
+    shouldShowBilling && organization.features.includes('seer-added');
 
   const isTouchCustomer = subscription?.type === BillingType.INVOICED;
 
@@ -67,6 +71,16 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   function handlePurchaseSeer() {
     navigate(`/settings/billing/checkout/?referrer=manage_subscription`);
+  }
+
+  function handleAddBudget() {
+    if (!subscription) {
+      return;
+    }
+    openOnDemandBudgetEditModal({
+      organization,
+      subscription,
+    });
   }
 
   return (
@@ -117,6 +131,31 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                   >
                     {t('Try Seer for Free')}
                   </StartTrialButton>
+                ) : hasSeerButNeedsPayg ? (
+                  <Flex gap={space(2)} column>
+                    <ErrorText>
+                      {t(
+                        "You've run out of pay-as-you-go budget. Please add more to keep using Seer."
+                      )}
+                    </ErrorText>
+                    <Flex>
+                      <AddBudgetButton
+                        priority="primary"
+                        onClick={() => handleAddBudget()}
+                        size="md"
+                      >
+                        {t('Add Budget')}
+                      </AddBudgetButton>
+                      <Button
+                        icon={<IconRefresh size="xs" />}
+                        onClick={() => refetch()}
+                        size="md"
+                        priority="default"
+                        aria-label={t('Refresh')}
+                        borderless
+                      />
+                    </Flex>
+                  </Flex>
                 ) : (
                   <Button
                     priority="primary"
@@ -260,4 +299,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ErrorText = styled('div')`
   color: ${p => p.theme.error};
+`;
+
+const AddBudgetButton = styled(Button)`
+  width: fit-content;
 `;

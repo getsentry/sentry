@@ -191,7 +191,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   const showWelcomeScreen =
     aiConfig.needsGenAiAcknowledgement ||
-    (!aiConfig.hasAutofix && organization.features.includes('seer-billing'));
+    (!aiConfig.hasAutofixQuota && organization.features.includes('seer-billing'));
 
   return (
     <SeerDrawerContainer className="seer-drawer-container">
