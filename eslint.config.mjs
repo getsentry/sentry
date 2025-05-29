@@ -63,7 +63,7 @@ const enableTypeAwareLinting = (function () {
 
 // Exclude MDX files from type-aware linting
 // https://github.com/orgs/mdx-js/discussions/2454
-const MDXIgnore = ['**/*.mdx'];
+const globMDX = '**/*.mdx';
 
 const restrictedImportPaths = [
   {
@@ -473,7 +473,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/typescript-eslint/type-aware-linting',
-    ignores: MDXIgnore,
+    ignores: [globMDX],
     // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
     // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
     rules: enableTypeAwareLinting
@@ -491,7 +491,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/typescript-eslint/custom',
-    ignores: MDXIgnore,
+    ignores: [globMDX],
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
