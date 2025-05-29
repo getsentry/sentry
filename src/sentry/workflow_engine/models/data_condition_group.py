@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import ClassVar, Self
 
@@ -38,6 +39,21 @@ class DataConditionGroup(DefaultFieldsModel):
         max_length=200, choices=[(t.value, t.value) for t in Type], default=Type.ANY
     )
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+
+def batch_get_slow_conditions(dcgs: list[DataConditionGroup]) -> Mapping[int, list[DataCondition]]:
+    """
+    Get all slow conditions for a list of data condition groups.
+    """
+    dcg_ids = [dcg.id for dcg in dcgs]
+    conditions = DataCondition.objects.filter(
+        condition_group__in=dcg_ids,
+    )
+    slow_conditions_by_dcg: dict[int, list[DataCondition]] = {dcg.id: [] for dcg in dcgs}
+    for condition in conditions:
+        if is_slow_condition(condition):
+            slow_conditions_by_dcg[condition.condition_group_id].append(condition)
+    return slow_conditions_by_dcg
 
 
 def get_slow_conditions(dcg: DataConditionGroup) -> list[DataCondition]:
