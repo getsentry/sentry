@@ -22,7 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType} from 'getsentry/types';
-import {getProductTrial} from 'getsentry/utils/billing';
+import {getPotentialProductTrial} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type AiSetupDataConsentProps = {
@@ -37,7 +37,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const navigate = useNavigate();
   const subscription = useSubscription();
 
-  const trial = getProductTrial(
+  const trial = getPotentialProductTrial(
     subscription?.productTrials ?? null,
     DataCategory.SEER_AUTOFIX
   );
@@ -123,21 +123,26 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     requestData={{
                       productTrial: {
                         category: DataCategory.SEER_AUTOFIX,
-                        reasonCode: 1001,
+                        reasonCode: trial?.reasonCode,
                       },
                     }}
                     busy={autofixAcknowledgeMutation.isPending}
                     handleClick={() => autofixAcknowledgeMutation.mutate()}
                     size="md"
                     priority="primary"
+                    analyticsEventKey="seer_drawer.free_trial_clicked"
+                    analyticsEventName="Seer Drawer: Clicked Free Trial"
                   >
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
                   <Flex gap={space(2)} column>
                     <ErrorText>
-                      {t(
-                        "You've run out of pay-as-you-go budget. Please add more to keep using Seer."
+                      {tct(
+                        "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
+                        {
+                          budgetTerm: subscription?.planDetails.budgetTerm,
+                        }
                       )}
                     </ErrorText>
                     <Flex>
@@ -156,6 +161,8 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                                 "You don't have access to manage billing. Contact a billing admin for your org."
                               )
                         }
+                        analyticsEventKey="seer_drawer.add_budget_clicked"
+                        analyticsEventName="Seer Drawer: Clicked Add Budget"
                       >
                         {t('Add Budget')}
                       </AddBudgetButton>
@@ -178,6 +185,8 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     }}
                     disabled={autofixAcknowledgeMutation.isPending}
                     size="md"
+                    analyticsEventKey="seer_drawer.checkout_clicked"
+                    analyticsEventName="Seer Drawer: Clicked Checkout"
                   >
                     {autofixAcknowledgeMutation.isPending ? (
                       <StyledLoadingIndicator size={14} />
