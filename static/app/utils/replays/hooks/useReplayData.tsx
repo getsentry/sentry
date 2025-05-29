@@ -41,7 +41,7 @@ interface Result {
   attachmentError: undefined | RequestError[];
   attachments: unknown[];
   errors: ReplayError[];
-  fetchError: undefined | RequestError; // (TODO: remove) error has an unknown type in useFetchParallelPages as well, and we are just passing that along so this also has an unknown type
+  fetchError: undefined | RequestError;
   fetching: boolean;
   onRetry: () => void;
   projectSlug: string | null;
