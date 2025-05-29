@@ -105,6 +105,7 @@ export interface ControlProps
       | 'onInteractOutside'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'strategy'
     > {
   children?: React.ReactNode;
   className?: string;
@@ -232,6 +233,7 @@ export function Control({
   flipOptions,
   disabled,
   position = 'bottom-start',
+  strategy = 'absolute',
   offset,
   hideOptions,
   menuTitle,
@@ -327,11 +329,14 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
+    strategy,
     onOpenChange: open => {
       onOpenChange?.(open);
 
       nextFrameCallback(() => {
         if (open) {
+          // Force a overlay update, as sometimes the overlay is misaligned when opened
+          updateOverlay?.();
           // Focus on search box if present
           if (searchable) {
             searchRef.current?.focus();
@@ -504,6 +509,7 @@ export function Control({
   }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
 
   const theme = useTheme();
+
   return (
     <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
@@ -692,9 +698,10 @@ const StyledOverlay = styled(Overlay, {
 
 const StyledPositionWrapper = styled(PositionWrapper, {
   shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean}>`
+})<{visible?: boolean; zIndex?: number}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p?.zIndex};
 `;
 
 const OptionsWrap = styled('div')`
