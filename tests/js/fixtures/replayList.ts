@@ -27,6 +27,7 @@ export function ReplayListFixture(
         name: 'sentry.javascript.react',
         version: '7.42.0',
       },
+      platform: 'javascript',
       project_id: '2',
       started_at: new Date('2022-09-15T06:50:03+00:00'),
       user: {
