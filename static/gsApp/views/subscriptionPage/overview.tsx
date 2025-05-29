@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -210,7 +209,7 @@ function Overview({location, subscription, promotionData}: Props) {
         {sortCategories(subscription.categories).map(categoryHistory => {
           const category = categoryHistory.category;
           // Stored spans are combined into the accepted spans category's table
-          if (category === DATA_CATEGORY_INFO.spanIndexed.plural) {
+          if (category === DataCategory.SPANS_INDEXED) {
             return null;
           }
 

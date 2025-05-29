@@ -53,7 +53,7 @@ describe('AutofixSteps', () => {
         repos: [],
       },
       codebases: {},
-      created_at: '2023-01-01T00:00:00Z',
+      last_triggered_at: '2023-01-01T00:00:00Z',
       run_id: '1',
       status: AutofixStatus.PROCESSING,
     }),
@@ -126,7 +126,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...propsWithErroredStep} />);
     expect(
       await screen.findByText(
-        'Autofix encountered an error. Restarting step from scratch...'
+        'Seer encountered an error. Restarting step from scratch...'
       )
     ).toBeInTheDocument();
   });

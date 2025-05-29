@@ -52,7 +52,7 @@ export default function FeedbackList() {
     loadMoreRows,
     hits,
   } = useFetchInfiniteListData<FeedbackIssueListItem>({
-    queryKey: listQueryKey ?? [''],
+    queryKey: listQueryKey ?? ['infinite', ''],
     uniqueField: 'id',
     enabled: Boolean(listQueryKey),
   });

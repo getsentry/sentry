@@ -479,4 +479,188 @@ describe('Sidebar', function () {
       expect(dismissMock).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('Chonk UI prompts', () => {
+    it('user does not have chonk-ui feature', () => {
+      renderSidebarWithFeatures([]);
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+    });
+
+    // Nothing is shown, this is the new default state
+    it('user has chonk enabled and has not dismissed banner', () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: true},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+    });
+
+    // Nothing is shown, this is the new default state
+    it('user has chonk enabled and has dismissed banner', () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: true},
+      });
+
+      const promptMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: {feature: 'chonk_ui_banner', dismissed_ts: Date.now()}},
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+
+      expect(promptMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/prompts-activity/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({feature: 'chonk_ui_banner'}),
+        })
+      );
+
+      expect(promptMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/prompts-activity/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({feature: 'chonk_ui_dot_indicator'}),
+        })
+      );
+    });
+
+    // Enabling chonk-ui disables both the banner and dot indicator
+    it('user enables chonk-ui', async () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: false},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      const dismiss = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+
+      const optionsRequest = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+      expect(await screen.findByText(/Sentry has a new look/)).toBeInTheDocument();
+      await userEvent.click(screen.getByText('Try It Out'));
+
+      expect(optionsRequest).toHaveBeenCalledWith(
+        '/users/me/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            options: expect.objectContaining({prefersChonkUI: true}),
+          }),
+        })
+      );
+
+      expect(dismiss).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_banner',
+            status: 'dismissed',
+          }),
+        })
+      );
+
+      expect(dismiss).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_dot_indicator',
+            status: 'dismissed',
+          }),
+        })
+      );
+
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+    });
+
+    // Dismissing the banner enables the dot indicator
+    it('user dismisses chonk-ui banner', async () => {
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, prefersChonkUI: false},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      const dismiss = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+
+      const optionsRequest = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+      });
+
+      renderSidebarWithFeatures(['chonk-ui']);
+
+      // The dot is not visible initially - banner takes precedence
+      expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
+      expect(await screen.findByText(/Sentry has a new look/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: /Dismiss/}));
+
+      expect(optionsRequest).not.toHaveBeenCalled();
+      expect(dismiss).toHaveBeenCalledWith(
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_banner',
+            status: 'dismissed',
+          }),
+        })
+      );
+      expect(dismiss).toHaveBeenCalledTimes(1);
+
+      expect(screen.queryByText(/Sentry has a new look/)).not.toBeInTheDocument();
+      // The dot becomes visible after the banner is dismissed
+      expect(screen.getByTestId('help-menu-dot')).toBeInTheDocument();
+
+      // Clicking the help button will remove the dot
+      await userEvent.click(screen.getByRole('link', {name: /Help/}));
+      await waitFor(() => {
+        expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
+      });
+
+      expect(dismiss).toHaveBeenCalledTimes(2);
+      expect(dismiss).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/prompts-activity/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            feature: 'chonk_ui_dot_indicator',
+            status: 'dismissed',
+          }),
+        })
+      );
+    });
+  });
 });

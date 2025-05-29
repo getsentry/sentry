@@ -2,11 +2,18 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/container/flex';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import {
+  EventDrawerBody,
+  EventNavigator,
+  EventStickyControls,
+} from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
+import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -18,7 +25,7 @@ import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistri
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
-import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
+import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
@@ -30,7 +37,7 @@ interface Props {
 
 const SHOW_SCORES_LOCAL_STORAGE_KEY = 'flag-drawer-show-suspicion-scores';
 
-export default function Flags({group, organization, setTab}: Props) {
+export default function FlagsDistributionDrawer({group, organization, setTab}: Props) {
   const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
 
@@ -57,12 +64,16 @@ export default function Flags({group, organization, setTab}: Props) {
   const sortByOptions = enableSuspectFlags
     ? [
         {
+          label: t('Alphabetical'),
+          value: SortBy.ALPHABETICAL,
+        },
+        {
           label: t('Suspiciousness'),
           value: SortBy.SUSPICION,
         },
         {
-          label: t('Alphabetical'),
-          value: SortBy.ALPHABETICAL,
+          label: t('Distribution'),
+          value: SortBy.DISTRIBUTION,
         },
       ]
     : [
@@ -74,16 +85,20 @@ export default function Flags({group, organization, setTab}: Props) {
   const orderByOptions = enableSuspectFlags
     ? [
         {
-          label: t('High to Low'),
-          value: OrderBy.HIGH_TO_LOW,
-        },
-        {
           label: t('A-Z'),
           value: OrderBy.A_TO_Z,
         },
         {
           label: t('Z-A'),
           value: OrderBy.Z_TO_A,
+        },
+        {
+          label: t('High to Low'),
+          value: OrderBy.HIGH_TO_LOW,
+        },
+        {
+          label: t('Low to High'),
+          value: OrderBy.LOW_TO_HIGH,
         },
       ]
     : [
@@ -106,59 +121,71 @@ export default function Flags({group, organization, setTab}: Props) {
           includeFeatureFlagsTab
         />
 
-        {tagKey ? null : (
-          <ButtonBar gap={1}>
-            <GroupDistributionsSearchInput
-              includeFeatureFlagsTab
-              search={search}
-              onChange={value => {
-                setSearch(value);
-                trackAnalytics('tags.drawer.action', {
-                  control: 'search',
-                  organization,
-                });
-              }}
-            />
-
-            <FeatureFlagSort
-              orderBy={orderBy}
-              setOrderBy={value => {
-                setOrderBy(value);
-                trackAnalytics('flags.sort_flags', {
-                  organization,
-                  sortMethod: value as string,
-                });
-              }}
-              setSortBy={value => {
-                setSortBy(value);
-                trackAnalytics('flags.sort_flags', {
-                  organization,
-                  sortMethod: value as string,
-                });
-              }}
-              sortBy={sortBy}
-              orderByOptions={orderByOptions}
-              sortByOptions={sortByOptions}
-            />
-
-            <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
-          </ButtonBar>
+        {showSuspectSandboxUI && (
+          <Flex>
+            <Label>
+              <IconSentry size="xs" />
+              {t('Debug')}
+              <Checkbox
+                checked={debugSuspectScores}
+                onChange={() => {
+                  setDebugSuspectScores(debugSuspectScores ? '0' : '1');
+                }}
+              />
+            </Label>
+          </Flex>
         )}
       </EventNavigator>
-      {!tagKey && showSuspectSandboxUI && (
-        <EventDrawerBody>
-          <Label>
-            {t('Debug')}{' '}
-            <Checkbox
-              checked={debugSuspectScores}
-              onChange={() => {
-                setDebugSuspectScores(debugSuspectScores ? '0' : '1');
-              }}
-            />
-          </Label>
-        </EventDrawerBody>
-      )}
       <EventDrawerBody>
+        {!tagKey && enableSuspectFlags ? (
+          <SuspectTable
+            debugSuspectScores={debugSuspectScores}
+            environments={environments}
+            group={group}
+          />
+        ) : null}
+
+        {tagKey ? null : (
+          <EventStickyControls>
+            <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
+
+            <ButtonBar gap={1}>
+              <GroupDistributionsSearchInput
+                includeFeatureFlagsTab
+                search={search}
+                onChange={value => {
+                  setSearch(value);
+                  trackAnalytics('tags.drawer.action', {
+                    control: 'search',
+                    organization,
+                  });
+                }}
+              />
+
+              <FeatureFlagSort
+                orderBy={orderBy}
+                setOrderBy={value => {
+                  setOrderBy(value);
+                  trackAnalytics('flags.sort_flags', {
+                    organization,
+                    sortMethod: value as string,
+                  });
+                }}
+                setSortBy={value => {
+                  setSortBy(value);
+                  trackAnalytics('flags.sort_flags', {
+                    organization,
+                    sortMethod: value as string,
+                  });
+                }}
+                sortBy={sortBy}
+                orderByOptions={orderByOptions}
+                sortByOptions={sortByOptions}
+              />
+            </ButtonBar>
+          </EventStickyControls>
+        )}
+
         {tagKey ? (
           <AnalyticsArea name="feature_flag_details">
             <FlagDetailsDrawerContent />

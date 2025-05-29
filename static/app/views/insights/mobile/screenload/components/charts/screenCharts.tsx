@@ -3,31 +3,25 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {
   CHART_TITLES,
   OUTPUT_TYPE,
@@ -35,7 +29,7 @@ import {
 } from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 
-export enum YAxis {
+enum YAxis {
   WARM_START = 0,
   COLD_START = 1,
   TTID = 2,
@@ -47,17 +41,21 @@ export enum YAxis {
 }
 
 type Props = {
-  yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
 };
 
-export function ScreenCharts({yAxes, additionalFilters}: Props) {
+const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
+
+export function ScreenCharts({additionalFilters}: Props) {
+  const useEap = useInsightsEap();
   const theme = useTheme();
-  const pageFilter = usePageFilters();
-  const location = useLocation();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-  const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
+  const yAxisCols = [
+    'avg(measurements.time_to_initial_display)',
+    'avg(measurements.time_to_full_display)',
+    'count()',
+  ] as const;
 
   const {
     primaryRelease,
@@ -67,13 +65,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 
   const queryString = useMemo(() => {
     const query = new MutableSearch([
-      'event.type:transaction',
-      'transaction.op:ui.load',
+      useEap ? 'is_transaction:true' : 'event.type:transaction',
+      'transaction.op:[ui.load,navigation]',
       ...(additionalFilters ?? []),
     ]);
 
     if (isProjectCrossPlatform) {
       query.addFilterValue('os.name', platform);
+    }
+
+    if (useEap) {
+      query.addFilterValue('is_transaction', 'true');
     }
 
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
@@ -83,34 +85,26 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     platform,
     primaryRelease,
     secondaryRelease,
+    useEap,
   ]);
 
   const {
-    data: series,
+    data: releaseSeriesArray,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useEventsStatsQuery({
-    eventView: EventView.fromNewQueryWithPageFilters(
-      {
-        name: '',
-        fields: ['release', ...yAxisCols],
-        topEvents: '2',
-        yAxis: [...yAxisCols],
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      pageFilter.selection
-    ),
-    enabled: !isReleasesLoading,
-    // TODO: Change referrer
-    referrer: 'api.starfish.mobile-screen-series',
-    initialData: {},
-  });
+  } = useTopNMetricsMultiSeries(
+    {
+      fields: ['release'],
+      topN: 2,
+      yAxis: [
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
+        'count()',
+      ],
+      search: queryString,
+    },
+    'api.starfish.mobile-screen-series'
+  );
 
   useEffect(() => {
     if (defined(primaryRelease) || isReleasesLoading) {
@@ -124,49 +118,43 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
   });
 
-  if (defined(series)) {
-    Object.keys(series).forEach(release => {
-      const isPrimary = release === primaryRelease;
+  const ttidSeries: Series[] = [];
+  const ttfdSeries: Series[] = [];
+  const countSeries: Series[] = [];
 
-      Object.keys(series[release]!).forEach(yAxis => {
-        const label = release;
-        if (yAxis in transformedReleaseSeries) {
-          const data =
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            series[release]![yAxis]?.data.map((datum: any) => {
-              return {
-                name: datum[0] * 1000,
-                value: datum[1][0].count,
-              } as SeriesDataUnit;
-            }) ?? [];
-
-          const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
-          transformedReleaseSeries[yAxis]![release] = {
-            seriesName: formatVersion(label, true),
-            color,
-            data,
-          };
-        }
+  if (defined(releaseSeriesArray)) {
+    releaseSeriesArray.forEach(release => {
+      const releaseName = release.name;
+      const isPrimary = releaseName === primaryRelease;
+      const colors = theme.chart.getColorPalette(3);
+      const color = isPrimary ? colors[0] : colors[1];
+      ttidSeries.push({
+        ...release.data['avg(measurements.time_to_initial_display)'],
+        color,
+        seriesName: formatVersion(releaseName, true),
+      });
+      ttfdSeries.push({
+        ...release.data['avg(measurements.time_to_full_display)'],
+        color,
+        seriesName: formatVersion(releaseName, true),
+      });
+      countSeries.push({
+        ...release.data['count()'],
+        color,
+        seriesName: formatVersion(releaseName, true),
       });
     });
   }
 
-  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['device.class', 'release', ...yAxisCols],
-        orderby: yAxisCols[0],
-        yAxis: yAxisCols,
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-      },
-      location
-    ),
-    enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-device-breakdown',
-  });
+  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useMetrics(
+    {
+      enabled: !isReleasesLoading,
+      search: queryString,
+      orderby: yAxisCols[0],
+      fields: ['device.class', 'release', ...yAxisCols],
+    },
+    'api.starfish.mobile-device-breakdown'
+  );
 
   if (isReleasesLoading) {
     return <LoadingContainer />;
@@ -237,9 +225,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 >
                   <Chart
                     height={80}
-                    data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]]!
-                    )}
+                    data={ttidSeries}
                     loading={isSeriesLoading}
                     grid={{
                       left: '0',
@@ -305,9 +291,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 >
                   <Chart
                     height={80}
-                    data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]]!
-                    )}
+                    data={ttfdSeries}
                     loading={isSeriesLoading}
                     grid={{
                       left: '0',
@@ -348,7 +332,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               }
             >
               <Chart
-                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]]!)}
+                data={countSeries}
                 height={245}
                 loading={isSeriesLoading}
                 grid={{
@@ -388,10 +372,6 @@ const StyledRow = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
-`;
-
-export const Spacer = styled('div')`
-  margin-top: ${space(3)};
 `;
 
 const Container = styled('div')`

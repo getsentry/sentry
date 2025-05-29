@@ -20,6 +20,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
+  [SpanFunction.TPM]: {
+    desc: t('Transactions per minute'),
+    kind: FieldKind.FUNCTION,
+    defaultOutputType: 'number',
+    valueType: FieldValueType.NUMBER,
+  },
   [SpanFunction.TIME_SPENT_PERCENTAGE]: {
     desc: t('Span time spent percentage'),
     defaultOutputType: 'percentage',
@@ -58,6 +64,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   },
   [SpanFunction.TRACE_STATUS_RATE]: {
     desc: t('Percentage of spans with matching trace status'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.FAILURE_RATE_IF]: {
+    desc: t('Failed event percentage based on span.status'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,

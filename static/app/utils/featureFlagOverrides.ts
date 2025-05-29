@@ -5,7 +5,7 @@ type OverrideState = Record<string, boolean>;
 
 // TODO(ryan953): this should import from the devtoolbar definition
 type FlagValue = boolean | string | number | undefined;
-export type FeatureFlagMap = Record<string, {override: FlagValue; value: FlagValue}>;
+type FeatureFlagMap = Record<string, {override: FlagValue; value: FlagValue}>;
 
 const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 

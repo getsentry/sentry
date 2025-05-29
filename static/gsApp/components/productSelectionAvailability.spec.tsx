@@ -82,6 +82,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -130,6 +131,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -186,6 +188,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -237,6 +240,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -289,6 +293,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -371,6 +376,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -448,6 +454,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -496,6 +503,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -544,6 +552,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -594,6 +603,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
       // Tracing

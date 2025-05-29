@@ -1,7 +1,8 @@
 import uuid
 from unittest import mock
 
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -41,9 +42,11 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
-            self.detector, self.group_event.occurrence
+            self.detector, self.evidence_data, self.group_event.group.status
         )
-        metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
+        metric_issue_context = MetricIssueContext.from_group_event(
+            self.group, self.evidence_data, self.group_event.occurrence.priority
+        )
         open_period_context = OpenPeriodContext.from_group(self.group)
         notification_uuid = str(uuid.uuid4())
 
@@ -52,19 +55,21 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
+            trigger_status=TriggerStatus.ACTIVE,
+            project=self.detector.project,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
 
         mock_send_incident_alert_notification.assert_called_once_with(
-            notification_context=notification_context,
+            organization=self.detector.project.organization,
             alert_context=alert_context,
+            notification_context=notification_context,
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
-            organization=self.detector.project.organization,
-            notification_uuid=notification_uuid,
             alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
             incident_serialized_response=get_detailed_incident_serializer(self.open_period),
+            notification_uuid=notification_uuid,
         )
 
     @mock.patch(
@@ -97,20 +102,21 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             alert_context,
             name=self.detector.name,
             action_identifier_id=self.detector.id,
-            threshold_type=None,
+            threshold_type=AlertRuleThresholdType.ABOVE,
             detection_type=None,
             comparison_delta=None,
-            alert_threshold=None,
+            alert_threshold=self.evidence_data.data_condition_comparison_value,
         )
 
         self.assert_metric_issue_context(
             metric_issue_context,
-            open_period_identifier=self.group_event.group.id,
+            open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
             title=self.group_event.group.title,
+            subscription=self.subscription,
         )
 
         self.assert_open_period_context(

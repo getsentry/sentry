@@ -8,13 +8,15 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -28,14 +30,14 @@ const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
 type Props = {
   onSuccess: () => void;
-  orgId: string;
+  organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
 } & ModalRenderProps;
 
 function ChangePlanAction({
   subscription,
-  orgId,
+  organization,
   partnerPlanId,
   onSuccess,
   closeModal,
@@ -45,6 +47,7 @@ function ChangePlanAction({
   const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
+  const orgId = organization.slug;
 
   const api = useApi({persistInFlight: true});
   const {
@@ -112,7 +115,7 @@ function ChangePlanAction({
    */
   const findClosestTier = (
     plan: Plan | null,
-    category: string,
+    category: DataCategory,
     currentValue: number
   ): number | null => {
     if (!plan?.planCategories || !(category in plan.planCategories)) {
@@ -155,8 +158,15 @@ function ChangePlanAction({
     }
 
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (metricHistory.reserved) {
-        const closestTier = findClosestTier(plan, category, metricHistory.reserved);
+      if (
+        metricHistory.reserved &&
+        plan.checkoutCategories.includes(category as DataCategory)
+      ) {
+        const closestTier = findClosestTier(
+          plan,
+          category as DataCategory,
+          metricHistory.reserved
+        );
         if (closestTier) {
           formModel.setValue(
             `reserved${toTitleCase(category, {
@@ -314,6 +324,7 @@ function ChangePlanAction({
         formModel={formModel}
         activePlan={activePlan}
         subscription={subscription}
+        organization={organization}
         onSubmit={handleSubmit}
         onCancel={closeModal}
         onSubmitSuccess={(data: Data) => {
@@ -335,7 +346,7 @@ function ChangePlanAction({
 
 type Options = {
   onSuccess: () => void;
-  orgId: string;
+  organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
 };

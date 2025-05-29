@@ -40,7 +40,7 @@ import type {
   TreeDepthType,
 } from './types';
 
-export const isValidSpanID = (maybeSpanID: any) =>
+const isValidSpanID = (maybeSpanID: any) =>
   typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
@@ -117,13 +117,6 @@ const HTTP_DATA_KEYS = [
 const INTERNAL_DATA_KEYS = ['sentry_tags'];
 const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
 
-const TIMING_DATA_KEYS = [
-  SpanSubTimingMark.HTTP_REQUEST_START,
-  SpanSubTimingMark.HTTP_RESPONSE_START,
-];
-export const isSpanDataKeyTiming = (key: string) => {
-  return TIMING_DATA_KEYS.includes(key as SpanSubTimingMark);
-};
 export const isHiddenDataKey = (key: string) => {
   return HIDDEN_DATA_KEYS.includes(key);
 };
@@ -136,7 +129,7 @@ export const shouldLimitAffectedToTiming = (timing: SubTimingInfo) => {
   return timing.endMark === SpanSubTimingMark.HTTP_REQUEST_START; // Sub timing spanning between start and request start.
 };
 
-export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
+const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
   const startTimestamp: number = spanBounds.startTimestamp;
   const endTimestamp: number = spanBounds.endTimestamp;
 
@@ -331,15 +324,7 @@ export function getSpanOperation(span: ProcessedSpanType): string | undefined {
   return span.op;
 }
 
-export function getSpanTraceID(span: ProcessedSpanType): string {
-  if (isGapSpan(span)) {
-    return 'gap-span';
-  }
-
-  return span.trace_id;
-}
-
-export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined {
+function getSpanParentSpanID(span: ProcessedSpanType): string | undefined {
   if (isGapSpan(span)) {
     return 'gap-span';
   }

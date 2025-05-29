@@ -203,22 +203,20 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
             )
-
-            with self.feature({"organizations:deprecate-discover-widget-type": True}):
-                response = self.client.put(
-                    url,
-                    {
-                        "name": "New query",
-                        "projects": self.project_ids,
-                        "fields": [],
-                        "range": "24h",
-                        "limit": 20,
-                        "conditions": [],
-                        "aggregations": [],
-                        "orderby": "-time",
-                        "queryDataset": "discover",
-                    },
-                )
+            response = self.client.put(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                    "queryDataset": "discover",
+                },
+            )
 
         assert response.status_code == 400, response.content
         assert (
@@ -258,7 +256,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(model.id)
         assert response.data["queryDataset"] == "error-events"
-        assert response.data["datasetSource"] == "unknown"
+        assert response.data["datasetSource"] == "user"
 
     def test_put_with_interval(self):
         with self.feature(self.feature_name):

@@ -46,8 +46,7 @@ function Content() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMultiQuery();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+  const datePageFilterProps = limitMaxPickableDays(organization);
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
@@ -113,14 +112,7 @@ function Content() {
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={({arbitraryOptions}) => ({
-                ...arbitraryOptions,
-                ...relativeOptions,
-              })}
-            />
+            <DatePageFilter {...datePageFilterProps} />
           </StyledPageFilterBar>
           <DropdownMenu
             items={[
@@ -151,9 +143,16 @@ function Content() {
                 key: 'save-query',
                 label: t('A New Query'),
                 onAction: () => {
+                  trackAnalytics('trace_explorer.save_query_modal', {
+                    action: 'open',
+                    save_type: 'save_new_query',
+                    ui_source: 'toolbar',
+                    organization,
+                  });
                   openSaveQueryModal({
                     organization,
                     saveQuery,
+                    source: 'toolbar',
                   });
                 },
               },

@@ -293,18 +293,7 @@ class CodeMappingTreesHelper:
             logger.warning("More than one repo matched %s", frame_filename.raw_path)
             return None
 
-        cm = code_mappings[0]
-        logger.info(
-            "Found code mapping.",
-            extra={
-                "stack_path": frame_filename.raw_path,
-                "stack_root": cm.stacktrace_root,
-                "source_path": cm.source_path,
-                "repo_name": cm.repo.name,
-                "repo_branch": cm.repo.branch,
-            },
-        )
-        return cm
+        return code_mappings[0]
 
     def _generate_code_mapping_from_tree(
         self,
@@ -610,13 +599,13 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
     if len(parts) > 1:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
-        #    stack_root: com/example/
+        #    stack_root: com/example/foo/
         #    file_path:  com/example/foo/bar/Baz.kt
         granularity = STACK_ROOT_MAX_LEVEL - 1
 
         if parts[1] in SECOND_LEVEL_TLDS:
             # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
-            #    stack_root: uk/co/example/
+            #    stack_root: uk/co/example/foo/
             #    file_path:  uk/co/example/foo/bar/Baz.kt
             granularity = STACK_ROOT_MAX_LEVEL
 

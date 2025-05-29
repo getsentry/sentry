@@ -98,8 +98,10 @@ def transform_fields(
     type_transformers = get_type_transformer_mappings(user_id_field)
     custom_field_transformers = get_custom_field_transformer_mappings()
 
+    lowercased_data = {k.lower(): v for k, v in data.items()}
+
     for field in jira_fields:
-        field_data = data.get(field.key)
+        field_data = lowercased_data.get(field.key.lower())
 
         # Skip any values that indicate no value should be provided.
         # We have some older alert templates with "" values, which will raise

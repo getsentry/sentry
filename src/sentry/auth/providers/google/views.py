@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.auth.google")
 
 
 class FetchUser(AuthView):
-    def __init__(self, domains, version, *args, **kwargs):
+    def __init__(self, domains, version, *args, **kwargs) -> None:
         self.domains = domains
         self.version = version
         super().__init__(*args, **kwargs)

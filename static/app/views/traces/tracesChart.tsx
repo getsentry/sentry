@@ -86,8 +86,9 @@ export function TracesChart() {
       if (!enabled[i] || error) {
         continue;
       }
+      const colors = theme.chart.getColorPalette(series.length);
       const data = series[i]!['count()'];
-      data.color = theme.chart.colors[2][i];
+      data.color = colors[i];
       data.seriesName = `span ${i + 1}: ${queries[i] || t('All spans')}`;
       allData.push(data);
     }
@@ -119,7 +120,7 @@ export function TracesChart() {
           data={chartData}
           error={error}
           loading={seriesAreLoading}
-          chartColors={theme.chart.colors[2]}
+          chartColors={theme.chart.getColorPalette(2)}
           type={ChartType.LINE}
           aggregateOutputFormat="number"
           showLegend
@@ -152,7 +153,6 @@ const useTraceCountSeries = ({
       search: new MutableSearch(query ?? ''),
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
-      overriddenRoute: 'traces-stats',
       enabled,
     },
     'api.trace-explorer.stats'

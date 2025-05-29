@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -18,39 +19,21 @@ import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-const PRODUCTS = {
-  [DataCategory.ERRORS]: 'Error Monitoring',
-  [DataCategory.TRANSACTIONS]: 'Performance Monitoring',
-  [DataCategory.REPLAYS]: 'Session Replay',
-  [DataCategory.PROFILES]: 'Profiling',
-  [DataCategory.MONITOR_SEATS]: 'Crons',
-  [DataCategory.ATTACHMENTS]: 'Attachments',
-  [DataCategory.SPANS]: 'Spans',
-  [DataCategory.UPTIME]: 'Uptime Monitoring',
-  [DataCategory.PROFILE_DURATION]: 'Continuous Profile Hours',
-  [DataCategory.PROFILE_DURATION_UI]: 'UI Profile Hours',
-};
+function getProductName(category: DataCategory) {
+  const categoryInfo = getCategoryInfoFromPlural(category);
+  return categoryInfo?.productName ?? category;
+}
 
-const PRODUCT_URLS = {
-  [DataCategory.ERRORS]: 'https://docs.sentry.io/product/sentry-basics/',
-  [DataCategory.TRANSACTIONS]: 'https://docs.sentry.io/product/performance/',
-  [DataCategory.REPLAYS]: 'https://docs.sentry.io/product/session-replay/',
-  [DataCategory.PROFILES]: 'https://docs.sentry.io/product/profiling/',
-  [DataCategory.MONITOR_SEATS]: 'https://docs.sentry.io/product/crons/',
-  [DataCategory.ATTACHMENTS]:
-    'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/',
-  [DataCategory.SPANS]: 'https://docs.sentry.io/product/performance/', // TODO: update with real docs link
-  [DataCategory.UPTIME]: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
-  [DataCategory.PROFILE_DURATION]:
-    'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
-  [DataCategory.PROFILE_DURATION_UI]:
-    'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
-};
+function getProductDocsUrl(category: DataCategory) {
+  const categoryInfo = getCategoryInfoFromPlural(category);
+  return categoryInfo?.docsUrl ?? '';
+}
 
-export interface ProductTrialAlertProps {
+interface ProductTrialAlertProps {
   api: Client;
   organization: Organization;
   subscription: Subscription;
@@ -78,13 +61,11 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   let alertButton: React.ReactElement | null = null;
 
   if (daysLeft >= 0 && !trial.isStarted) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    alertHeader = t('Try %s for free', PRODUCTS[trial.category]);
+    alertHeader = t('Try %s for free', getProductName(trial.category));
     alertText = t(
       'Activate your trial to take advantage of %d days of unlimited %s',
       trial.lengthDays ?? 14,
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      PRODUCTS[product ? product : trial.category]
+      getProductName(product ?? trial.category)
     );
 
     alertButton = (
@@ -108,27 +89,23 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
       />
     );
   } else if (daysLeft > 7 && trial.isStarted) {
-    alertHeader = t('%s Trial', titleCase((PRODUCTS as any)[trial.category]));
+    alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
     alertText = t(
       'You have full access to unlimited %s until %s',
-      (PRODUCTS as any)[product ? product : trial.category],
+      getProductName(product ? product : trial.category),
       trial.endDate
     );
 
     alertButton = (
-      <LinkButton
-        size="sm"
-        external
-        href={(PRODUCT_URLS as any)[product ? product : trial.category]}
-      >
+      <LinkButton size="sm" external href={getProductDocsUrl(product ?? trial.category)}>
         {t('Learn More')}
       </LinkButton>
     );
   } else if (daysLeft > 0 && daysLeft <= 7 && trial.isStarted) {
-    alertHeader = t('%s Trial', titleCase((PRODUCTS as any)[trial.category]));
+    alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
     alertText = t(
       'Keep using more %s by upgrading your plan by %s',
-      (PRODUCTS as any)[product ? product : trial.category],
+      getProductName(product ?? trial.category),
       trial.endDate
     );
 
@@ -160,10 +137,10 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         </Button>
       );
   } else if (daysLeft < 0 && daysLeft >= -7 && trial.isStarted) {
-    alertHeader = t('%s Trial', titleCase((PRODUCTS as any)[trial.category]));
+    alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
     alertText = t(
       'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
-      (PRODUCTS as any)[product ? product : trial.category]
+      getProductName(product ?? trial.category)
     );
 
     alertButton =

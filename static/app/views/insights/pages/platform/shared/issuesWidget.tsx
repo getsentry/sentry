@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
@@ -36,6 +36,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultProps = {
   canSelectGroups: true,
@@ -44,7 +45,7 @@ const defaultProps = {
   useTintRow: true,
 };
 
-export type GroupListColumn =
+type GroupListColumn =
   | 'graph'
   | 'event'
   | 'users'
@@ -224,13 +225,13 @@ class IssuesGroupList extends Component<Props, State> {
         return renderEmptyMessage();
       }
       return (
-        <Panel>
+        <StyledPanel>
           <PanelBody>
             <EmptyStateWarning>
               <p>{t("There don't seem to be any events fitting the query.")}</p>
             </EmptyStateWarning>
           </PanelBody>
-        </Panel>
+        </StyledPanel>
       );
     }
 
@@ -241,14 +242,16 @@ class IssuesGroupList extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PanelContainer>
-          <SuperHeader disablePadding>
-            <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
-            <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
-              All Issues
-            </LinkButton>
-          </SuperHeader>
-          <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        <StyledPanel>
+          <HeaderContainer>
+            <SuperHeader disablePadding>
+              <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
+              <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
+                {t('View All')}
+              </LinkButton>
+            </SuperHeader>
+            <GroupListHeader withChart={!!withChart} withColumns={columns} />
+          </HeaderContainer>
           <PanelBody>
             {loading
               ? [
@@ -281,7 +284,7 @@ class IssuesGroupList extends Component<Props, State> {
                   );
                 })}
           </PanelBody>
-        </PanelContainer>
+        </StyledPanel>
       </Fragment>
     );
   }
@@ -297,33 +300,36 @@ const GroupPlaceholder = styled('div')`
   }
 `;
 
-const PanelContainer = styled(Panel)`
-  container-type: inline-size;
-`;
-
 const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
+  color: ${p => p.theme.headingColor};
+  font-size: 1rem;
+  line-height: 1.2;
   padding-left: ${space(1)};
-  text-transform: capitalize;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const SuperHeader = styled(PanelHeader)`
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.headerBackground};
   padding: ${space(1)};
+  text-transform: capitalize;
 `;
 
-export function IssuesWidget({query = ''}: {query?: string}) {
+const HeaderContainer = styled('div')`
+  position: sticky;
+  top: 0;
+  z-index: ${p => p.theme.zIndex.header};
+`;
+
+export function IssuesWidget() {
   const location = useLocation();
-  const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
-  if (query) {
-    queryWithDefault.setFilterValues('transaction', [query]);
-  }
+  const {query} = useTransactionNameQuery();
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: queryWithDefault.formatString(),
+    query: `is:unresolved event.type:error ${query}`,
     sort: 'freq',
   };
 
@@ -343,7 +349,9 @@ export function IssuesWidget({query = ''}: {query?: string}) {
       : t('given timeframe');
 
     return (
-      <Panel style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+      <StyledPanel
+        style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+      >
         <PanelBody>
           <EmptyStateWarning>
             <p>
@@ -354,7 +362,7 @@ export function IssuesWidget({query = ''}: {query?: string}) {
             </p>
           </EmptyStateWarning>
         </PanelBody>
-      </Panel>
+      </StyledPanel>
     );
   }
 
@@ -370,3 +378,11 @@ export function IssuesWidget({query = ''}: {query?: string}) {
     />
   );
 }
+
+const StyledPanel = styled(Panel)`
+  min-width: 0;
+  overflow-y: auto;
+  margin-bottom: 0 !important;
+  height: 100%;
+  container-type: inline-size;
+`;

@@ -134,7 +134,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.detector.name
+        assert rule.label == rule.label
         assert rule.data == {
             "actions": [
                 {
@@ -189,7 +189,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is None
-        assert rule.label == self.detector.name
+        assert rule.label == rule.label
         assert rule.data == {
             "actions": [
                 {

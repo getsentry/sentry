@@ -2,6 +2,8 @@ import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+// Our loadable chart widgets use this to render, so this import is ok
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
@@ -39,6 +41,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     pageFilters,
   });
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       id={id}
@@ -47,14 +50,14 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
         renameDiscoverSeries(
           {
             ...publishData['epm()'],
-            color: theme.chart.colors[2][1],
+            color: colors[1],
           },
           'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
             ...processData['epm()'],
-            color: theme.chart.colors[2][2],
+            color: colors[2],
           },
           'epm() span.op:queue.process'
         ),

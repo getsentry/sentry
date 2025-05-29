@@ -16,7 +16,7 @@ export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
   '30d': t('Last 30 days'),
 };
 
-export interface DatePickerProps
+interface DatePickerProps
   extends Partial<Partial<Omit<DateSelectorProps, 'relative' | 'menuBody'>>> {}
 
 export function DatePicker({

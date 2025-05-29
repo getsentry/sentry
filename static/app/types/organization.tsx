@@ -7,7 +7,6 @@ import type {
 import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
-import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
@@ -25,6 +24,7 @@ export interface OrganizationSummary {
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
+  gitlabPRBot: boolean;
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
@@ -64,8 +64,6 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
-  experiments: Partial<OrgExperiments>;
-  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -94,6 +92,7 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  defaultAutofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always' | null;
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   extraOptions?: {
@@ -288,19 +287,13 @@ export interface SavedQuery extends NewQuery {
   id: string;
 }
 
-export type SavedQueryState = {
-  hasError: boolean;
-  isLoading: boolean;
-  savedQueries: SavedQuery[];
-};
-
 export type Confidence = 'high' | 'low' | null;
 
 export type EventsStatsData = Array<
   [number, Array<{count: number; comparisonCount?: number}>]
 >;
 
-export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
+type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
 type AccuracyStatsItem<T> = {
   timestamp: number;

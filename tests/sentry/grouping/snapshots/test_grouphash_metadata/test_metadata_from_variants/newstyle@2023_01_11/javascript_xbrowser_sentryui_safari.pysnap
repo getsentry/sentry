@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:40.556436+00:00'
+created: '2025-04-25T21:24:37.967829+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,22 +30,22 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "app/components/lazyLoad"
               context-line*
                 "this.setState({"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
               context-line*
                 "this.fetchData();"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "app/views/groupDetails/shared/groupEventDetails"
               context-line*
                 "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "app/api"
               context-line*

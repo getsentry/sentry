@@ -46,9 +46,13 @@ def process_data_sources(
 
             logger.info(
                 "workflow_engine.process_data_sources detectors",
-                extra={"detectors": detectors, "source_id": packet.source_id},
+                extra={
+                    "detectors": [detector.id for detector in detectors],
+                    "source_id": packet.source_id,
+                },
             )
         else:
+            # XXX: this likely means the rule is muted / detector is disabled
             logger.warning(
                 "workflow_engine.process_data_sources no detectors",
                 extra={"source_id": packet.source_id, "query_type": query_type},

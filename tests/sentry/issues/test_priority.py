@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.api.helpers.group_index.update import handle_priority
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
@@ -129,3 +130,30 @@ class TestUpdatesPriority(TestCase):
         )
         assert self.group.priority == PriorityLevel.MEDIUM
         mock_send_snapshot_values.assert_called_with(None, self.group, False)
+
+    def test_user_updates_priority_locked_group(self) -> None:
+        self.group = self.create_group(
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            priority=PriorityLevel.HIGH,
+        )
+
+        handle_priority(
+            priority=PriorityLevel.MEDIUM.to_str(),
+            group_list=[self.group],
+            acting_user=self.user,
+            project_lookup={self.group.project_id: self.project},
+        )
+
+        assert self.group.priority == PriorityLevel.MEDIUM
+        assert self.group.priority_locked_at is not None
+
+        handle_priority(
+            priority=PriorityLevel.LOW.to_str(),
+            group_list=[self.group],
+            acting_user=self.user,
+            project_lookup={self.group.project_id: self.project},
+        )
+
+        assert self.group.priority == PriorityLevel.LOW
+        assert self.group.priority_locked_at is not None

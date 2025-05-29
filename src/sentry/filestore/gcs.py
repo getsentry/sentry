@@ -226,22 +226,25 @@ class GoogleCloudFile(File):
 
 
 class GoogleCloudStorage(Storage):
-    project_id = None
-    credentials = None
-    bucket_name = None
-    file_name_charset = "utf-8"
-    file_overwrite = True
-    download_url = "https://www.googleapis.com"
-    # The max amount of memory a returned file can take up before being
-    # rolled over into a temporary file on disk. Default is 0: Do not roll over.
-    max_memory_size = 0
-
-    def __init__(self, **settings):
-        # check if some of the settings we've provided as class attributes
-        # need to be overwritten with values passed in here
-        for name, value in settings.items():
-            if hasattr(self, name):
-                setattr(self, name, value)
+    def __init__(
+        self,
+        project_id=None,
+        credentials=None,
+        bucket_name=None,
+        file_name_charset="utf-8",
+        file_overwrite=True,
+        download_url="https://www.googleapis.com",
+        # The max amount of memory a returned file can take up before being
+        # rolled over into a temporary file on disk. Default is 0: Do not roll over.
+        max_memory_size=0,
+    ):
+        self.project_id = project_id
+        self.credentials = credentials
+        self.bucket_name = bucket_name
+        self.file_name_charset = file_name_charset
+        self.file_overwrite = file_overwrite
+        self.download_url = download_url
+        self.max_memory_size = max_memory_size
 
         self._bucket = None
         self._client = None

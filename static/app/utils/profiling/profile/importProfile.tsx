@@ -29,7 +29,7 @@ import {
   wrapWithSpan,
 } from './utils';
 
-export interface ImportOptions {
+interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
   activeThreadId?: string | null;
@@ -220,7 +220,7 @@ function importSentrySampledProfile(
   };
 }
 
-export function importSchema(
+function importSchema(
   input: Readonly<Profiling.Schema>,
   traceID: string,
   options: ImportOptions
@@ -440,7 +440,7 @@ export function importAndroidContinuousProfileChunk(
   };
 }
 
-export function importSentryContinuousProfileChunk(
+function importSentryContinuousProfileChunk(
   input: Readonly<Profiling.SentryContinousProfileChunk>,
   traceID: string,
   options: ImportOptions

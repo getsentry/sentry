@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from dataclasses import asdict
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -17,6 +19,9 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
+
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -44,13 +49,25 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         GITHUB_ENTERPRISE = "github_enterprise"
         JIRA = "jira"
         JIRA_SERVER = "jira_server"
-        AZURE_DEVOPS = "azure_devops"
+        AZURE_DEVOPS = "vsts"
 
         EMAIL = "email"
         SENTRY_APP = "sentry_app"
 
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
+
+        def is_integration(self) -> bool:
+            """
+            Returns True if the action is an integration action.
+            For those, the value should correspond to the integration key.
+            """
+            return self not in [
+                Action.Type.EMAIL,
+                Action.Type.SENTRY_APP,
+                Action.Type.PLUGIN,
+                Action.Type.WEBHOOK,
+            ]
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
@@ -67,7 +84,15 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
-        # get the handler for the action type
+        logger.info(
+            "workflow_engine.action.trigger",
+            extra={
+                "detector_id": detector.id,
+                "action_id": self.id,
+                "event_data": asdict(event_data),
+            },
+        )
+
         handler = self.get_handler()
         handler.execute(event_data, self, detector)
 

@@ -4,7 +4,8 @@ from unittest import mock
 import pytest
 from django.forms import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -35,6 +36,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_update_migrated_alert_rule,
     dual_update_migrated_alert_rule_trigger,
     dual_update_migrated_alert_rule_trigger_action,
+    dual_update_resolve_condition,
     dual_write_alert_rule,
     get_action_filter,
     get_detector_trigger,
@@ -42,7 +44,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
-    migrate_resolve_threshold_data_conditions,
+    migrate_resolve_threshold_data_condition,
 )
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
@@ -75,6 +77,8 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
     assert workflow.name == get_workflow_name(alert_rule)
     assert workflow.organization_id == alert_rule.organization.id
+    assert workflow.owner_user_id == alert_rule.user_id
+    assert workflow.owner_team == alert_rule.team
     detector = Detector.objects.get(id=alert_rule_detector.detector.id)
     assert detector.name == alert_rule.name
     assert detector.project_id == project_id
@@ -82,7 +86,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     assert detector.description == alert_rule.description
     assert detector.owner_user_id == alert_rule.user_id
     assert detector.owner_team == alert_rule.team
-    assert detector.type == MetricAlertFire.slug
+    assert detector.type == MetricIssue.slug
     assert detector.config == {
         "threshold_period": alert_rule.threshold_period,
         "sensitivity": None,
@@ -102,7 +106,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     )
     assert data_source.type == "snuba_query_subscription"
     detector_state = DetectorState.objects.get(detector=detector)
-    assert detector_state.active is False
+    assert detector_state.is_triggered is False
     assert detector_state.state == str(DetectorPriorityLevel.OK.value)
 
     data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
@@ -120,21 +124,6 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
     assert detector_trigger.type == Condition.LESS_OR_EQUAL
     assert detector_trigger.condition_result == DetectorPriorityLevel.OK
     assert detector_trigger.condition_group == detector.workflow_condition_group
-
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
-    workflow = alert_rule_workflow.workflow
-    workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
-
-    data_condition = DataCondition.objects.get(
-        comparison=DetectorPriorityLevel.OK, condition_group__in=workflow_dcgs
-    )
-
-    assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
-    assert data_condition.comparison == DetectorPriorityLevel.OK
-    assert data_condition.condition_result is True
-    assert WorkflowDataConditionGroup.objects.filter(
-        condition_group=data_condition.condition_group
-    ).exists()
 
 
 def assert_dual_written_resolution_threshold_equals(alert_rule, threshold):
@@ -178,12 +167,26 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
 
     data_condition = DataCondition.objects.get(
-        comparison=condition_result, condition_result=True, condition_group__in=workflow_dcgs
+        comparison=condition_result,
+        condition_result=True,
+        condition_group__in=workflow_dcgs,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
     )
-    assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
+    assert data_condition.type == Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL
     assert data_condition.condition_result is True
     assert WorkflowDataConditionGroup.objects.filter(
         condition_group=data_condition.condition_group
+    ).exists()
+
+    resolve_data_condition = DataCondition.objects.get(
+        comparison=condition_result,
+        condition_result=True,
+        condition_group__in=workflow_dcgs,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+    )
+    assert resolve_data_condition.condition_group == data_condition.condition_group
+    assert WorkflowDataConditionGroup.objects.filter(
+        condition_group=resolve_data_condition.condition_group
     ).exists()
 
 
@@ -318,7 +321,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         detector.update(workflow_condition_group=detector_data_condition_group)
         detector_state = self.create_detector_state(
             detector=detector,
-            active=False,
+            is_triggered=False,
             state=DetectorPriorityLevel.OK,
         )
         data_source_detector = self.create_data_source_detector(data_source, detector)
@@ -344,7 +347,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         alert_rule_trigger: AlertRuleTrigger,
         priority: DetectorPriorityLevel,
         detector_trigger_type: Condition,
-    ) -> tuple[DataCondition, DataCondition]:
+    ) -> tuple[DataCondition, DataCondition, DataCondition]:
         """
         Set up all the necessary ACI objects for a dual written metric alert trigger.
         """
@@ -372,22 +375,27 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         action_filter = self.create_data_condition(
             comparison=priority,
             condition_result=True,
-            type=Condition.ISSUE_PRIORITY_EQUALS,
+            type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
             condition_group=data_condition_group,
         )
 
-        return detector_trigger, action_filter
+        resolve_action_filter = self.create_data_condition(
+            comparison=priority,
+            condition_result=True,
+            type=Condition.ISSUE_PRIORITY_DEESCALATING,
+            condition_group=data_condition_group,
+        )
+        return detector_trigger, action_filter, resolve_action_filter
 
     def create_migrated_metric_alert_rule_resolve_objects(
         self, alert_rule: AlertRule, resolve_threshold, detector_trigger_type: Condition
-    ) -> tuple[DataCondition, DataCondition]:
+    ) -> DataCondition:
         """
         Set up all the necessary ACI objects for a dual written metric alert resolution threshold.
         """
         detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
-        workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id).workflow
 
         detector_trigger = self.create_data_condition(
             comparison=resolve_threshold,
@@ -395,18 +403,8 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             type=detector_trigger_type,
             condition_group=detector_dcg,
         )
-        data_condition_group = self.create_data_condition_group(organization=self.organization)
-        self.create_workflow_data_condition_group(
-            condition_group=data_condition_group, workflow=workflow
-        )
-        action_filter = self.create_data_condition(
-            comparison=DetectorPriorityLevel.OK,
-            condition_result=True,
-            type=Condition.ISSUE_PRIORITY_EQUALS,
-            condition_group=data_condition_group,
-        )
 
-        return detector_trigger, action_filter
+        return detector_trigger
 
     def create_migrated_metric_alert_rule_action_objects(
         self, alert_rule_trigger_action: AlertRuleTriggerAction
@@ -444,7 +442,7 @@ class DualWriteAlertRuleTest(APITestCase):
 
     def test_dual_write_metric_alert_open_incident(self):
         """
-        Test that the detector_state object is correctly created when the alert has an active incident
+        Test that the detector_state object is correctly created when the alert has an incident
         """
         self.create_incident(alert_rule=self.metric_alert, status=IncidentStatus.CRITICAL.value)
         aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
@@ -488,16 +486,16 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
             self.detector_workflow,
             self.data_source_detector,
         ) = self.create_migrated_metric_alert_objects(self.metric_alert)
-        # we need to set up the resolve conditions here, because the dual delete helper expects them
-        # their contents don't matter, they just need to exist
-        self.resolve_detector_trigger, self.resolve_action_filter = (
-            self.create_migrated_metric_alert_rule_resolve_objects(
-                self.metric_alert, 67, Condition.LESS_OR_EQUAL
-            )
+        # we need to set up the resolve condition here, because the dual delete helper expects it
+        # its content doesn't matter, it just needs to exist
+        self.resolve_detector_trigger = self.create_migrated_metric_alert_rule_resolve_objects(
+            self.metric_alert, 67, Condition.LESS_OR_EQUAL
         )
 
     def test_dual_delete_metric_alert_workflow(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check workflow-related tables
         assert not Workflow.objects.filter(id=self.workflow.id).exists()
@@ -505,6 +503,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_detector(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check detector-related tables
         assert not Detector.objects.filter(id=self.detector.id).exists()
@@ -518,6 +518,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_data_source(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check data source
         assert not DataSource.objects.filter(id=self.data_source.id).exists()
@@ -534,16 +536,19 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
             alert_rule_trigger=alert_rule_trigger
         )
 
-        detector_trigger, action_filter = self.create_migrated_metric_alert_rule_trigger_objects(
-            alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+        detector_trigger, action_filter, resolve_action_filter = (
+            self.create_migrated_metric_alert_rule_trigger_objects(
+                alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
+            )
         )
         action_filter_dcg = action_filter.condition_group
-        resolve_action_filter_dcg = self.resolve_action_filter.condition_group
         action, data_condition_group_action, aarta = (
             self.create_migrated_metric_alert_rule_action_objects(alert_rule_trigger_action)
         )
 
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check trigger action objects
         assert not Action.objects.filter(id=action.id).exists()
@@ -553,13 +558,12 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta.id).exists()
 
         # check resolution objects
-        assert not DataConditionGroup.objects.filter(id=resolve_action_filter_dcg.id).exists()
         assert not DataCondition.objects.filter(id=self.resolve_detector_trigger.id).exists()
-        assert not DataCondition.objects.filter(id=self.resolve_action_filter.id).exists()
 
         # check trigger objects
         assert not DataConditionGroup.objects.filter(id=action_filter_dcg.id).exists()
         assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
+        assert not DataCondition.objects.filter(id=resolve_action_filter.id).exists()
         assert not DataConditionAlertRuleTrigger.objects.filter(
             data_condition=detector_trigger
         ).exists()
@@ -572,13 +576,28 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         second time.
         """
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
         assert not Detector.objects.filter(id=self.detector.id).exists()
 
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
         mock_logger.info.assert_called_with(
             "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": self.metric_alert.id},
         )
+
+    def test_dual_delete_twice_before_running_scheduled_deletions(self):
+        """
+        Test that nothing happens if dual delete is run twice (before scheduled deletions
+        are run).
+        """
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
+        assert not Detector.objects.filter(id=self.detector.id).exists()
 
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
@@ -598,20 +617,20 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical", alert_threshold=200
         )
-        self.critical_detector_trigger, self.critical_action_filter = (
-            self.create_migrated_metric_alert_rule_trigger_objects(
-                self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
-            )
+        (
+            self.critical_detector_trigger,
+            self.critical_action_filter,
+            self.critical_resolve_action_filter,
+        ) = self.create_migrated_metric_alert_rule_trigger_objects(
+            self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
         )
-        self.resolve_detector_trigger, self.resolve_action_filter = (
-            self.create_migrated_metric_alert_rule_resolve_objects(
-                self.metric_alert, 200, Condition.LESS_OR_EQUAL
-            )
+        self.resolve_detector_trigger = self.create_migrated_metric_alert_rule_resolve_objects(
+            self.metric_alert, 200, Condition.LESS_OR_EQUAL
         )
 
     def test_dual_update_metric_alert(self):
         detector_state = self.detector_state
-        detector_state.update(active=True, state=DetectorPriorityLevel.HIGH)
+        detector_state.update(is_triggered=True, state=DetectorPriorityLevel.HIGH)
         updated_fields = {
             "name": "hojicha",
             "description": "a Japanese green tea roasted over charcoal",
@@ -626,7 +645,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         assert self.detector.description == "a Japanese green tea roasted over charcoal"
 
         assert detector_state.state == str(DetectorPriorityLevel.OK.value)
-        assert detector_state.active is False
+        assert detector_state.is_triggered is False
 
     def test_dual_update_metric_alert_owner(self):
         updated_fields: dict[str, Any] = {}
@@ -679,7 +698,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         """
         migrate_metric_data_conditions(self.alert_rule_trigger_warning)
         migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        migrate_resolve_threshold_data_conditions(self.metric_alert)
+        migrate_resolve_threshold_data_condition(self.metric_alert)
 
         assert_alert_rule_trigger_migrated(self.alert_rule_trigger_warning)
         assert_alert_rule_trigger_migrated(self.alert_rule_trigger_critical)
@@ -694,7 +713,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         )
 
         migrate_metric_data_conditions(critical_trigger)
-        migrate_resolve_threshold_data_conditions(self.metric_alert_no_resolve)
+        migrate_resolve_threshold_data_condition(self.metric_alert_no_resolve)
 
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.metric_alert_no_resolve.id
@@ -709,15 +728,6 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         assert resolve_detector_trigger.condition_result == DetectorPriorityLevel.OK
         assert resolve_detector_trigger.condition_group == detector.workflow_condition_group
 
-        resolve_data_condition = DataCondition.objects.get(comparison=DetectorPriorityLevel.OK)
-
-        assert resolve_data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
-        assert resolve_data_condition.condition_result is True
-        assert resolve_data_condition.condition_group == resolve_data_condition.condition_group
-        assert WorkflowDataConditionGroup.objects.filter(
-            condition_group=resolve_data_condition.condition_group
-        ).exists()
-
     def test_create_metric_alert_trigger_auto_resolve_less_than(self):
         """
         Test that we assign the resolve detector trigger the correct type if the threshold type is BELOW
@@ -728,7 +738,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         )
 
         migrate_metric_data_conditions(critical_trigger)
-        migrate_resolve_threshold_data_conditions(self.metric_alert_no_resolve)
+        migrate_resolve_threshold_data_condition(self.metric_alert_no_resolve)
 
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.metric_alert_no_resolve.id
@@ -751,7 +761,7 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
             alert_rule=self.metric_alert, label="critical"
         )
         self.create_migrated_metric_alert_objects(self.metric_alert)
-        self.detector_trigger, self.action_filter = (
+        self.detector_trigger, self.action_filter, self.resolve_action_filter = (
             self.create_migrated_metric_alert_rule_trigger_objects(
                 self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
             )
@@ -807,15 +817,15 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
             alert_rule=self.metric_alert, label="critical", alert_threshold=200
         )
         self.create_migrated_metric_alert_objects(self.metric_alert)
-        self.critical_detector_trigger, self.critical_action_filter = (
-            self.create_migrated_metric_alert_rule_trigger_objects(
-                self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
-            )
+        (
+            self.critical_detector_trigger,
+            self.critical_action_filter,
+            self.critical_resolve_action_filter,
+        ) = self.create_migrated_metric_alert_rule_trigger_objects(
+            self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
         )
-        self.resolve_detector_trigger, self.resolve_action_filter = (
-            self.create_migrated_metric_alert_rule_resolve_objects(
-                self.metric_alert, 200, Condition.LESS_OR_EQUAL
-            )
+        self.resolve_detector_trigger = self.create_migrated_metric_alert_rule_resolve_objects(
+            self.metric_alert, 200, Condition.LESS_OR_EQUAL
         )
 
     def test_dual_update_metric_alert_threshold_type(self):
@@ -836,7 +846,7 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         updated_fields: dict[str, Any] = {}
         updated_fields = {"resolve_threshold": 10}
         self.metric_alert.update(**updated_fields)
-        dual_update_migrated_alert_rule(self.metric_alert)
+        dual_update_resolve_condition(self.metric_alert)
         self.resolve_detector_trigger.refresh_from_db()
 
         assert self.resolve_detector_trigger.comparison == 10
@@ -1271,7 +1281,7 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
             alert_rule=self.metric_alert, label="critical"
         )
         self.create_migrated_metric_alert_objects(self.metric_alert)
-        self.detector_trigger, self.action_filter = (
+        self.detector_trigger, self.action_filter, self.resolve_action_filter = (
             self.create_migrated_metric_alert_rule_trigger_objects(
                 self.alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
             )
@@ -1354,7 +1364,7 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         )
 
         self.create_migrated_metric_alert_objects(self.dual_written_alert)
-        self.detector_trigger, self.action_filter = (
+        self.detector_trigger, self.action_filter, self.resolve_action_filter = (
             self.create_migrated_metric_alert_rule_trigger_objects(
                 self.dual_written_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
             )

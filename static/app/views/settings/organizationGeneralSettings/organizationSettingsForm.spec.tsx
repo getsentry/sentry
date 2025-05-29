@@ -175,7 +175,7 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can toggle "Enable Seer Features"', async function () {
+  it('can toggle "Show Generative AI Features"', async function () {
     // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
     const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
     render(
@@ -191,7 +191,9 @@ describe('OrganizationSettingsForm', function () {
       method: 'PUT',
     });
 
-    const checkbox = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Show Generative AI Features',
+    });
 
     // Inverted from hideAiFeatures
     expect(checkbox).not.toBeChecked();
@@ -221,7 +223,7 @@ describe('OrganizationSettingsForm', function () {
     });
   });
 
-  it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
+  it('shows hideAiFeatures togglefor DE region', function () {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -243,7 +245,7 @@ describe('OrganizationSettingsForm', function () {
       }
     );
 
-    const toggle = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
-    expect(toggle).toBeDisabled();
+    const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
+    expect(toggle).toBeEnabled();
   });
 });

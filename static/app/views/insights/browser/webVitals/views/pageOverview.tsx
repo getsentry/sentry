@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tabs} from 'sentry/components/core/tabs';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -31,7 +31,7 @@ import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {PerformanceScoreBreakdownChartWidget} from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
+import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -43,7 +43,7 @@ import {
 } from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export enum LandingDisplayField {
+enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }
@@ -56,7 +56,7 @@ function getCurrentTabSelection(selectedTab: any) {
   return LandingDisplayField.OVERVIEW;
 }
 
-export function PageOverview() {
+function PageOverview() {
   const navigate = useNavigate();
   const moduleURL = useModuleURL('vital');
   const organization = useOrganization();

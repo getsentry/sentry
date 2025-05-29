@@ -17,26 +17,31 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.experiments.mn_plus_one_db_span_detector import (
+    MNPlusOneDBSpanExperimentalDetector,
+)
+from sentry.utils.performance_issues.detectors.experiments.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanExperimentalDetector,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
+from .detectors.experiments.n_plus_one_api_calls_detector import (
+    NPlusOneAPICallsExperimentalDetector,
+)
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
-from .detectors.n_plus_one_db_span_detector import (
-    NPlusOneDBSpanDetector,
-    NPlusOneDBSpanDetectorExtended,
-)
+from .detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 
-PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
     "django",
     "flask",
@@ -243,9 +248,10 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
-        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
+        DetectorType.EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
@@ -278,10 +284,25 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
+        DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
+            "concurrency_threshold": 10,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
+            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
+        },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
+        },
+        DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
+            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "minimum_occurrences_of_pattern": 3,
+            "max_sequence_length": 8,
+            "max_allowable_depth": 3,  # This should not be user-configurable, to avoid O(n^2) complexity and load issues.
+            "min_percentage_of_db_spans": 0.05,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
@@ -319,10 +340,12 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
-    NPlusOneDBSpanDetectorExtended,
+    NPlusOneDBSpanExperimentalDetector,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
+    NPlusOneAPICallsExperimentalDetector,
     MNPlusOneDBSpanDetector,
+    MNPlusOneDBSpanExperimentalDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,
@@ -350,7 +373,7 @@ def _detect_performance_problems(
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings, data)
             for detector_class in DETECTOR_CLASSES
-            if detector_class.is_detector_enabled()
+            if detector_class.is_detection_allowed_for_system()
         ]
 
     for detector in detectors:
@@ -377,7 +400,6 @@ def _detect_performance_problems(
         for detector in detectors:
             if all(
                 [
-                    detector.is_creation_allowed_for_system(),
                     detector.is_creation_allowed_for_organization(organization),
                     detector.is_creation_allowed_for_project(project),
                 ]
@@ -386,13 +408,7 @@ def _detect_performance_problems(
             else:
                 continue
 
-    truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
-
-    metrics.incr("performance.performance_issue.pretruncated", len(problems))
-    metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
-
-    # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
-    unique_problems = set(truncated_problems)
+    unique_problems = set(problems)
 
     if len(unique_problems) > 0:
         metrics.incr(

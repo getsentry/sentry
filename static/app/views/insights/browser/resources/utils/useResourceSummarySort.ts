@@ -16,7 +16,7 @@ const SORTABLE_FIELDS = [
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
 ] as const;
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 

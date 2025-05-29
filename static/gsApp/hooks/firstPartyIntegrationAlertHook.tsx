@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
-import {getUserTimezone} from 'sentry/utils/dates';
 import AlertContainer from 'sentry/views/settings/organizationIntegrations/integrationAlertContainer';
 
 import UpsellButton from 'getsentry/components/upsellButton';
@@ -39,9 +38,7 @@ function FirstPartyIntegrationAlertHook({
         t(
           'Your %s integration will be disabled after %s',
           integration.provider.name,
-          moment(integration.gracePeriodEnd)
-            .tz(getUserTimezone())
-            .format('MMMM Do, YYYY h:mm A z')
+          moment(integration.gracePeriodEnd).format('MMMM Do, YYYY h:mm A z')
         ),
         'grace-period',
         integration.provider.key,

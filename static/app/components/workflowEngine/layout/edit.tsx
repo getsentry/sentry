@@ -8,7 +8,7 @@ import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/br
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface WorkflowEngineEditLayoutProps {
+interface WorkflowEngineEditLayoutProps {
   /**
    * The main content for this page
    * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
@@ -24,7 +24,7 @@ function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
-      <StyledHeader>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>
@@ -37,15 +37,11 @@ function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
           </Layout.Title>
         </Layout.HeaderContent>
         <ActionsFromContext />
-      </StyledHeader>
+      </Layout.Header>
       <Body>{children}</Body>
     </Layout.Page>
   );
 }
-
-const StyledHeader = styled(Layout.Header)`
-  background: ${p => p.theme.background};
-`;
 
 const Body = styled('div')`
   display: flex;

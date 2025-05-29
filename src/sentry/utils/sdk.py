@@ -38,8 +38,6 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
-    "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -285,6 +283,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
+    sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -336,9 +335,8 @@ def configure_sdk():
         sentry_saas_transport = None
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            continuous_profiling_auto_start=True,
-        )
+        sdk_options["profile_session_sample_rate"] = settings.SENTRY_PROFILE_SESSION_SAMPLE_RATE
+        sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
@@ -702,6 +700,12 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def set_span_data(data_name, value):
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(

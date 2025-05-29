@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -37,12 +38,19 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
+// Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
+const MDXIgnore = ['**/*.mdx'];
+
 // lint rules that need type information need to go here
 export const typeAwareLintRules = {
   name: 'plugin/typescript-eslint/type-aware-linting',
+  ignores: MDXIgnore,
   rules: {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
+    '@typescript-eslint/no-base-to-string': 'error',
+    '@typescript-eslint/no-for-in-array': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
     '@typescript-eslint/consistent-type-exports': 'error',
@@ -109,6 +117,21 @@ const restrictedImportPaths = [
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
   },
+  {
+    name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsLineChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -152,7 +175,6 @@ export default typescript.config([
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
         projectService: true,
-        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -187,7 +209,8 @@ export default typescript.config([
     '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
-    '**/tests/**/fixtures/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
@@ -316,6 +339,13 @@ export default typescript.config([
           message:
             'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
         },
+        {
+          // Forces us to use type annotations for let variables that are initialized with a type,
+          // except for those declared in for...of or for...in loops.
+          selector:
+            'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
+          message: 'Provide a type annotation',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -433,8 +463,10 @@ export default typescript.config([
       'react-hooks/rules-of-hooks': 'error',
     },
   },
+  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/custom',
+    ignores: MDXIgnore,
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
@@ -478,7 +510,6 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -797,6 +828,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/insights-chart-widgets',
+    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow these imports only in the above widgets directory in `files`
+          paths: restrictedImportPaths.filter(
+            ({name}) =>
+              ![
+                'sentry/views/insights/common/components/insightsLineChartWidget',
+                'sentry/views/insights/common/components/insightsAreaChartWidget',
+                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+              ].includes(name)
+          ),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -914,10 +965,29 @@ export default typescript.config([
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
           ],
           paths: restrictedImportPaths,
         },
       ],
     },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
+    },
+  },
+
+  // MDX Configuration
+  {
+    ...mdx.flat,
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
   },
 ]);

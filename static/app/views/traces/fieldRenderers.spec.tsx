@@ -238,7 +238,7 @@ describe('Renderers', function () {
       const link = screen.getByRole('button');
       expect(link).toBeInTheDocument();
       expect(link).toHaveTextContent('\u2014');
-      expect(link).toBeDisabled();
+      expect(link).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('renders 99+ issues', function () {

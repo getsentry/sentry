@@ -15,7 +15,6 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import QueuesSummaryLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget';
 import QueuesSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -69,7 +68,12 @@ function DestinationSummaryPage() {
                     <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
                   </ToolRibbon>
 
-                  {!onboardingProject && (
+                  {onboardingProject ? (
+                    <LegacyOnboarding
+                      organization={organization}
+                      project={onboardingProject}
+                    />
+                  ) : (
                     <ReadoutRibbon>
                       <MetricReadout
                         title={t('Avg Time In Queue')}
@@ -105,22 +109,12 @@ function DestinationSummaryPage() {
                         title={t('Time Spent')}
                         value={data[0]?.['sum(span.duration)']}
                         unit={DurationUnit.MILLISECOND}
-                        tooltip={getTimeSpentExplanation(
-                          data[0]?.['time_spent_percentage(span.duration)'] || 0
-                        )}
                         isLoading={isPending}
                       />
                     </ReadoutRibbon>
                   )}
                 </HeaderContainer>
               </ModuleLayout.Full>
-
-              {onboardingProject && (
-                <LegacyOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                />
-              )}
 
               {!onboardingProject && (
                 <Fragment>

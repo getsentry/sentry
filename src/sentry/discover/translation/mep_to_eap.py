@@ -26,15 +26,16 @@ def column_switcheroo(term):
     if parsed_mri:
         term = parsed_mri.name
 
-    swapped_term = term
-    if term == "transaction.duration":
-        swapped_term = "span.duration"
+    column_swap_map = {
+        "transaction.duration": "span.duration",
+        "http.method": "transaction.method",
+        "title": "transaction",
+        "url": "request.url",
+        "http.url": "request.url",
+        "transaction.status": "trace.status",
+    }
 
-    if term == "http.method":
-        swapped_term = "transaction.method"
-
-    if term == "title":
-        swapped_term = "transaction"
+    swapped_term = column_swap_map.get(term, term)
 
     return swapped_term, swapped_term != term
 

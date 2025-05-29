@@ -20,8 +20,15 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.services.repository.model import RpcRepository
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
+    PRCommentWorkflow,
+)
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -29,7 +36,10 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationProviderError,
 )
+from sentry.snuba.referrer import Referrer
+from sentry.types.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
+from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -100,7 +110,7 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
     @property
     def integration_name(self) -> str:
-        return "gitlab"
+        return IntegrationProviderSlug.GITLAB
 
     def get_client(self) -> GitLabApiClient:
         try:
@@ -160,6 +170,18 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.code == 429:
+            metrics.incr(
+                metrics_base.format(integration=self.integration_name, key="error"),
+                tags={"type": "rate_limited_error"},
+            )
+            return True
+
+        return False
+
     # Gitlab only functions
 
     def get_group_id(self):
@@ -178,6 +200,62 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         resp = client.search_project_issues(project_id, query, iids)
         assert isinstance(resp, list)
         return resp
+
+    def get_pr_comment_workflow(self) -> PRCommentWorkflow:
+        return GitlabPRCommentWorkflow(integration=self)
+
+
+MERGED_PR_COMMENT_BODY_TEMPLATE = """\
+## Suspect Issues
+This merge request was deployed and Sentry observed the following issues:
+
+{issue_list}"""
+
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+
+
+class GitlabPRCommentWorkflow(PRCommentWorkflow):
+    organization_option_key = "sentry:gitlab_pr_bot"
+    referrer = Referrer.GITLAB_PR_COMMENT_BOT
+    referrer_id = GITLAB_PR_BOT_REFERRER
+
+    @staticmethod
+    def format_comment_subtitle(subtitle: str | None) -> str:
+        if subtitle is None:
+            return ""
+        return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+    @staticmethod
+    def format_comment_url(url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    def get_comment_body(self, issue_ids: list[int]) -> str:
+        issues = Group.objects.filter(id__in=issue_ids).order_by("id").all()
+
+        issue_list = "\n".join(
+            [
+                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                    title=issue.title,
+                    subtitle=self.format_comment_subtitle(issue.culprit),
+                    url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                )
+                for issue in issues
+            ]
+        )
+
+        return MERGED_PR_COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
+
+    def get_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr: PullRequest,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        return {
+            "body": comment_body,
+        }
 
 
 class InstallationForm(forms.Form):
@@ -309,7 +387,7 @@ class InstallationGuideView(PipelineView):
 
 
 class GitlabIntegrationProvider(IntegrationProvider):
-    key = "gitlab"
+    key = IntegrationProviderSlug.GITLAB.value
     name = "GitLab"
     metadata = metadata
     integration_cls = GitlabIntegration
@@ -346,7 +424,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
         return NestedPipelineView(
             bind_key="identity",
-            provider_key="gitlab",
+            provider_key=IntegrationProviderSlug.GITLAB.value,
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
@@ -437,7 +515,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {
-                "type": "gitlab",
+                "type": IntegrationProviderSlug.GITLAB.value,
                 "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,

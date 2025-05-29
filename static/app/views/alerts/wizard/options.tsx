@@ -89,14 +89,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  * for adding feature badges or other call-outs for newer alert types.
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
-  eap_metrics: (
-    <FeatureBadge
-      type="beta"
-      tooltipProps={{
-        title: t('This feature is available for early adopters and the UX may change'),
-      }}
-    />
-  ),
   uptime_monitor: <FeatureBadge type="new" />,
 };
 
@@ -328,7 +320,7 @@ function transactionSupportedTags(org: Organization) {
 
 // Some data sets support all tags except some. For these cases, define the
 // omissions only
-export function datasetOmittedTags(
+function datasetOmittedTags(
   dataset: Dataset,
   org: Organization
 ):

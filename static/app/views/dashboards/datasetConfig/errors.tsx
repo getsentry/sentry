@@ -135,11 +135,7 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(
-  field: string,
-  meta: MetaType,
-  widget?: Widget
-) {
+function getCustomEventsFieldRenderer(field: string, meta: MetaType, widget?: Widget) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -151,7 +147,7 @@ export function getCustomEventsFieldRenderer(
   return getFieldRenderer(field, meta, false);
 }
 
-export function getEventsRequest(
+function getEventsRequest(
   api: Client,
   query: WidgetQuery,
   organization: Organization,
@@ -192,7 +188,7 @@ export function getEventsRequest(
 }
 
 // The y-axis options are a strict set of available aggregates
-export function filterYAxisOptions(_displayType: DisplayType) {
+function filterYAxisOptions(_displayType: DisplayType) {
   return (option: FieldValueOption) => {
     return ERRORS_AGGREGATION_FUNCTIONS.includes(
       option.value.meta.name as AggregationKey

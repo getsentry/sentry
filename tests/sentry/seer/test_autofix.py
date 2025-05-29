@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 import orjson
@@ -9,6 +9,7 @@ from sentry.seer.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
     _convert_profile_to_execution_tree,
+    _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _respond_with_error,
@@ -1166,6 +1167,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
+@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1177,7 +1179,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix._call_autofix")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_event_id(
-        self, mock_check_autofix_status, mock_call, mock_get_trace, mock_get_profile
+        self,
+        mock_check_autofix_status,
+        mock_call,
+        mock_get_trace,
+        mock_get_profile,
+        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
@@ -1210,6 +1217,11 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         assert response.status_code == 202
         assert response.data["run_id"] == "test-run-id"
 
+        # Verify the field is updated in the database
+        group.refresh_from_db()
+        assert group.seer_autofix_last_triggered is not None
+        assert isinstance(group.seer_autofix_last_triggered, datetime)
+
         # Verify the function calls
         mock_call.assert_called_once()
         call_kwargs = mock_call.call_args.kwargs
@@ -1230,7 +1242,11 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
     @patch("sentry.models.Group.get_latest_event")
     @patch("sentry.seer.autofix._get_serialized_event")
     def test_trigger_autofix_without_event_id_no_events(
-        self, mock_get_serialized_event, mock_get_latest_event, mock_get_recommended_event
+        self,
+        mock_get_serialized_event,
+        mock_get_latest_event,
+        mock_get_recommended_event,
+        mock_get_seer_org_acknowledgement,
     ):
         """Tests error handling when no event can be found for the group."""
         mock_get_recommended_event.return_value = None
@@ -1246,6 +1262,46 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert (
             "Could not find an event for the issue, please try providing an event_id"
+            in response.data["detail"]
+        )
+        # Verify _get_serialized_event was not called since we have no event
+        mock_get_serialized_event.assert_not_called()
+
+
+@requires_snuba
+@pytest.mark.django_db
+@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=False)
+class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+
+    @patch("sentry.models.Group.get_recommended_event_for_environments")
+    @patch("sentry.models.Group.get_latest_event")
+    @patch("sentry.seer.autofix._get_serialized_event")
+    def test_trigger_autofix_without_org_acknowledgement(
+        self,
+        mock_get_serialized_event,
+        mock_get_latest_event,
+        mock_get_recommended_event,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Tests error handling when no event can be found for the group."""
+        mock_get_recommended_event.return_value = None
+        mock_get_latest_event.return_value = None
+        # We should never reach _get_serialized_event since we have no event
+        mock_get_serialized_event.return_value = (None, None)
+
+        group = self.create_group()
+        user = Mock(spec=AnonymousUser)
+
+        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+
+        assert response.status_code == 403
+        assert (
+            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
             in response.data["detail"]
         )
         # Verify _get_serialized_event was not called since we have no event
@@ -1272,12 +1328,15 @@ class TestCallAutofix(TestCase):
         group.id = 101112
         group.title = "Test Group"
         group.qualified_short_id = "TEST-123"
+        now = datetime.now()
+        group.first_seen = now
 
         # Test data
         repos = [{"name": "test-repo"}]
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
+        logs = {"logs": [{"message": "test-log"}]}
         instruction = "Test instruction"
 
         # Call the function with keyword arguments
@@ -1288,6 +1347,7 @@ class TestCallAutofix(TestCase):
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
+            logs=logs,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
@@ -1309,6 +1369,7 @@ class TestCallAutofix(TestCase):
         assert body["issue"]["id"] == 101112
         assert body["issue"]["title"] == "Test Group"
         assert body["issue"]["short_id"] == "TEST-123"
+        assert body["issue"]["first_seen"] == now.isoformat()
         assert body["issue"]["events"] == [serialized_event]
         assert body["profile"] == profile
         assert body["trace_tree"] == trace_tree
@@ -1529,3 +1590,69 @@ class TestBuildSpansTree(TestCase):
         assert root["children"][0]["span_id"] == "slow-child"
         assert root["children"][1]["span_id"] == "medium-child"
         assert root["children"][2]["span_id"] == "fast-child"
+
+
+class TestGetLogsForEvent(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.trace_id = "1234567890abcdef1234567890abcdef"
+        self.now = before_now(minutes=0)
+
+    @patch("sentry.snuba.ourlogs.query")
+    def test_merging_consecutive_logs(self, mock_query):
+        # Simulate logs with identical message/severity in sequence
+        dt = self.now
+        logs = [
+            {
+                "project.id": self.project.id,
+                "timestamp": (dt - timedelta(seconds=3)).isoformat(),
+                "message": "foo",
+                "severity": "info",
+            },
+            {
+                "project.id": self.project.id,
+                "timestamp": (dt - timedelta(seconds=2)).isoformat(),
+                "message": "foo",
+                "severity": "info",
+            },
+            {
+                "project.id": self.project.id,
+                "timestamp": (dt - timedelta(seconds=1)).isoformat(),
+                "message": "bar",
+                "severity": "error",
+            },
+            {
+                "project.id": self.project.id,
+                "timestamp": dt.isoformat(),
+                "message": "foo",
+                "severity": "info",
+            },
+        ]
+        mock_query.return_value = {"data": logs}
+        # Use a mock event with datetime at dt
+        event = Mock()
+        event.trace_id = self.trace_id
+        event.datetime = dt
+        project = self.project
+        # Patch project.organization to avoid DB hits
+        project.organization = self.organization
+        result = _get_logs_for_event(event, project)
+        assert result is not None
+        merged = result["logs"]
+        # The first two "foo" logs should be merged (consecutive), the last "foo" is not consecutive
+        foo_merged = [
+            log for log in merged if log["message"] == "foo" and log.get("consecutive_count") == 2
+        ]
+        foo_single = [
+            log for log in merged if log["message"] == "foo" and "consecutive_count" not in log
+        ]
+        bar = [log for log in merged if log["message"] == "bar"]
+        assert len(foo_merged) == 1
+        assert len(foo_single) == 1
+        assert len(bar) == 1
+        # Order: merged foo, bar, single foo
+        assert merged[0]["message"] == "foo" and merged[0]["consecutive_count"] == 2
+        assert merged[1]["message"] == "bar"
+        assert merged[2]["message"] == "foo" and "consecutive_count" not in merged[2]

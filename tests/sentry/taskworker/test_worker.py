@@ -14,6 +14,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 from sentry_sdk.crons import MonitorStatus
+from usageaccountant import UsageUnit
 
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import TaskWorker
@@ -23,6 +24,7 @@ from sentry.taskworker.workerchild import (
     child_process,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.redis import redis_clusters
 
 SIMPLE_TASK = TaskActivation(
@@ -295,6 +297,68 @@ def test_child_process_complete(mock_capture_checkin) -> None:
     assert result.task_id == SIMPLE_TASK.id
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
     assert mock_capture_checkin.call_count == 0
+
+
+@pytest.mark.django_db
+def test_child_process_remove_start_time_kwargs() -> None:
+    activation = TaskActivation(
+        id="6789",
+        taskname="examples.will_retry",
+        namespace="examples",
+        parameters='{"args": ["stuff"], "kwargs": {"__start_time": 123}}',
+        processing_deadline_duration=100000,
+    )
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(activation)
+    child_process(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == activation.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.usage_accountant.record")
+def test_child_process_complete_record_usage(mock_record: mock.Mock) -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(SIMPLE_TASK)
+
+    with override_options({"shared_resources_accounting_enabled": ["taskworker"]}):
+        child_process(
+            todo,
+            processed,
+            shutdown,
+            max_task_count=1,
+            processing_pool_name="test",
+            process_type="fork",
+        )
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == SIMPLE_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+    assert mock_record.call_count == 1
+    mock_record.assert_called_with(
+        resource_id="taskworker",
+        app_feature="examples",
+        amount=mock.ANY,
+        usage_type=UsageUnit.MILLISECONDS,
+    )
 
 
 @pytest.mark.django_db

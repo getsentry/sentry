@@ -247,7 +247,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
                 args=[self.organization.slug, group.id, group_event.event_id],
             )
         )
-        assert data["data"]["event"]["issue_url"] == absolute_uri(f"/api/0/issues/{group.id}/")
+        assert data["data"]["event"]["issue_url"] == absolute_uri(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/"
+        )
         assert data["data"]["event"]["issue_id"] == str(group.id)
 
         assert kwargs["headers"].keys() >= {
@@ -434,7 +436,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             )
         )
         assert data["data"]["event"]["issue_url"] == absolute_uri(
-            f"/api/0/issues/{group_event.group.id}/"
+            f"/api/0/organizations/{self.organization.slug}/issues/{group_event.group.id}/"
         )
         assert data["data"]["event"]["issue_id"] == str(group_event.group.id)
         assert data["data"]["event"]["occurrence"] == convert_dict_key_case(

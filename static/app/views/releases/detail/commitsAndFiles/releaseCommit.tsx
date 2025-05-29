@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -25,7 +25,7 @@ function formatCommitMessage(message: string | null) {
   return message.split(/\n/)[0];
 }
 
-export interface ReleaseCommitProps {
+interface ReleaseCommitProps {
   commit: Commit;
 }
 

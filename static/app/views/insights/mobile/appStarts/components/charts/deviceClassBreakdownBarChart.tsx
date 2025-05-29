@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -12,13 +11,10 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   PRIMARY_RELEASE_COLOR,
@@ -26,13 +22,13 @@ import {
 } from 'sentry/views/insights/colors';
 import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -51,8 +47,8 @@ function DeviceClassBreakdownBarChart({
   additionalFilters,
 }: DeviceClassBreakdownBarChartProps) {
   const theme = useTheme();
-  const pageFilter = usePageFilters();
   const location = useLocation();
+  const useEap = useInsightsEap();
   const {query: locationQuery} = location;
   const {
     primaryRelease,
@@ -75,6 +71,9 @@ function DeviceClassBreakdownBarChart({
   if (searchQuery) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
+  if (useEap) {
+    query.addFilterValue('is_transaction', 'true');
+  }
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
@@ -82,32 +81,20 @@ function DeviceClassBreakdownBarChart({
     data: startupDataByDeviceClass,
     isPending,
     isError,
-  } = useTableQuery({
-    eventView: EventView.fromNewQueryWithPageFilters(
-      {
-        name: '',
-        fields: [
-          startType === COLD_START_TYPE
-            ? 'avg(measurements.app_start_cold)'
-            : 'avg(measurements.app_start_warm)',
-          'device.class',
-          'release',
-        ],
-        yAxis: YAXES.map(val => YAXIS_COLUMNS[val]),
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      pageFilter.selection
-    ),
-    enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-startup-bar-chart',
-    initialData: {data: []},
-  });
+  } = useMetrics(
+    {
+      enabled: !isReleasesLoading,
+      search: queryString,
+      fields: [
+        startType === COLD_START_TYPE
+          ? 'avg(measurements.app_start_cold)'
+          : 'avg(measurements.app_start_warm)',
+        'device.class',
+        'release',
+      ],
+    },
+    'api.insights.app-starts.mobile-startup-bar-chart'
+  );
 
   const transformedData = transformDeviceClassEvents({
     data: startupDataByDeviceClass,

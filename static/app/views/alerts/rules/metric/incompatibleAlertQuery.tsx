@@ -76,7 +76,7 @@ function incompatibleYAxis(eventView: EventView): boolean {
   return invalidFunction || invalidParameter;
 }
 
-export function checkMetricAlertCompatiablity(
+function checkMetricAlertCompatiablity(
   eventView: EventView
 ): IncompatibleQueryProperties {
   // Must have exactly one project selected and not -1 (all projects)

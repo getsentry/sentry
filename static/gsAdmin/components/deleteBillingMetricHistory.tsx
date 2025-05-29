@@ -6,7 +6,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -101,7 +100,7 @@ function DeleteBillingMetricHistoryModal({
       <Body>
         <div>Delete billing metric history for a specific data category.</div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel={t('Delete')} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel={'Delete'} onCancel={closeModal}>
           <SelectField
             inline={false}
             stacked

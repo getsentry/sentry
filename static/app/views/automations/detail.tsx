@@ -3,7 +3,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -16,9 +17,11 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 function HistoryAndConnectedMonitors() {
   return (
@@ -35,7 +38,7 @@ function HistoryAndConnectedMonitors() {
 
 function Details() {
   return (
-    <div>
+    <Flex column gap={space(3)}>
       <Flex column gap={space(1)}>
         <SectionHeading>{t('Last Triggered')}</SectionHeading>
         <span>
@@ -75,16 +78,22 @@ function Details() {
           <KeyValueTableRow keyName={t('Team')} value="Platform" />
         </KeyValueTable>
       </Flex>
-    </div>
+    </Flex>
   );
 }
 
 export default function AutomationDetail() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
     <SentryDocumentTitle title={t('Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
+      <BreadcrumbsProvider
+        crumb={{
+          label: t('Automations'),
+          to: makeAutomationBasePathname(organization.slug),
+        }}
+      >
         <ActionsProvider actions={<Actions />}>
           <DetailLayout>
             <DetailLayout.Main>
@@ -116,7 +125,7 @@ function Actions() {
   );
 }
 
-export const SectionHeading = styled('h4')`
+const SectionHeading = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;

@@ -4,14 +4,15 @@ import logging
 import random
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, TypedDict
-from uuid import uuid4
+from typing import Any
+from uuid import UUID, uuid4
 
 import jsonschema
 
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -100,8 +101,10 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     """
     The issue platform has slightly different requirements than ingest for event schema,
     so we need to massage the data a bit.
+    * event["timestamp"] is converted to a UTC ISO string.
     * event["tags"] is coerced to a dict.
-    * If event["user"]["email"] is missing we try to set using the feedback context.
+    * If user or replay context is missing we try to set it using the feedback context.
+    * level defaults to "info" and environment defaults to "production".
 
     Returns:
         A dict[str, Any] conforming to sentry.issues.json_schemas.EVENT_PAYLOAD_SCHEMA.
@@ -129,28 +132,31 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
 
-    ret_event["environment"] = event_data.get("environment", "production")
+    environment = event_data.get("environment")
+    ret_event["environment"] = environment or "production"
+
+    release_value = event_data.get("release")
+    if release_value:
+        ret_event["release"] = release_value
+
     if event_data.get("sdk"):
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
+    if "name" in ret_event["user"]:
+        del ret_event["user"]["name"]
 
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
+    if "isStaff" in ret_event["user"]:
+        del ret_event["user"]["isStaff"]
 
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
+    if "id" in ret_event["user"]:
+        ret_event["user"]["id"] = str(ret_event["user"]["id"])
 
     # If no user email was provided specify the contact-email as the user-email.
     feedback_obj = event_data.get("contexts", {}).get("feedback", {})
-    contact_email = feedback_obj.get("contact_email")
-    if not ret_event["user"].get("email", ""):
-        ret_event["user"]["email"] = contact_email
+    if "email" not in ret_event["user"]:
+        ret_event["user"]["email"] = feedback_obj.get("contact_email", "")
 
     # Force `tags` to be a dict if it's initially a list,
     # since we can't guarantee its type here.
@@ -196,32 +202,15 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
+        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
+                "platform": project.platform,
                 "reason": "missing_context",
                 "referrer": source.value,
             },
         )
-        # Temporary log for debugging.
-        if random.random() < 0.1:
-            project = Project.objects.get_from_cache(id=project_id)
-            contexts = event.get("contexts") or {}
-            feedback = contexts.get("feedback") or {}
-            feedback_msg = feedback.get("message")
-            logger.info(
-                "Filtered missing context or message.",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": project.organization_id,
-                    "has_contexts": bool(contexts),
-                    "has_feedback": bool(feedback),
-                    "event_type": event.get("type"),
-                    "feedback_message": feedback_msg,
-                    "platform": project.platform,
-                    "referrer": source.value,
-                },
-            )
         return True, "Missing Feedback Context"
 
     message = event["contexts"]["feedback"]["message"]
@@ -237,21 +226,12 @@ def should_filter_feedback(
         return True, "Sent in Unreal Unattended Mode"
 
     if message.strip() == "":
+        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
-                "reason": "empty",
-                "referrer": source.value,
-            },
-        )
-        # Temporary log for debugging.
-        project = Project.objects.get_from_cache(id=project_id)
-        logger.info(
-            "Filtered empty feedback message.",
-            extra={
-                "project_id": project_id,
-                "organization_id": project.organization_id,
                 "platform": project.platform,
+                "reason": "empty",
                 "referrer": source.value,
             },
         )
@@ -335,6 +315,16 @@ def create_feedback_issue(
             sample_rate=1.0,
         )
 
+    # Removes associated_event_id from event if it is invalid
+    associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
+
+    if associated_event_id:
+        try:
+            UUID(str(associated_event_id))
+        except ValueError:
+            associated_event_id = None
+            event["contexts"]["feedback"].pop("associated_event_id", "")
+
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
@@ -375,12 +365,14 @@ def create_feedback_issue(
         event_fixed["tags"]["user.email"] = user_email
 
     # add the associated_event_id and has_linked_error to tags
-    associated_event_id = get_path(event_data, "contexts", "feedback", "associated_event_id")
     if associated_event_id:
         event_fixed["tags"]["associated_event_id"] = associated_event_id
         event_fixed["tags"]["has_linked_error"] = "true"
     else:
         event_fixed["tags"]["has_linked_error"] = "false"
+
+    if event_fixed.get("release"):
+        event_fixed["tags"]["release"] = event_fixed["release"]
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
@@ -451,16 +443,8 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
 ###########
 
 
-class UserReportShimDict(TypedDict):
-    name: str
-    email: str
-    comments: str
-    event_id: str
-    level: str
-
-
 def shim_to_feedback(
-    report: UserReportShimDict,
+    report: UserReportDict,
     event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
@@ -491,7 +475,7 @@ def shim_to_feedback(
             "contexts": {
                 "feedback": {
                     "name": report.get("name", ""),
-                    "contact_email": report["email"],
+                    "contact_email": report.get("email", ""),
                     "message": report["comments"],
                 },
             },

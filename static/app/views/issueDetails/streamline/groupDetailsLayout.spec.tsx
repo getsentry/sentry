@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -87,12 +88,15 @@ describe('GroupDetailsLayout', () => {
       body: {committers: []},
     });
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+          userHasAcknowledged: false,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',

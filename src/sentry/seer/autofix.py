@@ -8,17 +8,21 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.snuba import ourlogs
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
@@ -29,6 +33,114 @@ logger = logging.getLogger(__name__)
 
 
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
+
+
+def _get_logs_for_event(
+    event: Event | GroupEvent, project: Project
+) -> dict[str, list[dict]] | None:
+    trace_id = event.trace_id
+    if not trace_id:
+        return None
+
+    projects_qs = Project.objects.filter(
+        organization=project.organization, status=ObjectStatus.ACTIVE
+    )
+    projects = list(projects_qs)
+    project_id_to_slug = dict(projects_qs.values_list("id", "slug"))
+    start = event.datetime - timedelta(days=1)
+    end = event.datetime + timedelta(days=1)
+
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=project.organization,
+    )
+
+    results: EventsResponse = ourlogs.query(
+        selected_columns=[
+            "project.id",
+            "timestamp",
+            "message",
+            "severity",
+            "code.file.path",
+            "code.function.name",
+        ],
+        query=f"trace:{trace_id}",
+        snuba_params=snuba_params,
+        orderby=["-timestamp"],
+        offset=0,
+        limit=100,
+        referrer=Referrer.API_GROUP_AI_AUTOFIX,
+    )
+    data = results["data"]
+
+    # Convert log timestamps to datetime and sort by timestamp ascending (oldest first)
+    for log in data:
+        ts = log.get("timestamp")
+        if ts:
+            try:
+                log["_parsed_ts"] = datetime.fromisoformat(ts)
+            except Exception:
+                log["_parsed_ts"] = None
+        else:
+            log["_parsed_ts"] = None
+
+    # Sort logs by timestamp ascending (oldest first)
+    data.sort(key=lambda x: x.get("_parsed_ts") or datetime.min)
+
+    # Find the index of the log closest to the event timestamp (faster with min and enumerate)
+    closest_idx = 0
+    if data:
+        valid_logs = [(i, log) for i, log in enumerate(data) if log.get("_parsed_ts") is not None]
+        if valid_logs:
+            closest_idx, _ = min(
+                (
+                    (i, abs((log["_parsed_ts"] - event.datetime).total_seconds()))
+                    for i, log in valid_logs
+                ),
+                key=lambda x: x[1],
+                default=(0, None),
+            )
+
+    # Select up to 80 logs before and up to 20 logs after (including the closest)
+    start_idx = max(0, closest_idx - 80)
+    end_idx = min(len(data), closest_idx + 21)
+    window = data[start_idx:end_idx]
+
+    # Merge and count consecutive logs with identical message and severity
+    merged_logs = []
+    prev_log = None
+    count = 0
+    for log in window:
+        project_id = log.get("project.id")
+        log["project_slug"] = project_id_to_slug.get(project_id) if project_id else None
+        log["code_file_path"] = log.get("code.file.path")
+        log["code_function_name"] = log.get("code.function.name")
+        log.pop("code.file.path", None)
+        log.pop("code.function.name", None)
+        log.pop("_parsed_ts", None)
+        log.pop("project.id", None)
+
+        msg = log.get("message")
+        sev = log.get("severity")
+        if prev_log and msg == prev_log["message"] and sev == prev_log["severity"]:
+            count += 1
+        else:
+            if prev_log:
+                if count > 1:
+                    prev_log["consecutive_count"] = count
+                merged_logs.append(prev_log)
+            prev_log = log.copy()
+            count = 1
+    if prev_log:
+        if count > 1:
+            prev_log["consecutive_count"] = count
+        merged_logs.append(prev_log)
+
+    return {
+        "logs": merged_logs,
+    }
 
 
 def build_spans_tree(spans_data: list[dict]) -> list[dict]:
@@ -674,6 +786,7 @@ def _call_autofix(
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
+    logs: dict[str, list[dict]] | None,
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
@@ -689,10 +802,12 @@ def _call_autofix(
                 "id": group.id,
                 "title": group.title,
                 "short_id": group.qualified_short_id,
+                "first_seen": group.first_seen.isoformat(),
                 "events": [serialized_event],
             },
             "profile": profile,
             "trace_tree": trace_tree,
+            "logs": logs,
             "instruction": instruction,
             "timeout_secs": timeout_secs,
             "last_updated": datetime.now().isoformat(),
@@ -735,6 +850,23 @@ def trigger_autofix(
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
 ):
+    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
+        return _respond_with_error("AI Autofix is not enabled for this project.", 403)
+
+    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+        return _respond_with_error(
+            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
+            403,
+        )
+
+    # check billing quota for autofix
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        return _respond_with_error("No budget for Seer Autofix.", 402)
+
     if event_id is None:
         event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
         if not event:
@@ -748,12 +880,6 @@ def trigger_autofix(
                 status=400,
             )
         event_id = event.event_id
-
-    if not (
-        features.has("organizations:gen-ai-features", group.organization, actor=user)
-        and group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
-    ):
-        return _respond_with_error("AI Autofix is not enabled for this project.", 403)
 
     # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
     serialized_event, event = _get_serialized_event(event_id, group, user)
@@ -777,6 +903,13 @@ def trigger_autofix(
         logger.exception("Failed to get profile from trace tree")
         profile = None
 
+    # get logs for this event
+    try:
+        logs = _get_logs_for_event(event, group.project) if event else None
+    except Exception:
+        logger.exception("Failed to get logs for event")
+        logs = None
+
     try:
         run_id = _call_autofix(
             user=user,
@@ -785,6 +918,7 @@ def trigger_autofix(
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
+            logs=logs,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url=pr_to_comment_on_url,
@@ -799,6 +933,13 @@ def trigger_autofix(
         )
 
     check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
+
+    group.update(seer_autofix_last_triggered=timezone.now())
+
+    # log billing event for seer autofix
+    quotas.backend.record_seer_run(
+        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+    )
 
     return Response(
         {

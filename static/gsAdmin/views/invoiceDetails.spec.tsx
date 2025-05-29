@@ -68,7 +68,10 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -99,7 +102,10 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -131,7 +137,10 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -171,7 +180,10 @@ describe('InvoiceDetails', function () {
         }),
       });
 
-      render(<InvoiceDetails />, {router});
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -202,7 +214,10 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})

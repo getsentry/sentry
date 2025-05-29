@@ -7,14 +7,14 @@ from django.urls import reverse
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationProviderSlug
 from sentry.testutils.asserts import assert_middleware_metrics
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
 class GitlabSearchTest(GitLabTestCase):
-    provider = "gitlab"
+    provider = IntegrationProviderSlug.GITLAB.value
 
     def setUp(self):
         super().setUp()

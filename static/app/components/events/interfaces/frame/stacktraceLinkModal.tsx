@@ -128,6 +128,9 @@ function StacktraceLinkModal({
         data: {
           sourceUrl: sourceCodeInput,
           stackPath: filename,
+          module,
+          absPath,
+          platform,
         },
       });
 

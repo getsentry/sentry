@@ -67,7 +67,7 @@ class SentryMigrationExecutor(MigrationExecutor):
         See: getsentry/db/router.py#L38-L53
 
         - FieldOperation, ModelOperation operations are bound to a model
-        - RunSQL, RunPython need to provide hints['tables']
+        - SafeRunSQL and RunPython need to provide hints['tables']
         """
 
         app_config = apps.get_app_config(migration.app_label)
@@ -95,7 +95,7 @@ class SentryMigrationExecutor(MigrationExecutor):
                     failed_ops.extend(_check_operations(operation.database_operations))
                     continue
                 else:
-                    # Check all the other operation types (RunSQL, RunPython, unknown)
+                    # Check all the other operation types (SafeRunSQL, RunPython, unknown)
                     if operation.hints.get("tables"):
                         continue
                     else:

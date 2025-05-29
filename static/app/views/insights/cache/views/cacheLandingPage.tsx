@@ -35,6 +35,7 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -103,7 +104,6 @@ export function CacheLandingPage() {
         'epm()',
         `${CACHE_MISS_RATE}()`,
         'sum(span.self_time)',
-        'time_spent_percentage()',
         `avg(${CACHE_ITEM_SIZE})`,
       ],
       sorts: [sort],
@@ -230,25 +230,6 @@ function PageWithProviders() {
 
 export default PageWithProviders;
 
-const combineMeta = (
-  meta1?: EventsMetaType,
-  meta2?: EventsMetaType
-): EventsMetaType | undefined => {
-  if (!meta1 && !meta2) {
-    return undefined;
-  }
-  if (!meta1) {
-    return meta2;
-  }
-  if (!meta2) {
-    return meta1;
-  }
-  return {
-    fields: {...meta1.fields, ...meta2.fields},
-    units: {...meta1.units, ...meta2.units},
-  };
-};
-
 // TODO - this won't be needed once we migrate to EAP
 const addCustomMeta = (meta?: EventsMetaType) => {
   if (meta?.fields) {
@@ -263,7 +244,7 @@ const addCustomMeta = (meta?: EventsMetaType) => {
 };
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

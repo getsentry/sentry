@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:46.222069+00:00'
+created: '2025-04-25T21:22:16.557923+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,756 +10,756 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "com.android.internal.os.ZygoteInit"
             filename (module takes precedence)
               "zygoteinit.java"
             function*
               "main"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
             filename (module takes precedence)
               "zygoteinit.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.app.ActivityThread"
             filename (module takes precedence)
               "activitythread.java"
             function*
               "main"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.os.Looper"
             filename (module takes precedence)
               "looper.java"
             function*
               "loop"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.os.Handler"
             filename (module takes precedence)
               "handler.java"
             function*
               "dispatchMessage"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.os.Handler"
             filename (module takes precedence)
               "handler.java"
             function*
               "handleCallback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.Choreographer$FrameDisplayEventReceiver"
             filename (module takes precedence)
               "choreographer.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.Choreographer"
             filename (module takes precedence)
               "choreographer.java"
             function*
               "doFrame"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.Choreographer"
             filename (module takes precedence)
               "choreographer.java"
             function*
               "doCallbacks"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.Choreographer$CallbackRecord"
             filename (module takes precedence)
               "choreographer.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewRootImpl$TraversalRunnable"
             filename (module takes precedence)
               "viewrootimpl.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
               "viewrootimpl.java"
             function*
               "doTraversal"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
               "viewrootimpl.java"
             function*
               "performTraversals"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewRootImpl"
             filename (module takes precedence)
               "viewrootimpl.java"
             function*
               "performLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "layoutVertical"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.LinearLayout"
             filename (module takes precedence)
               "linearlayout.java"
             function*
               "setChildFrame"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.widget.FrameLayout"
             filename (module takes precedence)
               "framelayout.java"
             function*
               "layoutChildren"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.ViewGroup"
             filename (module takes precedence)
               "viewgroup.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "android.view.View"
             filename (module takes precedence)
               "view.java"
             function*
               "layout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
               "sourcefile"
             function*
               "onLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
               "sourcefile"
             function*
               "dispatchLayout"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
               "sourcefile"
             function*
               "dispatchLayoutStep1"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
               "sourcefile"
             function*
               "processAdapterUpdatesAndSetAnimationFlags"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.AdapterHelper"
             filename (module takes precedence)
               "sourcefile"
             function*
               "consumeUpdatesInOnePass"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView$6"
             filename (module takes precedence)
               "sourcefile"
             function*
               "offsetPositionsForAdd"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView"
             filename (module takes precedence)
               "sourcefile"
             function*
               "offsetPositionRecordsForInsert"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.ChildHelper"
             filename (module takes precedence)
               "sourcefile"
             function*
               "getUnfilteredChildAt"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "androidx.recyclerview.widget.RecyclerView$5"
             filename (module takes precedence)
@@ -772,14 +772,14 @@ app:
           "Application Not Responding for at least <int> ms."
       threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "getStackTrace"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "dalvik.system.VMStack"
             filename (module takes precedence)

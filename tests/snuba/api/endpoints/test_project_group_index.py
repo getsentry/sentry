@@ -32,7 +32,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import Feature, parse_link_header, with_feature
+from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1507,7 +1507,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
             assert not GroupHash.objects.filter(group_id=g.id).exists()
 
-        # XXX: I do not understand why this update is necessary for the tests to function
+        # This is necessary before calling the delete task
         Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
 
     def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
@@ -1521,9 +1521,17 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert Group.objects.get(id=g.id).status != GroupStatus.PENDING_DELETION
             assert GroupHash.objects.filter(group_id=g.id).exists()
 
+    def assert_audit_log_entry(self, groups: Sequence[Group], mock_record_audit_log: Mock) -> None:
+        calls = mock_record_audit_log.call_args_list
+        assert len(calls) > 0
+        for i, group in enumerate(groups):
+            assert calls[i].kwargs["event"].actor_user_id == self.user.id
+            assert calls[i].kwargs["event"].data["issue_id"] == group.id
+
     @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4()}
+    @patch("sentry.utils.audit.log_service.record_audit_log")
+    def test_delete_by_id(self, mock_record_audit_log, mock_eventstream):
+        eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         groups = self.create_groups(
@@ -1563,6 +1571,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             call(eventstream_state),
         ]
 
+        self.assert_audit_log_entry([group1, group2], mock_record_audit_log)
+
         assert response.status_code == 204
 
         self.assert_groups_are_gone([group1, group2])
@@ -1570,7 +1580,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4()}
+        eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1, group2 = self.create_groups(
@@ -1583,14 +1593,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}"
 
-        response = self.client.delete(url, format="json")
-
-        # We do not support issue platform deletions
-        assert response.status_code == 400
-        self.assert_groups_not_deleted([group1, group2])
-
-        # We are allowed to delete the groups with the feature flag enabled
-        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+        with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
             self.assert_groups_are_gone([group1, group2])
@@ -1628,13 +1631,29 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
-        response = self.client.delete(url, format="json")
-        # We do not support issue platform deletions
-        assert response.status_code == 400
-        self.assert_groups_not_deleted(groups)
-
-        # We are allowed to delete the groups with the feature flag enabled
-        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+        with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
             self.assert_groups_are_gone(groups)
+
+    @patch("sentry.api.helpers.group_index.delete.call_delete_seer_grouping_records_by_hash")
+    @patch("sentry.utils.audit.log_service.record_audit_log")
+    def test_audit_log_even_if_exception_raised(
+        self, mock_record_audit_log: Mock, mock_seer_delete: Mock
+    ):
+        """
+        Test that audit log is created even if an exception is raised after the audit log is created.
+        """
+        # Calling seer happens after creating the audit log entry
+        mock_seer_delete.side_effect = Exception("Seer error!")
+        group1 = self.create_group()
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group1.id}"
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 500
+
+        self.assert_audit_log_entry([group1], mock_record_audit_log)
+
+        # They have been marked as pending deletion but the exception prevented their complete deletion
+        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION

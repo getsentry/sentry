@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -17,22 +18,20 @@ describe('messageSpanSamplesPanel', () => {
   let samplesRequestMock: jest.Mock;
   let spanFieldTagsMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -141,6 +140,11 @@ describe('messageSpanSamplesPanel', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
@@ -189,7 +193,6 @@ describe('messageSpanSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -286,7 +289,6 @@ describe('messageSpanSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],

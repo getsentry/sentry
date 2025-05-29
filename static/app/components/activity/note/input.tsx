@@ -2,17 +2,17 @@ import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -194,10 +194,7 @@ function NoteInput({
             </MentionsInput>
           </TabPanels.Item>
           <TabPanels.Item key="preview">
-            <NotePreview
-              minHeight={minHeight}
-              dangerouslySetInnerHTML={{__html: marked(cleanMarkdown)}}
-            />
+            <NotePreview minHeight={minHeight} text={cleanMarkdown} />
           </TabPanels.Item>
         </NoteInputPanel>
       </Tabs>
@@ -318,12 +315,15 @@ const FooterButton = styled(Button)<{error?: boolean}>`
 
   ${p =>
     p.error &&
-    `
-  &, &:active, &:focus, &:hover {
-  border-bottom-color: ${p.theme.error};
-  border-right-color: ${p.theme.error};
-  }
-  `}
+    css`
+      &,
+      &:active,
+      &:focus,
+      &:hover {
+        border-bottom-color: ${p.theme.error};
+        border-right-color: ${p.theme.error};
+      }
+    `}
 `;
 
 const ErrorMessage = styled('span')`
@@ -341,6 +341,8 @@ const MarkdownIndicator = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const NotePreview = styled('div')<{minHeight: Props['minHeight']}>`
+const NotePreview = styled(MarkedText, {
+  shouldForwardProp: prop => prop !== 'minHeight',
+})<{minHeight: Props['minHeight']}>`
   ${p => getNotePreviewCss(p)};
 `;

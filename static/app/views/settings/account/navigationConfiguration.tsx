@@ -12,13 +12,14 @@ type ConfigParams = {
 };
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
-  if (organization && prefersStackedNav()) {
+  if (organization && prefersStackedNav(organization)) {
     return getUserOrgNavigationConfiguration({organization});
   }
 
   return [
     {
       name: t('Account'),
+      id: 'settings-account',
       items: [
         {
           path: `${pathPrefix}/details/`,
@@ -73,6 +74,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
       ],
     },
     {
+      id: 'settings-api',
       name: t('API'),
       items: [
         {

@@ -7,8 +7,6 @@ type Opts = {
   listRef: RefObject<List | null>;
 };
 
-export type OnDimensionChange = (index: number) => void;
-
 export default function useVirtualListDimensionChange({cache, listRef}: Opts) {
   const handleDimensionChange = useCallback(
     (index: number) => {

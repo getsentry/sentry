@@ -3,7 +3,7 @@ from unittest import mock
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_alert_detector import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
@@ -107,7 +107,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricAlertFire.slug,
+            "detectorType": MetricIssue.slug,
             "dataSource": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -150,7 +150,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
         # Verify data source and query subscription in DB

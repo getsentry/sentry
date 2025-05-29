@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
@@ -120,6 +121,7 @@ class IntegrationFeatures(StrEnum):
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
+    USER_MAPPING = "user-mapping"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -371,7 +373,7 @@ class IntegrationInstallation(abc.ABC):
             organization_id=self.organization_id,
         )
         if integration is None:
-            raise NotFound("missing org_integration")
+            raise OrganizationIntegrationNotFound("missing org_integration")
         return integration
 
     @cached_property
@@ -441,7 +443,7 @@ class IntegrationInstallation(abc.ABC):
         """For Integrations that rely solely on user auth for authentication."""
         try:
             org_integration = self.org_integration
-        except NotFound:
+        except OrganizationIntegrationNotFound:
             raise Identity.DoesNotExist
         else:
             if org_integration.default_auth_id is None:
@@ -502,7 +504,7 @@ class IntegrationInstallation(abc.ABC):
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
-    def is_rate_limited_error(self, exc: Exception) -> bool:
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
         raise NotImplementedError
 
     @property
@@ -573,11 +575,14 @@ def disable_integration(
         return None
 
     if org and (
-        (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-        or (rpc_integration.provider == "github")
+        (
+            rpc_integration.provider == IntegrationProviderSlug.SLACK
+            and buffer.is_integration_fatal_broken()
+        )
+        or (rpc_integration.provider == IntegrationProviderSlug.GITHUB)
         or (
             features.has("organizations:gitlab-disable-on-broken", org)
-            and rpc_integration.provider == "gitlab"
+            and rpc_integration.provider == IntegrationProviderSlug.GITLAB.value
         )
     ):
         integration_service.update_integration(

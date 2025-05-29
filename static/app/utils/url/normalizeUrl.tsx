@@ -8,13 +8,13 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
   [
-    /\/settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/?$/,
+    /\/settings\/(?!account\/|billing\/|projects\/|teams\/|stats\/)[^\/]+\/?$/,
     '/settings/organization/',
   ],
   // Move /settings/:orgId/:section -> /settings/:section
   // but not /settings/organization or /settings/projects which is a new URL
   [
-    /^\/?settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/(.*)/,
+    /^\/?settings\/(?!account\/|billing\/|projects\/|teams\/|stats\/)[^\/]+\/(.*)/,
     '/settings/$1',
   ],
   [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],

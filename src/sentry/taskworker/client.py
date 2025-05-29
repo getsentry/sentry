@@ -23,6 +23,9 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
 
+MAX_ACTIVATION_SIZE = 1024 * 1024 * 10
+"""Max payload size we will process."""
+
 
 class ClientCallDetails(grpc.ClientCallDetails):
     """
@@ -101,9 +104,11 @@ class TaskworkerClient:
         )
 
         grpc_config = options.get("taskworker.grpc_service_config")
-        self._grpc_options = []
+        self._grpc_options: list[tuple[str, Any]] = [
+            ("grpc.max_receive_message_length", MAX_ACTIVATION_SIZE)
+        ]
         if grpc_config:
-            self._grpc_options = [("grpc.service_config", grpc_config)]
+            self._grpc_options.append(("grpc.service_config", grpc_config))
 
         self._cur_host = random.choice(self._hosts)
         self._host_to_stubs: dict[str, ConsumerServiceStub] = {
@@ -161,6 +166,8 @@ class TaskworkerClient:
                 "taskworker.client.rpc_error", tags={"method": "GetTask", "status": err.code().name}
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                # Because our current broker doesn't have any tasks, try rebalancing.
+                self._num_tasks_before_rebalance = 0
                 return None
             raise
         if response.HasField("task"):
@@ -189,21 +196,29 @@ class TaskworkerClient:
             status=status,
             fetch_next_task=fetch_next_task,
         )
+
+        host = self._task_id_to_host.get(task_id, None)
+        if host is None:
+            metrics.incr("taskworker.client.task_id_not_in_client")
+            return None
         try:
             with metrics.timer("taskworker.update_task.rpc"):
-                if task_id not in self._task_id_to_host:
-                    metrics.incr("taskworker.client.task_id_not_in_client")
-                    return None
-                host = self._task_id_to_host.pop(task_id)
                 response = self._host_to_stubs[host].SetTaskStatus(request)
+                del self._task_id_to_host[task_id]
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                del self._task_id_to_host[task_id]
+
+                # The current broker is empty, switch.
+                self._num_tasks_before_rebalance = 0
+
                 return None
             raise
+
         if response.HasField("task"):
             self._task_id_to_host[response.task.id] = host
             return response.task

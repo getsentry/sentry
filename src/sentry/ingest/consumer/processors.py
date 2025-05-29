@@ -202,7 +202,7 @@ def process_event(
         # Otherwise, we have to store the event in processing store here for the save_event task to
         # fetch later
         if no_celery_mode:
-            cache_key = None
+            cache_key: str | None = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
@@ -229,9 +229,19 @@ def process_event(
         except Exception:
             pass
 
-        project.set_cached_field_value(
-            "organization", Organization.objects.get_from_cache(id=project.organization_id)
-        )
+        try:
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+        except Organization.DoesNotExist:
+            logger.warning(
+                "Organization does not exist",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": project.organization_id,
+                },
+            )
+            return
         if data.get("type") == "transaction":
             if no_celery_mode:
                 with sentry_sdk.start_span(op="ingest_consumer.process_transaction_no_celery"):
@@ -271,7 +281,7 @@ def process_event(
             # cache.
             with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
                 preprocess_event(
-                    cache_key=cache_key,
+                    cache_key=cache_key or "",
                     data=data,
                     start_time=start_time,
                     event_id=event_id,

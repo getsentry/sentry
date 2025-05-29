@@ -57,7 +57,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
 
         assert Group.objects.filter(type=MetricIssuePOC.type_id).count() == 1
         group = Group.objects.get(type=MetricIssuePOC.type_id)
@@ -81,7 +81,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert stored_occurrence
         assert stored_occurrence.type == MetricIssuePOC
-        assert stored_occurrence.initial_issue_priority == PriorityLevel.MEDIUM
+        assert stored_occurrence.priority == PriorityLevel.MEDIUM
 
         assert Group.objects.filter(type=MetricIssuePOC.type_id).count() == 1
         group = Group.objects.get(type=MetricIssuePOC.type_id)

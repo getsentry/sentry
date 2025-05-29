@@ -10,13 +10,19 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.trace_summary import get_trace_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+
+class OrganizationTraceSummaryPermission(OrganizationPermission):
+    scope_map = {
+        "POST": ["org:read"],
+    }
 
 
 @region_silo_endpoint
@@ -34,6 +40,8 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
             RateLimitCategory.ORGANIZATION: RateLimit(limit=30, window=60),
         }
     }
+
+    permission_classes = (OrganizationTraceSummaryPermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
         if not features.has(

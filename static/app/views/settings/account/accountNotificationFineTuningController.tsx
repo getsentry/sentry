@@ -11,7 +11,7 @@ interface AccountNotificationFineTuningControllerProps
   organizationsLoading?: boolean;
 }
 
-export function AccountNotificationFineTuningController({
+function AccountNotificationFineTuningController({
   organizationsLoading,
   ...props
 }: AccountNotificationFineTuningControllerProps) {

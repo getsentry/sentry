@@ -11,6 +11,8 @@ from sentry.seer.similarity.grouping_records import (
 from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import seer_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,10 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * (15 + 5),
+    taskworker_config=TaskworkerConfig(
+        namespace=seer_tasks,
+        processing_deadline_duration=60 * (15 + 5),
+    ),
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
@@ -80,6 +86,10 @@ def call_delete_seer_grouping_records_by_hash(
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * (15 + 5),
+    taskworker_config=TaskworkerConfig(
+        namespace=seer_tasks,
+        processing_deadline_duration=60 * (15 + 5),
+    ),
 )
 def call_seer_delete_project_grouping_records(
     project_id: int,

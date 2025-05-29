@@ -1,24 +1,27 @@
 import {createContext, useContext} from 'react';
-import styled from '@emotion/styled';
 
-import InputField from 'sentry/components/forms/fields/inputField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import {
+  type DataCondition,
   DataConditionType,
-  type NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
+import {AssignedToNode} from 'sentry/views/automations/components/actionFilters/assignedTo';
 import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
+import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
+import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
+import LevelNode from 'sentry/views/automations/components/actionFilters/level';
+import PercentSessionsNode from 'sentry/views/automations/components/actionFilters/percentSessions';
 import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
-  condition: NewDataCondition;
+  condition: DataCondition;
   condition_id: string;
-  onUpdate: (condition: Record<string, any>) => void;
+  onUpdate: (comparison: Record<string, any>) => void;
+  onUpdateType: (type: DataConditionType) => void;
 }
 
 export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
@@ -67,10 +70,24 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.ASSIGNED_TO,
+    {
+      label: t('Issue assignment'),
+      dataCondition: <AssignedToNode />,
+    },
+  ],
+  [
     DataConditionType.ISSUE_OCCURRENCES,
     {
       label: t('Issue frequency'),
       dataCondition: <IssueOccurrencesNode />,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_PRIORITY_EQUALS,
+    {
+      label: t('Issue priority'),
+      dataCondition: <IssuePriorityNode />,
     },
   ],
   [
@@ -101,41 +118,86 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: <TaggedEventNode />,
     },
   ],
+  [
+    DataConditionType.LEVEL,
+    {
+      label: t('Event level'),
+      dataCondition: <LevelNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_FREQUENCY,
+    {
+      label: t('Number of events'),
+      dataCondition: <EventFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_FREQUENCY_COUNT,
+    {
+      label: t('Number of events'),
+      dataCondition: <EventFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_FREQUENCY_PERCENT,
+    {
+      label: t('Number of events'),
+      dataCondition: <EventFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    {
+      label: t('Number of users affected'),
+      dataCondition: <EventUniqueUserFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    {
+      label: t('Number of users affected'),
+      dataCondition: <EventUniqueUserFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    {
+      label: t('Number of users affected'),
+      dataCondition: <EventUniqueUserFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: <PercentSessionsNode />,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS_COUNT,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: <PercentSessionsNode />,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS_PERCENT,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: <PercentSessionsNode />,
+    },
+  ],
 ]);
 
-export const InlineInputField = styled(InputField)`
-  padding: 0;
-  width: 180px;
-  height: 28px;
-  min-height: 28px;
-  > div {
-    padding-left: 0;
-  }
-`;
-
-export const InlineNumberInput = styled(NumberField)`
-  padding: 0;
-  width: 90px;
-  height: 28px;
-  min-height: 28px;
-  > div {
-    padding-left: 0;
-  }
-`;
-
-export const selectControlStyles = {
-  control: (provided: any) => ({
-    ...provided,
-    minHeight: '28px',
-    height: '28px',
-    padding: 0,
-  }),
-};
-
-export const InlineSelectControl = styled(SelectField)`
-  width: 180px;
-  padding: 0;
-  > div {
-    padding-left: 0;
-  }
-`;
+export const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> =
+  {
+    [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  };

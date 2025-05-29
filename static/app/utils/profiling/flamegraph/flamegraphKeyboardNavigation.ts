@@ -1,8 +1,8 @@
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-export type DirectionX = 'left' | 'right';
-export type DirectionY = 'up' | 'down';
-export type Direction = DirectionY | DirectionX;
+type DirectionX = 'left' | 'right';
+type DirectionY = 'up' | 'down';
+type Direction = DirectionY | DirectionX;
 /**
  * selectNearestFrame walks a FlamegraphFrame tree the direction specified and returns the nearest
  * FlamegraphFrame relative to the starting node.

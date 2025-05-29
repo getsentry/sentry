@@ -1,22 +1,17 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 
 type Props = {
   text: string;
 };
 
 function NoteBody({text}: Props) {
-  return (
-    <StyledNoteBody
-      data-test-id="activity-note-body"
-      dangerouslySetInnerHTML={{__html: marked(text)}}
-    />
-  );
+  return <StyledNoteBody data-test-id="activity-note-body" text={text} />;
 }
 
-const StyledNoteBody = styled('div')`
+const StyledNoteBody = styled(MarkedText)`
   ul {
     list-style: disc;
   }

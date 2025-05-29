@@ -8,7 +8,7 @@ type ChildTransaction = {
   transaction: string;
 };
 
-export type SpanEntryContextChildrenProps = {
+type SpanEntryContextChildrenProps = {
   getViewChildTransactionTarget: (
     props: ChildTransaction
   ) => LocationDescriptor | undefined;

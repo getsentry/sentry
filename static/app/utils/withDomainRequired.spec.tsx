@@ -84,8 +84,7 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -134,8 +133,7 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -184,8 +182,7 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();

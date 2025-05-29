@@ -1,11 +1,26 @@
 from collections.abc import Mapping
+from unittest.mock import patch
 
 import responses
+from requests import HTTPError
 
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
     DEFAULT_ERROR_MESSAGE,
     DEFAULT_SUCCESS_MESSAGE,
+    FAILURE_REASON_BASE,
     SentryAppAlertRuleActionRequester,
+)
+from sentry.sentry_apps.metrics import (
+    SentryAppExternalRequestFailureReason,
+    SentryAppExternalRequestHaltReason,
+)
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_many_failure_metrics,
+    assert_many_halt_metrics,
+    assert_success_metric,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -45,7 +60,8 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         self.success_message = "Created alert!"
 
     @responses.activate
-    def test_makes_successful_request(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_successful_request(self, mock_record):
 
         responses.add(
             method=responses.POST,
@@ -80,8 +96,20 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "alert_rule_action.requested"
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # EXTERNAL_REQUEST (success) -> EXTERNAL_REQUEST (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @responses.activate
-    def test_makes_successful_request_with_message(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_successful_request_with_message(self, mock_record):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -97,8 +125,20 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         assert result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {self.success_message}"
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # EXTERNAL_REQUEST (success) -> EXTERNAL_REQUEST (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @responses.activate
-    def test_makes_successful_request_with_malformed_message(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_successful_request_with_malformed_message(self, mock_record):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -113,8 +153,20 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         assert result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # EXTERNAL_REQUEST (success) -> EXTERNAL_REQUEST (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @responses.activate
-    def test_makes_failed_request(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_failed_request(self, mock_record):
 
         responses.add(
             method=responses.POST,
@@ -154,10 +206,33 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
         assert len(requests) == 1
         assert requests[0]["response_code"] == 401
-        assert requests[0]["event_type"] == "alert_rule_action.requested"
+        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"
+        assert result["error_type"] == SentryAppErrorType.INTEGRATOR
+        assert result["webhook_context"] == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestHaltReason.BAD_RESPONSE
+            ),
+            "uri": "/sentry/alert-rule",
+            "installation_uuid": self.install.uuid,
+            "sentry_app_slug": self.sentry_app.slug,
+        }
+
+        # SLO assertions
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+
+        assert_many_halt_metrics(
+            mock_record=mock_record, messages_or_errors=[HTTPError("401"), HTTPError("401")]
+        )
 
     @responses.activate
-    def test_makes_failed_request_with_message(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_failed_request_with_message(self, mock_record):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -171,14 +246,37 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         ).run()
         assert not result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {self.error_message}"
+        assert result["error_type"] == SentryAppErrorType.INTEGRATOR
+        assert result["webhook_context"] == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestHaltReason.BAD_RESPONSE
+            ),
+            "uri": "/sentry/alert-rule",
+            "installation_uuid": self.install.uuid,
+            "sentry_app_slug": self.sentry_app.slug,
+        }
+
+        # SLO assertions
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+
+        assert_many_halt_metrics(
+            mock_record=mock_record, messages_or_errors=[HTTPError("401"), HTTPError("401")]
+        )
 
     @responses.activate
-    def test_makes_failed_request_with_malformed_message(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_failed_request_with_malformed_message(self, mock_record):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=401,
-            body=self.error_message.encode(),
+            body=json.dumps({"message": self.error_message}),
         )
         result = SentryAppAlertRuleActionRequester(
             install=self.install,
@@ -186,4 +284,67 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
             fields=self.fields,
         ).run()
         assert not result["success"]
-        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"
+        assert result["message"] == f"{self.sentry_app.name}: {self.error_message}"
+        assert result["error_type"] == SentryAppErrorType.INTEGRATOR
+        assert result["webhook_context"] == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestHaltReason.BAD_RESPONSE
+            ),
+            "uri": "/sentry/alert-rule",
+            "installation_uuid": self.install.uuid,
+            "sentry_app_slug": self.sentry_app.slug,
+        }
+
+        # SLO assertions
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+
+        assert_many_halt_metrics(
+            mock_record=mock_record, messages_or_errors=[HTTPError("401"), HTTPError("401")]
+        )
+
+    @responses.activate
+    @patch("sentry.sentry_apps.external_requests.utils.safe_urlopen")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_makes_failed_request_with_sentry_error(self, mock_record, mock_urlopen):
+        mock_urlopen.side_effect = Exception()
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=500,
+            body=json.dumps({"message": self.error_message}),
+        )
+        result = SentryAppAlertRuleActionRequester(
+            install=self.install,
+            uri="/sentry/alert-rule",
+            fields=self.fields,
+        ).run()
+        assert not result["success"]
+        assert result["message"] == DEFAULT_ERROR_MESSAGE
+        assert result["error_type"] == SentryAppErrorType.SENTRY
+        assert result["webhook_context"] == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR
+            ),
+            "uri": "/sentry/alert-rule",
+            "installation_uuid": self.install.uuid,
+            "sentry_app_slug": self.sentry_app.slug,
+        }
+
+        # SLO assertions
+        # EXTERNAL_REQUEST (failure) -> EXTERNAL_REQUEST (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=2
+        )
+
+        assert_many_failure_metrics(
+            mock_record=mock_record, messages_or_errors=[Exception(), Exception()]
+        )

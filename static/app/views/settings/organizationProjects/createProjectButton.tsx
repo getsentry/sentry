@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -21,7 +21,7 @@ export default function CreateProjectButton() {
       }
       to={makeProjectsPathname({
         path: '/new/',
-        orgSlug: organization.slug,
+        organization,
       })}
       icon={<IconAdd isCircled />}
     >

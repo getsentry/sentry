@@ -8,6 +8,9 @@ from django.db.models import F
 from sentry import eventstream, similarity, tsdb
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.merge")
@@ -20,6 +23,12 @@ delete_logger = logging.getLogger("sentry.deletions.async")
     default_retry_delay=60 * 5,
     max_retries=None,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        retry=Retry(
+            delay=60 * 5,
+        ),
+    ),
 )
 @track_group_async_operation
 def merge_groups(

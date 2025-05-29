@@ -2,25 +2,30 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import {treeHasValidVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export const enum TraceContextSectionKeys {
   TAGS = 'trace-context-tags',
-  WEB_VITALS = 'trace-context-web-vitals',
+  VITALS = 'trace-context-web-vitals',
   LOGS = 'trace-context-logs',
   PROFILES = 'trace-context-profiles',
+  SUMMARY = 'trace-context-summary',
 }
 
 const sectionLabels: Partial<Record<TraceContextSectionKeys, string>> = {
   [TraceContextSectionKeys.TAGS]: t('Tags'),
-  [TraceContextSectionKeys.WEB_VITALS]: t('Web Vitals'),
+  [TraceContextSectionKeys.VITALS]: t('Vitals'),
   [TraceContextSectionKeys.LOGS]: t('Logs'),
   [TraceContextSectionKeys.PROFILES]: t('Profiles'),
+  [TraceContextSectionKeys.SUMMARY]: t('Summary'),
 };
 
 function SectionLink({
@@ -54,39 +59,55 @@ function SectionLink({
   );
 }
 
-function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
+function ScrollToSectionLinks({
+  rootEventResults,
+  tree,
+  logs,
+}: {
+  logs: OurLogsResponseItem[] | undefined;
+  rootEventResults: TraceRootEventQueryResults;
+  tree: TraceTree;
+}) {
   const location = useLocation();
-  const hasValidVitals = treeHasValidVitals(tree);
-  const hasProfiles = tree.profiled_events.size > 0;
+  const {hasVitals, hasProfiles, hasLogs, hasTags} = useTraceContextSections({
+    tree,
+    rootEventResults,
+    logs,
+  });
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
-  return (
-    <Wrapper>
+  if (hasTraceTabsUi) {
+    return null;
+  }
+
+  return hasVitals || hasTags || hasProfiles || hasLogs ? (
+    <StyledScrollCarousel gap={1} aria-label={t('Jump to:')}>
       <div aria-hidden>{t('Jump to:')}</div>
-      {hasValidVitals && (
-        <SectionLink
-          sectionKey={TraceContextSectionKeys.WEB_VITALS}
-          location={location}
-        />
+      {hasVitals && (
+        <SectionLink sectionKey={TraceContextSectionKeys.VITALS} location={location} />
       )}
-      <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      {hasTags && (
+        <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      )}
       {hasProfiles && (
         <SectionLink sectionKey={TraceContextSectionKeys.PROFILES} location={location} />
       )}
       <Feature features={['ourlogs-enabled']}>
-        <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+        {hasLogs && (
+          <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+        )}
       </Feature>
-    </Wrapper>
-  );
+      <Feature features={['single-trace-summary']}>
+        <SectionLink sectionKey={TraceContextSectionKeys.SUMMARY} location={location} />
+      </Feature>
+    </StyledScrollCarousel>
+  ) : null;
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
+const StyledScrollCarousel = styled(ScrollCarousel)`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  white-space: nowrap;
 `;
 
 const StyledLinkButton = styled(LinkButton)`

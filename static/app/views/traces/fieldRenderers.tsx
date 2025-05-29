@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -503,7 +503,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-export function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {

@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import {type ComponentProps, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {LazyRender} from 'sentry/components/lazyRender';
@@ -32,10 +32,13 @@ type Props = {
   dashboardPermissions?: DashboardPermissions;
   isMobile?: boolean;
   isPreview?: boolean;
+  newlyAddedWidget?: Widget;
+  onNewWidgetScrollComplete?: () => void;
   windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
+  const widgetRef = useRef<HTMLDivElement>(null);
   const {
     widget,
     isEditingDashboard,
@@ -52,6 +55,8 @@ function SortableWidget(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    newlyAddedWidget,
+    onNewWidgetScrollComplete,
   } = props;
 
   const organization = useOrganization();
@@ -64,6 +69,16 @@ function SortableWidget(props: Props) {
     dashboardPermissions,
     dashboardCreator
   );
+
+  useEffect(() => {
+    const isMatchingWidget = isEditingDashboard
+      ? widget.tempId === newlyAddedWidget?.tempId
+      : widget.id === newlyAddedWidget?.id;
+    if (widgetRef.current && newlyAddedWidget && isMatchingWidget) {
+      widgetRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
+      onNewWidgetScrollComplete?.();
+    }
+  }, [newlyAddedWidget, widget, isEditingDashboard, onNewWidgetScrollComplete]);
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
@@ -92,7 +107,7 @@ function SortableWidget(props: Props) {
   };
 
   return (
-    <GridWidgetWrapper>
+    <GridWidgetWrapper ref={widgetRef}>
       <DashboardsMEPProvider>
         <LazyRender containerHeight={200} withoutContainer>
           <WidgetCard {...widgetProps} />

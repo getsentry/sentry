@@ -1,3 +1,4 @@
+import pytest
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
@@ -29,6 +30,13 @@ class CamelSnakeSerializerTest(TestCase):
             "worksAt": ["This field may not be null."],
             "name": ["This field is required."],
         }
+
+    def test_smuggling(self):
+        with pytest.raises(
+            serializers.ValidationError,
+            match=r"_name collides with name, please pass only one value",
+        ):
+            PersonSerializer(data={"name": "Rick", "worksAt": "Sentry", "_name": "Chuck"})
 
 
 class ContentTypeSerializer(CamelSnakeModelSerializer):

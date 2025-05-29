@@ -1,4 +1,6 @@
+import {backend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/project';
 import type {ValidSort} from 'sentry/views/insights/pages/backend/backendTable';
 import {type EAPSpanProperty, ModuleName} from 'sentry/views/insights/types';
 
@@ -18,6 +20,10 @@ export const MODULES = [
 export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'time_spent_percentage(span.duration)' satisfies EAPSpanProperty,
+  field: 'sum(span.duration)' satisfies EAPSpanProperty,
   kind: 'desc',
 };
+
+export const BACKEND_PLATFORMS: PlatformKey[] = [...backend];
+
+export const USE_NEW_BACKEND_EXPERIENCE = 'insights-backend-use-new-backend-experience';

@@ -1,5 +1,4 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {useDismissable} from 'sentry/components/banner';
 import {Alert} from 'sentry/components/core/alert';
@@ -7,7 +6,6 @@ import {Button} from 'sentry/components/core/button';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -80,39 +78,21 @@ export default function AnomalyDetectionFeedbackBanner({
     return null;
   }
   return (
-    <StyledAlert
+    <Alert
       type="info"
       trailingItems={
         <Fragment>
-          <StyledButton borderless onClick={() => handleClick(true)}>
+          <Button size="xs" onClick={() => handleClick(true)}>
             {t('Yes')}
-          </StyledButton>
-          <StyledButton borderless onClick={() => handleClick(false)}>
+          </Button>
+          <Button size="xs" onClick={() => handleClick(false)}>
             {t('No')}
-          </StyledButton>
+          </Button>
         </Fragment>
       }
       showIcon
     >
       {t('Was the anomaly correctly identified?')}
-    </StyledAlert>
+    </Alert>
   );
 }
-
-const StyledButton = styled(Button)`
-  background-color: transparent;
-  color: ${p => p.theme.alert.info.color};
-  border: 1px solid ${p => p.theme.alert.info.border};
-
-  &:hover,
-  &:focus,
-  &:active {
-    color: ${p => p.theme.alert.info.color};
-    border-color: ${p => p.theme.alert.info.borderHover};
-  }
-`;
-
-const StyledAlert = styled(Alert)`
-  padding-top: ${space(3)};
-  padding-bottom: ${space(3)};
-`;

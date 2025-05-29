@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -95,9 +96,10 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER: Array<
+const SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER: Array<
   GridColumnOrder<keyof SpanSampleRowWithScore | 'webVital'>
 > = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
@@ -646,7 +648,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             datatype === Datatype.INTERACTIONS
               ? INTERACTION_SAMPLES_COLUMN_ORDER
               : ['cls', 'lcp', 'inp'].includes(datatype)
-                ? SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER
+                ? SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER
                 : SPANS_SAMPLES_WITHOUT_DESCRIPTION_COLUMN_ORDER
           }
           columnSortBy={[]}

@@ -48,7 +48,7 @@ export interface TraceResult {
   trace: string;
 }
 
-export type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
+type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
 
 interface TraceResults {
   data: TraceResult[];
@@ -90,7 +90,6 @@ export function useTraces({
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
       dataset:
         dataset === DiscoverDatasets.SPANS_EAP_RPC ? DiscoverDatasets.SPANS_EAP : dataset,
-      useRpc: dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
       query,
       sort, // only has an effect when `dataset` is `EAPSpans`
       per_page: limit,

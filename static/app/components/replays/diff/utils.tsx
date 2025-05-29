@@ -43,7 +43,7 @@ function ReplayDiffTooltip({
 export function Before({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
     <Flex gap={space(0.5)} align="center">
-      {t('Client')}
+      {t('Server')}
       <ReplayDiffTooltip offset={offset} startTimestampMs={startTimestampMs}>
         {t('The server-rendered page')}
       </ReplayDiffTooltip>
@@ -55,7 +55,7 @@ export function Before({children, offset, startTimestampMs}: BeforeAfterProps) {
 export function After({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
     <Flex gap={space(0.5)} align="center">
-      {t('Server')}
+      {t('Client')}
       <ReplayDiffTooltip offset={offset} startTimestampMs={startTimestampMs}>
         {t('After React re-rendered the page, and reported a hydration error')}
       </ReplayDiffTooltip>

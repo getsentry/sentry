@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -152,23 +152,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     },
                 )
 
-    @classmethod
-    def dual_delete_alert_rule(cls, instance: AlertRule, **kwargs: Any) -> None:
-        from sentry.workflow_engine.migration_helpers.alert_rule import (
-            dual_delete_migrated_alert_rule,
-        )
-
-        try:
-            dual_delete_migrated_alert_rule(instance)
-        except Exception as e:
-            logger.exception(
-                "Error when dual deleting alert rule",
-                extra={
-                    "rule_id": instance.id,
-                    "error": str(e),
-                },
-            )
-
 
 @region_silo_model
 class AlertRuleProjects(Model):
@@ -220,7 +203,9 @@ class AlertRule(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     name = models.TextField()
-    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    status = models.SmallIntegerField(
+        default=AlertRuleStatus.PENDING.value, db_default=AlertRuleStatus.PENDING.value
+    )
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -230,10 +215,15 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(choices=ComparisonDeltaChoices.choices, null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
+    monitor_type = models.IntegerField(
+        default=AlertRuleMonitorTypeInt.CONTINUOUS, db_default=AlertRuleMonitorTypeInt.CONTINUOUS
+    )
     description = models.CharField(max_length=1000, null=True)
     detection_type = models.CharField(
-        default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
+        max_length=32,
+        default=AlertRuleDetectionType.STATIC,
+        db_default=AlertRuleDetectionType.STATIC,
+        choices=AlertRuleDetectionType.choices,
     )
     sensitivity = models.CharField(choices=AlertRuleSensitivity.choices, null=True)
     seasonality = models.CharField(choices=AlertRuleSeasonality.choices, null=True)
@@ -459,7 +449,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         dict[str, Any] | list[dict[str, Any]] | None,
     ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
+        choices=ObjectStatus.as_choices(),
     )
 
     class Meta:
@@ -630,8 +622,6 @@ class AlertRuleActivity(Model):
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
 
-
-pre_delete.connect(AlertRuleManager.dual_delete_alert_rule, sender=AlertRule)
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_delete.connect(AlertRuleManager.delete_data_in_seer, sender=AlertRule)

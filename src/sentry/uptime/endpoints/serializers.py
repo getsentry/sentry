@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping, Sequence
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast, override
 
 from django.db.models import prefetch_related_objects
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
@@ -10,7 +10,7 @@ from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.types.actor import Actor
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import EapCheckEntry, IncidentStatus
 
@@ -64,7 +64,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "environment": obj.environment.name if obj.environment else None,
             "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
             "status": obj.get_status_display(),
-            "uptimeStatus": obj.uptime_status,
+            "uptimeStatus": obj.uptime_subscription.uptime_status,
             "mode": obj.mode,
             "url": obj.uptime_subscription.url,
             "headers": obj.uptime_subscription.headers,
@@ -133,4 +133,34 @@ class EapCheckEntrySerializer(Serializer):
             "environment": obj.environment,
             "region": obj.region,
             "regionName": region_name,
+        }
+
+
+class UptimeSubscriptionSerializerResponse(TypedDict):
+    timeoutMs: int
+    intervalSeconds: int
+    method: str
+    url: str
+    urlDomain: str
+    urlDomainSuffix: str
+    traceSampling: bool
+    hostProviderId: str
+    hostProviderName: str
+
+
+@register(UptimeSubscription)
+class UptimeSubscriptionSerializer(Serializer):
+
+    @override
+    def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
+        return {
+            "timeoutMs": obj.timeout_ms,
+            "intervalSeconds": obj.interval_seconds,
+            "method": obj.method,
+            "url": obj.url,
+            "urlDomain": obj.url_domain,
+            "urlDomainSuffix": obj.url_domain_suffix,
+            "traceSampling": obj.trace_sampling,
+            "hostProviderId": obj.host_provider_id,
+            "hostProviderName": obj.host_provider_name,
         }

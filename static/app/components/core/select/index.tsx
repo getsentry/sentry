@@ -498,7 +498,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-export interface PickerProps<OptionType extends OptionTypeBase>
+interface PickerProps<OptionType extends OptionTypeBase>
   extends ControlProps<OptionType> {
   /**
    * Enable async option loading.

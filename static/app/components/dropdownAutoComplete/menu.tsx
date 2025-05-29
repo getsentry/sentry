@@ -16,7 +16,7 @@ import type {Item, ItemsBeforeFilter} from './types';
 type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
 type Actions = AutoCompleteChildrenArgs['actions'];
 
-export type MenuFooterChildProps = {
+type MenuFooterChildProps = {
   actions: Actions;
 };
 
@@ -118,7 +118,7 @@ export interface MenuProps
   /**
    * Message to display when there are no items initially
    */
-  emptyMessage?: React.ReactNode;
+  emptyMessage?: string;
 
   /**
    * If this is undefined, autocomplete filter will use this value instead of the
@@ -474,7 +474,7 @@ const EmptyMessage = styled('div')`
   text-transform: none;
 `;
 
-export const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
+const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
   position: relative;
   display: inline-block;
   ${p => p.disabled && 'pointer-events: none;'}

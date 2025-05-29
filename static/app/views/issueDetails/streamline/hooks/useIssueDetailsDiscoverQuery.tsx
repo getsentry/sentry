@@ -1,4 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -16,11 +17,13 @@ import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefa
 
 export function useIssueDetailsEventView({
   group,
+  pageFilters,
   queryProps,
   isSmallContainer = false,
 }: {
   group: Group;
   isSmallContainer?: boolean;
+  pageFilters?: PageFilters;
   queryProps?: Partial<SavedQuery>;
 }) {
   const searchQuery = useEventQuery({groupId: group.id});
@@ -29,13 +32,15 @@ export function useIssueDetailsEventView({
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
-  const periodQuery = hasSetStatsPeriod
-    ? getPeriod({
-        start: location.query.start as string,
-        end: location.query.end as string,
-        period: location.query.statsPeriod as string,
-      })
-    : defaultStatsPeriod;
+  const periodQuery = pageFilters
+    ? getPeriod(pageFilters.datetime)
+    : hasSetStatsPeriod
+      ? getPeriod({
+          start: location.query.start as string,
+          end: location.query.end as string,
+          period: location.query.statsPeriod as string,
+        })
+      : defaultStatsPeriod;
 
   const interval = getInterval(
     {

@@ -2,10 +2,12 @@
 
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {
   DefaultSpanSampleFields,
   NonDefaultSpanSampleFields,
@@ -69,8 +71,9 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           // TODO: transaction.span_id should be a default from the backend
           additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
           referrer,
-          useRpc: useEap ? '1' : undefined,
         },
       },
     ],

@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconUpload} from 'sentry/icons';
@@ -18,7 +19,7 @@ import {
 import {initDemoMode} from 'sentry/utils/demoMode/utils';
 import useApi from 'sentry/utils/useApi';
 
-export const DEMO_HEADER_HEIGHT_PX = 70;
+const DEMO_HEADER_HEIGHT_PX = 70;
 
 export default function DemoHeader() {
   const api = useApi();
