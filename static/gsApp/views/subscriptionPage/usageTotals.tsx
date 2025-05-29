@@ -635,7 +635,7 @@ export function UsageTotals({
             <LegendPriceWrapper>
               {hasReservedQuota && (
                 <LegendContainer>
-                  {<LegendDot style={{backgroundColor: COLORS.reserved}} />}
+                  <LegendDot style={{backgroundColor: COLORS.reserved}} />
                   {isDisplayingSpend ? (
                     prepaidPrice === 0 ? (
                       <div>
@@ -651,7 +651,6 @@ export function UsageTotals({
                       </div>
                     ) : (
                       <LegendContainer>
-                        <LegendDot style={{backgroundColor: COLORS.reserved}} />
                         <div>
                           <LegendTitle>{t('Included in Subscription')}</LegendTitle>
                           <LegendPrice>
