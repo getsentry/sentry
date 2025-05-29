@@ -8,7 +8,6 @@ import DontAccentColors from 'sentry-images/stories/color/dont-accent-colors.svg
 import DontContrast from 'sentry-images/stories/color/dont-contrast.svg';
 import DontDifferentiation from 'sentry-images/stories/color/dont-differentiation.svg';
 
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose} from 'sentry/icons';
@@ -77,9 +76,9 @@ export const SideBySide = styled('ul')`
     margin-bottom: 0;
   }
 
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: ${space(2)};
 `;
 
 export const PalettePanel = styled(Panel)`
@@ -90,18 +89,18 @@ export const PalettePanelItem = styled(PanelItem)`
   flex-direction: column;
   gap: ${space(0.5)};
 
-  &:first-child {
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  }
-  &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  }
-  &:first-child:last-child {
-    border-radius: ${p => p.theme.borderRadius};
-  }
+&:first-child {
+border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+}
+&:last-child {
+border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+}
+&:first-child:last-child {
+border-radius: ${p => p.theme.borderRadius};
+}
 
-  background: ${p => p.theme[p.color]};
-  color: ${p => p.theme[p.text]};
+background: ${p => p.theme[p.color]};
+color: ${p => p.theme[p.text]};
 `;
 
 export const ExampleImg = styled('img')`
@@ -144,44 +143,46 @@ export const ExampleCardGrid = styled('figcaption')`
   padding: ${space(1)} ${space(1)} 0;
 `;
 
-export const ExampleCard = ({imgSrc, text, isPositive}) => (
-  <figure>
-    <ExampleImg src={imgSrc} />
+export function ExampleCard({imgSrc, text, isPositive}) {
+  return (
+    <figure>
+      <ExampleImg src={imgSrc} />
       <ExampleCardGrid>
         {isPositive ? <PositiveLabel /> : <NegativeLabel />}
         <span>{text}</span>
       </ExampleCardGrid>
     </figure>
-);
-
-export const ColorPalette = ({name, palette}) => {
-  const theme = useTheme();
-
-  return (
-    <SideBySide>
-      {palette.map((section, i) => {
-        return (
-          <li key={`${name}-${i}`}>
-            <PalettePanel typeof="ul">
-              {section.map((color, index) => {
-                return (
-                  <PalettePanelItem
-                    key={`${name}-${color.color}-${index}`}
-                    color={color.color}
-                    text={color.text}
-                  >
-                    <strong>{color.color}</strong>
-                    {theme[color.color]}
-                  </PalettePanelItem>
-                );
-              })}
-            </PalettePanel>
-          </li>
-        );
-      })}
-    </SideBySide>
   );
 }
+
+export function ColorPalette({name, palette}) {
+  const theme = useTheme();
+
+return (
+
+<SideBySide>
+  {palette.map((section, i) => {
+    return (
+      <li key={`${name}-${i}`}>
+        <PalettePanel typeof="ul">
+          {section.map((color, index) => {
+            return (
+              <PalettePanelItem
+                key={`${name}-${color.color}-${index}`}
+                color={color.color}
+                text={color.text}
+              >
+                <strong>{color.color}</strong>
+                {theme[color.color]}
+              </PalettePanelItem>
+            );
+          })}
+        </PalettePanel>
+      </li>
+    );
+  })}
+</SideBySide>
+); }
 
 # Colors
 
@@ -199,7 +200,7 @@ Here are the recommended use cases:
 - **Gray 400:** body text, input values & labels.
 - **Gray 300:** input placeholders, inactive/disabled inputs and buttons, chart labels, supplemental and non-essential text
 - **Gray 200:** borders around large elements (cards, panels, dialogs, tables).
-- **Gray 100:** dividers and borders around small elements (buttons, form inputs). */}
+- **Gray 100:** dividers and borders around small elements (buttons, form inputs). \*/}
 
 <Storybook.ThemeToggle>
   <ColorPalette name="grays" palette={GRAY_PALETTES} />

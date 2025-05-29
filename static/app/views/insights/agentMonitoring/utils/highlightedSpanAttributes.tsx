@@ -1,10 +1,18 @@
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {
+  isEAPSpanNode,
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 function ensureAttributeObject(
   attributes: Record<string, string> | TraceItemResponseAttribute[]
@@ -36,7 +44,7 @@ export function getHighlightedSpanAttributes({
 
   organization: Organization;
 }) {
-  if (!hasAgentInsightsFeature(organization) && !getIsAiSpan({op, description})) {
+  if (!hasAgentInsightsFeature(organization) || !getIsAiSpan({op, description})) {
     return [];
   }
 
@@ -72,4 +80,44 @@ export function getHighlightedSpanAttributes({
     });
   }
   return highlightedAttributes;
+}
+
+export function getTraceNodeAttribute(
+  name: string,
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  event?: EventTransaction,
+  attributes?: TraceItemResponseAttribute[]
+) {
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+    return undefined;
+  }
+
+  if (isEAPSpanNode(node) && attributes) {
+    return attributes.find(attribute => attribute.name === name)?.value;
+  }
+
+  if (isTransactionNode(node) && event) {
+    return event.contexts.trace?.data?.[name];
+  }
+
+  if (isSpanNode(node)) {
+    return node.value.data?.[name];
+  }
+
+  return undefined;
+}
+
+export function getIsAiNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
+    return undefined;
+  }
+
+  if (isTransactionNode(node)) {
+    return getIsAiSpan({
+      op: node.value['transaction.op'],
+      description: node.value.transaction,
+    });
+  }
+
+  return getIsAiSpan(node.value);
 }

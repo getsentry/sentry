@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -16,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {
   LogsPageDataProvider,
-  useLogsPageData,
+  useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
@@ -38,18 +37,16 @@ export function OurlogsSection({
   project: Project;
 }) {
   return (
-    <PageFiltersContainer>
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isTableFrozen
-        blockRowExpanding
-        limitToTraceId={event.contexts?.trace?.trace_id}
-      >
-        <LogsPageDataProvider>
-          <OurlogsSectionContent event={event} group={group} project={project} />
-        </LogsPageDataProvider>
-      </LogsPageParamsProvider>
-    </PageFiltersContainer>
+    <LogsPageParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      isTableFrozen
+      blockRowExpanding
+      limitToTraceId={event.contexts?.trace?.trace_id}
+    >
+      <LogsPageDataProvider>
+        <OurlogsSectionContent event={event} group={group} project={project} />
+      </LogsPageDataProvider>
+    </LogsPageParamsProvider>
   );
 }
 
@@ -64,7 +61,7 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useLogsPageData().logsQueryResult;
+  const tableData = useLogsPageDataQueryResult();
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
@@ -78,19 +75,17 @@ function OurlogsSectionContent({
     });
     openDrawer(
       () => (
-        <PageFiltersContainer>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-            isTableFrozen
-            limitToTraceId={limitToTraceId}
-          >
-            <LogsPageDataProvider>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer group={group} event={event} project={project} />
-              </TraceItemAttributeProvider>
-            </LogsPageDataProvider>
-          </LogsPageParamsProvider>
-        </PageFiltersContainer>
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+          isTableFrozen
+          limitToTraceId={limitToTraceId}
+        >
+          <LogsPageDataProvider>
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <OurlogsDrawer group={group} event={event} project={project} />
+            </TraceItemAttributeProvider>
+          </LogsPageDataProvider>
+        </LogsPageParamsProvider>
       ),
       {
         ariaLabel: 'logs drawer',

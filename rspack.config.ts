@@ -1,12 +1,11 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RspackPluginInstance,
   RuleSetRule,
 } from '@rspack/core';
 import rspack from '@rspack/core';
@@ -349,7 +348,7 @@ const appConfig: Configuration = {
         ]
       : []),
 
-    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
@@ -465,15 +464,7 @@ if (IS_TEST) {
     'js-stubs'
   );
 }
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['integration-docs-platforms'] =
-    path.join(__dirname, 'fixtures/integration-docs/_platforms.json');
-} else {
-  // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  // appConfig.plugins?.push(plugin);
-  // appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
-}
-//
+
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
@@ -724,18 +715,40 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   );
 }
 
-const minificationPlugins: RspackPluginInstance[] = [
+if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  new CompressionPlugin({
-    algorithm: 'gzip',
-    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as unknown as RspackPluginInstance,
-];
+  appConfig.plugins?.push(
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+    })
+  );
 
-if (IS_PRODUCTION) {
-  appConfig.plugins?.push(...minificationPlugins);
+  // Enable sentry-webpack-plugin for production builds
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Only enable in production, annotating is slow in development
+        enabled: true,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -770,28 +783,5 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      // Enabled only in production because annotating is slow
-      enabled: IS_PRODUCTION,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;
