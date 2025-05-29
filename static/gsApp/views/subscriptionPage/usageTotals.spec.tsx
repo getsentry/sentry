@@ -1057,7 +1057,6 @@ describe('Subscription > CombinedUsageTotals', function () {
 
     render(
       <CombinedUsageTotals
-        showEventBreakdown
         productGroup={seerSubscription.reservedBudgets![0]!}
         subscription={seerSubscription}
         organization={organization}
@@ -1095,7 +1094,6 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        showEventBreakdown
         productGroup={dsSubscription.reservedBudgets![0]!}
         subscription={dsSubscription}
         organization={organization}
@@ -1135,7 +1133,6 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        showEventBreakdown
         productGroup={dsSubscription.reservedBudgets![0]!}
         subscription={dsSubscription}
         organization={organization}
@@ -1170,7 +1167,6 @@ describe('Subscription > CombinedUsageTotals', function () {
     dsSubscription.reservedBudgets![0]!.freeBudget = 10_000_00;
     render(
       <CombinedUsageTotals
-        showEventBreakdown
         productGroup={dsSubscription.reservedBudgets![0]!}
         subscription={dsSubscription}
         organization={organization}
@@ -1199,7 +1195,6 @@ describe('Subscription > CombinedUsageTotals', function () {
     });
     render(
       <CombinedUsageTotals
-        showEventBreakdown
         productGroup={dsSubscription.reservedBudgets![0]!}
         subscription={dsSubscription}
         organization={organization}
