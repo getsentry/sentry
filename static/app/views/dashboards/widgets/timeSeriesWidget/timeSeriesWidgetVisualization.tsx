@@ -111,7 +111,7 @@ export interface TimeSeriesWidgetVisualizationProps
    *
    * Default: `auto`
    */
-  showLegend?: 'auto' | 'never';
+  showLegend?: 'auto' | 'never' | 'always';
 
   /**
    * Defines the X axis visibility. Note that hiding the X axis also hides release bubbles.
@@ -145,6 +145,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
+    props.showReleaseAs !== 'none' &&
     organization.features.includes('release-bubbles-ui') &&
     props.showReleaseAs === 'bubble';
 
@@ -401,33 +402,34 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxes.push(releaseBubbleYAxis);
   }
 
-  const releaseSeries = props.releases
-    ? hasReleaseBubbles
-      ? releaseBubbleSeries
-      : ReleaseSeries(
-          theme,
-          props.releases,
-          function onReleaseClick(release: Release) {
-            if (organization.features.includes('release-bubbles-ui')) {
+  const releaseSeries =
+    props.releases && props.showReleaseAs !== 'none'
+      ? hasReleaseBubbles
+        ? releaseBubbleSeries
+        : ReleaseSeries(
+            theme,
+            props.releases,
+            function onReleaseClick(release: Release) {
+              if (organization.features.includes('release-bubbles-ui')) {
+                navigate(
+                  makeReleaseDrawerPathname({
+                    location,
+                    release: release.version,
+                    source: 'time-series-widget',
+                  })
+                );
+                return;
+              }
               navigate(
-                makeReleaseDrawerPathname({
-                  location,
-                  release: release.version,
-                  source: 'time-series-widget',
+                makeReleasesPathname({
+                  organization,
+                  path: `/${encodeURIComponent(release.version)}/`,
                 })
               );
-              return;
-            }
-            navigate(
-              makeReleasesPathname({
-                organization,
-                path: `/${encodeURIComponent(release.version)}/`,
-              })
-            );
-          },
-          utc ?? false
-        )
-    : null;
+            },
+            utc ?? false
+          )
+      : null;
 
   const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
@@ -490,7 +492,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   const showLegendProp = props.showLegend ?? 'auto';
-  const showLegend = showLegendProp !== 'never' && visibleSeriesCount > 1;
+  const showLegend =
+    (showLegendProp !== 'never' && visibleSeriesCount > 1) || showLegendProp === 'always';
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the

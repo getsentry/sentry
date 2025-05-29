@@ -48,5 +48,5 @@ export interface LoadableChartWidgetProps {
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
-  showReleaseAs?: 'bubble' | 'line';
+  showReleaseAs?: 'bubble' | 'line' | 'none';
 }
