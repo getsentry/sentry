@@ -586,7 +586,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
-        querystring = urlencode({"q": "org:Test Organization fork:true ex"})
+        querystring = urlencode({"q": "fork:true org:Test Organization ex"})
         responses.add(
             responses.GET,
             f"{self.base_url}/search/repositories?{querystring}",
