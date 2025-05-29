@@ -47,6 +47,29 @@ interface Result {
   replayRecord: ReplayRecord | undefined;
 }
 
+// async function fetchReplay(orgSlug: string, replayId: string) {
+//   if (!replayId) {
+//     return;
+//   }
+
+//   const url = `/region/us/api/0/organizations/${orgSlug}/replays/${replayId}/`;
+
+//   try {
+//     const response = await fetch(url);
+
+//     if (!response.ok) {
+//       throw new Error(`Failed to fetch replay: ${response.statusText}`);
+//     }
+
+//     // const data = await response.json();
+//     return response.body;
+//   } catch (error) {
+//     // Handle or rethrow error depending on your needs
+//     console.error('Error fetching replay:', error);
+//     throw error;
+//   }
+// }
+
 /**
  * A react hook to load core replay data over the network.
  *
@@ -79,6 +102,12 @@ function useReplayData({
 }: Options): Result {
   const hasFetchedAttachments = useRef(false);
   const queryClient = useQueryClient();
+
+  // useEffect(() => { // remove. used to test 429 (too many requests) but no 429 ever occurred :hmmm:
+  //   for (let i = 0; i < 200; ++i) {
+  //     console.log(fetchReplay(orgSlug, replayId));
+  //   }
+  // }, []);
 
   // Fetch every field of the replay. The TS type definition lists every field
   // that's available. It's easier to ask for them all and not have to deal with
