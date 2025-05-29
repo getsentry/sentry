@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -251,7 +252,7 @@ function AccountNotificationFineTuning({
       <LoadingIndicator />
     ) : (
       <Fragment>
-        {isProject && hasProjects && organizationId && (
+        {isProject && hasProjects && (
           <AccountNotificationsByProject projects={projects} field={field} />
         )}
 
@@ -321,7 +322,9 @@ function AccountNotificationFineTuning({
               mainContent
             )
           ) : (
-            <EmptyMessage>{t('Select an organization to continue')}</EmptyMessage>
+            <EmptyStateWarning withIcon={false}>
+              {t('Select an organization to continue')}
+            </EmptyStateWarning>
           )}
         </PanelBody>
       </Panel>
