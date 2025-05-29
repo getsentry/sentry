@@ -314,7 +314,7 @@ function CollapsibleChainLink({
       message: newInsightText,
       step_index: stepIndex,
       retain_insight_card_index:
-        insightCount !== undefined && insightCount > 0 ? insightCount - 1 : null,
+        insightCount !== undefined && insightCount > 0 ? insightCount : null,
     });
     setNewInsightText('');
   };
