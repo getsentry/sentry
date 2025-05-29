@@ -213,97 +213,85 @@ export function ScreenCharts({additionalFilters}: Props) {
   function renderCharts() {
     return (
       <Fragment>
-        <Container>
-          <FourChartContainer>
-            <ChartsContainerItem key="deviceClassTtid">
-              <ScreensBarChart
-                chartOptions={[
-                  {
-                    title: t('TTID by Device Class'),
-                    yAxis: YAXIS_COLUMNS[yAxes[0]!],
-                    series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
-                    xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                    subtitle: primaryRelease
-                      ? t(
-                          '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
-                        )
-                      : '',
-                  },
-                ]}
-                chartKey="spansChart"
-                chartHeight={150}
-                isLoading={isDeviceClassEventsLoading}
-              />
-            </ChartsContainerItem>
-            <ChartsContainerItem key="ttidSeries">
-              <InsightsLineChartWidget
-                search={search}
-                title={t('Average TTID')}
-                series={seriesMap['avg(measurements.time_to_initial_display)']}
-                isLoading={isSeriesLoading}
-                error={seriesError}
-                aliases={chartAliases}
-                showReleaseAs="none"
-                showLegend="always"
-                height={'100%'}
-              />
-            </ChartsContainerItem>
-            <ChartsContainerItem key="deviceClassTtfd">
-              <ScreensBarChart
-                chartOptions={[
-                  {
-                    title: t('TTFD by Device Class'),
-                    yAxis: YAXIS_COLUMNS[yAxes[1]!],
-                    series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
-                    xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                    subtitle: primaryRelease
-                      ? t(
-                          '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
-                        )
-                      : '',
-                  },
-                ]}
-                chartKey="spansChart"
-                chartHeight={150}
-                isLoading={isDeviceClassEventsLoading}
-              />
-            </ChartsContainerItem>
-            <ChartsContainerItem key="ttfdSeries">
-              <InsightsLineChartWidget
-                search={search}
-                title={t('Average TTFD')}
-                series={seriesMap['avg(measurements.time_to_full_display)']}
-                isLoading={isSeriesLoading}
-                error={seriesError}
-                aliases={chartAliases}
-                showReleaseAs="none"
-                showLegend="always"
-                height={'100%'}
-              />
-            </ChartsContainerItem>
-          </FourChartContainer>
-          <ChartsContainerItem key="xyz">
-            <InsightsLineChartWidget
-              search={search}
-              title={CHART_TITLES[YAxis.COUNT]}
-              series={seriesMap['count()']}
-              isLoading={isSeriesLoading}
-              error={seriesError}
-              aliases={chartAliases}
-              showReleaseAs="none"
-              showLegend="always"
-              height={'100%'}
-            />
-          </ChartsContainerItem>
-        </Container>
+        <ChartContainer>
+          <ScreensBarChart
+            chartOptions={[
+              {
+                title: t('TTID by Device Class'),
+                yAxis: YAXIS_COLUMNS[yAxes[0]!],
+                series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
+                xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
+                subtitle: primaryRelease
+                  ? t(
+                      '%s v. %s',
+                      formatVersionAndCenterTruncate(primaryRelease, 12),
+                      secondaryRelease
+                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                        : ''
+                    )
+                  : '',
+              },
+            ]}
+            chartKey="spansChart"
+            chartHeight={150}
+            isLoading={isDeviceClassEventsLoading}
+          />
+          <InsightsLineChartWidget
+            search={search}
+            title={t('Average TTID')}
+            series={seriesMap['avg(measurements.time_to_initial_display)']}
+            isLoading={isSeriesLoading}
+            error={seriesError}
+            aliases={chartAliases}
+            showReleaseAs="none"
+            showLegend="always"
+            height={'100%'}
+          />
+          <InsightsLineChartWidget
+            search={search}
+            title={CHART_TITLES[YAxis.COUNT]}
+            series={seriesMap['count()']}
+            isLoading={isSeriesLoading}
+            error={seriesError}
+            aliases={chartAliases}
+            showReleaseAs="none"
+            showLegend="always"
+            height={'100%'}
+          />
+          <ScreensBarChart
+            chartOptions={[
+              {
+                title: t('TTFD by Device Class'),
+                yAxis: YAXIS_COLUMNS[yAxes[1]!],
+                series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
+                xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
+                subtitle: primaryRelease
+                  ? t(
+                      '%s v. %s',
+                      formatVersionAndCenterTruncate(primaryRelease, 12),
+                      secondaryRelease
+                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                        : ''
+                    )
+                  : '',
+              },
+            ]}
+            chartKey="spansChart"
+            chartHeight={150}
+            isLoading={isDeviceClassEventsLoading}
+          />
+          <InsightsLineChartWidget
+            search={search}
+            title={t('Average TTFD')}
+            series={seriesMap['avg(measurements.time_to_full_display)']}
+            isLoading={isSeriesLoading}
+            error={seriesError}
+            aliases={chartAliases}
+            showReleaseAs="none"
+            showLegend="always"
+            height={'100%'}
+          />
+        </ChartContainer>
       </Fragment>
     );
   }
@@ -311,17 +299,9 @@ export function ScreenCharts({additionalFilters}: Props) {
   return <div data-test-id="starfish-mobile-view">{renderCharts()}</div>;
 }
 
-const FourChartContainer = styled('div')`
+const ChartContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: ${space(2)};
-`;
-
-const ChartsContainerItem = styled('div')``;
-
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-column-gap: ${space(2)};
   padding-bottom: ${space(2)};
 `;
