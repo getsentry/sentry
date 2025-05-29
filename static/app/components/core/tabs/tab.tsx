@@ -214,7 +214,6 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   &[aria-disabled],
   &[aria-disabled]:hover {
     color: ${p => p.theme.subText};
-    pointer-events: none;
     cursor: default;
   }
 
