@@ -1590,6 +1590,44 @@ describe('SearchQueryBuilder', function () {
         await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
       ).toBeInTheDocument();
     });
+
+    it('sets the value as not selected when no comma is present', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('combobox'), 'randomValue');
+
+      const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
+      expect(listBox).not.toBeChecked();
+    });
+
+    it('sets the value as selected when a trailing comma is present', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('combobox'), 'randomValue,');
+
+      const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
+      expect(listBox).toBeChecked();
+    });
   });
 
   describe('filter types', function () {
