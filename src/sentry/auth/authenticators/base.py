@@ -67,7 +67,7 @@ class AuthenticatorInterface:
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
-    remove_button: str | _StrPromise | None = _("Remove")
+    remove_button: str | _StrPromise | None = _("Remove 2FA method")
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False

@@ -13,8 +13,8 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -27,11 +27,10 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
@@ -51,7 +50,6 @@ interface MultiQueryChartProps {
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  samplingMode?: SamplingMode;
 }
 
 export function MultiQueryModeChart({
@@ -60,7 +58,6 @@ export function MultiQueryModeChart({
   mode,
   timeseriesResult,
   canUsePreviousResults,
-  samplingMode,
 }: MultiQueryChartProps) {
   const theme = useTheme();
 
@@ -102,7 +99,7 @@ export function MultiQueryModeChart({
         //
         // We can't do this in top N mode as the series name uses the row
         // values instead of the aggregate function.
-        if (s.field === yAxis) {
+        if (s.yAxis === yAxis) {
           return {
             ...s,
             seriesName: formattedYAxes[i] ?? yAxis,
@@ -138,7 +135,7 @@ export function MultiQueryModeChart({
     isTopN
   );
 
-  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
+  const chartType = queryParts.chartType ?? determineDefaultChartType(yAxes);
 
   const visualizationType =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
@@ -172,22 +169,6 @@ export function MultiQueryModeChart({
         Title={Title}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
-        Footer={
-          organization.features.includes('visibility-explore-progressive-loading') &&
-          !organization.features.includes(
-            'visibility-explore-progressive-loading-normal-sampling-mode'
-          ) && (
-            <WidgetExtrapolationFooter
-              samplingMode={undefined}
-              sampleCount={0}
-              isSampled={null}
-              confidence={undefined}
-              topEvents={undefined}
-              dataScanned={undefined}
-              dataset={DiscoverDatasets.SPANS_EAP}
-            />
-          )
-        }
       />
     );
   }
@@ -210,7 +191,7 @@ export function MultiQueryModeChart({
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  if (organization.features.includes('alerts-eap') && defined(yAxes[0])) {
+  if (defined(yAxes[0])) {
     items.push({
       key: 'create-alert',
       textValue: t('Create an Alert'),
@@ -234,34 +215,32 @@ export function MultiQueryModeChart({
     });
   }
 
-  if (organization.features.includes('dashboards-eap')) {
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    items.push({
-      key: 'add-to-dashboard',
-      textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return undefined;
-        }
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'compare chart',
-          organization,
-        });
-        return addToDashboard();
-      },
-    });
-  }
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('Add to Dashboard'),
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+      >
+        {t('Add to Dashboard')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    onAction: () => {
+      if (disableAddToDashboard) {
+        return undefined;
+      }
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'compare chart',
+        organization,
+      });
+      return addToDashboard();
+    },
+  });
 
   const DataPlottableConstructor =
     chartInfo.chartType === ChartType.LINE
@@ -330,23 +309,23 @@ export function MultiQueryModeChart({
       Visualization={
         <TimeSeriesWidgetVisualization
           plottables={chartInfo.data.map(timeSeries => {
-            return new DataPlottableConstructor(timeSeries, {
-              delay: INGESTION_DELAY,
-              color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-              stack: 'all',
-            });
+            return new DataPlottableConstructor(
+              markDelayedData(timeSeries, INGESTION_DELAY),
+              {
+                color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                stack: 'all',
+              }
+            );
           })}
         />
       }
       Footer={
-        <WidgetExtrapolationFooter
+        <ConfidenceFooter
           sampleCount={sampleCount}
           isSampled={isSampled}
           confidence={confidence}
           topEvents={isTopN ? numSeries : undefined}
           dataScanned={dataScanned}
-          samplingMode={samplingMode}
-          dataset={DiscoverDatasets.SPANS_EAP}
         />
       }
     />

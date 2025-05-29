@@ -3661,7 +3661,9 @@ describe('Gift Categories Availability', function () {
       })[0]!
     );
 
-    expect(screen.getByTestId(`gift-${DataCategory.REPLAYS}`)).toBeEnabled();
+    expect(screen.getByTestId(`gift-${DataCategory.REPLAYS}`)).not.toHaveAttribute(
+      'aria-disabled'
+    );
   });
 
   it('enables categories in onDemandCategories but not in checkoutCategories', async function () {
@@ -3685,7 +3687,9 @@ describe('Gift Categories Availability', function () {
       })[0]!
     );
 
-    expect(screen.getByTestId(`gift-${DataCategory.PROFILE_DURATION}`)).toBeEnabled();
+    expect(
+      screen.getByTestId(`gift-${DataCategory.PROFILE_DURATION}`)
+    ).not.toHaveAttribute('aria-disabled');
   });
 
   it('enables categories in both checkoutCategories and onDemandCategories', async function () {
@@ -3709,7 +3713,9 @@ describe('Gift Categories Availability', function () {
       })[0]!
     );
 
-    expect(screen.getByTestId(`gift-${DataCategory.ERRORS}`)).toBeEnabled();
+    expect(screen.getByTestId(`gift-${DataCategory.ERRORS}`)).not.toHaveAttribute(
+      'aria-disabled'
+    );
   });
 
   it('disables categories with unlimited quota', async function () {
@@ -3733,7 +3739,10 @@ describe('Gift Categories Availability', function () {
       })[0]!
     );
 
-    expect(screen.getByTestId(`gift-${DataCategory.ERRORS}`)).toBeEnabled();
+    expect(screen.getByTestId(`gift-${DataCategory.SPANS}`)).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('filters out categories in neither checkoutCategories nor onDemandCategories', async function () {

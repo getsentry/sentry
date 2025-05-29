@@ -11,7 +11,7 @@ export function determineSeriesSampleCountAndIsSampled(
 
   if (topNMode) {
     // We dont want to count the other series in top N mode
-    data = data.filter(s => s.field !== 'Other');
+    data = data.filter(s => s.yAxis !== 'Other');
   }
 
   const merge: (a: number, b: number) => number = topNMode

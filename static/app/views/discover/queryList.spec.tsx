@@ -14,7 +14,6 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
 
 jest.mock('sentry/actionCreators/modal');
@@ -125,14 +124,15 @@ describe('Discover > QueryList', function () {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: {
+          dataset: 'errors',
           environment: [],
-          interval: '30m',
+          interval: '5m',
           partial: '1',
           project: [],
           query: '',
-          referrer: 'api.discover.default-chart',
-          statsPeriod: '14d',
-          yAxis: ['count()'],
+          referrer: 'api.discover.homepage.prebuilt',
+          statsPeriod: '24h',
+          yAxis: 'count()',
         },
       })
     );
@@ -140,12 +140,7 @@ describe('Discover > QueryList', function () {
 
   it('renders pre-built queries with dataset', async function () {
     organization = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'performance-view',
-        'performance-discover-dataset-selector',
-      ],
+      features: ['discover-basic', 'discover-query', 'performance-view'],
     });
     render(
       <QueryList
@@ -204,11 +199,7 @@ describe('Discover > QueryList', function () {
 
   it('passes dataset to the query if flag is enabled', async function () {
     const org = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'performance-discover-dataset-selector',
-      ],
+      features: ['discover-basic', 'discover-query'],
     });
     render(
       <QueryList
@@ -542,8 +533,8 @@ describe('Discover > QueryList', function () {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
             widget: {
-              title: 'Saved query #1',
-              displayType: DisplayType.AREA,
+              displayType: 'area',
+              interval: undefined,
               limit: 5,
               queries: [
                 {
@@ -555,6 +546,8 @@ describe('Discover > QueryList', function () {
                   orderby: 'test',
                 },
               ],
+              title: 'Saved query #1',
+              widgetType: 'transaction-like',
             },
           })
         );
@@ -607,8 +600,9 @@ describe('Discover > QueryList', function () {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
             widget: {
-              title: 'Saved query #1',
-              displayType: DisplayType.AREA,
+              displayType: 'area',
+              interval: undefined,
+              limit: undefined,
               queries: [
                 {
                   aggregates: ['count()'],
@@ -616,11 +610,11 @@ describe('Discover > QueryList', function () {
                   conditions: '',
                   fields: [],
                   name: '',
-                  // Orderby gets dropped because ordering only applies to
-                  // Top-N and tables
                   orderby: '',
                 },
               ],
+              title: 'Saved query #1',
+              widgetType: 'transaction-like',
             },
           })
         );
@@ -630,7 +624,7 @@ describe('Discover > QueryList', function () {
 
   it('passes dataset to open modal', async function () {
     const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit', 'performance-discover-dataset-selector'],
+      features: ['dashboards-edit'],
     });
     render(
       <QueryList

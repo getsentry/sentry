@@ -12,7 +12,6 @@ from sentry.api.serializers import serialize
 from sentry.users.api.parsers.userrole import UserRoleValidator
 from sentry.users.api.serializers.userrole import UserRoleSerializer
 from sentry.users.models.userrole import UserRole
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
@@ -66,7 +65,6 @@ class UserRolesEndpoint(Endpoint):
                     },
                 )
         except IntegrityError as e:
-            incr_rollback_metrics(UserRole)
             if "already exists" in str(e):
                 return self.respond(status=410)
             raise

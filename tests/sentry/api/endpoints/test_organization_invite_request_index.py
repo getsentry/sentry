@@ -232,8 +232,39 @@ class OrganizationInviteRequestCreateTest(
             == f"You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         member = OrganizationMember.objects.get(email="eric@localhost")
-        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
-        assert callback_id == {
+        context_params = orjson.loads(
+            orjson.loads(self.mock_post.call_args.kwargs["blocks"])[0]["block_id"]
+        )
+        assert context_params == {
             "member_id": member.id,
             "member_email": "eric@localhost",
         }
+
+    def test_disallow_when_sso_required(self):
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.authprovider import AuthProvider
+        from sentry.silo.base import SiloMode
+        from sentry.testutils.silo import assume_test_silo_mode
+        from sentry.utils.auth import SsoSession
+
+        self.member.flags["sso:linked"] = True
+        self.member.save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Sets org-wise `requiresSso` to True
+            ap = AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+            AuthIdentity.objects.create(auth_provider=ap, user=self.user)
+
+        sso_session = SsoSession.create(self.organization.id)
+        self.session[sso_session.session_key] = sso_session.to_dict()
+        self.save_session()
+
+        resp = self.client.post(
+            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        )
+
+        assert resp.status_code == 400
+        assert (
+            resp.data["detail"]
+            == "Your organization must use its single sign-on provider to register new members."
+        )

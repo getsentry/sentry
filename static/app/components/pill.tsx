@@ -1,5 +1,5 @@
 import {memo} from 'react';
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -60,12 +60,12 @@ const Pill = memo(({name, value, children, type, className}: Props) => {
 const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'error':
-      return `
+      return css`
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
       `;
     default:
-      return `
+      return css`
         border: 1px solid ${theme.border};
       `;
   }
@@ -74,30 +74,27 @@ const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
 const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'positive':
-      return `
+      return css`
         background: ${theme.green100};
         border: 1px solid ${theme.green300};
-        border-left-color: ${theme.green300};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;
     case 'error':
-      return `
-        border-left-color: ${theme.red300};
+      return css`
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
         margin: -1px;
       `;
     case 'negative':
-      return `
-        border-left-color: ${theme.red300};
+      return css`
         background: ${theme.red100};
         border: 1px solid ${theme.red300};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;
     default:
-      return `
+      return css`
         background: ${theme.backgroundSecondary};
         font-family: ${theme.text.familyMono};
       `;

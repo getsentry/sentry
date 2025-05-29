@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
@@ -46,13 +47,22 @@ export const HeaderButtonContainer = styled('div')`
   }
 `;
 
-export const Body = styled(({children, ...props}: any) => (
-  <Panel {...props}>
-    <PanelBody>{children}</PanelBody>
-  </Panel>
-))`
+export const Body = styled(
+  ({
+    children,
+    showVerticalScrollbar: _,
+    ...props
+  }: React.ComponentProps<typeof Panel> & {
+    children?: React.ReactNode;
+    showVerticalScrollbar?: boolean;
+  }) => (
+    <Panel {...props}>
+      <PanelBody>{children}</PanelBody>
+    </Panel>
+  )
+)`
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: ${({showVerticalScrollbar}) => (showVerticalScrollbar ? 'auto' : 'hidden')};
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -82,16 +92,16 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
   z-index: ${Z_INDEX_GRID};
   ${p =>
     p.scrollable &&
-    `
-    overflow-x: auto;
-    overflow-y: scroll;
+    css`
+      overflow-x: auto;
+      overflow-y: scroll;
     `}
   ${p =>
     p.height
-      ? `
-      height: 100%;
-      max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height}
-      `
+      ? css`
+          height: 100%;
+          max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+        `
       : ''}
 `;
 

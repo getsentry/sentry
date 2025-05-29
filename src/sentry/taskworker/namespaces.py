@@ -62,6 +62,10 @@ ingest_transactions_tasks = taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+ingest_attachments_tasks = taskregistry.create_namespace(
+    "ingest.attachments", app_feature="attachments"
+)
+
 ingest_errors_tasks = taskregistry.create_namespace("ingest.errors", app_feature="errors")
 
 issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
@@ -130,3 +134,4 @@ uptime_tasks = taskregistry.create_namespace("uptime", app_feature="crons")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
+test_tasks = taskregistry.create_namespace(name="test")

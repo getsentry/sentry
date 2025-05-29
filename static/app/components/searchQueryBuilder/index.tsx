@@ -40,6 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  autoFocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -80,6 +81,13 @@ export interface SearchQueryBuilderProps {
    * will only render a warning if the value is truthy
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to map the user input to a
+   * known column.
+   */
+  getSuggestedFilterKey?: (key: string) => string | null;
   /**
    * Allows for customization of the invalid token messages.
    */
@@ -151,8 +159,9 @@ function SearchIndicator({
 function ActionButtons({
   ref,
   trailingItems = null,
-}: {trailingItems?: React.ReactNode} & {
+}: {
   ref?: React.Ref<HTMLDivElement>;
+  trailingItems?: React.ReactNode;
 }) {
   const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
@@ -180,6 +189,7 @@ function ActionButtons({
 }
 
 function SearchQueryBuilderUI({
+  autoFocus,
   className,
   disabled = false,
   label,
@@ -219,7 +229,11 @@ function SearchQueryBuilderUI({
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
-          <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+          <TokenizedQueryGrid
+            autoFocus={autoFocus || false}
+            label={label}
+            actionBarWidth={actionBarWidth}
+          />
         )}
         {size !== 'small' && (
           <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />

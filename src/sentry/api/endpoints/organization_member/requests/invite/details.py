@@ -17,6 +17,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.users.models.user import User
 from sentry.utils.audit import get_api_key_for_audit_log
 
 from ... import get_allowed_org_roles, save_team_assignments
@@ -57,7 +58,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request: Request,
+        request_user: User,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,

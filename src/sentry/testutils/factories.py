@@ -464,8 +464,8 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(organization_id=organization.id, scope_list=scope_list)
+    def create_api_key(organization, **kwargs) -> ApiKey:
+        return ApiKey.objects.create(organization_id=organization.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -2314,7 +2314,10 @@ class Factories:
         **kwargs,
     ) -> IncidentGroupOpenPeriod:
         return IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id, group_open_period=group_open_period, **kwargs
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=group_open_period,
+            **kwargs,
         )
 
     @staticmethod

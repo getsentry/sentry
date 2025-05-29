@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from django.conf import settings
+from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField
+from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
 from django.db import models
 from django.utils import timezone
 
@@ -54,20 +56,18 @@ class GroupOpenPeriod(DefaultFieldsModel):
             models.Index(fields=("group", "date_started")),
         )
 
-        # This constraint is applied in the db but can't be represented in the model because Django
-        # doesn't support specifying the opsclass needed to use the bigint field (group_id) in the constraint.
-        # constraints = (
-        #     ExclusionConstraint(
-        #         name="exclude_overlapping_start_end",
-        #         expressions=[
-        #             (models.F("group"), RangeOperators.EQUAL),
-        #             (
-        #                 TsTzRange("date_started", "date_ended", RangeBoundary()),
-        #                 RangeOperators.OVERLAPS,
-        #             ),
-        #         ],
-        #     ),
-        # )
+        constraints = (
+            ExclusionConstraint(
+                name="exclude_overlapping_start_end",
+                expressions=[
+                    (models.F("group"), RangeOperators.EQUAL),
+                    (
+                        TsTzRange("date_started", "date_ended", RangeBoundary()),
+                        RangeOperators.OVERLAPS,
+                    ),
+                ],
+            ),
+        )
 
     __repr__ = sane_repr("project_id", "group_id", "date_started", "date_ended", "user_id")
 

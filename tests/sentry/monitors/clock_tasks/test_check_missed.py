@@ -95,6 +95,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         next_checkin = next_checkin.replace(second=0, microsecond=0)
 
         assert missed_checkin.date_added == next_checkin
+        assert missed_checkin.date_updated == next_checkin
         assert missed_checkin.expected_time == next_checkin
         assert missed_checkin.monitor_config == monitor.config
 
@@ -255,6 +256,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         checkin_date = checkin_date.replace(second=0, microsecond=0)
 
         assert missed_checkin.date_added == checkin_date
+        assert missed_checkin.date_updated == checkin_date
         assert missed_checkin.expected_time == checkin_date
         assert missed_checkin.monitor_config == monitor.config
 
@@ -347,6 +349,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             status=CheckInStatus.MISSED,
         )
         assert missed_checkin.date_added == ts
+        assert missed_checkin.date_updated == ts
         assert missed_checkin.expected_time == ts
 
         monitor_env = MonitorEnvironment.objects.get(
@@ -694,6 +697,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         )
         assert missed_checkin.date_added == ts
+        assert missed_checkin.date_updated == ts
         assert missed_checkin.expected_time == ts
 
         # Execute the second task. This should detect that we've already moved

@@ -9,7 +9,7 @@ import type {AlertType} from 'sentry/views/alerts/wizard/options';
 describe('RuleConditionsForm', () => {
   const {organization, projects, router} = initializeOrg({
     organization: {
-      features: ['search-query-builder-alerts', 'alerts-eap'],
+      features: ['search-query-builder-alerts', 'visibility-explore-view'],
     },
   });
   ProjectsStore.loadInitialData(projects);
@@ -88,7 +88,7 @@ describe('RuleConditionsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['search-query-builder-alerts', 'alerts-eap'],
+          features: ['search-query-builder-alerts', 'visibility-explore-view'],
         },
       }
     );

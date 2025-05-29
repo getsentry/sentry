@@ -78,7 +78,11 @@ export function GeneralCard({
         key: t('First Event'),
         subject: t('First Event'),
         value: releaseDetails ? (
-          <TimeSince date={releaseDetails.firstEvent} />
+          releaseDetails.firstEvent ? (
+            <TimeSince date={releaseDetails.firstEvent} />
+          ) : (
+            '-'
+          )
         ) : (
           <TinyPlaceholder />
         ),
@@ -89,7 +93,11 @@ export function GeneralCard({
         key: t('Last Event'),
         subject: t('Last Event'),
         value: releaseDetails ? (
-          <TimeSince date={releaseDetails.lastEvent} />
+          releaseDetails.lastEvent ? (
+            <TimeSince date={releaseDetails.lastEvent} />
+          ) : (
+            '-'
+          )
         ) : (
           <TinyPlaceholder />
         ),

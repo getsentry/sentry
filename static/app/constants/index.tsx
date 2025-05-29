@@ -235,6 +235,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+export const TAXONOMY_DEFAULT_QUERY = 'is:unresolved';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -507,7 +508,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'log_item',
     plural: DataCategory.LOG_ITEM,
     displayName: 'log',
-    titleName: t('Logs'),
+    titleName: t('Log Counts'), // Only currently visible internally, this name should change if we expose this to users.
     productName: t('Logging'),
     uid: 23,
     isBilledCategory: false,
@@ -521,7 +522,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'log_byte',
     plural: DataCategory.LOG_BYTE,
     displayName: 'log byte',
-    titleName: t('Logs Storage'),
+    titleName: t('Logs'),
     productName: t('Logging'),
     uid: 24,
     isBilledCategory: false,
@@ -531,33 +532,32 @@ export const DATA_CATEGORY_INFO = {
       yAxisMinInterval: 0.5 * GIGABYTE,
     },
   },
-  // TODO(Seer): Confirm naming
   [DataCategoryExact.SEER_AUTOFIX]: {
     name: DataCategoryExact.SEER_AUTOFIX,
     apiName: 'seer_autofix',
     plural: DataCategory.SEER_AUTOFIX,
-    displayName: 'issue fix run',
-    titleName: t('Issue Fix Run'),
+    displayName: 'issue fix',
+    titleName: t('Issue Fixes'),
     productName: t('Seer'),
     uid: 27,
-    isBilledCategory: false, // TODO(Seer): change to True for launch
+    isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
-      showInternalStats: false, // TODO(Seer): update this for launch
+      showExternalStats: true,
     },
   },
   [DataCategoryExact.SEER_SCANNER]: {
     name: DataCategoryExact.SEER_SCANNER,
     apiName: 'seer_scanner',
     plural: DataCategory.SEER_SCANNER,
-    displayName: 'issue triage run',
-    titleName: t('Issue Triage Run'),
+    displayName: 'issue scan',
+    titleName: t('Issue Scans'),
     productName: t('Seer'),
     uid: 28,
-    isBilledCategory: false, // TODO(Seer): change to True for launch
+    isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
-      showInternalStats: false, // TODO(Seer): update this for launch
+      showExternalStats: true,
     },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

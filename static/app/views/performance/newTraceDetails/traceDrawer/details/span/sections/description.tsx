@@ -15,12 +15,14 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
   LOCAL_STORAGE_SHOW_LINKS,
   MissingImage,
 } from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {
   MissingFrame,
@@ -57,6 +59,10 @@ export function SpanDescription({
   organization: Organization;
   project: Project | undefined;
 }) {
+  const {data: event} = useEventDetails({
+    eventId: node.event?.eventID,
+    projectSlug: project?.slug,
+  });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const resolvedModule: ModuleName = resolveSpanModule(
@@ -168,7 +174,7 @@ export function SpanDescription({
         {span?.data?.['code.filepath'] ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
-            eventId={node.event?.eventID}
+            event={event}
             frame={{
               filename: span?.data?.['code.filepath'],
               lineNo: span?.data?.['code.lineno'],
@@ -213,6 +219,12 @@ export function SpanDescription({
       avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization,
+        attributes: span.data,
+        op: span.op,
+        description: span.description,
+      })}
     />
   );
 }

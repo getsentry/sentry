@@ -57,7 +57,7 @@ function OrganizationLayout({children}: Props) {
           <App organization={organization}>{children}</App>
         </GlobalDrawer>
       </OrganizationContainer>
-      <ScrollRestoration />
+      <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
   );
 }

@@ -164,7 +164,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   },
                 }}
               />
-              <Flex>
+              <Flex gap={space(0.5)}>
                 <SearchFilter
                   group={group}
                   handleSearch={query => {

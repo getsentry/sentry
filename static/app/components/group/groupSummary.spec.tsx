@@ -29,18 +29,6 @@ describe('GroupSummary', function () {
     },
   };
 
-  const mockSummaryDataWithLowScores = {
-    groupId: '1',
-    whatsWrong: 'Test whats wrong',
-    trace: 'Test trace',
-    possibleCause: 'Test possible cause',
-    headline: 'Test headline',
-    scores: {
-      possibleCauseConfidence: 0.5,
-      possibleCauseNovelty: 0.0,
-    },
-  };
-
   const mockSummaryDataWithNullScores = {
     groupId: '1',
     whatsWrong: 'Test whats wrong',
@@ -89,12 +77,12 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Possible Cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
@@ -110,34 +98,13 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Possible Cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
-  });
-
-  it('renders the summary without possible cause when scores are low', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-      method: 'POST',
-      body: mockSummaryDataWithLowScores,
-    });
-
-    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
-    });
-    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.getByText('In the Trace')).toBeInTheDocument();
-    expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.queryByText('Possible Cause')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test possible cause')).not.toBeInTheDocument();
   });
 
   it('shows loading state', function () {
@@ -187,11 +154,11 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
-    expect(screen.getByText('Possible Cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
@@ -208,8 +175,12 @@ describe('GroupSummary', function () {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     });
-    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test possible cause')).toBeInTheDocument();
+    expect(screen.queryByText('What Happened')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test whats wrong')).not.toBeInTheDocument();
+    expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test trace')).not.toBeInTheDocument();
   });
 });

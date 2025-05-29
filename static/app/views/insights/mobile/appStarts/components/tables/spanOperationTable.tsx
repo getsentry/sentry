@@ -37,7 +37,6 @@ import {
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {
   ModuleName,
   SpanMetricsField,
@@ -59,13 +58,8 @@ export function SpanOperationTable({
   secondaryRelease,
 }: Props) {
   const organization = useOrganization();
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
-  const moduleURL = useModuleURL(
-    isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
-  );
-  const baseURL = isMobileScreensEnabled
-    ? `${moduleURL}/details/`
-    : `${moduleURL}/spans/`;
+  const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
+  const baseURL = `${moduleURL}/details/`;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,7 +85,7 @@ export function SpanOperationTable({
     // Exclude this span because we can get TTID contributing spans instead
     '!span.description:"Initial Frame Render"',
     'has:span.description',
-    'transaction.op:ui.load',
+    'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
     'has:ttid',
     `${SpanMetricsField.APP_START_TYPE}:${

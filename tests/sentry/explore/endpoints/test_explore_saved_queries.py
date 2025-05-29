@@ -1,14 +1,17 @@
 from django.urls import reverse
 
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
+    ExploreSavedQueryStarred,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
 class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     features = {
-        "organizations:performance-trace-explorer": True,
-        "organizations:performance-default-explore-queries": True,
+        "organizations:visibility-explore-view": True,
     }
 
     def setUp(self):
@@ -28,6 +31,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             created_by_id=self.user.id,
             name="Test query",
             query=query,
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(),
         )
 
         model.set_projects(self.project_ids)
@@ -194,6 +203,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             date_updated=before_now(minutes=10),
             last_visited=before_now(minutes=5),
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(minutes=5),
+        )
 
         model.set_projects(self.project_ids)
         for forward_sort in [True, False]:
@@ -209,8 +224,8 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
                 assert values[0] == expected[1]
                 assert values[1] == expected[0]
             else:
-                assert values[-1] == expected[1]
-                assert values[-2] == expected[0]
+                assert values[0] == expected[0]
+                assert values[1] == expected[1]
 
     def test_get_sortby_myqueries(self):
         uhoh_user = self.create_user(username="uhoh")
@@ -284,9 +299,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
 
         with self.feature(self.features):
-            response = self.client.get(
-                self.url, data={"exclude": "owned", "sortBy": "-recentlyViewed"}
-            )
+            response = self.client.get(self.url, data={"exclude": "owned", "sortBy": "dateAdded"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 5
         assert response.data[0]["name"] == "Shared query"
@@ -299,6 +312,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             created_by_id=self.user.id,
             name="Query with last visited",
             query=query,
+            last_visited=last_visited,
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
             last_visited=last_visited,
         )
         model.set_projects(self.project_ids)
@@ -452,6 +471,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             query=query,
             last_visited=before_now(minutes=30),
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_a,
+            last_visited=before_now(minutes=30),
+        )
         model_a.set_projects(self.project_ids)
 
         model_b = ExploreSavedQuery.objects.create(
@@ -461,6 +486,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             query=query,
             last_visited=before_now(minutes=20),
         )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_b,
+            last_visited=before_now(minutes=20),
+        )
         model_b.set_projects(self.project_ids)
 
         model_c = ExploreSavedQuery.objects.create(
@@ -468,6 +499,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             created_by_id=self.user.id,
             name="Query C",
             query=query,
+            last_visited=before_now(minutes=10),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_c,
             last_visited=before_now(minutes=10),
         )
         model_c.set_projects(self.project_ids)
@@ -490,6 +527,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             created_by_id=self.user.id,
             name="Query D",
             query=query,
+            last_visited=before_now(minutes=15),
+        )
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_d,
             last_visited=before_now(minutes=15),
         )
         model_d.set_projects(self.project_ids)
@@ -517,17 +560,17 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data[1]["name"] == "Query A"
         assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 1
-        assert response.data[6]["name"] == "Test query"
-        assert response.data[6]["starred"] is False
-        assert response.data[6]["position"] is None
-        assert response.data[7]["name"] == "Query C"
-        assert response.data[7]["starred"] is False
-        assert response.data[7]["position"] is None
-        assert response.data[8]["name"] == "Query D"
+        assert response.data[2]["name"] == "Test query"
+        assert response.data[2]["starred"] is False
+        assert response.data[2]["position"] is None
+        assert response.data[3]["name"] == "Query C"
+        assert response.data[3]["starred"] is False
+        assert response.data[3]["position"] is None
+        assert response.data[4]["name"] == "Query D"
         assert (
-            response.data[8]["starred"] is False
+            response.data[4]["starred"] is False
         )  # This should be false because this query is starred by a different user
-        assert response.data[8]["position"] is None
+        assert response.data[4]["position"] is None
 
     def test_post_require_mode(self):
         with self.feature(self.features):

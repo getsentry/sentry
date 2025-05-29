@@ -41,7 +41,7 @@ export interface KeyValueDataContentProps {
   expandLeft?: boolean;
   /**
    * Used for the feature flag section.
-   * If true, then the row will be highlighted in red.
+   * If true, then the row will be highlighted in yellow.
    */
   isSuspectFlag?: boolean;
   /**
@@ -163,8 +163,8 @@ export function Card({
     ? truncatedItems.sort((a, b) => a.item.subject.localeCompare(b.item.subject))
     : truncatedItems;
 
-  const componentItems = orderedItems.map((itemProps, i) => (
-    <Content expandLeft={expandLeft} key={`content-card-${title}-${i}`} {...itemProps} />
+  const componentItems = orderedItems.map((itemProps, index) => (
+    <Content expandLeft={expandLeft} key={String(index)} {...itemProps} />
   ));
 
   return (

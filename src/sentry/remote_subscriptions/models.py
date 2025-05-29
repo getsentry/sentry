@@ -16,9 +16,7 @@ class BaseRemoteSubscription(Model):
     # Text identifier for the subscription type this is. Used to identify the registered callback associated with this
     # subscription.
     type = models.TextField()
-    status = models.SmallIntegerField(
-        default=Status.ACTIVE.value, db_default=Status.ACTIVE.value, db_index=True
-    )
+    status = models.SmallIntegerField(default=Status.ACTIVE.value, db_default=Status.ACTIVE.value)
     subscription_id = models.TextField(unique=True, null=True)
 
     class Meta:

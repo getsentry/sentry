@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -16,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {TraceExploreAiQueryProvider} from 'sentry/views/explore/components/traceExploreAiQueryProvider';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -23,6 +24,8 @@ import {
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
@@ -71,7 +74,9 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <PageParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        <TraceExploreAiQueryProvider>
+          <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        </TraceExploreAiQueryProvider>
       </PageParamsProvider>
     </SpansTabTourProvider>
   );
@@ -127,6 +132,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
   const prefersStackedNav = usePrefersStackedNav();
   const id = useExploreId();
   const title = useExploreTitle();
+  const {data: savedQuery} = useGetSavedQuery(id);
 
   return (
     <Layout.Header unified={prefersStackedNav}>
@@ -154,6 +160,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
             </LinkButton>
           )}
           <StarSavedQueryButton />
+          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
           <FeedbackWidgetButton />
         </ButtonBar>
       </Layout.HeaderActions>

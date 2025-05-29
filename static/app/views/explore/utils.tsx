@@ -3,16 +3,20 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -121,6 +125,7 @@ export function getExploreUrlFromSavedQueryUrl({
       (savedQuery.query[0].groupby?.length ?? 0) === 0
         ? ['']
         : savedQuery.query[0].groupby,
+    sort: savedQuery.query[0].orderby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
@@ -138,7 +143,7 @@ export function getExploreUrlFromSavedQueryUrl({
   });
 }
 
-function getExploreMultiQueryUrl({
+export function getExploreMultiQueryUrl({
   organization,
   selection,
   interval,
@@ -208,22 +213,32 @@ export function combineConfidenceForSeries(
   return 'high';
 }
 
-export function viewSamplesTarget(
-  location: Location,
-  query: string,
-  groupBys: string[],
-  row: Record<string, any>,
-  extras: {
-    // needed to generate targets when `project` is in the group by
-    projects: Project[];
-  }
-) {
+export function viewSamplesTarget({
+  location,
+  query,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  groupBys: string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  query: string;
+  row: Record<string, any>;
+  sorts: Sort[];
+  visualizes: Visualize[];
+}) {
   const search = new MutableSearch(query);
 
+  // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
     const value = row[groupBy];
+    // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
-      const project = extras.projects.find(p => p.slug === value);
+      const project = projects.find(p => p.slug === value);
       if (defined(project)) {
         location.query.project = project.id;
       }
@@ -236,9 +251,65 @@ export function viewSamplesTarget(
     }
   }
 
+  // all group bys will be used as columns
+  const fields = groupBys.filter(Boolean);
+  const seenFields = new Set(fields);
+
+  // add all the arguments of the visualizations as columns
+  for (const visualize of visualizes) {
+    for (const yAxis of visualize.yAxes) {
+      const parsedFunction = parseFunction(yAxis);
+      if (!parsedFunction?.arguments[0]) {
+        continue;
+      }
+      const field = parsedFunction.arguments[0];
+      if (seenFields.has(field)) {
+        continue;
+      }
+      fields.push(field);
+      seenFields.add(field);
+    }
+  }
+
+  // fall back, force timestamp to be a column so we
+  // always have at least 1 column
+  if (fields.length === 0) {
+    fields.push('timestamp');
+    seenFields.add('timestamp');
+  }
+
+  // fall back, sort the last column present
+  let sortBy: Sort = {
+    field: fields[fields.length - 1]!,
+    kind: 'desc' as const,
+  };
+
+  // find the first valid sort and sort on that
+  for (const sort of sorts) {
+    const parsedFunction = parseFunction(sort.field);
+    if (!parsedFunction?.arguments[0]) {
+      continue;
+    }
+    const field = parsedFunction.arguments[0];
+
+    // on the odd chance that this sorted column was not added
+    // already, make sure to add it
+    if (!seenFields.has(field)) {
+      fields.push(field);
+    }
+
+    sortBy = {
+      field,
+      kind: sort.kind,
+    };
+    break;
+  }
+
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
+    fields,
     query: search.formatString(),
+    sortBys: [sortBy],
   });
 }
 
@@ -371,3 +442,136 @@ const UpsellFooterHook = HookOrDefault({
   hookName: 'component:explore-date-range-query-limit-footer',
   defaultComponent: () => undefined,
 });
+
+export function confirmDeleteSavedQuery({
+  handleDelete,
+  savedQuery,
+}: {
+  handleDelete: () => void;
+  savedQuery: SavedQuery;
+}) {
+  openConfirmModal({
+    message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
+    isDangerous: true,
+    confirmText: t('Delete Query'),
+    priority: 'danger',
+    onConfirm: handleDelete,
+  });
+}
+
+export function findSuggestedColumns(
+  newSearch: MutableSearch,
+  oldSearch: MutableSearch,
+  attributes: {
+    numberAttributes: TagCollection;
+    stringAttributes: TagCollection;
+  }
+): string[] {
+  const oldFilters = oldSearch.filters;
+  const newFilters = newSearch.filters;
+
+  const keys: Set<string> = new Set();
+
+  for (const [key, value] of Object.entries(newFilters)) {
+    if (key === 'has' || key === '!has') {
+      // special key to be handled last
+      continue;
+    }
+
+    const isStringAttribute = key.startsWith('!')
+      ? attributes.stringAttributes.hasOwnProperty(key.slice(1))
+      : attributes.stringAttributes.hasOwnProperty(key);
+    const isNumberAttribute = key.startsWith('!')
+      ? attributes.numberAttributes.hasOwnProperty(key.slice(1))
+      : attributes.numberAttributes.hasOwnProperty(key);
+
+    // guard against unknown keys and aggregate keys
+    if (!isStringAttribute && !isNumberAttribute) {
+      continue;
+    }
+
+    if (isSimpleFilter(key, value, attributes)) {
+      continue;
+    }
+
+    if (
+      !oldFilters.hasOwnProperty(key) || // new filter key
+      isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
+    ) {
+      keys.add(normalizeKey(key));
+      break;
+    }
+  }
+
+  const oldHas = new Set(oldFilters.has);
+  for (const key of newFilters.has || []) {
+    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+      // old condition, don't add column
+      continue;
+    }
+
+    // if there's a simple filter on the key, don't add column
+    if (
+      newFilters.hasOwnProperty(key) &&
+      isSimpleFilter(key, newFilters[key] || [], attributes)
+    ) {
+      continue;
+    }
+
+    keys.add(normalizeKey(key));
+  }
+
+  return [...keys];
+}
+
+const PREFIX_WILDCARD_PATTERN = /^(\\\\)*\*/;
+const INFIX_WILDCARD_PATTERN = /[^\\](\\\\)*\*/;
+
+function isSimpleFilter(
+  key: string,
+  value: string[],
+  attributes: {
+    numberAttributes: TagCollection;
+    stringAttributes: TagCollection;
+  }
+): boolean {
+  // negation filters are always considered non trivial
+  // because it matches on multiple values
+  if (key.startsWith('!')) {
+    return false;
+  }
+
+  // all number attributes are considered non trivial because they
+  // almost always match on a range of values
+  if (attributes.numberAttributes.hasOwnProperty(key)) {
+    return false;
+  }
+
+  if (value.length === 1) {
+    const v = value[0]!;
+    // if the value is wrapped in `[...]`, then it's an array value
+    if (v.startsWith('[') && v.endsWith(']')) {
+      return false;
+    }
+
+    // if is wild card search, return false
+    if (v.startsWith('*')) {
+      return false;
+    }
+
+    if (PREFIX_WILDCARD_PATTERN.test(v) || INFIX_WILDCARD_PATTERN.test(v)) {
+      return false;
+    }
+  }
+
+  // if there is more than 1 possible value
+  if (value.length > 1) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeKey(key: string): string {
+  return key.startsWith('!') ? key.slice(1) : key;
+}

@@ -1,5 +1,4 @@
 import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import type {Layouts} from 'react-grid-layout';
@@ -95,8 +94,10 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
+  newlyAddedWidget?: Widget;
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
+  onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
@@ -352,8 +353,15 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
-      this.props;
+    const {
+      isEditingDashboard,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      location,
+      newlyAddedWidget,
+      onNewWidgetScrollComplete,
+    } = this.props;
 
     const widgetProps = {
       widget,
@@ -381,6 +389,8 @@ class Dashboard extends Component<Props, State> {
           isMobile={isMobile}
           windowWidth={windowWidth}
           index={String(index)}
+          newlyAddedWidget={newlyAddedWidget}
+          onNewWidgetScrollComplete={onNewWidgetScrollComplete}
         />
       </div>
     );

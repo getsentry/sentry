@@ -6,11 +6,9 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -35,7 +33,6 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
-  const organization = useOrganization();
   const deleteQuery = useDeleteQueryAtIndex();
 
   const {groupBys, query, yAxes, sortBys} = queryParts;
@@ -57,11 +54,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {
-    result: timeseriesResult,
-    canUsePreviousResults,
-    samplingMode: timeseriesSamplingMode,
-  } = useMultiQueryTimeseries({
+  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
@@ -78,16 +71,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     interval,
     isTopN: mode === Mode.AGGREGATE,
   });
-
-  const tableIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    (mode === Mode.SAMPLES
-      ? false // The loading indicator is not displayed because we do not change to best effort for samples
-      : mode === Mode.AGGREGATE
-        ? // The loading indicator is displayed when the aggregate table has preflight data and the query is pending
-          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
-          aggregatesTableResult.result.isFetched
-        : false);
 
   return (
     <Fragment>
@@ -115,7 +98,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
-            samplingMode={timeseriesSamplingMode}
           />
           <MultiQueryTable
             confidences={[]}
@@ -124,7 +106,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             index={index}
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
-            isProgressivelyLoading={tableIsProgressivelyLoading}
           />
         </LazyRender>
       </QueryVisualizationSection>

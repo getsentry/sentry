@@ -39,7 +39,6 @@ import {
 } from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
@@ -57,13 +56,8 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
 }: Props) {
   const organization = useOrganization();
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
-  const moduleURL = useModuleURL(
-    isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.SCREEN_LOAD
-  );
-  const baseURL = isMobileScreensEnabled
-    ? `${moduleURL}/details/`
-    : `${moduleURL}/spans/`;
+  const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
+  const baseURL = `${moduleURL}/details/`;
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -78,7 +72,7 @@ export function ScreenLoadSpansTable({
 
   const queryStringPrimary = useMemo(() => {
     const searchQuery = new MutableSearch([
-      'transaction.op:ui.load',
+      'transaction.op:[ui.load,navigation]',
       `transaction:${transaction}`,
       'has:span.description',
       ...(spanOp
@@ -102,7 +96,7 @@ export function ScreenLoadSpansTable({
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
-    field: 'time_spent_percentage()',
+    field: 'sum(span.self_time)',
   };
 
   const {data, meta, isPending, pageLinks} = useSpanMetrics(
@@ -121,7 +115,6 @@ export function ScreenLoadSpansTable({
         'ttid_contribution_rate()',
         'ttfd_contribution_rate()',
         'count()',
-        'time_spent_percentage()',
         `sum(${SPAN_SELF_TIME})`,
       ],
     },
@@ -133,7 +126,7 @@ export function ScreenLoadSpansTable({
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
-    'time_spent_percentage()': t('Total Time Spent'),
+    [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -365,7 +358,7 @@ export function ScreenLoadSpansTable({
           ...(organization.features.includes('insights-initial-modules')
             ? ['affects']
             : []),
-          ...['count()', 'time_spent_percentage()'],
+          ...['count()', `sum(${SPAN_SELF_TIME})`],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}

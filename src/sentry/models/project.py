@@ -49,7 +49,6 @@ from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
@@ -639,7 +638,6 @@ class Project(Model):
             with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
-            incr_rollback_metrics(ProjectTeam)
             return False
         else:
             return True

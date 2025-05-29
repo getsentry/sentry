@@ -14,6 +14,7 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from sentry.utils.performance_issues.base import DetectorType, total_span_time
 from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
@@ -82,6 +83,7 @@ def assert_n_plus_one_db_problem(perf_problems):
 
 
 @pytest.mark.django_db
+@exclude_experimental_detectors
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -190,7 +192,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
         assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 500
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,

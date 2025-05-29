@@ -1,12 +1,26 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 
-import {getChonkButtonStyles} from 'sentry/components/core/button/index.chonk';
+import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
+import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 export type Priority = 'default' | 'primary';
 
+const getChildTransforms = (count: number) => {
+  return Array.from(
+    {length: count},
+    (_, index) => css`
+      label:nth-of-type(${index + 1}) {
+        transform: translateX(-${index}px);
+      }
+    `
+  );
+};
+
 export const ChonkStyledGroupWrap = chonkStyled('div')<{
+  listSize: number;
   priority: Priority;
   size: FormSize;
 }>`
@@ -20,7 +34,6 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
   & > label:first-child {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-    border-right: 0;
   }
 
   & > label:not(:first-child):not(:last-child) {
@@ -32,10 +45,7 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
     border-bottom-left-radius: 0;
   }
 
-  /* don't turn off border if the 2nd element is also the last element */
-  & > label:last-child:not(:nth-child(2)) {
-    border-left: 0;
-  }
+  ${p => getChildTransforms(p.listSize)}
 `;
 
 export const ChonkStyledSegmentWrap = chonkStyled('label')<{
@@ -56,7 +66,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p => ({...getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
+  ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing};
@@ -73,17 +83,11 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   }
 `;
 
-export const ChonkStyledVisibleLabel = chonkStyled('span')<{
-  isSelected: boolean;
-  priority: Priority;
-  size: FormSize;
-}>`
+export const ChonkStyledVisibleLabel = chonkStyled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
   font-weight: ${p => p.theme.fontWeightBold};
-  ${p => p.size !== 'md' && `transform: translateY(-1px)`};
   text-align: center;
-  color: ${p => getTextColor(p)};
 `;
 
 function getTextColor({
@@ -102,3 +106,16 @@ function getTextColor({
 
   return theme.subText;
 }
+
+export const ChonkStyledLabelWrap = chonkStyled('span')<{
+  isSelected: boolean;
+  priority: Priority;
+  size: FormSize;
+}>`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+  z-index: 1;
+  color: ${p => getTextColor(p)};
+`;

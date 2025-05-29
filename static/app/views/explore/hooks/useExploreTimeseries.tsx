@@ -156,7 +156,7 @@ function useExploreTimeseriesImpl({
   };
 }
 
-export function shouldTriggerHighAccuracy(
+function shouldTriggerHighAccuracy(
   data: ReturnType<typeof useSortedTimeSeries>['data'],
   visualizes: Visualize[],
   isTopN: boolean

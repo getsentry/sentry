@@ -117,7 +117,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         )
 
         # Must send to user & partners so that the reply-to email will be each other
-        recipients = ["partners@sentry.io", request.user.email]
+        recipients = ["integrations-platform@sentry.io", request.user.email]
         sent_messages = new_message.send(
             to=recipients,
         )

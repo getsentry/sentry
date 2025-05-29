@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -319,7 +319,7 @@ class TestComments(APITestCase):
         )
         comment_data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
@@ -338,7 +338,7 @@ class TestComments(APITestCase):
         self.client.put(url, data=data, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "goodbye cruel world",
             "project_slug": self.project.slug,
         }
@@ -356,7 +356,7 @@ class TestComments(APITestCase):
         self.client.delete(url, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }

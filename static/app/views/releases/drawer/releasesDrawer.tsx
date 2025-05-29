@@ -79,7 +79,14 @@ export function ReleasesDrawer() {
   }
 
   if (rdRelease) {
-    return <ReleasesDrawerDetails release={rdRelease} projectId={rdReleaseProjectId} />;
+    return (
+      <ReleasesDrawerDetails
+        release={rdRelease}
+        projectId={rdReleaseProjectId}
+        start={start}
+        end={end}
+      />
+    );
   }
 
   if (start && end) {

@@ -17,40 +17,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
-import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-interface DiscoverQueryResponse {
-  data: Array<{
-    'avg(transaction.duration)': number;
-    'count()': number;
-    'count_unique(user)': number;
-    'failure_rate()': number;
-    'http.method': string;
-    'p95()': number;
-    'project.id': string;
-    'sum(transaction.duration)': number;
-    transaction: string;
-  }>;
-  link?: string;
-}
-
-type SortableField = keyof DiscoverQueryResponse['data'][number];
-
-interface RouteControllerMapping {
-  'count(span.duration)': number;
-  'span.description': string;
-  transaction: string;
-  'transaction.method': string;
-}
 
 interface TableData {
   avg: number;
@@ -59,7 +35,7 @@ interface TableData {
   isControllerLoading: boolean;
   method: string;
   p95: number;
-  projectId: string;
+  projectId: number;
   requests: number;
   sum: number;
   transaction: string;
@@ -85,29 +61,25 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
     | undefined;
 };
 
-const getOrderBy = (field: string, order: 'asc' | 'desc') => {
-  return order === 'asc' ? field : `-${field}`;
-};
-
 const EMPTY_ARRAY: never[] = [];
 const PER_PAGE = 10;
 
-const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
-  {key: 'http.method', name: t('Method'), width: 90},
+const defaultColumnOrder: Array<GridColumnOrder<string>> = [
+  {key: 'http.request.method', name: t('Method'), width: 90},
   {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 112},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
-  {key: 'avg(transaction.duration)', name: t('AVG'), width: 90},
-  {key: 'p95()', name: t('P95'), width: 90},
-  {key: 'sum(transaction.duration)', name: t('Total'), width: 90},
+  {key: 'avg(span.duration)', name: t('AVG'), width: 90},
+  {key: 'p95(span.duration)', name: t('P95'), width: 90},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 120},
   {key: 'count_unique(user)', name: t('Users'), width: 90},
 ];
 
-function isSortField(value: string): value is SortableField {
+function isSortField(value: string): value is string {
   return defaultColumnOrder.some(column => column.key === value);
 }
 
-function decodeSortField(value: QueryValue): SortableField {
+function decodeSortField(value: QueryValue): string {
   if (typeof value === 'string' && isSortField(value)) {
     return value;
   }
@@ -136,27 +108,24 @@ function useTableSortParams() {
 }
 
 interface PathsTableProps {
-  handleAddTransactionFilter: (value: string) => void;
-  query?: string;
   showHttpMethodColumn?: boolean;
+  showRouteController?: boolean;
   showUsersColumn?: boolean;
 }
 
 export function PathsTable({
-  query,
-  handleAddTransactionFilter,
   showHttpMethodColumn = true,
   showUsersColumn = true,
+  showRouteController = true,
 }: PathsTableProps) {
-  const organization = useOrganization();
   const location = useLocation();
-  const router = useRouter();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const navigate = useNavigate();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const [columnOrder, setColumnOrder] = useState(() => {
     let columns = [...defaultColumnOrder];
 
     if (!showHttpMethodColumn) {
-      columns = columns.filter(column => column.key !== 'http.method');
+      columns = columns.filter(column => column.key !== 'http.request.method');
     }
 
     if (!showUsersColumn) {
@@ -167,97 +136,81 @@ export function PathsTable({
   });
   const {sortField, sortOrder} = useTableSortParams();
 
-  const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
-    [
-      `/organizations/${organization.slug}/events/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'metrics',
-          field: [
-            'project.id',
-            'transaction',
-            'avg(transaction.duration)',
-            'p95()',
-            'failure_rate()',
-            'count()',
-            'sum(transaction.duration)',
-            ...(showHttpMethodColumn ? ['http.method'] : []),
-            ...(showUsersColumn ? ['count_unique(user)'] : []),
-          ],
-          query: `(transaction.op:http.server) event.type:transaction ${query}`,
-          referrer: Referrer.PATHS_TABLE,
-          orderby: getOrderBy(sortField, sortOrder),
-          per_page: PER_PAGE,
-          cursor: location.query.pathsCursor,
-        },
-      },
-    ],
-    {staleTime: 0}
+  const transactionsRequest = useEAPSpans(
+    {
+      search: `transaction.op:http.server is_transaction:True ${query}`,
+      sorts: [{field: sortField, kind: sortOrder}],
+      fields: [
+        'project.id',
+        'transaction',
+        'avg(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+        'count()',
+        'sum(span.duration)',
+        ...(showHttpMethodColumn ? ['http.request.method' as const] : []),
+        ...(showUsersColumn ? ['count_unique(user)' as const] : []),
+      ],
+      limit: PER_PAGE,
+      keepPreviousData: true,
+      cursor:
+        typeof location.query.pathsCursor === 'string'
+          ? location.query.pathsCursor
+          : undefined,
+    },
+    Referrer.PATHS_TABLE
   );
 
   // Get the list of transactions from the first request
   const transactionPaths = useMemo(() => {
-    return (
-      transactionsRequest.data?.data.map(transactions => transactions.transaction) ?? []
-    );
+    return transactionsRequest.data?.map(transactions => transactions.transaction) ?? [];
   }, [transactionsRequest.data]);
 
-  const routeControllersRequest = useApiQuery<{data: RouteControllerMapping[]}>(
-    [
-      `/organizations/${organization.slug}/events/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: [
-            'span.description',
-            'transaction',
-            'transaction.method',
-            'count(span.duration)',
-          ],
-          // Add transaction filter to route controller request
-          query: `transaction.op:http.server span.op:http.route transaction:[${
-            transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
-          }]`,
-          sort: '-transaction',
-          per_page: PER_PAGE,
-          referrer: Referrer.PATHS_TABLE,
-        },
-      },
-    ],
+  // The controller name is available in the span.description field on the `span.op:http.route` span in the same transaction
+  const routeControllersRequest = useEAPSpans(
     {
-      staleTime: 0,
-      // Only fetch after we have the transactions data and there are transactions to look up
-      enabled: !!transactionsRequest.data?.data && transactionPaths.length > 0,
-    }
+      search: `transaction.op:http.server span.op:http.route transaction:[${
+        transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
+      }]`,
+      fields: [
+        'span.description',
+        'transaction',
+        'http.request.method',
+        // We need an aggregation so we do not receive individual events
+        'count()',
+      ],
+      limit: PER_PAGE,
+      enabled:
+        showRouteController && !!transactionsRequest.data && transactionPaths.length > 0,
+    },
+    Referrer.PATHS_TABLE
   );
 
   const tableData = useMemo<TableData[]>(() => {
-    if (!transactionsRequest.data?.data) {
+    if (!transactionsRequest.data) {
       return [];
     }
 
     // Create a mapping of transaction path to controller
     const controllerMap = new Map(
-      routeControllersRequest.data?.data.map(item => [
+      routeControllersRequest.data?.map(item => [
         item.transaction,
         item['span.description'],
       ])
     );
 
-    return transactionsRequest.data.data.map(transaction => ({
-      method: transaction['http.method'],
+    return transactionsRequest.data.map(transaction => ({
+      method: transaction['http.request.method'],
       transaction: transaction.transaction,
       requests: transaction['count()'],
-      avg: transaction['avg(transaction.duration)'],
-      p95: transaction['p95()'],
+      avg: transaction['avg(span.duration)'],
+      p95: transaction['p95(span.duration)'],
       errorRate: transaction['failure_rate()'],
       users: transaction['count_unique(user)'],
       isControllerLoading: routeControllersRequest.isLoading,
       controller: controllerMap.get(transaction.transaction),
       projectId: transaction['project.id'],
-      sum: transaction['sum(transaction.duration)'],
+      sum: transaction['sum(span.duration)'],
     }));
   }, [
     transactionsRequest.data,
@@ -266,7 +219,7 @@ export function PathsTable({
   ]);
 
   const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumnHeader<SortableField>) => {
+    (columnIndex: number, nextColumn: GridColumnHeader<string>) => {
       setColumnOrder(prev => {
         const newColumnOrder = [...prev];
         newColumnOrder[columnIndex] = {
@@ -279,58 +232,58 @@ export function PathsTable({
     []
   );
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<SortableField>) => {
+  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return <HeadCell column={column} />;
   }, []);
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<SortableField>, dataRow: TableData) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       return (
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
-
-  const pathsTablePageLinks = transactionsRequest.getResponseHeader?.('Link');
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={transactionsRequest.isLoading}
-        error={transactionsRequest.error}
-        data={tableData}
-        columnOrder={columnOrder}
-        columnSortBy={EMPTY_ARRAY}
-        stickyHeader
-        grid={{
-          renderBodyCell,
-          renderHeadCell,
-          onResizeColumn: handleResizeColumn,
-        }}
-      />
+      <GridEditableContainer>
+        <GridEditable
+          isLoading={transactionsRequest.isPending}
+          error={transactionsRequest.error}
+          data={tableData}
+          columnOrder={columnOrder}
+          columnSortBy={EMPTY_ARRAY}
+          stickyHeader
+          grid={{
+            renderBodyCell,
+            renderHeadCell,
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+        {transactionsRequest.isPlaceholderData && <LoadingOverlay />}
+      </GridEditableContainer>
       <Pagination
-        pageLinks={pathsTablePageLinks}
+        pageLinks={transactionsRequest.pageLinks}
         onCursor={(cursor, path, currentQuery) => {
-          router.push({
-            pathname: path,
-            query: {...currentQuery, pathsCursor: cursor},
-          });
+          navigate(
+            {
+              pathname: path,
+              query: {...currentQuery, pathsCursor: cursor},
+            },
+            {replace: true, preventScrollReset: true}
+          );
         }}
       />
     </Fragment>
   );
 }
 
-const HeadCell = memo(function HeadCell({
-  column,
-}: {
-  column: GridColumnHeader<SortableField>;
-}) {
+const HeadCell = memo(function HeadCell({column}: {column: GridColumnHeader<string>}) {
   const location = useLocation();
   const {sortField, sortOrder} = useTableSortParams();
   return (
@@ -338,6 +291,7 @@ const HeadCell = memo(function HeadCell({
       align={column.key === 'count_unique(user)' ? 'right' : 'left'}
       direction={sortField === column.key ? sortOrder : undefined}
       canSort
+      preventScrollReset
       generateSortLink={() => ({
         ...location,
         query: {
@@ -362,7 +316,7 @@ const BodyCell = memo(function BodyCell({
   dataRow,
   handleAddTransactionFilter,
 }: {
-  column: GridColumnHeader<SortableField>;
+  column: GridColumnHeader<string>;
   dataRow: TableData;
   handleAddTransactionFilter: (value: string) => void;
 }) {
@@ -372,7 +326,7 @@ const BodyCell = memo(function BodyCell({
   const errorRateColor = getCellColor(dataRow.errorRate, errorRateColorThreshold);
 
   switch (column.key) {
-    case 'http.method':
+    case 'http.request.method':
       return dataRow.method;
     case 'transaction':
       return (
@@ -404,7 +358,7 @@ const BodyCell = memo(function BodyCell({
                   organization,
                   transaction: dataRow.transaction,
                   view: 'backend',
-                  projectID: dataRow.projectId,
+                  projectID: dataRow.projectId.toString(),
                   query: {},
                 })}
               >
@@ -414,7 +368,7 @@ const BodyCell = memo(function BodyCell({
             {dataRow.isControllerLoading ? (
               <Placeholder height={theme.fontSizeSmall} width="200px" />
             ) : (
-              dataRow.controller && (
+              dataRow && (
                 <Tooltip
                   title={dataRow.controller}
                   position="top"
@@ -437,15 +391,15 @@ const BodyCell = memo(function BodyCell({
           {(dataRow.errorRate * 100).toFixed(2)}%
         </div>
       );
-    case 'avg(transaction.duration)':
+    case 'avg(span.duration)':
       return getDuration(dataRow.avg / 1000, 2, true, true);
-    case 'p95()':
+    case 'p95(span.duration)':
       return (
         <div style={{color: p95Color && theme[p95Color]}}>
           {getDuration(dataRow.p95 / 1000, 2, true, true)}
         </div>
       );
-    case 'sum(transaction.duration)':
+    case 'sum(span.duration)':
       return getDuration(dataRow.sum / 1000, 2, true, true);
     case 'count_unique(user)':
       return (
@@ -490,4 +444,20 @@ const ControllerText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   min-width: 0px;
+`;
+
+const GridEditableContainer = styled('div')`
+  position: relative;
+  margin-bottom: ${space(1)};
+`;
+
+const LoadingOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: ${p => p.theme.background};
+  opacity: 0.5;
+  z-index: 1;
 `;

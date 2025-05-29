@@ -140,6 +140,11 @@ describe('messageSpanSamplesPanel', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
@@ -188,7 +193,6 @@ describe('messageSpanSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -285,7 +289,6 @@ describe('messageSpanSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],

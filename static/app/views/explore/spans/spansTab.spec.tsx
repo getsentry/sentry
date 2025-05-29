@@ -241,13 +241,9 @@ describe('SpansTabContent', function () {
       spies.forEach(spy => spy.mockRestore());
     });
 
-    it('should show hints when the feature flag is enabled', function () {
-      const {organization: schemaHintsOrganization} = initializeOrg({
-        organization: {...organization, features: ['traces-schema-hints']},
-      });
-
+    it('should show hints', function () {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization: schemaHintsOrganization,
+        organization,
       });
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();

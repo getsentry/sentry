@@ -170,6 +170,14 @@ export function isTouchEndFrame(frame: RecordingFrame) {
   );
 }
 
+export function isTouchMoveFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'source' in frame.data &&
+    frame.data.source === IncrementalSource.TouchMove
+  );
+}
+
 export function isMetaFrame(frame: RecordingFrame) {
   return frame.type === EventType.Meta;
 }

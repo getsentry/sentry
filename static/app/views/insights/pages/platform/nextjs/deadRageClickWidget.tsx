@@ -1,9 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
-import {LinkButton} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,12 +9,10 @@ import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
-import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import {
   SelectorLink,
   transformSelectorQuery,
@@ -24,36 +20,29 @@ import {
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget({
-  query,
-  releases,
-}: {
-  query?: string;
-  releases?: Release[];
-}) {
-  const organization = useOrganization();
+export function DeadRageClicksWidget() {
   const location = useLocation();
-  const fullQuery = `!count_dead_clicks:0 ${query}`.trim();
-
+  const organization = useOrganization();
   const {isLoading, error, data} = useDeadRageSelectors({
-    per_page: 5,
+    per_page: 6,
     sort: '-count_dead_clicks',
     cursor: undefined,
-    query: fullQuery,
-    isWidgetData: true,
+    // Setting this to true just strips rage clicks from the data
+    isWidgetData: false,
   });
 
   const isEmpty = !isLoading && data.length === 0;
-
-  if (isEmpty) {
-    return <SlowSSRWidget query={query} releases={releases} />;
-  }
 
   const visualization = (
     <WidgetVisualizationStates
       isLoading={isLoading}
       error={error}
       isEmpty={isEmpty}
+      emptyMessage={
+        <GenericWidgetEmptyStateWarning
+          message={t('Rage or dead clicks may not be listed due to the filters above')}
+        />
+      }
       VisualizationType={DeadRageClickWidgetVisualization}
       visualizationProps={{
         items: data,
@@ -70,7 +59,6 @@ export function DeadRageClicksWidget({
     <Widget
       Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
-      noVisualizationPadding
       Actions={
         <LinkButton
           size="xs"
@@ -84,9 +72,11 @@ export function DeadRageClicksWidget({
             },
           }}
         >
-          {t('View all')}
+          {t('View All')}
         </LinkButton>
       }
+      noVisualizationPadding
+      revealActions="always"
     />
   );
 }
@@ -115,9 +105,6 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
               {item.count_rage_clicks || 0}
             </ClickCount>
           </ClicksGridCell>
-          <ClicksGridCell>
-            <ProjectInfo id={item.project_id} />
-          </ClicksGridCell>
         </Fragment>
       ))}
     </ClicksGrid>
@@ -127,25 +114,7 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
 DeadRageClickWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-export function ProjectInfo({id}: {id: number}) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === id.toString());
-  const platform = project?.platform;
-  const slug = project?.slug;
-  return (
-    <ProjectInfoWrapper>
-      <Tooltip title={slug}>
-        <PlatformIcon
-          style={{display: 'block'}}
-          size={16}
-          platform={platform ?? 'default'}
-        />
-      </Tooltip>
-    </ProjectInfoWrapper>
-  );
-}
-
-const COLUMN_COUNT = 4;
+const COLUMN_COUNT = 3;
 
 const ClicksGrid = styled('div')`
   display: grid;
@@ -174,10 +143,4 @@ const ClickCount = styled(TextOverflow)`
   grid-template-columns: auto auto;
   gap: ${space(0.75)};
   align-items: center;
-`;
-
-const ProjectInfoWrapper = styled('div')`
-  display: block;
-  width: 16px;
-  height: 16px;
 `;

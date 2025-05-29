@@ -1,6 +1,7 @@
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {stringify} from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
 export function RouterFixture(params = {}): InjectedRouter {
   return {

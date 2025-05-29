@@ -41,6 +41,14 @@ def test_initial_state__deadletter() -> None:
     assert proto.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
 
+def test_initial_state__delay_on_retry() -> None:
+    retry = Retry(times=5, delay=1)
+    proto = retry.initial_state()
+
+    assert proto.attempts == 0
+    assert proto.delay_on_retry == 1
+
+
 def test_should_retry_no_matching_error() -> None:
     retry = Retry(times=5)
     state = retry.initial_state()

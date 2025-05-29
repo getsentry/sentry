@@ -14,7 +14,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.rpc_dataset_common import run_table_query
+from sentry.snuba.rpc_dataset_common import TableQuery, run_table_query
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -68,18 +68,20 @@ def query(
         if precise_timestamp not in selected_columns:
             selected_columns.append(precise_timestamp)
     return run_table_query(
-        query_string=query or "",
-        selected_columns=selected_columns,
-        orderby=orderby,
-        offset=offset or 0,
-        limit=limit,
-        referrer=referrer or "referrer unset",
-        sampling_mode=None,
-        resolver=get_resolver(
-            params=snuba_params,
-            config=SearchResolverConfig(
-                auto_fields=False,
-                use_aggregate_conditions=use_aggregate_conditions,
+        TableQuery(
+            query_string=query or "",
+            selected_columns=selected_columns,
+            orderby=orderby,
+            offset=offset or 0,
+            limit=limit,
+            referrer=referrer or "referrer unset",
+            sampling_mode=None,
+            resolver=get_resolver(
+                params=snuba_params,
+                config=SearchResolverConfig(
+                    auto_fields=False,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                ),
             ),
         ),
         debug=debug,

@@ -239,6 +239,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
+  'feature-disabled:issue-views': FeatureDisabledHook;
   'feature-disabled:open-discover': FeatureDisabledHook;
   'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
@@ -253,6 +254,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
+  'feature-disabled:sso-saml2': FeatureDisabledHook;
 };
 
 /**

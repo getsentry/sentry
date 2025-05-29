@@ -14,6 +14,7 @@ DEFAULT_PROMPTS = {
     "issue_priority": {"required_fields": ["organization_id"]},
     "issue_replay_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
     "issue_views_add_view_banner": {"required_fields": ["organization_id"]},
+    "issue_views_all_views_banner": {"required_fields": ["organization_id"]},
     "metric_alert_ignore_archived_issues": {"required_fields": ["organization_id", "project_id"]},
     "profiling_onboarding": {"required_fields": ["organization_id"]},
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},

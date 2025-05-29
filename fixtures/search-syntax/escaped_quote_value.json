@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "\\\"", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "\\\"",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +29,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "te\\\"st", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "te\\\"st",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -40,7 +50,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "te", "quoted": true}
+        "value": {"type": "valueText", "value": "te", "quoted": true, "contains": false}
       },
       {"type": "spaces", "value": ""},
       {"type": "freeText", "value": "st", "quoted": false, "invalid": null},

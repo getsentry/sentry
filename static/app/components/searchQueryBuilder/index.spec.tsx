@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -85,9 +86,17 @@ const FILTER_KEYS: TagCollection = {
     key: 'uncategorized_tag',
     name: 'uncategorized_tag',
   },
+  'tags[foo,string]': {
+    key: 'tags[foo,string]',
+    name: 'foo',
+  },
+  'tags[bar,number]': {
+    key: 'tags[bar,number]',
+    name: 'bar',
+  },
 };
 
-const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: FieldKind.FIELD,
     label: 'Category 1',
@@ -132,8 +141,11 @@ describe('SearchQueryBuilder', function () {
   const defaultProps: ComponentProps<typeof SearchQueryBuilder> = {
     getTagValues: jest.fn(() => Promise.resolve([])),
     initialQuery: '',
-    filterKeySections: FITLER_KEY_SECTIONS,
-    filterKeys: FILTER_KEYS,
+    filterKeySections: FILTER_KEY_SECTIONS,
+    filterKeys: {
+      ...FILTER_KEYS,
+      has: getHasTag(FILTER_KEYS),
+    },
     label: 'Query Builder',
     searchSource: '',
   };
@@ -924,7 +936,8 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add parens by typing', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('(');
@@ -932,6 +945,40 @@ describe('SearchQueryBuilder', function () {
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
 
       expect(getLastInput()).toHaveFocus();
+
+      // Should not commit changes until blur
+      expect(mockOnChange).not.toHaveBeenCalled();
+
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('(', expect.anything());
+      });
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('can add parens after text', async function () {
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo(');
+
+      // Should separate into free text "foo" and left paren token
+      expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+
+      expect(getLastInput()).toHaveFocus();
+
+      // Should not commit changes until blur
+      expect(mockOnChange).not.toHaveBeenCalled();
+
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('foo (', expect.anything());
+      });
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
     });
 
     it('focuses the correct text input after typing boolean operators', async function () {
@@ -3235,10 +3282,10 @@ describe('SearchQueryBuilder', function () {
   describe('disallowFreeText', function () {
     it('should mark free text invalid', async function () {
       render(
-        <SearchQueryBuilder {...defaultProps} disallowFreeText initialQuery="foo" />
+        <SearchQueryBuilder {...defaultProps} disallowFreeText initialQuery="foobar" />
       );
 
-      expect(screen.getByRole('row', {name: 'foo'})).toHaveAttribute(
+      expect(screen.getByRole('row', {name: 'foobar'})).toHaveAttribute(
         'aria-invalid',
         'true'
       );
@@ -3293,6 +3340,276 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(getLastInput());
       await userEvent.keyboard('{ArrowLeft}');
       expect(await screen.findByText('foo bar baz')).toBeInTheDocument();
+    });
+  });
+
+  describe('autofocus', function () {
+    it('should autofocus with empty initial query', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          autoFocus
+          initialQuery=""
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+    });
+
+    it('should autofocus with non-empty initial query', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          autoFocus
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+    });
+  });
+
+  describe('explicitly typed tags', function () {
+    it('renders explicit string tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="tags[foo,string]:foo" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      );
+
+      const input = screen.getByPlaceholderText('foo');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      await userEvent.keyboard('foo');
+      expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
+    });
+
+    it('renders explicit number tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="tags[bar,number]:<=100" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      );
+
+      const input = screen.getByPlaceholderText('bar');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      await userEvent.keyboard('bar');
+      expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    it('renders has explicit string tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[foo,string]" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+
+      expect(screen.getByPlaceholderText('foo')).toHaveFocus();
+      const option = screen.getByRole('option', {name: 'foo'});
+      expect(option).toBeInTheDocument();
+      expect(option).toHaveTextContent('foo');
+    });
+
+    it('renders has explicit number tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[bar,number]" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+
+      expect(screen.getByPlaceholderText('bar')).toHaveFocus();
+      const option = screen.getByRole('option', {name: 'bar'});
+      expect(option).toBeInTheDocument();
+      expect(option).toHaveTextContent('bar');
+    });
+  });
+
+  describe('autocomplete using suggestions', function () {
+    function getSuggestedFilterKey(key: string) {
+      if (key === 'foo') {
+        return 'tags[foo,string]';
+      }
+
+      if (key === 'bar') {
+        return 'tags[bar,number]';
+      }
+
+      return key;
+    }
+
+    it('replace string key with suggestion when autocompleting', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo:{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
+    });
+
+    it('replace number key with suggestion when autocompleting', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('bar:{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+    });
+
+    it('replaces string key with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      await userEvent.keyboard('foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
+    });
+
+    it('replaces number key with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      await userEvent.keyboard('bar{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+    });
+
+    it('replaces string key in has with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
+      expect(screen.getByLabelText('has:tags[foo,string]')).toBeInTheDocument();
+    });
+
+    it('replaces number key in has with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:bar{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
+      expect(screen.getByLabelText('has:tags[bar,number]')).toBeInTheDocument();
+    });
+
+    it('replaces string key in has with suggestion on blur', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:foo{Enter}');
+      await userEvent.click(document.body);
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
+      expect(screen.getByLabelText('has:tags[foo,string]')).toBeInTheDocument();
+    });
+
+    it('replaces number key in has with suggestion on blur', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:bar{Enter}');
+      await userEvent.click(document.body);
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
+      expect(screen.getByLabelText('has:tags[bar,number]')).toBeInTheDocument();
     });
   });
 });

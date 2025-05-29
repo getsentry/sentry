@@ -6,11 +6,14 @@ import {
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {
+  FixabilityScoreThresholds,
   getIssueTitleFromType,
+  ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -55,6 +58,10 @@ const PREDEFINED_FIELDS = {
 
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
+
+const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
+  category => category !== IssueCategory.FEEDBACK
+);
 
 /**
  * Certain field keys may conflict with custom tags. In this case, the tag will be
@@ -282,15 +289,15 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: organization.features.includes('issue-taxonomy')
-        ? [
-            IssueCategory.ERROR,
-            IssueCategory.OUTAGE,
-            IssueCategory.METRIC,
-            IssueCategory.DB_QUERY,
-            IssueCategory.HTTP_CLIENT,
-            IssueCategory.FRONTEND,
-            IssueCategory.MOBILE,
-          ]
+        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
+            icon: null,
+            title: value,
+            name: value,
+            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+            value,
+            type: ItemType.TAG_VALUE,
+            children: [],
+          }))
         : [
             IssueCategory.ERROR,
             IssueCategory.PERFORMANCE,
@@ -352,6 +359,22 @@ function builtInIssuesFields({
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
+      name: 'Issue Fixability',
+      values: [
+        FixabilityScoreThresholds.HIGH,
+        FixabilityScoreThresholds.MEDIUM,
+        FixabilityScoreThresholds.LOW,
+      ],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_LAST_RUN]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_LAST_RUN]!,
+      name: 'Issue Fix Last Triggered',
+      values: [],
+      predefined: false,
     },
   };
 

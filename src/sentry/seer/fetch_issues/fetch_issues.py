@@ -11,13 +11,13 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
-from sentry.integrations.github.tasks.open_pr_comment import (
-    MAX_RECENT_ISSUES,
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_MAX_FILES_CHANGED,
     OPEN_PR_MAX_LINES_CHANGED,
+    OPEN_PR_MAX_RECENT_ISSUES,
+    PullRequestFile,
 )
-from sentry.integrations.github.tasks.utils import PullRequestFile
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -103,7 +103,7 @@ def _get_issues_for_file(
         )
         .order_by("-times_seen")
         .values_list("id", flat=True)
-    )[:MAX_RECENT_ISSUES]
+    )[:OPEN_PR_MAX_RECENT_ISSUES]
     project_ids = [project.id for project in projects]
 
     # Fetch the latest event for each group, along with some other event data we'll need for

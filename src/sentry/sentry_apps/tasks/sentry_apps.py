@@ -126,7 +126,13 @@ def _webhook_event_data(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -224,7 +230,13 @@ def send_alert_webhook_v2(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -394,7 +406,13 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -406,7 +424,13 @@ def process_resource_change_bound(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.installation_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 @retry_decorator
@@ -436,7 +460,13 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.clear_region_cache",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
@@ -480,7 +510,13 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -509,12 +545,23 @@ def workflow_notification(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
 def build_comment_webhook(
-    installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
+    installation_id: int,
+    issue_id: int,
+    type: str,
+    user_id: int,
+    data: dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     event = SentryAppEventType(type)
     with SentryAppInteractionEvent(
@@ -523,7 +570,7 @@ def build_comment_webhook(
     ).capture():
         webhook_data = get_webhook_data(installation_id, issue_id, user_id)
         install, _, user = webhook_data
-        data = kwargs.get("data", {})
+
         project_slug = data.get("project_slug")
         comment_id = data.get("comment_id")
         payload = {
@@ -577,7 +624,13 @@ def get_webhook_data(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -615,11 +668,16 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
         id = f.rule.id
+
         # if we are using the new workflow engine, we need to use the legacy rule id
-        if features.has("organizations:workflow-engine-trigger-actions", event.group.organization):
-            id = get_key_from_rule_data(f.rule, "legacy_rule_id")
-        elif features.has("organizations:workflow-engine-ui-links", event.group.organization):
-            id = get_key_from_rule_data(f.rule, "workflow_id")
+        # Ignore test notifications
+        if int(id) != -1:
+            if features.has("organizations:workflow-engine-ui-links", event.group.organization):
+                id = get_key_from_rule_data(f.rule, "workflow_id")
+            elif features.has(
+                "organizations:workflow-engine-trigger-actions", event.group.organization
+            ):
+                id = get_key_from_rule_data(f.rule, "legacy_rule_id")
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:

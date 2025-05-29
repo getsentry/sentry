@@ -20,7 +20,7 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export interface CheckboxProps
+interface CheckboxProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
   /**
    * Is the checkbox active? Supports 'indeterminate'

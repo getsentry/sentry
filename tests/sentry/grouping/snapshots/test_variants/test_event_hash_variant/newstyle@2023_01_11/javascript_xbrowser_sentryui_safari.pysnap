@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:09.858005+00:00'
+created: '2025-05-12T23:41:17.287905+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*

@@ -2,11 +2,11 @@ import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -315,12 +315,15 @@ const FooterButton = styled(Button)<{error?: boolean}>`
 
   ${p =>
     p.error &&
-    `
-  &, &:active, &:focus, &:hover {
-  border-bottom-color: ${p.theme.error};
-  border-right-color: ${p.theme.error};
-  }
-  `}
+    css`
+      &,
+      &:active,
+      &:focus,
+      &:hover {
+        border-bottom-color: ${p.theme.error};
+        border-right-color: ${p.theme.error};
+      }
+    `}
 `;
 
 const ErrorMessage = styled('span')`

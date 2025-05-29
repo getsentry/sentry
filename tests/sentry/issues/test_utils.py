@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import GroupsCountResponse
+from sentry.issues.escalating.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData

@@ -2035,6 +2035,8 @@ describe('GSBanner Overage Alerts', function () {
         attachments: MetricHistoryFixture({usageExceeded: true}),
         monitorSeats: MetricHistoryFixture({usageExceeded: true}),
         uptime: MetricHistoryFixture({usageExceeded: true}),
+        seerAutofix: MetricHistoryFixture({usageExceeded: true}),
+        seerScanner: MetricHistoryFixture({usageExceeded: true}),
       },
       canSelfServe: true,
     });
@@ -2047,7 +2049,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
       )
     ).toBeInTheDocument();
   });
@@ -2085,6 +2087,8 @@ describe('GSBanner Overage Alerts', function () {
         attachments: MetricHistoryFixture({sentUsageWarning: true}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: true}),
         uptime: MetricHistoryFixture({sentUsageWarning: true}),
+        seerAutofix: MetricHistoryFixture({sentUsageWarning: true}),
+        seerScanner: MetricHistoryFixture({sentUsageWarning: true}),
       },
       canSelfServe: true,
     });
@@ -2097,7 +2101,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
       )
     ).toBeInTheDocument();
   });
@@ -2108,7 +2112,14 @@ describe('GSBanner Overage Alerts', function () {
       organization,
       plan: 'am3_team',
     });
-    subscription.planDetails.categories = [...subscription.planDetails.categories];
+    subscription.categories = {
+      ...subscription.categories,
+      // TODO(Seer): remove this after seer has been added to the fixtures
+      // tests that seer is not included in prompts before launch even
+      // though isBilledCategory is true
+      seerAutofix: MetricHistoryFixture({usageExceeded: true}),
+      seerScanner: MetricHistoryFixture({usageExceeded: true}),
+    };
     const promptsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -2133,6 +2144,8 @@ describe('GSBanner Overage Alerts', function () {
       'profile_duration',
       'profile_duration_ui',
       'uptime',
+      'seer_autofix',
+      'seer_scanner',
     ]) {
       overagePrompts.push(`${category}_overage_alert`);
       warningPrompts.push(`${category}_warning_alert`);

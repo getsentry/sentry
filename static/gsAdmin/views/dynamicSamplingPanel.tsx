@@ -355,6 +355,8 @@ function DynamicSamplingRulesTable({
         impact: evaluateRuleImpact(rule),
       };
     })
+
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     .filter(row => Object.values(row).join().toLowerCase().includes(searchQuery));
 
   return (
