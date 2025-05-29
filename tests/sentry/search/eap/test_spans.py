@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
@@ -25,10 +27,12 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils import json
 
 
 class SearchResolverQueryTest(TestCase):
@@ -692,3 +696,12 @@ class SearchResolverColumnTest(TestCase):
 
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
+
+
+def test_loads_deprecated_attrs_json():
+    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
+        deprecated_attrs = json.loads(f.read())["attributes"]
+
+    attribute = deprecated_attrs[0]
+    assert attribute["key"]
+    assert attribute["deprecation"]

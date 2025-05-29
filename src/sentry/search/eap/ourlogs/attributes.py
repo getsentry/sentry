@@ -112,3 +112,15 @@ LOGS_PRIVATE_ATTRIBUTES: set[str] = {
     for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
     if definition.private
 }
+
+LOGS_REPLACEMENT_ATTRIBUTES: set[str] = {
+    definition.replacement
+    for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+LOGS_REPLACEMENT_MAP: dict[str, str] = {
+    definition.public_alias: definition.replacement
+    for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}

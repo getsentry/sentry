@@ -16,10 +16,14 @@ from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_PRIVATE_ATTRIBUTES,
+    LOGS_REPLACEMENT_ATTRIBUTES,
+    LOGS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.spans.attributes import (
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTES,
+    SPANS_REPLACEMENT_ATTRIBUTES,
+    SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.types import SAMPLING_MODES
@@ -123,6 +127,16 @@ PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
 }
 
+SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
+    SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_ATTRIBUTES,
+    SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_ATTRIBUTES,
+}
+
+SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, str]] = {
+    SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_MAP,
+    SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_MAP,
+}
+
 
 def translate_internal_to_public_alias(
     internal_alias: str,
@@ -139,3 +153,14 @@ def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> b
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
+
+
+def is_sentry_convention_replacement_attribute(
+    public_alias: str, item_type: SupportedTraceItemType
+) -> bool:
+    return public_alias in SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES.get(item_type, {})
+
+
+def translate_to_sentry_conventions(public_alias: str, item_type: SupportedTraceItemType) -> str:
+    mapping = SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.get(item_type, {})
+    return mapping.get(public_alias, public_alias)
