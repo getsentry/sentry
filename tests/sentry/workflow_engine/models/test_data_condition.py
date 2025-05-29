@@ -19,16 +19,6 @@ class MockDataConditionEnum(IntEnum):
 
 
 class MockDataConditionHandlerDictComparison(DataConditionHandler):
-    group = DataConditionHandler.Group.DETECTOR_TRIGGER
-    comparison_json_schema = {
-        "type": "object",
-        "properties": {
-            "baz": {"type": "int", "enum": [*MockDataConditionEnum]},
-        },
-        "required": ["baz"],
-        "additionalProperties": False,
-    }
-
     @staticmethod
     def evaluate_value(
         event_data: WorkflowEventData, comparison: dict[str, MockDataConditionEnum]
@@ -70,14 +60,6 @@ class GetConditionResultTest(TestCase):
 
 class EvaluateValueTest(BaseWorkflowTest):
     def setUp(self):
-        self.workflow_triggers = self.create_data_condition_group()
-        self.dict_comparison_dc = self.create_data_condition(
-            type=Condition.REAPPEARED_EVENT,  # XXX: arbitrary, just needs to not be in CONDITION_OPS
-            comparison=True,  # set for REAPPEARED_EVENT so it passes enforce_data_condition_json_schema on create
-            condition_result=DetectorPriorityLevel.HIGH,
-            condition_group=self.workflow_triggers,
-        )
-        self.dict_comparison_dc.update(comparison={"baz": MockDataConditionEnum.BAR})
         self.handler = MockDataConditionHandlerDictComparison()
 
     def test(self):
