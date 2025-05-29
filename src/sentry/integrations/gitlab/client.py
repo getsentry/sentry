@@ -413,3 +413,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
                 "org_integration_id": self.org_integration_id,
             },
         )
+
+    def get_pr_diffs(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
+        project_id = repo.config["project_id"]
+        path = GitLabApiClientPath.build_pr_diffs(project=project_id, pr_key=pr.key, unidiff=True)
+        return self.get(path)
