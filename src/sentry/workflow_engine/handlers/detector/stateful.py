@@ -493,7 +493,6 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
-        # TODO - think about how to get the event data here :thinking:
         return detector_occurrence.to_issue_occurrence(
             fingerprint=fingerprint,
             occurrence_id=str(uuid4()),
