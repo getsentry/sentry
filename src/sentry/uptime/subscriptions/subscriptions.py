@@ -191,6 +191,16 @@ def create_project_uptime_subscription(
             project__organization=project.organization,
             config__mode=ProjectUptimeSubscriptionMode.MANUAL,
         ).count()
+
+        # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
+        # onboarding monitors
+        if project.organization.get_option("sentry:uptime_autodetection", False):
+            project.organization.update_option("sentry:uptime_autodetection", False)
+            for detector in get_auto_monitored_detectors_for_project(
+                project, modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING]
+            ):
+                delete_uptime_detector(detector)
+
         if (
             not override_manual_org_limit
             and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
@@ -234,20 +244,22 @@ def create_project_uptime_subscription(
         )
         detector = create_detector_from_project_subscription(uptime_monitor)
 
-        # Update status. This may have the side effect of removing or creating a
-        # remote subscription. When a new monitor is created we will ensure seat
-        # assignment, which may cause the monitor to be disabled if there are no
-        # available seat assignments.
-        match status:
-            case ObjectStatus.ACTIVE:
-                try:
-                    enable_uptime_detector(detector, ensure_assignment=True)
-                except UptimeMonitorNoSeatAvailable:
-                    # No need to do anything if we failed to handle seat
-                    # assignment. The monitor will be created, but not enabled
-                    pass
-            case ObjectStatus.DISABLED:
-                disable_uptime_detector(detector)
+        # Don't consume a seat if we're still in onboarding mode
+        if mode != ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+            # Update status. This may have the side effect of removing or creating a
+            # remote subscription. When a new monitor is created we will ensure seat
+            # assignment, which may cause the monitor to be disabled if there are no
+            # available seat assignments.
+            match status:
+                case ObjectStatus.ACTIVE:
+                    try:
+                        enable_uptime_detector(detector, ensure_assignment=True)
+                    except UptimeMonitorNoSeatAvailable:
+                        # No need to do anything if we failed to handle seat
+                        # assignment. The monitor will be created, but not enabled
+                        pass
+                case ObjectStatus.DISABLED:
+                    disable_uptime_detector(detector)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
@@ -323,14 +335,16 @@ def update_project_uptime_subscription(
             },
         )
 
-        # Update status. This may have the side effect of removing or creating a
-        # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
-        # assignment fails.
-        match status:
-            case ObjectStatus.DISABLED:
-                disable_uptime_detector(detector)
-            case ObjectStatus.ACTIVE:
-                enable_uptime_detector(detector)
+        # Don't consume a seat if we're still in onboarding mode
+        if mode != ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+            # Update status. This may have the side effect of removing or creating a
+            # remote subscription. Will raise a UptimeMonitorNoSeatAvailable if seat
+            # assignment fails.
+            match status:
+                case ObjectStatus.DISABLED:
+                    disable_uptime_detector(detector)
+                case ObjectStatus.ACTIVE:
+                    enable_uptime_detector(detector)
 
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
@@ -463,15 +477,18 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
     ).exists()
 
 
-def get_auto_monitored_detectors_for_project(project: Project) -> list[Detector]:
+def get_auto_monitored_detectors_for_project(
+    project: Project,
+    modes: Sequence[ProjectUptimeSubscriptionMode] | None = None,
+) -> list[Detector]:
+    if modes is None:
+        modes = [
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        ]
     return list(
         Detector.objects.filter(
-            type=UptimeDomainCheckFailure.slug,
-            project=project,
-            config__mode__in=(
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
-            ),
+            type=UptimeDomainCheckFailure.slug, project=project, config__mode__in=modes
         )
     )
 
