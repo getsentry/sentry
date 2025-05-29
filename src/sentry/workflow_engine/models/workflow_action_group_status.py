@@ -14,7 +14,7 @@ class WorkflowActionGroupStatus(DefaultFieldsModel):
 
     workflow = FlexibleForeignKey("workflow_engine.Workflow", on_delete=models.CASCADE)
     action = FlexibleForeignKey("workflow_engine.Action", on_delete=models.CASCADE)
-    group = FlexibleForeignKey("sentry.Group")
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
 
     class Meta:
         constraints = [
