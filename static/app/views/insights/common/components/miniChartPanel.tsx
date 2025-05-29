@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
-import {Frame} from 'sentry/views/insights/common/components/spanDescription';
+import {Frame} from 'sentry/views/dashboards/widgets/widget/widget';
 
 type Props = {
   children: React.ReactNode;
