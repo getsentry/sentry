@@ -2,44 +2,22 @@ import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {getFormattedDate} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {hydrateToFlagSeries} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 
 interface FlagSeriesProps {
   event: Event | undefined;
-  query: Record<string, any>;
+  flags: RawFlag[];
 }
 
-export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
+export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const theme = useTheme();
-  const organization = useOrganization();
-  const {
-    data: rawFlagData,
-    isError,
-    isPending,
-  } = useOrganizationFlagLog({organization, query});
   const {selection} = usePageFilters();
 
-  if (!rawFlagData?.data.length || isError || isPending) {
-    return {
-      seriesName: t('Feature Flags'),
-      markLine: {},
-      data: [],
-    };
-  }
-
-  const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
-  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
-  const intersectionFlags = hydratedFlagData.filter(f =>
-    evaluatedFlagNames?.includes(f.name)
-  );
-
-  if (!intersectionFlags.length) {
+  if (!flags.length) {
     return {
       seriesName: t('Feature Flags'),
       markLine: {},
@@ -58,7 +36,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
     label: {
       show: false,
     },
-    data: intersectionFlags,
+    data: hydrateToFlagSeries(flags),
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {

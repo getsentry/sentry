@@ -2,16 +2,16 @@ import {useEffect, useMemo} from 'react';
 import intersection from 'lodash/intersection';
 import moment from 'moment-timezone';
 
+import {
+  hydrateToFlagSeries,
+  type RawFlag,
+  type RawFlagData,
+} from 'sentry/components/featureFlags/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {
-  hydrateToFlagSeries,
-  type RawFlag,
-  type RawFlagData,
-} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 /**
  * Legacy suspect flags implementation.
@@ -32,7 +32,7 @@ export default function useLegacyEventSuspectFlags({
   organization: Organization;
   rawFlagData: RawFlagData | undefined;
 }): UseApiQueryResult<RawFlagData, RequestError> & {suspectFlags: RawFlag[]} {
-  const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
+  const hydratedFlagData = hydrateToFlagSeries(rawFlagData?.data ?? []);
 
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
