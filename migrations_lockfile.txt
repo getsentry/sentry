@@ -21,6 +21,8 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 preprod: 0001_emerge_upload_models
 
+replays: 0001_squashed_0005_drop_replay_index
+
 sentry: 0917_convert_org_saved_searches_to_views
 
 social_auth: 0001_squashed_0002_default_auto_field
