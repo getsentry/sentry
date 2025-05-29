@@ -276,7 +276,6 @@ export function EventGraph({
       end: eventView.end,
       period: eventView.statsPeriod,
     },
-    enabled: showReleasesAs === 'line',
   });
 
   const handleReleaseLineClick = useCallback(
