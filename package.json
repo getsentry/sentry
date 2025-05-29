@@ -88,7 +88,7 @@
     "@types/gtag.js": "^0.0.12",
     "@types/history": "^3.2.5",
     "@types/invariant": "^2.2.35",
-    "@types/jest": "29.5.12",
+    "@types/jest": "29.5.14",
     "@types/js-beautify": "^1.14.3",
     "@types/js-cookie": "^3.0.2",
     "@types/lodash": "^4.14.182",
