@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {EChartsInstance} from 'echarts-for-react';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -11,7 +12,10 @@ import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-export default function EventGraphWidget({pageFilters}: LoadableChartWidgetProps) {
+export default function EventGraphWidget({
+  pageFilters,
+  chartRef,
+}: LoadableChartWidgetProps) {
   const {groupId} = useParams();
 
   const {data: groupData, isPending, isError} = useGroup({groupId: groupId!});
@@ -32,15 +36,23 @@ export default function EventGraphWidget({pageFilters}: LoadableChartWidgetProps
     );
   }
 
-  return <EventGraphLoadedWidget group={groupData} pageFilters={pageFilters} />;
+  return (
+    <EventGraphLoadedWidget
+      chartRef={chartRef}
+      group={groupData}
+      pageFilters={pageFilters}
+    />
+  );
 }
 
 function EventGraphLoadedWidget({
   group,
   pageFilters,
+  chartRef,
 }: {
   group: Group;
   pageFilters: PageFilters | undefined;
+  chartRef?: React.Ref<EChartsInstance>;
 }) {
   const eventView = useIssueDetailsEventView({
     group,
@@ -54,6 +66,7 @@ function EventGraphLoadedWidget({
       Visualization={
         <EventGraph
           event={undefined}
+          ref={chartRef}
           eventView={eventView}
           group={group}
           showSummary={false}

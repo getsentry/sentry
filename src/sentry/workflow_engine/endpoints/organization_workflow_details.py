@@ -14,6 +14,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, WorkflowParams
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -107,6 +108,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         Delete a workflow
         """
         RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+        workflow.update(status=ObjectStatus.PENDING_DELETION)
         create_audit_entry(
             request=request,
             organization=organization,

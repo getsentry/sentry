@@ -368,7 +368,7 @@ export function flattenErrors(
 ): FlatValidationError {
   if (typeof data === 'string') {
     update.error = data;
-  } else {
+  } else if (defined(data)) {
     Object.keys(data).forEach((key: string) => {
       const value = data[key];
       if (typeof value === 'string') {
@@ -454,7 +454,12 @@ export function isWidgetUsingTransactionName(widget: Widget) {
   );
 }
 
-export function hasSavedPageFilters(dashboard: DashboardDetails) {
+export function hasSavedPageFilters(
+  dashboard: Pick<
+    DashboardDetails,
+    'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
+  >
+) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
     dashboard.environment === undefined &&
