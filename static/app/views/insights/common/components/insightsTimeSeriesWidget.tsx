@@ -40,6 +40,7 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
@@ -50,6 +51,7 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  groupBy?: SpanFields[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
@@ -191,6 +193,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <OpenInExploreButton
                 chartType={chartType}
                 yAxes={yAxisArray}
+                groupBy={props.groupBy}
                 title={props.title}
                 search={props.search}
               />
