@@ -199,7 +199,7 @@ function AutofixInsightCard({
                       title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                       icon={
                         <StyledIconChevron
-                          direction={isExpanded ? 'down' : 'right'}
+                          direction={isExpanded ? 'up' : 'down'}
                           size="xs"
                         />
                       }
@@ -314,7 +314,7 @@ function CollapsibleChainLink({
       message: newInsightText,
       step_index: stepIndex,
       retain_insight_card_index:
-        insightCount !== undefined && insightCount > 0 ? insightCount - 1 : null,
+        insightCount !== undefined && insightCount > 0 ? insightCount : null,
     });
     setNewInsightText('');
   };
@@ -344,10 +344,7 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               icon={
-                <CollapseIconChevron
-                  direction={isCollapsed ? 'right' : 'down'}
-                  size="sm"
-                />
+                <CollapseIconChevron direction={isCollapsed ? 'down' : 'up'} size="sm" />
               }
               aria-label={t('Toggle reasoning visibility')}
             />

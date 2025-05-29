@@ -24,23 +24,16 @@ type FlagSeriesDatapoint = {
   xAxis: number;
 };
 
-export function hydrateToFlagSeries(
-  rawFlagData: RawFlagData | undefined
-): FlagSeriesDatapoint[] {
-  if (!rawFlagData) {
-    return [];
-  }
-
+export function hydrateToFlagSeries(rawFlagData: RawFlag[]): FlagSeriesDatapoint[] {
   // transform raw flag data into series data
   // each data point needs to be type FlagSeriesDatapoint
-  const flagData = rawFlagData.data.map<FlagSeriesDatapoint>(f => {
+  return rawFlagData.map(f => {
     return {
       xAxis: Date.parse(f.createdAt),
       label: {formatter: () => f.action},
       name: f.flag,
     };
   });
-  return flagData;
 }
 
 export function getFlagActionLabel(action: string) {
