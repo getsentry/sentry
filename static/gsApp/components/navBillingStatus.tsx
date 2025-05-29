@@ -17,6 +17,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
@@ -308,9 +309,19 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       <SidebarButton
         analyticsKey="billingStatus"
         label={t('Billing Status')}
-        buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
+        // @ts-expect-error Warning variant is only available in Chonk
+        buttonProps={{
+          ...overlayTriggerProps,
+          ...(isChonkTheme(theme)
+            ? {priority: 'warning'}
+            : {style: {backgroundColor: theme.warning}}),
+        }}
       >
-        <motion.div {...(isOpen || hasSnoozedAllPrompts() ? {} : ANIMATE_PROPS)}>
+        <motion.div
+          {...(isOpen || hasSnoozedAllPrompts()
+            ? {style: {display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+            : ANIMATE_PROPS)}
+        >
           <IconWarning color={iconColor as Color} />
         </motion.div>
       </SidebarButton>
