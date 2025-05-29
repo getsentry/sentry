@@ -6,7 +6,8 @@ import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
+export interface DropdownButtonProps
+  extends Omit<ButtonProps, 'type' | 'prefix' | 'onClick'> {
   /**
    * Whether or not the button should render as open
    */
