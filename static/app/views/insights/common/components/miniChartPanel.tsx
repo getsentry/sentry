@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
+import {Frame} from 'sentry/views/insights/common/components/spanDescription';
 
 type Props = {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ type Props = {
 
 export default function MiniChartPanel({title, children, button, subtitle}: Props) {
   return (
-    <StyledPanel>
+    <StyledFrame>
       <PanelBody>
         {(title || button || subtitle) && (
           <HeaderContainer>
@@ -26,12 +26,12 @@ export default function MiniChartPanel({title, children, button, subtitle}: Prop
         )}
         {children}
       </PanelBody>
-    </StyledPanel>
+    </StyledFrame>
   );
 }
 
-const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
+const StyledFrame = styled(Frame)`
+  height: 100%;
 `;
 
 const ChartLabel = styled('p')`
