@@ -8,7 +8,6 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type {EChartsInstance} from 'echarts-for-react';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
@@ -79,7 +78,7 @@ export interface TimeSeriesWidgetVisualizationProps
   /**
    * Reference to the chart instance
    */
-  chartRef?: React.Ref<EChartsInstance>;
+  chartRef?: React.Ref<ReactEchartsRef>;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
