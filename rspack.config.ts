@@ -203,9 +203,6 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   target: 'browserslist',
-  // Fail on first error instead of continuing to build
-  // https://rspack.rs/config/other-options#bail
-  bail: IS_PRODUCTION,
   entry: {
     /**
      * Main Sentry SPA
