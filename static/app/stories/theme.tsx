@@ -4,7 +4,7 @@ import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

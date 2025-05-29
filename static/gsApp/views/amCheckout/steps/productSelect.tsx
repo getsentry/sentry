@@ -7,7 +7,6 @@ import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import PanelItem from 'sentry/components/panels/panelItem';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -44,6 +43,7 @@ function ProductSelect({
       icon: <SeerIcon size="lg" color={'pink400'} />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
+      title: t('Seer AI Agent'),
       description: t('Detect and fix issues faster with our AI debugging agent.'),
       features: [
         t('Issue scan'),
@@ -64,6 +64,13 @@ function ProductSelect({
           return null;
         }
 
+        const cost = formatCurrency(
+          utils.getReservedPriceForReservedBudgetCategory({
+            plan: activePlan,
+            reservedBudgetCategory: productInfo.apiName,
+          })
+        );
+
         return (
           <ProductOption
             key={productInfo.apiName}
@@ -78,23 +85,33 @@ function ProductSelect({
                 ]?.enabled
               }
             >
-              <Column>
-                <ProductLabel productColor={checkoutInfo.color}>
-                  {checkoutInfo.icon}
-                  <ProductName>{toTitleCase(productInfo.productName)}</ProductName>
-                </ProductLabel>
-                <div>
-                  <p>{checkoutInfo.description}</p>
+              <Row>
+                <Column>
+                  <ProductLabel productColor={checkoutInfo.color}>
+                    {checkoutInfo.icon}
+                    <ProductName>{checkoutInfo.title}</ProductName>
+                  </ProductLabel>
+                  <div>
+                    <p>{checkoutInfo.description}</p>
+                  </div>
+                </Column>
+                <Column>
                   {checkoutInfo.features.map(feature => (
                     <Feature key={feature}>
                       <IconCheckmark color={checkoutInfo.color} />
                       {feature}
                     </Feature>
                   ))}
-                </div>
-              </Column>
-              <Column alignItems="flex-end">
+                </Column>
+                <Column>
+                  <IllustrationContainer>
+                    <Stars src={bannerStars} />
+                  </IllustrationContainer>
+                </Column>
+              </Row>
+              <Row>
                 <Button
+                  style={{width: '100%'}}
                   onClick={() =>
                     onUpdate({
                       selectedProducts: {
@@ -126,41 +143,32 @@ function ProductSelect({
                       </Fragment>
                     ) : (
                       <Fragment>
-                        <IconAdd />{' '}
-                        {formatCurrency(
-                          utils.getReservedPriceForReservedBudgetCategory({
-                            plan: activePlan,
-                            reservedBudgetCategory: productInfo.apiName,
-                          })
-                        )}
-                        /{billingInterval}
+                        <IconAdd />
+                        {tct(' [cost]/[billingInterval]', {
+                          cost,
+                          billingInterval,
+                        })}
                       </Fragment>
                     )}
                   </ButtonContent>
                 </Button>
+              </Row>
+              <Row style={{justifyContent: 'center'}}>
                 <Subtitle>
-                  {tct('Extra usage requires [budgetTerm] ', {
-                    budgetTerm:
-                      activePlan.budgetTerm === 'pay-as-you-go'
-                        ? 'PAYG'
-                        : activePlan.budgetTerm,
-                  })}
-                  <QuestionTooltip
-                    title={tct(
-                      'Any [productName] usage beyond the monthly prepaid budget will be charged to your [budgetTerm] budget.',
-                      {
-                        productName: toTitleCase(productInfo.productName),
-                        budgetTerm: activePlan.budgetTerm,
-                      }
-                    )} // TODO(seer): fix copy i just made this up
-                    position="top"
-                    size="xs"
-                  />
+                  {tct(
+                    'Includes [cost]/[billingInterval] of credits for [productName] services. Additional usage billed from [budgetTerm] budget. ',
+                    {
+                      cost,
+                      billingInterval,
+                      budgetTerm:
+                        activePlan.budgetTerm === 'pay-as-you-go'
+                          ? 'PAYG'
+                          : activePlan.budgetTerm,
+                      productName: toTitleCase(productInfo.productName),
+                    }
+                  )}
                 </Subtitle>
-                <IllustrationContainer>
-                  <Stars src={bannerStars} />
-                </IllustrationContainer>
-              </Column>
+              </Row>
             </ProductOptionContent>
           </ProductOption>
         );
@@ -183,11 +191,12 @@ const ProductOption = styled(PanelItem)<{isSelected?: boolean}>`
 `;
 
 const ProductOptionContent = styled('div')<{gradientColor: string; enabled?: boolean}>`
+  position: relative;
   padding: ${space(2)};
   background-color: ${p => (p.enabled ? p.gradientColor : p.theme.backgroundSecondary)};
   display: flex;
-  gap: ${space(4)};
-  justify-content: space-between;
+  flex-direction: column;
+  gap: ${space(2)};
   border: 1px solid ${p => (p.enabled ? p.gradientColor : p.theme.innerBorder)};
   border-radius: ${p => p.theme.borderRadius};
 
@@ -229,6 +238,12 @@ const Column = styled('div')<{alignItems?: string}>`
   align-items: ${p => p.alignItems};
 `;
 
+const Row = styled('div')`
+  display: flex;
+  gap: ${space(4)};
+  justify-content: space-between;
+`;
+
 const ProductLabel = styled('div')<{productColor: string}>`
   display: flex;
   align-items: center;
@@ -246,6 +261,7 @@ const ProductName = styled('div')`
 const Subtitle = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  text-align: center;
 `;
 
 const ButtonContent = styled('div')<{color: string}>`
@@ -271,9 +287,9 @@ const IllustrationContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: block;
     position: absolute;
-    bottom: 83px;
-    right: 12px;
     top: 0;
+    right: 12px;
+    height: 200px;
     width: 600px;
     overflow: hidden;
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
@@ -285,7 +301,7 @@ const Stars = styled('img')`
   pointer-events: none;
   position: absolute;
   right: -400px;
-  bottom: -70px;
+  top: -25px;
   overflow: hidden;
   height: 250px;
 `;

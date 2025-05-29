@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -37,9 +38,14 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
+// Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
+const MDXIgnore = ['**/*.mdx'];
+
 // lint rules that need type information need to go here
 export const typeAwareLintRules = {
   name: 'plugin/typescript-eslint/type-aware-linting',
+  ignores: MDXIgnore,
   rules: {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
@@ -169,7 +175,6 @@ export default typescript.config([
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
         projectService: true,
-        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -458,8 +463,10 @@ export default typescript.config([
       'react-hooks/rules-of-hooks': 'error',
     },
   },
+  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/custom',
+    ignores: MDXIgnore,
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
@@ -503,7 +510,6 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -976,5 +982,12 @@ export default typescript.config([
       // Allow imports from gsApp into getsentry-test fixtures
       'no-restricted-imports': 'off',
     },
+  },
+
+  // MDX Configuration
+  {
+    ...mdx.flat,
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
   },
 ]);

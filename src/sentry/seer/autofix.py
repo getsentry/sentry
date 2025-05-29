@@ -11,10 +11,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -35,7 +35,9 @@ logger = logging.getLogger(__name__)
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
-def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dict] | None:
+def _get_logs_for_event(
+    event: Event | GroupEvent, project: Project
+) -> dict[str, list[dict]] | None:
     trace_id = event.trace_id
     if not trace_id:
         return None
@@ -64,7 +66,7 @@ def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dic
             "code.file.path",
             "code.function.name",
         ],
-        query=f"trace_id:{trace_id}",
+        query=f"trace:{trace_id}",
         snuba_params=snuba_params,
         orderby=["-timestamp"],
         offset=0,
@@ -136,7 +138,9 @@ def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dic
             prev_log["consecutive_count"] = count
         merged_logs.append(prev_log)
 
-    return merged_logs
+    return {
+        "logs": merged_logs,
+    }
 
 
 def build_spans_tree(spans_data: list[dict]) -> list[dict]:
@@ -782,7 +786,7 @@ def _call_autofix(
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
-    logs: list[dict] | None,
+    logs: dict[str, list[dict]] | None,
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
@@ -855,6 +859,14 @@ def trigger_autofix(
             403,
         )
 
+    # check billing quota for autofix
+    has_budget: bool = quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        return _respond_with_error("No budget for Seer Autofix.", 402)
+
     if event_id is None:
         event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
         if not event:
@@ -923,6 +935,11 @@ def trigger_autofix(
     check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
     group.update(seer_autofix_last_triggered=timezone.now())
+
+    # log billing event for seer autofix
+    quotas.backend.record_seer_run(
+        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+    )
 
     return Response(
         {

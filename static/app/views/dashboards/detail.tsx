@@ -433,7 +433,11 @@ class DashboardDetail extends Component<Props, State> {
   handleBeforeUnload = (event: BeforeUnloadEvent) => {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
-    if (defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard)) {
+    if (
+      defined(modifiedDashboard) &&
+      !isEqual(modifiedDashboard, dashboard) &&
+      this.isEditingDashboard
+    ) {
       event.preventDefault();
       event.returnValue = '';
     }
@@ -444,9 +448,9 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
-      `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`,
-      `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
     ];
 
@@ -454,8 +458,8 @@ class DashboardDetail extends Component<Props, State> {
       widgetBuilderRoutes.push(
         ...[
           `/dashboards/new/widget-builder/widget/new/`,
-          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
+          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
         ]
       );
@@ -1115,14 +1119,27 @@ class DashboardDetail extends Component<Props, State> {
           when={locationChange => {
             // The widget builder uses its own pathname at the moment, so check if we're navigating
             // between the dashboard and the widget builder
+            const checkDashboardRoute = (path: string) => {
+              const dashboardRoutes = [
+                // Legacy routes
+                new RegExp('^\/organizations\/.+\/dashboards\/new\/'),
+                new RegExp(`^\/organizations\/.+\/dashboard\/${dashboard.id}\/`),
+
+                // Customer domain routes
+                new RegExp('^\/dashboards\/new\/'),
+                new RegExp(`^\/dashboard\/${dashboard.id}\/`),
+              ];
+
+              return dashboardRoutes.some(route => route.test(path ?? location.pathname));
+            };
             const navigatingWithinDashboards =
-              this.isWidgetBuilder(locationChange.nextLocation.pathname) ||
-              (this.isWidgetBuilder(locationChange.currentLocation.pathname) &&
-                [`/dashboard/${dashboard.id}/`, `/dashboards/new/`].includes(
-                  locationChange.nextLocation.pathname
-                ));
+              checkDashboardRoute(locationChange.nextLocation.pathname) ||
+              (checkDashboardRoute(locationChange.currentLocation.pathname) &&
+                checkDashboardRoute(locationChange.nextLocation.pathname));
             const hasUnsavedChanges =
-              defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard);
+              defined(modifiedDashboard) &&
+              !isEqual(modifiedDashboard, dashboard) &&
+              this.isEditingDashboard;
             return (
               locationChange.currentLocation.pathname !==
                 locationChange.nextLocation.pathname &&

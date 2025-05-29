@@ -27,6 +27,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -161,9 +162,9 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
-  const table = isEAP ? (
+  const table = shouldUseOTelFriendlyUI ? (
     <OverviewSpansTable
       eventView={eventView}
       totalValues={null}
@@ -235,11 +236,11 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   return (
     <FilterActions>
-      {isEAP ? (
+      {shouldUseOTelFriendlyUI ? (
         <SpanCategoryFilter serviceEntrySpanName={transactionName} />
       ) : (
         <Filter
