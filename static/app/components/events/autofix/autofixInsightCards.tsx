@@ -199,7 +199,7 @@ function AutofixInsightCard({
                       title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                       icon={
                         <StyledIconChevron
-                          direction={isExpanded ? 'down' : 'right'}
+                          direction={isExpanded ? 'up' : 'down'}
                           size="xs"
                         />
                       }
@@ -344,10 +344,7 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               icon={
-                <CollapseIconChevron
-                  direction={isCollapsed ? 'right' : 'down'}
-                  size="sm"
-                />
+                <CollapseIconChevron direction={isCollapsed ? 'down' : 'up'} size="sm" />
               }
               aria-label={t('Toggle reasoning visibility')}
             />

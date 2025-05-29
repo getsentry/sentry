@@ -103,7 +103,7 @@ export function AutofixTimelineItem({
           >
             <div dangerouslySetInnerHTML={titleHtml} />
           </AutofixHighlightWrapper>
-          <StyledIconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+          <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
         </StyledTimelineHeader>
       }
       isActive={isMostImportantEvent}
