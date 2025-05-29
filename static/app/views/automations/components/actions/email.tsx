@@ -47,7 +47,7 @@ function TargetTypeField() {
       name={`${actionId}.data.targetType`}
       value={action.data.targetType}
       options={TARGET_TYPE_CHOICES}
-      onChange={(value: string) => onUpdate({targetType: value})}
+      onChange={(value: string) => onUpdate({targetType: value, targetIdentifier: ''})}
     />
   );
 }
@@ -62,7 +62,7 @@ function IdentifierField() {
         <TeamSelector
           name={`${actionId}.data.targetIdentifier`}
           value={action.data.targetIdentifier}
-          onChange={(value: any) => onUpdate({targetIdentifier: value})}
+          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
           useId
           styles={selectControlStyles}
         />
@@ -76,7 +76,7 @@ function IdentifierField() {
           organization={organization}
           key={`${actionId}.data.targetIdentifier`}
           value={action.data.targetIdentifier}
-          onChange={(value: any) => onUpdate({targetIdentifier: value})}
+          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
           styles={selectControlStyles}
         />
       </SelectWrapper>
