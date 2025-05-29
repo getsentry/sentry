@@ -1,4 +1,9 @@
-import {DataCategory} from 'sentry/types/core';
+import {
+  DynamicSamplingReservedBudgetCategoryFixture,
+  SeerReservedBudgetCategoryFixture,
+} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {CheckoutType, type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
@@ -35,34 +40,13 @@ const AM3_DS_CATEGORIES = [
 ] as DataCategory[];
 
 const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  [ReservedBudgetCategoryType.SEER]: {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    apiName: ReservedBudgetCategoryType.SEER,
-    billingFlag: 'seer-billing',
-  },
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
   ...AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
-  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]: {
-    budgetCategoryType: 'DYNAMIC_SAMPLING',
-    name: 'spans budget',
-    docLink: '',
-    isFixed: false,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
-    productName: 'dynamic sampling',
-    canProductTrial: false,
-    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
-    billingFlag: null,
-  },
+  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]:
+    DynamicSamplingReservedBudgetCategoryFixture({}),
 };
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
