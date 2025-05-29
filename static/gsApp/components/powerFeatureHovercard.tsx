@@ -1,9 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
+import {linkStyles} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -46,6 +47,12 @@ type Props = {
   partial?: boolean;
 
   upsellDefaultSelection?: string;
+
+  /**
+   * Replaces the default learn more button with a more subtle link text that
+   * opens the upsell modal.
+   */
+  useLearnMoreLink?: boolean;
 };
 
 class PowerFeatureHovercard extends Component<Props> {
@@ -91,21 +98,16 @@ class PowerFeatureHovercard extends Component<Props> {
           }
 
           return (
-            <HovercardBody data-test-id="power-hovercard">
-              <Text>
+            <LearnMoreTextBody data-test-id="power-hovercard">
+              <div>
                 {partial
                   ? t('Better With %s Plan', planName)
                   : t('Requires %s Plan', planName)}
-              </Text>
-              <UpsellModalButton
-                priority="primary"
-                size="sm"
-                onClick={this.handleClick}
-                data-test-id="power-learn-more"
-              >
+              </div>
+              <LearnMoreLink onClick={this.handleClick} data-test-id="power-learn-more">
                 {t('Learn More')}
-              </UpsellModalButton>
-            </HovercardBody>
+              </LearnMoreLink>
+            </LearnMoreTextBody>
           );
         }}
       </PlanFeature>
@@ -126,19 +128,23 @@ class PowerFeatureHovercard extends Component<Props> {
   }
 }
 
-const UpsellModalButton = styled(Button)`
-  height: auto;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  white-space: pre;
-  margin-top: -1px;
-  margin-bottom: -1px;
-  margin-right: -1px;
-  box-shadow: none;
+const LearnMoreLink = styled('button')`
+  ${p => linkStyles({theme: p.theme})}
+  background: none;
+  border: none;
+  padding: 0;
+
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+
+  &:hover {
+    color: ${p => p.theme.subText};
+    text-decoration: none;
+  }
 `;
 
-const HovercardBody = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const LearnMoreTextBody = styled('div')`
+  padding: ${space(1)};
 `;
 
 const StyledHovercard = styled(Hovercard)`
@@ -148,12 +154,6 @@ const StyledHovercard = styled(Hovercard)`
     padding: 0;
     align-items: center;
   }
-`;
-
-const Text = styled('span')`
-  margin: 10px;
-  font-size: 14px;
-  white-space: pre;
 `;
 
 export default withOrganization(

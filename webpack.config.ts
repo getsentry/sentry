@@ -772,6 +772,29 @@ const minificationPlugins = [
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
+
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Only enable in production, annotating is slow in development
+        enabled: true,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -806,28 +829,5 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      // Enabled only in production because annotating is slow
-      enabled: IS_PRODUCTION,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;
