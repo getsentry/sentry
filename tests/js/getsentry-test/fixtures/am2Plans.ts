@@ -1,4 +1,6 @@
-import {DataCategory} from 'sentry/types/core';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
@@ -40,18 +42,7 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  [ReservedBudgetCategoryType.SEER]: {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    apiName: ReservedBudgetCategoryType.SEER,
-    billingFlag: 'seer-billing',
-  },
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM2_FREE_FEATURES = [

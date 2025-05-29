@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLock, IconSentry} from 'sentry/icons';
@@ -15,7 +16,11 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
-import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  getSingularCategoryName,
+  listDisplayNames,
+} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -49,7 +54,6 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
   const renderPlanDetails = () => {
     return (
       <PanelChild>
-        <Subtitle>{t('Plan Type')}</Subtitle>
         <SpaceBetweenRow>
           <div>
             <Title>{tct('Sentry [name] Plan', {name: activePlan.name})}</Title>
@@ -144,12 +148,24 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                       data-test-id={`${budgetTypeInfo.apiName}-reserved`}
                     >
                       <ReservedItem isIndividualProduct>
-                        {toTitleCase(budgetTypeInfo.productName)}
+                        {toTitleCase(budgetTypeInfo.productCheckoutName, {
+                          allowInnerUpperCase: true,
+                        })}
                         <QuestionTooltip
                           size="xs"
-                          title={t(
-                            '%s use budgets from your monthly reserved cost. Any additional usage will be from your PAYG budget.',
-                            toTitleCase(budgetTypeInfo.productName)
+                          title={tct(
+                            'Your [productName] subscription includes [budgetAmount] in monthly credits for [categories]; additional usage will draw from your PAYG budget.',
+                            {
+                              productName: toTitleCase(budgetTypeInfo.productName),
+                              budgetAmount: utils.displayPrice({
+                                cents: budgetTypeInfo.defaultBudget ?? 0,
+                              }),
+                              categories: listDisplayNames({
+                                plan: activePlan,
+                                categories: budgetTypeInfo.dataCategories,
+                                shouldTitleCase: true,
+                              }),
+                            }
                           )}
                         />
                       </ReservedItem>
@@ -191,7 +207,6 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
 
     return (
       <Section>
-        <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
           {activePlan.categories
             .filter(category => !budgetCategories.includes(category))
@@ -219,12 +234,12 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                   <ReservedItem>
                     {(formData.reserved[category] ?? 0) > 0 && (
                       <Fragment>
-                        <EmphasisText>
+                        <ReservedNumberEmphasisText>
                           {formatReservedWithUnits(
                             formData.reserved[category] ?? 0,
                             category
                           )}
-                        </EmphasisText>{' '}
+                        </ReservedNumberEmphasisText>{' '}
                       </Fragment>
                     )}
                     {formData.reserved[category] === 1 &&
@@ -255,21 +270,18 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                   <Price>
                     {isMoreThanIncluded ? (
                       `+ ${price}/${shortInterval}`
+                    ) : activePlan.checkoutCategories.includes(category) ? (
+                      <Tag>{t('Included')}</Tag>
+                    ) : hasPaygProducts ? (
+                      <Tag>{t('Available')}</Tag>
                     ) : (
-                      <Tag
-                        icon={
-                          hasPaygProducts ||
-                          activePlan.checkoutCategories.includes(category) ? undefined : (
-                            <IconLock locked size="xs" />
-                          )
-                        }
+                      <Tooltip
+                        title={t('This product is only available with a PAYG budget.')}
                       >
-                        {activePlan.checkoutCategories.includes(category)
-                          ? t('Included')
-                          : hasPaygProducts
-                            ? t('Available')
-                            : t('Product not available')}
-                      </Tag>
+                        <Tag icon={<IconLock locked size="xs" />}>
+                          {t('Product not available')}
+                        </Tag>
+                      </Tooltip>
                     )}
                   </Price>
                 </SpaceBetweenRow>
@@ -336,12 +348,11 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
   return (
     <StyledPanel data-test-id="checkout-overview-v2">
       {renderPlanDetails()}
-      {renderProductBreakdown()}
-      {/* {hasSeerEnabled && renderSeerSummary()} */}
-      <Separator />
-      {renderPayAsYouGoBudget(paygMonthlyBudget)}
       <Separator />
       {renderObservabilityProductBreakdown()}
+      {renderProductBreakdown()}
+      <Separator />
+      {renderPayAsYouGoBudget(paygMonthlyBudget)}
       <TotalSeparator />
       {renderTotals(committedTotal, paygMonthlyBudget)}
     </StyledPanel>
@@ -381,6 +392,7 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 600;
   color: ${p => p.theme.textColor};
+  line-height: initial;
 `;
 
 const Subtitle = styled('div')`
@@ -403,6 +415,7 @@ const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
   gap: ${space(0.5)};
   align-items: center;
   color: ${p => (p.isIndividualProduct ? p.theme.textColor : p.theme.subText)};
+  font-weight: ${p => (p.isIndividualProduct ? 600 : 'normal')};
 `;
 
 const Section = styled(PanelChild)`
@@ -442,6 +455,10 @@ const AdditionalMonthlyCharge = styled('div')`
 const EmphasisText = styled('span')`
   color: ${p => p.theme.textColor};
   font-weight: 600;
+`;
+
+const ReservedNumberEmphasisText = styled(EmphasisText)`
+  color: ${p => p.theme.purple300};
 `;
 
 const DefaultAmountTag = styled(Tag)`

@@ -34,11 +34,11 @@ import {InvoiceItemType} from 'getsentry/types';
 import {getSlot} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
-import type {
-  CheckoutAPIData,
-  CheckoutFormData,
+import {
+  type CheckoutAPIData,
+  type CheckoutFormData,
   SelectableProduct,
-  SelectedProductData,
+  type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -383,6 +383,13 @@ function recordAnalytics(
     uptime: data.reservedUptime,
   };
 
+  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
+  const currentSelectableProductData = {
+    [SelectableProduct.SEER]: {
+      enabled: data.seer ?? false,
+    },
+  };
+
   const previousData = {
     plan: subscription.plan,
     errors: subscription.categories.errors?.reserved || undefined,
@@ -408,6 +415,12 @@ function recordAnalytics(
     previous_spans: previousData.spans,
     previous_uptime: previousData.uptime,
     ...currentData,
+  });
+
+  trackGetsentryAnalytics('checkout.product_select', {
+    organization,
+    subscription,
+    ...currentSelectableProductData,
   });
 
   let {onDemandBudget} = data;
