@@ -22,6 +22,7 @@ import {isChartHovered, truncationFormatter} from 'sentry/components/charts/util
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
+  EChartBrushEndHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -95,6 +96,11 @@ export interface TimeSeriesWidgetVisualizationProps
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
   onZoom?: EChartDataZoomHandler;
+
+  /**
+   * Callback that returns an updated ECharts brush selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
+   */
+  onBrushEnd?: EChartBrushEndHandler;
 
   ref?: React.Ref<ReactEchartsRef>;
 
@@ -560,6 +566,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
+  console.log('seriesFromPlottables', seriesFromPlottables);
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
@@ -657,13 +664,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       xAxis={xAxis}
       brush={{
         mainType: 'brush',
-        toolbox: ['rect'],
+        toolbox: ['rect', 'clear'],
         brushMode: 'single',
         throttleType: 'debounce',
         throttleDelay: 100,
         xAxisIndex: 0,
         yAxisIndex: 0,
         brushStyle: {},
+        removeOnClick: true,
       }}
       yAxes={yAxes}
       {...chartZoomProps}
@@ -674,6 +682,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       end={end ? new Date(end) : undefined}
       period={period}
       utc={utc ?? undefined}
+      onBrushEnd={props.onBrushEnd}
       onHighlight={handleHighlight}
       onDownplay={handleDownplay}
       onClick={handleClick}

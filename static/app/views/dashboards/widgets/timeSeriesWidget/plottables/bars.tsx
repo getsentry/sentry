@@ -11,6 +11,8 @@ import {
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
+import {EchartBrushAreas} from 'sentry/types/echarts';
+import {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 const {error} = Sentry.logger;
 
@@ -22,6 +24,13 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
 }
 
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
+  brushArea: EchartBrushAreas | null;
+
+  constructor(timeSeries: TimeSeries, config?: BarsConfig, brushArea?: EchartBrushAreas) {
+    super(timeSeries, config);
+    this.brushArea = brushArea ?? null;
+  }
+
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;
     const datum = this.timeSeries.values.at(dataIndex);

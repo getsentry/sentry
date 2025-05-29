@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -40,6 +40,8 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {EchartBrushAreas, EChartBrushEndHandler} from 'sentry/types/echarts';
+import {EChartsInstance} from 'echarts-for-react';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
@@ -87,7 +89,8 @@ export function ExploreCharts({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
-
+  const [brushArea, setBrushArea] = useState<EchartBrushAreas | null>(null);
+  const chartRef = useRef<EChartsInstance>(null);
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
@@ -190,6 +193,21 @@ export function ExploreCharts({
   );
 
   const shouldRenderLabel = visualizes.length > 1;
+
+  useEffect(() => {
+    if (brushArea) {
+      const chartInstance = chartRef.current?.getEchartsInstance();
+      const extent = chartInstance
+        ?.getModel()
+        .getComponent('yAxis', 0)
+        .axis.scale.getExtent();
+      console.log('extent', extent);
+      chartInstance?.dispatchAction({
+        type: 'brush',
+        areas: brushArea,
+      });
+    }
+  }, [brushArea]);
 
   return (
     <ChartList>
@@ -318,6 +336,7 @@ export function ExploreCharts({
               revealActions="always"
               Visualization={
                 <TimeSeriesWidgetVisualization
+                  ref={chartRef}
                   plottables={chartInfo.data.map(timeSeries => {
                     return new DataPlottableConstructor(
                       markDelayedData(timeSeries, INGESTION_DELAY),
@@ -327,11 +346,16 @@ export function ExploreCharts({
                           ? theme.chartOther
                           : undefined,
                         stack: chartInfo.stack,
-                      }
+                      },
+                      brushArea ?? undefined
                     );
                   })}
                   onZoom={params => {
                     console.log('onZoom', params);
+                  }}
+                  onBrushEnd={params => {
+                    console.log('onBrushEnd', params);
+                    setBrushArea(params.areas);
                   }}
                 />
               }

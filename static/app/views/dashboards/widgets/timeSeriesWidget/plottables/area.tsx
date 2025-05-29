@@ -13,16 +13,23 @@ import {
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
+import {EchartBrushAreas} from 'sentry/types/echarts';
 
 const {error} = Sentry.logger;
 
 export class Area extends ContinuousTimeSeries implements Plottable {
   #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
+  brushArea: EchartBrushAreas | null;
 
-  constructor(timeSeries: TimeSeries, config?: ContinuousTimeSeriesConfig) {
+  constructor(
+    timeSeries: TimeSeries,
+    config?: ContinuousTimeSeriesConfig,
+    brushArea?: EchartBrushAreas
+  ) {
     super(timeSeries, config);
 
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
+    this.brushArea = brushArea ?? null;
   }
 
   onHighlight(dataIndex: number): void {

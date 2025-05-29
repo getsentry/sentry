@@ -13,16 +13,23 @@ import {
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
+import {EchartBrushAreas} from 'sentry/types/echarts';
 
 const {error} = Sentry.logger;
 
 export class Line extends ContinuousTimeSeries implements Plottable {
   #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
+  brushArea: EchartBrushAreas | null;
 
-  constructor(timeSeries: TimeSeries, config?: ContinuousTimeSeriesConfig) {
+  constructor(
+    timeSeries: TimeSeries,
+    config?: ContinuousTimeSeriesConfig,
+    brushArea?: EchartBrushAreas
+  ) {
     super(timeSeries, config);
 
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
+    this.brushArea = brushArea ?? null;
   }
 
   onHighlight(seriesDataIndex: number): void {
@@ -56,7 +63,6 @@ export class Line extends ContinuousTimeSeries implements Plottable {
 
     const commonOptions: LineSeriesOption = {
       name: this.name,
-      color,
       animation: false,
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
@@ -71,6 +77,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
             ),
             lineStyle: {
               type: 'dotted',
+              color,
             },
             silent: true,
           })
@@ -84,6 +91,9 @@ export class Line extends ContinuousTimeSeries implements Plottable {
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),
+            lineStyle: {
+              color,
+            },
           })
         );
       }

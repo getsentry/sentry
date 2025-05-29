@@ -142,7 +142,7 @@ export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
-type EchartBrushAreas = Array<{
+export type EchartBrushAreas = Array<{
   coordRange: number[][];
   range: number[][];
 }>;
