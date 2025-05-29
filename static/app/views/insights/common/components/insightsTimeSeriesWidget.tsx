@@ -58,7 +58,7 @@ export interface InsightsTimeSeriesWidgetProps
   samples?: Samples;
   search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
-  showReleaseAs?: 'line' | 'bubble';
+  showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
 }
 
@@ -68,7 +68,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const pageFiltersSelection = props.pageFilters || pageFilters.selection;
-  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection);
+  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection, {
+    enabled: props.showReleaseAs !== 'none',
+  });
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
