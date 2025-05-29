@@ -45,7 +45,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.models.data_condition_group import get_slow_conditions
-from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
+from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.log_util import track_batch_performance
@@ -438,9 +438,7 @@ def fire_actions_for_groups(
                         action_filters.add(dcg)
 
                 # process action filters
-                filtered_actions = filter_recently_fired_workflow_actions(
-                    action_filters, event_data
-                )
+                filtered_actions = filter_recently_fired_actions(action_filters, event_data)
 
                 # process workflow_triggers
                 workflows = set(

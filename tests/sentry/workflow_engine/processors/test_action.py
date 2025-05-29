@@ -9,7 +9,7 @@ from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFi
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
-    filter_recently_fired_workflow_actions,
+    filter_recently_fired_actions,
     is_action_permitted,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -17,7 +17,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 @freeze_time("2024-01-09")
-class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
+class TestFilterRecentlyFiredActions(BaseWorkflowTest):
     def setUp(self):
         (
             self.workflow,
@@ -41,7 +41,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         _, action = self.create_workflow_action(workflow=self.workflow)
         status_2 = ActionGroupStatus.objects.create(action=action, group=self.group)
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions = filter_recently_fired_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
@@ -63,7 +63,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_3 = ActionGroupStatus.objects.create(action=action_3, group=self.group)
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions = filter_recently_fired_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
