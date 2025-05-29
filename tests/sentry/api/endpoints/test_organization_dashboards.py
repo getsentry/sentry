@@ -1455,3 +1455,41 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.data[1]["isFavorited"] is True
             assert response.data[0]["isFavorited"] is False  # general template
             assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
+
+    def test_post_errors_widget_with_is_filter(self):
+        data: dict[str, Any] = {
+            "title": "Dashboard with errors widget",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Errors",
+                    "limit": 5,
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "widgetType": "error-events",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with errors widget"
+        )
+        assert dashboard.created_by_id == self.user.id
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
