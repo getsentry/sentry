@@ -54,7 +54,10 @@ class DashboardFavoriteUser(DefaultFieldsModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.organization = self.dashboard.organization
+        # Ensure the organization is set. This should be the same as the dashboard's organization
+        # if it isn't passed in.
+        if not self.organization_id:
+            self.organization = self.dashboard.organization
 
 
 @region_silo_model
