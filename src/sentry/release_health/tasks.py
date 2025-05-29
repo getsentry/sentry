@@ -89,7 +89,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                 rpe = ReleaseProjectEnvironment.objects.get(
                     project_id=adopted_release["project_id"],
                     release_id=Release.objects.get(
-                        organization=org_id, version=adopted_release["name"]
+                        organization=org_id, version=adopted_release["version"]
                     ).id,
                     environment__name=adopted_release["environment"],
                     environment__organization_id=org_id,
@@ -114,14 +114,14 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                     try:
                         release = Release.objects.get_or_create(
                             organization_id=org_id,
-                            version=adopted_release["name"],
+                            version=adopted_release["version"],
                             defaults={
                                 "status": ReleaseStatus.OPEN,
                             },
                         )[0]
                     except IntegrityError:
                         release = Release.objects.get(
-                            organization_id=org_id, version=adopted_release["name"]
+                            organization_id=org_id, version=adopted_release["version"]
                         )
                     except ValidationError:
                         release = None
@@ -129,7 +129,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                             "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
                             extra={
                                 "org_id": org_id,
-                                "release_version": adopted_release["name"],
+                                "release_version": adopted_release["version"],
                             },
                         )
 
@@ -172,23 +172,28 @@ def cleanup_adopted_releases(project_ids: Sequence[int], adopted_ids: Sequence[i
 
 class AdoptedRelease(TypedDict):
     environment: str
-    name: str
     project_id: int
+    version: str
 
 
 def iter_adopted_releases(totals: Totals) -> Iterator[AdoptedRelease]:
-    """Iterate through the totals set yielding the totals which are valid."""
+    """Iterate through the totals set yielding the totals which are valid.
+
+    The totals object is deeply nested. This function flattens it, validates that its a valid
+    release row, and returns a flat representation. This is easier to work with and enables
+    release-health monitoring code to take on a flatter form which is easier to read and test.
+    """
     for p_id, p_totals in totals.items():
         for e_name, e_totals in p_totals.items():
             if valid_environment(e_name, e_totals["total_sessions"]):
-                for release_name, release_count in e_totals["releases"].items():
+                for release_version, release_count in e_totals["releases"].items():
                     if valid_and_adopted_release(
-                        release_name, release_count, e_totals["total_sessions"]
+                        release_version, release_count, e_totals["total_sessions"]
                     ):
                         yield {
                             "environment": e_name,
-                            "name": release_name,
                             "project_id": p_id,
+                            "version": release_version,
                         }
 
 

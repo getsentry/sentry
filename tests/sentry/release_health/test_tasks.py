@@ -567,10 +567,10 @@ def test_iter_adopted_releases():
             }
         )
     ) == [
-        {"project_id": 1, "environment": "prod", "name": "0.1"},
-        {"project_id": 1, "environment": "prod", "name": "0.3"},
-        {"project_id": 2, "environment": "prod", "name": "0.1"},
-        {"project_id": 2, "environment": "prod", "name": "0.2"},
+        {"project_id": 1, "environment": "prod", "version": "0.1"},
+        {"project_id": 1, "environment": "prod", "version": "0.3"},
+        {"project_id": 2, "environment": "prod", "version": "0.1"},
+        {"project_id": 2, "environment": "prod", "version": "0.2"},
     ]
 
     assert (
