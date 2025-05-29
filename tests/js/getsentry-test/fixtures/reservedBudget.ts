@@ -72,7 +72,7 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
     name: 'seer budget',
     docLink: '',
     isFixed: true,
-    defaultBudget: 20_00,
+    defaultBudget: 25_00,
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
     productName: 'seer',
     canProductTrial: true,

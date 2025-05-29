@@ -2,13 +2,14 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
   SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -1110,6 +1111,7 @@ describe('Subscription > CombinedUsageTotals', function () {
     );
     expect(screen.getByText('$60,000')).toBeInTheDocument();
     expect(screen.getByText('40% of $100,000')).toBeInTheDocument();
+    expect(screen.getByText('20% of $100,000')).toBeInTheDocument();
 
     // Expand usage table
     await userEvent.click(screen.getByRole('button'));
@@ -1183,9 +1185,9 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(
       screen.getByText('Accepted Spans Included in Subscription')
     ).toBeInTheDocument();
-    expect(screen.getByText('40% of $110,000')).toBeInTheDocument();
+    expect(screen.getByText('36% of $110,000')).toBeInTheDocument();
     expect(screen.getByText('Stored Spans Included in Subscription')).toBeInTheDocument();
-    expect(screen.getByText('20% of $110,000')).toBeInTheDocument();
+    expect(screen.getByText('18% of $110,000')).toBeInTheDocument();
   });
 
   it('renders reserved budget categories with soft cap', function () {
@@ -1209,6 +1211,209 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByTestId('reserved-dynamicSampling')).toHaveTextContent(
       '$100,000.00 Reserved (On Demand)'
     );
+  });
+
+  it('renders product trial upsell for customer when product is not enabled', function () {
+    subscription.productTrials = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'years').format(),
+      },
+      {
+        category: DataCategory.SEER_SCANNER,
+        isStarted: false,
+        reasonCode: 1001,
+        endDate: moment().utc().add(20, 'years').format(),
+      },
+    ];
+    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        id: '0',
+        reservedBudget: 0,
+      }),
+    ];
+
+    render(
+      <CombinedUsageTotals
+        productGroup={subscription.reservedBudgets[0]!}
+        subscription={subscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: UsageTotalFixture({}),
+          seerScanner: UsageTotalFixture({}),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(
+      screen.getByText('Detect and fix issues faster with our AI debugging agent.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Issue Fixes Included in Subscription')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go Issue Fixes')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Issue Scans Included in Subscription')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go Issue Scans')).not.toBeInTheDocument();
+    expect(screen.getByTestId('locked-product-message-seer')).toHaveTextContent(
+      'Start your Seer trial to view usage'
+    );
+    expect(screen.getByText('Trial Available')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start trial'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Enable Seer'})).not.toBeInTheDocument();
+  });
+
+  it('renders enable upsell for customer when product is not enabled and trial not available', function () {
+    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        id: '0',
+        reservedBudget: 0,
+      }),
+    ];
+
+    render(
+      <CombinedUsageTotals
+        productGroup={subscription.reservedBudgets[0]!}
+        subscription={subscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: UsageTotalFixture({}),
+          seerScanner: UsageTotalFixture({}),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(
+      screen.getByText('Detect and fix issues faster with our AI debugging agent.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Issue Fixes Included in Subscription')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go Issue Fixes')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Issue Scans Included in Subscription')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay-as-you-go Issue Scans')).not.toBeInTheDocument();
+    expect(screen.getByTestId('locked-product-message-seer')).toHaveTextContent(
+      'Enable Seer to view usage'
+    );
+    expect(screen.queryByText('Trial available')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Start trial'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Enable Seer'})).toBeInTheDocument();
+  });
+
+  it('renders with trial if active trial exists', function () {
+    subscription.productTrials = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+      {
+        category: DataCategory.SEER_SCANNER,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        id: '0',
+        reservedBudget: 0,
+      }),
+    ];
+
+    render(
+      <CombinedUsageTotals
+        productGroup={subscription.reservedBudgets[0]!}
+        subscription={subscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: UsageTotalFixture({}),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer trial usage this period')).toBeInTheDocument();
+    expect(screen.queryByTestId('locked-product-message-seer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Trial available')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Start trial'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Enable Seer'})).not.toBeInTheDocument();
+  });
+
+  it('renders contact sales upsell for managed accounts', function () {
+    subscription.canSelfServe = false;
+    // TODO(isabella): update plan fixtures to incldue zero'd reserved budgets
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        id: '0',
+        reservedBudget: 0,
+      }),
+    ];
+
+    render(
+      <CombinedUsageTotals
+        productGroup={subscription.reservedBudgets[0]!}
+        subscription={subscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: UsageTotalFixture({}),
+          seerScanner: UsageTotalFixture({}),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(
+      screen.getByText('Detect and fix issues faster with our AI debugging agent.')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('locked-product-message-seer')).toHaveTextContent(
+      'Contact us at sales@sentry.io to enable Seer'
+    );
+    const card = screen.getByTestId('usage-card-seer');
+    expect(within(card).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(card).queryByText(/trial/)).not.toBeInTheDocument();
+  });
+
+  it('does not render card for sponsored orgs', function () {
+    const sponsoredSub = SubscriptionFixture({
+      organization,
+      plan: 'am2_sponsored_team_auf',
+      // in practice these plans shouldn't even have the zero'd out budgets, but this is for testing purposes
+      reservedBudgets: [
+        SeerReservedBudgetFixture({
+          id: '0',
+          reservedBudget: 0,
+        }),
+      ],
+      isSponsored: true,
+    });
+    SubscriptionStore.set(organization.slug, sponsoredSub);
+    render(
+      <CombinedUsageTotals
+        productGroup={sponsoredSub.reservedBudgets![0]!}
+        subscription={sponsoredSub}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: UsageTotalFixture({}),
+          seerScanner: UsageTotalFixture({}),
+        }}
+      />
+    );
+
+    expect(screen.queryByTestId('usage-card-seer')).not.toBeInTheDocument();
   });
 });
 
