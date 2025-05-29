@@ -58,7 +58,7 @@ export interface InsightsTimeSeriesWidgetProps
   samples?: Samples;
   search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
-  showReleaseAs?: 'line' | 'bubble';
+  showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
 }
 
