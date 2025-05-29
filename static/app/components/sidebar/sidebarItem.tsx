@@ -118,10 +118,6 @@ export type SidebarItemProps = {
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
-  /**
-   * Content to render at the end of the item.
-   */
-  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
@@ -144,7 +140,6 @@ function SidebarItem({
   isNewSeenKeySuffix,
   onClick,
   trailingItems,
-  variant,
   isNested,
   isMainItem,
   isOpenInFloatingSidebar,
@@ -200,15 +195,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && (
-        <FeatureBadge type="new" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
-      {isBeta && (
-        <FeatureBadge type="beta" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
-      {isAlpha && (
-        <FeatureBadge type="alpha" variant={variant} tooltipProps={{title: badgeTitle}} />
-      )}
+      {showIsNew && <FeatureBadge type="new" tooltipProps={{title: badgeTitle}} />}
+      {isBeta && <FeatureBadge type="beta" tooltipProps={{title: badgeTitle}} />}
+      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{title: badgeTitle}} />}
     </Fragment>
   );
 
@@ -282,25 +271,13 @@ function SidebarItem({
                 </SidebarItemLabel>
               )}
               {isInCollapsedState && showIsNew && (
-                <CollapsedFeatureBadge
-                  type="new"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="new" tooltipProps={tooltipDisabledProps} />
               )}
               {isInCollapsedState && isBeta && (
-                <CollapsedFeatureBadge
-                  type="beta"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="beta" tooltipProps={tooltipDisabledProps} />
               )}
               {isInCollapsedState && isAlpha && (
-                <CollapsedFeatureBadge
-                  type="alpha"
-                  variant="indicator"
-                  tooltipProps={tooltipDisabledProps}
-                />
+                <CollapsedFeatureBadge type="alpha" tooltipProps={tooltipDisabledProps} />
               )}
               {badge !== undefined && badge > 0 && (
                 <SidebarItemBadge collapsed={isInCollapsedState}>

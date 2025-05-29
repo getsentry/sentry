@@ -253,7 +253,6 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconMegaphone />}
         label={t('User Feedback')}
-        variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
       />
