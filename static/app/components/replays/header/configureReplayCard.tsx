@@ -31,7 +31,7 @@ export default function ConfigureReplayCard({
           title: keyToTitle(key),
         });
       }}
-      items={getItems(replayRecord, isMobile)}
+      items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
       trigger={(triggerProps, isOpen) => (
         <DropdownButton {...triggerProps} isOpen={isOpen} size="sm">
           {t('Configure Replay')}
@@ -79,49 +79,8 @@ function keyToTitle(key: Key): string {
   }
 }
 
-function getItems(replayRecord: ReplayRecord | undefined, isMobile: boolean) {
-  const path = getPath(replayRecord?.sdk.name);
-
-  const mobileItems = [
-    {
-      key: 'general',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={t('General')}
-          subTitle={t('Configure sampling rates and recording thresholds')}
-        />
-      ),
-      textValue: keyToTitle('general'),
-      externalHref: `https://docs.sentry.io/platforms/${path}/session-replay/#sampling`,
-      disabled: !path,
-    },
-    {
-      key: 'masking',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={t('Element Masking/Blocking')}
-          subTitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
-        />
-      ),
-      textValue: keyToTitle('masking'),
-      externalHref: `https://docs.sentry.io/platforms/${path}/session-replay/#privacy`,
-      disabled: !path,
-    },
-    {
-      key: 'users',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={t('Identify Users')}
-          subTitle={t('Identify your users through a specific attribute, such as email')}
-        />
-      ),
-      textValue: keyToTitle('users'),
-      externalHref: `https://docs.sentry.io/platforms/${path}/enriching-events/identify-user/`,
-      disabled: !path,
-    },
-  ] satisfies MenuItemProps[];
-
-  const webItems = [
+function getWebItems(): MenuItemProps[] {
+  return [
     {
       key: 'general',
       label: (
@@ -181,8 +140,49 @@ function getItems(replayRecord: ReplayRecord | undefined, isMobile: boolean) {
       externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording`,
     },
   ] satisfies MenuItemProps[];
+}
 
-  return isMobile ? mobileItems : webItems;
+function getMobileItems(replayRecord: ReplayRecord | undefined): MenuItemProps[] {
+  const path = getPath(replayRecord?.sdk.name);
+
+  return [
+    {
+      key: 'general',
+      label: (
+        <ReplayConfigureDropdownItem
+          title={t('General')}
+          subTitle={t('Configure sampling rates and recording thresholds')}
+        />
+      ),
+      textValue: keyToTitle('general'),
+      externalHref: `https://docs.sentry.io/platforms/${path}/session-replay/#sampling`,
+      disabled: !path,
+    },
+    {
+      key: 'masking',
+      label: (
+        <ReplayConfigureDropdownItem
+          title={t('Element Masking/Blocking')}
+          subTitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
+        />
+      ),
+      textValue: keyToTitle('masking'),
+      externalHref: `https://docs.sentry.io/platforms/${path}/session-replay/#privacy`,
+      disabled: !path,
+    },
+    {
+      key: 'users',
+      label: (
+        <ReplayConfigureDropdownItem
+          title={t('Identify Users')}
+          subTitle={t('Identify your users through a specific attribute, such as email')}
+        />
+      ),
+      textValue: keyToTitle('users'),
+      externalHref: `https://docs.sentry.io/platforms/${path}/enriching-events/identify-user/`,
+      disabled: !path,
+    },
+  ] satisfies MenuItemProps[];
 }
 
 function ReplayConfigureDropdownItem({
