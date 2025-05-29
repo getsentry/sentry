@@ -503,9 +503,9 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
 
 
 @dataclass(frozen=True)
-class DBInjectionVulnerabilityGroupType(GroupType):
+class DBQueryInjectionVulnerabilityGroupType(GroupType):
     type_id = 1020
-    slug = "db_injection_vulnerability"
+    slug = "db_query_injection_vulnerability"
     description = "Potential Database Query Injection Vulnerability"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
