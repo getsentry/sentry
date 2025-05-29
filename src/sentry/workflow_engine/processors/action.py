@@ -112,9 +112,9 @@ def filter_recently_fired_workflow_actions(
         statuses.filter(difference__gt=F("frequency_minutes")).values_list("action_id", flat=True)
     )
 
-    ActionGroupStatus.objects.filter(action__in=actions_to_include, group=group).update(
-        date_updated=now
-    )
+    ActionGroupStatus.objects.filter(
+        action__in=actions_to_include, group=group, date_updated__lt=now
+    ).order_by("id").update(date_updated=now)
     ActionGroupStatus.objects.bulk_create(
         [
             ActionGroupStatus(action=action, group=group, date_updated=now)
