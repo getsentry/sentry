@@ -17,7 +17,7 @@ export default function useTouchEventsCheck({replay}: Props) {
     Object.values(grouped).forEach(t => {
       if (t?.length !== 2) {
         const replayData = replay.getReplay();
-        Sentry.logger.debug('Mobile replay has mismatching touch start and end events', {
+        Sentry.logger.debug('Mobile replay: mismatching touch start and end events', {
           sdk_name: replayData.sdk.name,
           sdk_version: replayData.sdk.version,
           pointer_id: t?.[0]?.data.pointerId,
