@@ -234,12 +234,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
     const infoFromMetricHistories: Record<string, any> = {};
     Object.entries(subscription.categories).forEach(([category, info]) => {
-      // if (
-      //   category === DataCategory.SEER_AUTOFIX ||
-      //   category === DataCategory.SEER_SCANNER
-      // ) {
-      //   return; // TODO(seer): remove this when we can provision seer
-      // }
       const categorySuffix = this.capitalizeForApiName(category);
       infoFromMetricHistories[`reserved${categorySuffix}`] = info.reserved;
       if (existingPlanIsEnterprise) {
@@ -329,9 +323,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
       .length >= 2;
 
-  /**
-   * Same as above, but for Seer budgets
-   */
+  // Same as above, but for Seer budgets
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
@@ -364,11 +356,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
     this.state.data.customPriceSpans;
 
-  /**
-   * Whether the user has set all the required fields to provision a spans budget.
-   * These include the reserved CPEs and reserved volumes for each span category,
-   * as well as a custom price for spans which serves as the budget amount.
-   */
+  // Same as above, but for Seer budgets
   hasCompleteSeerBudget = () =>
     this.isSettingSeerBudget() &&
     Object.entries(this.state.data)
