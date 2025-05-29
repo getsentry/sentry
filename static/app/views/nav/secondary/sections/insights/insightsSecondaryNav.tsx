@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -115,6 +116,19 @@ export function InsightsSecondaryNav() {
               {AGENTS_SIDEBAR_LABEL}
             </SecondaryNav.Item>
           </AgentInsightsFeature>
+        </SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-monitors">
+          <SecondaryNav.Item to={`${baseUrl}/crons/`} analyticsItemName="insights_crons">
+            {t('Crons')}
+          </SecondaryNav.Item>
+          <Feature features={['uptime']}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/uptime/`}
+              analyticsItemName="insights_uptime"
+            >
+              {t('Uptime')}
+            </SecondaryNav.Item>
+          </Feature>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-projects-all">
           <SecondaryNav.Item
