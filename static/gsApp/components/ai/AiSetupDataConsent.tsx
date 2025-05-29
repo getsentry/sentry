@@ -141,7 +141,10 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     <Flex>
                       <AddBudgetButton
                         priority="primary"
-                        onClick={() => handleAddBudget()}
+                        onClick={() => {
+                          handleAddBudget();
+                          autofixAcknowledgeMutation.mutate();
+                        }}
                         size="md"
                       >
                         {t('Add Budget')}
