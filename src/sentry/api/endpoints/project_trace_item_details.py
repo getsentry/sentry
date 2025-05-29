@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,7 +19,12 @@ from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
-from sentry.search.eap.utils import PRIVATE_ATTRIBUTES, translate_internal_to_public_alias
+from sentry.search.eap.utils import (
+    PRIVATE_ATTRIBUTES,
+    is_sentry_convention_replacement_attribute,
+    translate_internal_to_public_alias,
+    translate_to_sentry_conventions,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 
@@ -26,8 +32,10 @@ from sentry.utils import snuba_rpc
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
+    use_sentry_conventions: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
+    seen_sentry_conventions: set[str] = set()
     for attribute in attributes:
         internal_name = attribute["name"]
         if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
@@ -52,6 +60,17 @@ def convert_rpc_attribute_to_json(
                 external_name = translate_internal_to_public_alias(
                     internal_name, column_type, trace_item_type
                 )
+
+                if use_sentry_conventions and external_name:
+                    external_name = translate_to_sentry_conventions(external_name, trace_item_type)
+                    if external_name in seen_sentry_conventions:
+                        continue
+                    seen_sentry_conventions.add(external_name)
+                else:
+                    if external_name and is_sentry_convention_replacement_attribute(
+                        external_name, trace_item_type
+                    ):
+                        continue
 
                 if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
                     "sentry."
@@ -149,10 +168,18 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))
 
+        use_sentry_conventions = features.has(
+            "organizations:performance-sentry-conventions-fields",
+            project.organization,
+            actor=request.user,
+        )
+
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
             "timestamp": resp["timestamp"],
-            "attributes": convert_rpc_attribute_to_json(resp["attributes"], item_type),
+            "attributes": convert_rpc_attribute_to_json(
+                resp["attributes"], item_type, use_sentry_conventions
+            ),
         }
 
         return Response(resp_dict)

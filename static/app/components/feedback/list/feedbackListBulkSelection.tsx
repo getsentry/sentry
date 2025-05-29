@@ -41,6 +41,9 @@ export default function FeedbackListBulkSelection({
   const hasDelete = selectedIds !== 'all';
   const disableDelete = !organization.access.includes('event:admin');
 
+  // TODO(ryan953): We should disable markAsRead if you're not a member of any project selected
+  const disableMarkAsRead = false;
+
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
       <span>
@@ -86,6 +89,7 @@ export default function FeedbackListBulkSelection({
                 key: 'mark read',
                 label: t('Mark Read'),
                 onAction: onMarkAsRead,
+                disabled: disableMarkAsRead,
               },
               {
                 key: 'mark unread',

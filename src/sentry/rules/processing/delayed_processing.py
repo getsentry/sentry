@@ -542,6 +542,7 @@ def fire_rules(
                             extra={
                                 "last_active": status.last_active,
                                 "freq_offset": freq_offset,
+                                "rule_id": rule.id,
                                 "project_id": project_id,
                                 "group_id": group.id,
                             },
@@ -559,6 +560,7 @@ def fire_rules(
                             "delayed_processing.not_updated",
                             extra={
                                 "status_id": status.id,
+                                "rule_id": rule.id,
                                 "project_id": project_id,
                                 "group_id": group.id,
                             },
@@ -602,6 +604,8 @@ def fire_rules(
                             extra={
                                 "total": len(callback_and_futures),
                                 "project_id": project_id,
+                                "group_id": group.id,
+                                "event_id": groupevent.event_id,
                                 "rule_id": rule.id,
                             },
                         )

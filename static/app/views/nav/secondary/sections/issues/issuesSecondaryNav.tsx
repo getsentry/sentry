@@ -100,14 +100,14 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            trailingItems={<FeatureBadge type="alpha" />}
             to={`${baseUrl}/monitors/`}
             activeTo={`${baseUrl}/monitors`}
           >
             {t('Monitors')}
           </SecondaryNav.Item>
           <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            trailingItems={<FeatureBadge type="alpha" />}
             to={`${baseUrl}/automations/`}
             activeTo={`${baseUrl}/automations`}
           >

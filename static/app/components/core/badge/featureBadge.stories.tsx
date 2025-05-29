@@ -26,7 +26,6 @@ export default Storybook.story('FeatureBadge', story => {
           </span>
         )}
         propMatrix={{
-          variant: ['badge', 'indicator', 'short'],
           type: ['alpha', 'beta', 'new', 'experimental'],
         }}
         selectedProps={['type', 'variant']}
