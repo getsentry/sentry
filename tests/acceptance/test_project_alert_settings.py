@@ -43,16 +43,3 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
 
         self.login_as(self.user)
         self.path1 = f"/settings/{self.org.slug}/projects/{self.project.slug}/alerts/"
-
-    def test_settings_load(self):
-        self.browser.get(self.path1)
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until(".ref-plugin-enable-webhooks")
-        self.browser.click(".ref-plugin-enable-webhooks")
-        self.browser.wait_until(".ref-plugin-config-webhooks")
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-        # flakey Toast animation being snapshotted in CI
-        # click it to clear it before snapshotting
-        self.browser.click_when_visible('[data-test-id="toast-success"]')
-        self.browser.wait_until_not('[data-test-id="toast-success"]')

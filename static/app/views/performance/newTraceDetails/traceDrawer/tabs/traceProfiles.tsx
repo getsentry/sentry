@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -6,7 +6,6 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
@@ -23,6 +22,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 export function TraceProfiles({
   tree,
@@ -35,6 +35,7 @@ export function TraceProfiles({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
@@ -56,10 +57,7 @@ export function TraceProfiles({
       if ('profiler_id' in profile) {
         traceAnalytics.trackViewContinuousProfile(organization);
       } else {
-        trackAnalytics('profiling_views.go_to_flamegraph', {
-          organization,
-          source: 'performance.trace_view',
-        });
+        traceAnalytics.trackViewTransactionProfile(organization);
       }
     },
     [organization]
@@ -78,7 +76,7 @@ export function TraceProfiles({
 
   return (
     <ProfilesTable>
-      <ProfilesTableRow>
+      <ProfilesTableRow hasTraceTabsUi={hasTraceTabsUi}>
         <ProfilesTableTitle>{t('Profiled Events')}</ProfilesTableTitle>
         <ProfilesTableTitle>{t('Profile')}</ProfilesTableTitle>
       </ProfilesTableRow>
@@ -121,16 +119,23 @@ export function TraceProfiles({
           'profiler_id' in profile ? profile.profiler_id : profile.profile_id;
 
         if (isTransactionNode(node)) {
+          const event = (
+            <Fragment>
+              <PlatformIcon
+                platform={projectLookup[node.value.project_slug] ?? 'default'}
+              />
+              <span>{node.value['transaction.op']}</span> —{' '}
+              <span>{node.value.transaction}</span>
+            </Fragment>
+          );
           return (
-            <ProfilesTableRow key={index}>
+            <ProfilesTableRow key={index} hasTraceTabsUi={hasTraceTabsUi}>
               <div>
-                <a onClick={() => onNodeIdClick(node)}>
-                  <PlatformIcon
-                    platform={projectLookup[node.value.project_slug] ?? 'default'}
-                  />
-                  <span>{node.value['transaction.op']}</span> —{' '}
-                  <span>{node.value.transaction}</span>
-                </a>
+                {hasTraceTabsUi ? (
+                  event
+                ) : (
+                  <a onClick={() => onNodeIdClick(node)}>{event}</a>
+                )}
               </div>
               <div>
                 <Link to={link} onClick={() => onProfileLinkClick(profile)}>
@@ -143,19 +148,31 @@ export function TraceProfiles({
         if (isSpanNode(node) || isEAPSpanNode(node)) {
           const spanId =
             'span_id' in node.value ? node.value.span_id : node.value.event_id;
+          const event = (
+            <Fragment>
+              {node.value.project_slug && (
+                <PlatformIcon
+                  platform={projectLookup[node.value.project_slug] ?? 'default'}
+                />
+              )}
+              <span>{node.value.op ?? '<unknown>'}</span> —{' '}
+              <span className="TraceDescription" title={node.value.description}>
+                {node.value.description
+                  ? node.value.description.length > 100
+                    ? node.value.description.slice(0, 100).trim() + '\u2026'
+                    : node.value.description
+                  : (spanId ?? 'unknown')}
+              </span>
+            </Fragment>
+          );
           return (
-            <ProfilesTableRow key={index}>
+            <ProfilesTableRow key={index} hasTraceTabsUi={hasTraceTabsUi}>
               <div>
-                <a onClick={() => onNodeIdClick(node)}>
-                  <span>{node.value.op ?? '<unknown>'}</span> —{' '}
-                  <span className="TraceDescription" title={node.value.description}>
-                    {node.value.description
-                      ? node.value.description.length > 100
-                        ? node.value.description.slice(0, 100).trim() + '\u2026'
-                        : node.value.description
-                      : (spanId ?? 'unknown')}
-                  </span>
-                </a>
+                {hasTraceTabsUi ? (
+                  event
+                ) : (
+                  <a onClick={() => onNodeIdClick(node)}>{event}</a>
+                )}
               </div>
               <div>
                 <Link to={link} onClick={() => onProfileLinkClick(profile)}>
@@ -195,7 +212,7 @@ const ProfilesTable = styled('div')`
   }
 `;
 
-const ProfilesTableRow = styled('div')`
+const ProfilesTableRow = styled('div')<{hasTraceTabsUi: boolean}>`
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
@@ -211,7 +228,8 @@ const ProfilesTableRow = styled('div')`
   }
 
   &:first-child {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.hasTraceTabsUi ? p.theme.background : p.theme.backgroundSecondary};
   }
 
   &:not(:last-child) {
@@ -224,5 +242,4 @@ const ProfilesTableTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   padding: 0 ${space(0.5)};
-  background-color: ${p => p.theme.backgroundSecondary};
 `;

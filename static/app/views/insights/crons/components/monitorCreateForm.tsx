@@ -136,7 +136,7 @@ export default function MonitorCreateForm() {
               const parsedSchedule = form.current.getError('config.schedule')
                 ? null
                 : crontabAsText(
-                    form.current.getValue('config.schedule')?.toString() ?? ''
+                    form.current.getValue<string>('config.schedule')?.toString() ?? ''
                   );
 
               return (

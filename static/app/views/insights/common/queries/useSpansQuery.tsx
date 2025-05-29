@@ -10,6 +10,7 @@ import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuer
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -223,10 +224,12 @@ function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
+  additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
   initialData?: T;
+  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
   referrer?: string;
@@ -237,6 +240,7 @@ function useWrappedDiscoverQueryBase<T>({
   eventView,
   initialData,
   enabled,
+  keepPreviousData,
   referrer,
   limit,
   cursor,
@@ -244,6 +248,7 @@ function useWrappedDiscoverQueryBase<T>({
   allowAggregateConditions,
   samplingMode,
   pageFiltersReady,
+  additionalQueryKey,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -259,15 +264,6 @@ function useWrappedDiscoverQueryBase<T>({
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
   }
 
-  const usesRelativeDateRange =
-    !defined(eventView.start) &&
-    !defined(eventView.end) &&
-    defined(eventView.statsPeriod);
-
-  const staleTimeForRelativePeriod = getStaleTimeForRelativePeriodTable(
-    eventView.statsPeriod
-  );
-
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
@@ -280,7 +276,9 @@ function useWrappedDiscoverQueryBase<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
+      staleTime: getStaleTimeForEventView(eventView),
+      additionalQueryKey,
+      placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },
     queryExtras,
     noPagination,
@@ -446,4 +444,15 @@ function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
   }
 
   return 5 * 60 * 1000;
+}
+
+export function getStaleTimeForEventView(eventView: EventView) {
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+  if (usesRelativeDateRange) {
+    return getStaleTimeForRelativePeriodTable(eventView.statsPeriod);
+  }
+  return Infinity;
 }

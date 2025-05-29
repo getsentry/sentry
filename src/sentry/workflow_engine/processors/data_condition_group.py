@@ -28,8 +28,14 @@ class ProcessedDataConditionGroup:
 DataConditionGroupResult = tuple[ProcessedDataConditionGroup, list[DataCondition]]
 
 
+# We use a defined function rather than a lambda below because otherwise
+# parameter type becomes Any.
+def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
+    return (condition.condition_group_id,)
+
+
 @cache_func_for_models(
-    [(DataCondition, lambda condition: (condition.condition_group_id,))],
+    [(DataCondition, _group_id_from_condition)],
     recalculate=False,
 )
 def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:

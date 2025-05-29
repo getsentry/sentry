@@ -27,7 +27,6 @@ from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +140,6 @@ def save_userreport(
             # something wrong with the SDK, but this behavior is
             # more reasonable than just hard erroring and is more
             # expected.
-            incr_rollback_metrics(UserReport)
             existing_report = UserReport.objects.get(
                 project_id=report["project_id"], event_id=report["event_id"]
             )
@@ -185,23 +183,11 @@ def save_userreport(
         # Additionally processing if save is successful.
         user_feedback_received.send_robust(project=project, sender=save_userreport)
 
-        logger.info(
-            "ingest.user_report",
-            extra={
-                "project_id": project.id,
-                "event_id": report["event_id"],
-                "has_event": bool(event),
-            },
-        )
         metrics.incr(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
         if event and source.value in FeedbackCreationSource.old_feedback_category_values():
-            logger.info(
-                "ingest.user_report.shim_to_feedback",
-                extra={"project_id": project.id, "event_id": report["event_id"]},
-            )
             shim_to_feedback(report, event, project, source)
             # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 

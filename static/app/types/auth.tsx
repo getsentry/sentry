@@ -25,7 +25,6 @@ interface BaseAuthenticator extends Partial<Omit<EnrolledAuthenticator, 'created
    */
   configureButton: string;
   createdAt: string | null;
-
   /**
    * Description of the authenticator
    */

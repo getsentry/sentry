@@ -8,6 +8,9 @@ from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import deletion_tasks
+from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
@@ -17,6 +20,13 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
     max_retries=MAX_RETRIES,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation

@@ -46,7 +46,7 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer left': 0.4,
   'drawer right': 0.4,
   'drawer bottom': 0.5,
-  'trace grid height': 565,
+  'trace grid height': 530,
 };
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
@@ -118,7 +118,7 @@ function isValidMissingInstrumentation(
   return true;
 }
 
-export function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
+function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
   const stored = localStorage.getItem(key);
 
   if (stored) {

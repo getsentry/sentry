@@ -5,7 +5,11 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/container/flex';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import {
+  EventDrawerBody,
+  EventNavigator,
+  EventStickyControls,
+} from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
@@ -142,7 +146,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         ) : null}
 
         {tagKey ? null : (
-          <Flex justify="space-between">
+          <EventStickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
 
             <ButtonBar gap={1}>
@@ -179,7 +183,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
                 sortByOptions={sortByOptions}
               />
             </ButtonBar>
-          </Flex>
+          </EventStickyControls>
         )}
 
         {tagKey ? (

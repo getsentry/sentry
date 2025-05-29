@@ -13,6 +13,10 @@ The workflow engine DataSource type used for registering handlers and fetching
 the uptime sbuscription data source.
 """
 
+GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
+"""
+The GroupType slug for UptimeDomainCheckFailure GroupTypes.
+"""
 
 RegionScheduleMode = Literal["round_robin"]
 """

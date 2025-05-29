@@ -1,10 +1,13 @@
 import {Fragment, useState} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import {
+  EventDrawerBody,
+  EventNavigator,
+  EventStickyControls,
+} from 'sentry/components/events/eventDrawer';
 import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSort} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
@@ -72,7 +75,7 @@ export default function TagsDistributionDrawer({
         ) : null}
 
         {tagKey ? null : (
-          <Flex justify="space-between">
+          <EventStickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
 
             <ButtonBar gap={1}>
@@ -95,7 +98,7 @@ export default function TagsDistributionDrawer({
                 </Fragment>
               ) : null}
             </ButtonBar>
-          </Flex>
+          </EventStickyControls>
         )}
 
         {tagKey ? (

@@ -37,13 +37,16 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:visibility-explore-view", organization, actor=request.user
         )
 
     def post(self, request: Request, organization: Organization, id: int) -> Response:
         """
         Update the starred status of a saved Explore query for the current organization member.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 

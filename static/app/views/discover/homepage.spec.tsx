@@ -247,6 +247,7 @@ describe('Discover > Homepage', () => {
         display: 'previous',
         query: 'event.type:error',
         topEvents: '5',
+        queryDataset: 'error-events',
       },
     });
 
@@ -549,11 +550,7 @@ describe('Discover > Homepage', () => {
 
   it('uses split decision for homepage query', async () => {
     organization = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'performance-discover-dataset-selector',
-      ],
+      features: ['discover-basic', 'discover-query'],
     });
     initialData = initializeOrg({
       organization,
@@ -634,11 +631,7 @@ describe('Discover > Homepage', () => {
 
   it('saves homepage with dataset selection', async () => {
     organization = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'performance-discover-dataset-selector',
-      ],
+      features: ['discover-basic', 'discover-query'],
     });
     initialData = initializeOrg({
       organization,
@@ -680,7 +673,7 @@ describe('Discover > Homepage', () => {
         display: 'previous',
         query: 'event.type:error',
         topEvents: '5',
-        queryDataset: 'discover',
+        queryDataset: 'error-events',
       },
     });
 

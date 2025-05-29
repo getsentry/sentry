@@ -25,6 +25,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -88,7 +89,8 @@ function EAPMobileOverviewPage() {
     categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp('(');
+  existingQuery.addFilterValue('span.op', `[${OVERVIEW_PAGE_ALLOWED_OPS.join(',')}]`);
   if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
@@ -96,6 +98,7 @@ function EAPMobileOverviewPage() {
       `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
     );
   }
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
@@ -192,6 +195,7 @@ function EAPMobileOverviewPage() {
       search: existingQuery,
       sorts,
       cursor,
+      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',
         'transaction',
@@ -242,7 +246,12 @@ function EAPMobileOverviewPage() {
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
@@ -254,13 +263,6 @@ function EAPMobileOverviewPage() {
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <MobileOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

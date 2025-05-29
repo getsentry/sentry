@@ -121,7 +121,10 @@ class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
     record_timing=True,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
-        retry=Retry(times=2),
+        retry=Retry(
+            times=2,
+            delay=5,
+        ),
     ),
 )
 def convert_to_async_slack_response(
@@ -153,7 +156,10 @@ class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
     default_retry_delay=5,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
-        retry=Retry(times=2),
+        retry=Retry(
+            times=2,
+            delay=5,
+        ),
     ),
 )
 def convert_to_async_discord_response(

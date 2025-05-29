@@ -1,4 +1,5 @@
 import datetime
+from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import cast
 from unittest.mock import patch
@@ -110,18 +111,37 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         self.min_ago = before_now(minutes=1).isoformat()
         self.repo = "getsentry/sentry"
 
+    def _generate_pagination_responses(
+        self, api_url: str, data: Sequence[Mapping[str, str]], per_page_limit: int
+    ) -> None:
+        pages = len(data) // per_page_limit + 1
+
+        for page in range(1, pages + 1):
+            params = (
+                f"per_page={per_page_limit}&page={page}"
+                if page != 1
+                else f"per_page={per_page_limit}"
+            )
+            link = _get_link_header(api_url, page, per_page_limit, pages)
+            responses.add(
+                responses.GET,
+                f"{api_url}?{params}",
+                json=_get_page_data(data, page, per_page_limit),
+                headers={"Link": link} if link else None,
+            )
+
     @fixture(autouse=True)
     def stub_get_jwt(self):
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     def _check_proxying(self) -> None:
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
         assert self.install.org_integration is not None
-        assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
-        assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
-        assert PROXY_SIGNATURE_HEADER in request.headers
+        for call_request in responses.calls:
+            request = call_request.request
+            assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
+            assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
+            assert PROXY_SIGNATURE_HEADER in request.headers
 
     @responses.activate
     def test_get_allowed_assignees(self):
@@ -149,48 +169,49 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_get_repo_labels(self):
+        """Test that labels are fetched using pagination when the feature flag is enabled."""
         responses.add(
             responses.POST,
             "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/labels",
-            json=[
-                {"name": "bug"},
-                {"name": "Big Bug"},
-                {"name": "enhancement"},
-                {"name": "duplicate"},
-                {"name": "1"},
-                {"name": "10"},
-                {"name": "2"},
-            ],
-        )
 
-        repo = "getsentry/sentry"
+        per_page_limit = 5
+        # An extra label to test pagination
+        labels = [
+            {"name": "bug"},
+            {"name": "enhancement"},
+            {"name": "duplicate"},
+            {"name": "1"},
+            {"name": "10"},
+            {"name": "2"},
+        ]
+        api_url = "https://api.github.com/repos/getsentry/sentry/labels"
+        self._generate_pagination_responses(api_url, labels, per_page_limit)
 
-        # results should be sorted alphabetically
-        assert self.install.get_repo_labels(repo) == (
-            ("1", "1"),
-            ("2", "2"),
-            ("10", "10"),
-            ("Big Bug", "Big Bug"),
-            ("bug", "bug"),
-            ("duplicate", "duplicate"),
-            ("enhancement", "enhancement"),
-        )
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.page_size", new=len(labels) - 1
+        ):
+            # results should be sorted alphabetically
+            assert self.install.get_repo_labels("getsentry", "sentry") == (
+                ("1", "1"),
+                ("2", "2"),
+                ("10", "10"),
+                ("bug", "bug"),
+                ("duplicate", "duplicate"),
+                ("enhancement", "enhancement"),
+            )
 
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
+            if self.should_call_api_without_proxying():
+                assert len(responses.calls) == 2
 
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+                request = responses.calls[0].request
+                assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
+                request = responses.calls[1].request
+                assert request.headers["Authorization"] == "Bearer token_1"
+            else:
+                self._check_proxying()
 
     @responses.activate
     def test_create_issue(self):
@@ -541,3 +562,36 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert repo_field["choices"] == []
         assert assignee_field["default"] == ""
         assert assignee_field["choices"] == []
+
+
+def _get_page_data(
+    data: Sequence[Mapping[str, str]], page: int, per_page_limit: int
+) -> Sequence[Mapping[str, str]]:
+    start = per_page_limit * (page - 1)
+    end = per_page_limit * page
+    return data[start:end]
+
+
+def _get_link_header(api_url: str, page: int, per_page_limit: int, pages: int) -> str:
+    if pages == 1:
+        return ""
+
+    list_of_links = []
+    first_link = f'<{api_url}?per_page={per_page_limit}&page=1>; rel="first"'
+    last_link = f'<{api_url}?per_page={per_page_limit}&page={pages}>; rel="last"'
+    next_link = f'<{api_url}?per_page={per_page_limit}&page={page + 1}>; rel="next"'
+    prev_link = f'<{api_url}?per_page={per_page_limit}&page={page - 1}>; rel="prev"'
+
+    if page != 1:
+        list_of_links.append(first_link)
+
+    if page == pages:
+        list_of_links.append(last_link)
+
+    if page != pages:
+        list_of_links.append(next_link)
+
+    if page != 1:
+        list_of_links.append(prev_link)
+
+    return ", ".join(list_of_links) if len(list_of_links) > 0 else ""

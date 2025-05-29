@@ -59,7 +59,6 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
-  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -176,6 +175,10 @@ type AutofixRelevantCodeFile = {
   repo_name: string;
 };
 
+type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
+  url?: string;
+};
+
 export type AutofixTimelineEvent = {
   code_snippet_and_analysis: string;
   relevant_code_file: AutofixRelevantCodeFile;
@@ -190,12 +193,13 @@ export type AutofixSolutionTimelineEvent = {
   code_snippet_and_analysis?: string;
   is_active?: boolean;
   is_most_important_event?: boolean;
-  relevant_code_file?: AutofixRelevantCodeFile;
+  relevant_code_file?: AutofixRelevantCodeFileWithUrl;
 };
 
 export type AutofixRootCauseData = {
   id: string;
-  description?: string; // TODO: this is for backwards compatibility with old runs, we should remove it soon
+  description?: string;
+  reproduction_urls?: Array<string | null>;
   root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
@@ -205,13 +209,6 @@ type EventMetadataWithAutofix = EventMetadata & {
 
 export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
-};
-
-export type AutofixFeedback = {
-  root_cause_thumbs_down?: boolean;
-  root_cause_thumbs_up?: boolean;
-  solution_thumbs_down?: boolean;
-  solution_thumbs_up?: boolean;
 };
 
 export type FilePatch = {
@@ -266,3 +263,5 @@ export interface SeerRepoDefinition {
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
 }
+
+export const AUTOFIX_TTL_IN_DAYS = 30;

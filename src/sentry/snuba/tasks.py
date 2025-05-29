@@ -43,7 +43,13 @@ class SubscriptionError(Exception):
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 def create_subscription_in_snuba(query_subscription_id, **kwargs):
     """
@@ -89,7 +95,13 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 def update_subscription_in_snuba(
     query_subscription_id,
@@ -136,7 +148,7 @@ def update_subscription_in_snuba(
             },
         )
         old_entity_key = (
-            EntityKey.EAPSpans
+            EntityKey.EAPItemsSpan
             if dataset == Dataset.EventsAnalyticsPlatform
             else get_entity_key_from_query_builder(
                 old_entity_subscription.build_query_builder(
@@ -164,7 +176,13 @@ def update_subscription_in_snuba(
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     """

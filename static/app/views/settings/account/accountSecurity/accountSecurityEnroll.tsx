@@ -24,7 +24,7 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import U2fSign from 'sentry/components/u2f/u2fsign';
+import {WebAuthnEnroll} from 'sentry/components/webAuthn/webAuthnEnroll';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
@@ -51,10 +51,6 @@ type GetFieldsOpts = {
    */
   onSmsReset: () => void;
   /**
-   * Callback when u2f device is activated
-   */
-  onU2fTap: React.ComponentProps<typeof U2fSign>['onTap'];
-  /**
    * Flag to track if we are currently sending the otp code
    */
   sendingCode: boolean;
@@ -68,7 +64,6 @@ const getFields = ({
   hasSentCode,
   sendingCode,
   onSmsReset,
-  onU2fTap,
 }: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
@@ -131,15 +126,14 @@ const getFields = ({
   if (authenticator.id === 'u2f') {
     const deviceNameField = form.find(({name}) => name === 'deviceName')!;
     return [
+      () => <WebAuthnEnroll challengeData={authenticator.challenge} />,
       deviceNameField,
       () => (
-        <U2fSign
-          key="u2f-enroll"
-          style={{marginBottom: 0}}
-          challengeData={authenticator.challenge}
-          displayMode="enroll"
-          onTap={onU2fTap}
-        />
+        <Actions key="confirm">
+          <Button priority="primary" type="submit">
+            {t('Confirm')}
+          </Button>
+        </Actions>
       ),
     ];
   }
@@ -266,22 +260,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
-  // Handle u2f device tap
-  handleU2fTap = async (tapData: any) => {
-    const data = {deviceName: this.formModel.getValue('deviceName'), ...tapData};
-
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(this.enrollEndpoint, {data});
-    } catch (err) {
-      this.handleEnrollError();
-      return;
-    }
-
-    this.handleEnrollSuccess();
-  };
-
   // Currently only TOTP uses this
   handleTotpSubmit = async (dataModel: any) => {
     if (!this.state.authenticator) {
@@ -305,6 +283,20 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     this.handleEnrollSuccess();
   };
 
+  // Handle webAuthn
+  handleWebAuthn = async (dataModel: any) => {
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {data: dataModel});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
+  };
+
   handleSubmit: FormProps['onSubmit'] = data => {
     const id = this.state.authenticator?.id;
 
@@ -314,6 +306,10 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
     if (id === 'sms') {
       this.handleSmsSubmit(data);
+      return;
+    }
+    if (id === 'u2f') {
+      this.handleWebAuthn(data);
       return;
     }
   };
@@ -405,7 +401,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       hasSentCode,
       sendingCode,
       onSmsReset: this.handleSmsReset,
-      onU2fTap: this.handleU2fTap,
     });
 
     // Attempt to extract `defaultValue` from server generated form fields

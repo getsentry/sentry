@@ -11,6 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useProjects from 'sentry/utils/useProjects';
@@ -108,7 +110,7 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [],
-        span_count: 0,
+        span_count: 200,
         span_count_map: {},
       },
     }),
@@ -271,7 +273,7 @@ async function keyboardNavigationTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -334,7 +336,7 @@ async function pageloadTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -457,7 +459,7 @@ async function searchTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -524,7 +526,7 @@ async function simpleTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -633,7 +635,7 @@ async function completeTestSetup() {
           count: 2,
         },
       ],
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -885,6 +887,25 @@ describe('trace view', () => {
     globalThis.ResizeObserver = MockResizeObserver as any;
     mockQueryString('');
     MockDate.reset();
+
+    const {project} = initializeOrg({});
+
+    ProjectsStore.loadInitialData([project]);
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
     mockUseProjects.mockReturnValue({
       projects: [
         {
@@ -1808,7 +1829,7 @@ describe('trace view', () => {
               count: 5,
             },
           ],
-          span_count: 0,
+          span_count: 200,
           span_count_map: {},
         },
       });

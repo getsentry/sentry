@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
@@ -54,7 +53,6 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
       }}
       initial={false}
       ref={sectionRef}
-      dragControls={controls}
     >
       {savedQueries?.map(query => (
         <StyledReorderItem
@@ -84,51 +82,65 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
             reorderStarredSavedQueries(savedQueries);
           }}
         >
-          <GrabHandleWrapper data-test-id={`grab-handle-${query.id}`} data-drag-icon>
-            <StyledIconGrabbable color="gray300" />
-            <StyledProjectIcon
-              projectPlatforms={projects
-                .filter(p => query.projects.map(String).includes(p.id))
-                .map(p => p.platform)
-                .filter(defined)}
-            />
-          </GrabHandleWrapper>
-          <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
-            <StyledSecondaryNavItem
-              key={query.id}
-              to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
-              analyticsItemName="explore_starred_item"
-              showInteractionStateLayer={false}
-              isActive={id === query.id.toString()}
-            >
-              {query.name}
-            </StyledSecondaryNavItem>
-          </Tooltip>
-          <StyledInteractionStateLayer
-            isPressed={id === query.id.toString()}
-            hasSelectedBackground={id === query.id.toString()}
-          />
+          <StyledSecondaryNavItem
+            leadingItems={
+              <LeadingItemsWrapper>
+                <GrabHandleWrapper
+                  data-test-id={`grab-handle-${query.id}`}
+                  data-drag-icon
+                  onPointerDown={e => {
+                    controls.start(e);
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
+                  <StyledInteractionStateLayer isPressed={isDragging === query.id} />
+                  <IconGrabbable color="gray300" />
+                </GrabHandleWrapper>
+                <ProjectIcon
+                  projectPlatforms={projects
+                    .filter(p => query.projects.map(String).includes(p.id))
+                    .map(p => p.platform)
+                    .filter(defined)}
+                />
+              </LeadingItemsWrapper>
+            }
+            key={query.id}
+            to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+            analyticsItemName="explore_starred_item"
+            isActive={id === query.id.toString()}
+          >
+            <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
+              <TruncatedTitle>{query.name}</TruncatedTitle>
+            </Tooltip>
+          </StyledSecondaryNavItem>
         </StyledReorderItem>
       ))}
     </Reorder.Group>
   );
 }
 
-const StyledProjectIcon = styled(ProjectIcon)`
-  display: flex;
-`;
-
-const StyledIconGrabbable = styled(IconGrabbable)`
-  display: none;
-  width: 18px;
-  cursor: grab;
-`;
-
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   align-items: center;
-  padding-left: ${space(0.75)};
-  overflow: hidden;
-  width: 100%;
+  padding-right: ${space(0.5)};
+  position: relative;
+  gap: 0;
+
+  :not(:hover) {
+    [data-drag-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+
+  :hover {
+    [data-project-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
 `;
 
 const StyledReorderItem = styled(Reorder.Item, {
@@ -137,38 +149,35 @@ const StyledReorderItem = styled(Reorder.Item, {
   position: relative;
   background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
-  list-style: none;
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(0.25)};
-
-  &:hover {
-    ${StyledProjectIcon} {
-      display: none;
-    }
-    ${StyledIconGrabbable} {
-      display: flex;
-    }
-  }
 `;
 
 const GrabHandleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} 0 ${space(0.5)} ${space(1)};
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  cursor: grab;
+  z-index: 3;
+
+  &:active {
+    cursor: grabbing;
+  }
 `;
 
-const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
-  hasSelectedBackground: boolean;
-}>`
-  ${p =>
-    p.hasSelectedBackground &&
-    css`
-      color: ${p.theme.purple400};
-      font-weight: ${p.theme.fontWeightBold};
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  height: 120%;
+  border-radius: 4px;
+`;
 
-      &:hover {
-        color: ${p.theme.purple400};
-      }
-    `}
+const LeadingItemsWrapper = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: ${space(0.75)};
+`;
+
+const TruncatedTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;

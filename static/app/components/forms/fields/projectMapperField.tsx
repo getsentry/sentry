@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import difference from 'lodash/difference';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';

@@ -5,6 +5,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
@@ -31,17 +32,20 @@ interface SearchQueryBuilderContextData {
   disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
+  displaySeerResults: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
+  getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   placeholder?: string;
@@ -78,6 +82,7 @@ export function SearchQueryBuilderProvider({
   filterKeys,
   filterKeyMenuWidth = 360,
   filterKeySections,
+  getSuggestedFilterKey,
   getTagValues,
   onSearch,
   placeholder,
@@ -88,6 +93,7 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
@@ -139,6 +145,7 @@ export function SearchQueryBuilderProvider({
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
       filterKeys,
+      getSuggestedFilterKey: getSuggestedFilterKey ?? ((key: string) => key),
       getTagValues,
       getFieldDefinition: fieldDefinitionGetter,
       dispatch,
@@ -150,6 +157,8 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
+      displaySeerResults,
+      setDisplaySeerResults,
     };
   }, [
     state,
@@ -160,6 +169,7 @@ export function SearchQueryBuilderProvider({
     filterKeySections,
     filterKeyMenuWidth,
     filterKeys,
+    getSuggestedFilterKey,
     getTagValues,
     fieldDefinitionGetter,
     dispatch,
@@ -170,6 +180,8 @@ export function SearchQueryBuilderProvider({
     size,
     portalTarget,
     parseQuery,
+    displaySeerResults,
+    setDisplaySeerResults,
   ]);
 
   return (

@@ -3,6 +3,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {DataCategory} from 'sentry/types/core';
 
 import {InvoiceItemType, PlanTier} from 'getsentry/types';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -11,6 +12,13 @@ describe('utils', function () {
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const bizPlanAnnual = PlanDetailsLookupFixture('am1_business_auf')!;
+  const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
+  const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
+  const DEFAULT_SELECTED_PRODUCTS = {
+    [SelectableProduct.SEER]: {
+      enabled: false,
+    },
+  };
 
   describe('getReservedTotal', function () {
     it('can get base price for team plan', function () {
@@ -21,6 +29,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('29');
     });
@@ -33,6 +42,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('312');
     });
@@ -45,6 +55,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('89');
     });
@@ -57,6 +68,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('960');
     });
@@ -69,8 +81,58 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('1,992');
+    });
+
+    it('includes Seer price in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: am3TeamPlan,
+        reserved: {
+          errors: 50_000,
+          spans: 10_000_000,
+          replays: 50,
+          attachments: 1,
+        },
+        selectedProducts: {
+          [SelectableProduct.SEER]: {
+            enabled: true,
+          },
+        },
+      });
+      expect(priceDollars).toBe('49');
+    });
+
+    it('includes Seer annual price in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: am3TeamPlanAnnual,
+        reserved: {
+          errors: 50_000,
+          spans: 10_000_000,
+          replays: 50,
+          attachments: 1,
+        },
+        selectedProducts: {
+          [SelectableProduct.SEER]: {
+            enabled: true,
+          },
+        },
+      });
+      expect(priceDollars).toBe('528');
+    });
+
+    it('does not include Seer budget when not enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: teamPlan,
+        reserved: {
+          errors: 50_000,
+          transactions: 100_000,
+          attachments: 1,
+        },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+      });
+      expect(priceDollars).toBe('29');
     });
   });
 
@@ -341,6 +403,7 @@ describe('utils', function () {
           attachments: 70,
           profileDuration: 80,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       };
 
       expect(getCheckoutAPIData({formData})).toEqual({
@@ -355,6 +418,7 @@ describe('utils', function () {
         reservedUptime: 60,
         reservedAttachments: 70,
         reservedProfileDuration: 80,
+        seer: false,
       });
     });
   });

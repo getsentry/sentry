@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -11,9 +11,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
-import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixFeedback,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
@@ -25,15 +23,15 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconFix} from 'sentry/icons';
+import {IconAdd, IconChat, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 
@@ -112,7 +110,6 @@ type AutofixSolutionProps = {
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
-  feedback?: AutofixFeedback;
   isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -148,6 +145,7 @@ function SolutionDescription({
   description,
   onDeleteItem,
   onToggleActive,
+  ref,
 }: {
   groupId: string;
   onDeleteItem: (index: number) => void;
@@ -157,11 +155,13 @@ function SolutionDescription({
   description?: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <SolutionDescriptionWrapper>
       {description && (
         <AutofixHighlightWrapper
+          ref={ref}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -319,7 +319,6 @@ function AutofixSolutionDisplay({
   customSolution,
   solutionSelected,
   agentCommentThread,
-  feedback,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
@@ -336,6 +335,19 @@ function AutofixSolutionDisplay({
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const iconFixRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectDescription = () => {
+    if (descriptionRef.current) {
+      // Simulate a click on the description to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      descriptionRef.current.dispatchEvent(clickEvent);
+    }
+  };
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
@@ -375,6 +387,15 @@ function AutofixSolutionDisplay({
     );
   }, []);
 
+  useEffect(() => {
+    setSolutionItems(
+      solution.map(item => ({
+        ...item,
+        is_active: item.is_active === undefined ? true : item.is_active,
+      }))
+    );
+  }, [solution]);
+
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
@@ -413,17 +434,16 @@ function AutofixSolutionDisplay({
               <IconFix size="sm" color="green400" />
             </HeaderIconWrapper>
             {t('Solution')}
+            <ChatButton
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+            >
+              <IconChat size="xs" />
+            </ChatButton>
           </HeaderText>
           <ButtonBar gap={1}>
-            <AutofixThumbsUpDownButtons
-              thumbsUpDownType="solution"
-              feedback={feedback}
-              groupId={groupId}
-              runId={runId}
-            />
-            <DividerWrapper>
-              <Divider />
-            </DividerWrapper>
             <ButtonBar>
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
@@ -434,16 +454,20 @@ function AutofixSolutionDisplay({
                 title={
                   hasNoRepos
                     ? t(
-                        'You need to set up the GitHub integration and configure repository access for Autofix to write code for you.'
+                        'You need to set up the GitHub integration and configure repository access for Seer to write code for you.'
                       )
                     : cantReadRepos
                       ? t(
-                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Autofix to write code for you."
+                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
                         )
                       : undefined
                 }
                 size="sm"
-                priority={solutionSelected ? 'default' : 'primary'}
+                priority={
+                  !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                    ? 'primary'
+                    : 'default'
+                }
                 busy={isPending}
                 disabled={hasNoRepos || cantReadRepos}
                 onClick={() => {
@@ -472,7 +496,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the solution...')}
+              blockName={t('Seer is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>
@@ -486,6 +510,7 @@ function AutofixSolutionDisplay({
             previousInsightCount={previousInsightCount}
             onDeleteItem={handleDeleteItem}
             onToggleActive={handleToggleActive}
+            ref={descriptionRef}
           />
           <AddInstructionWrapper>
             <InstructionsInputWrapper onSubmit={handleFormSubmit}>
@@ -559,9 +584,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   flex-wrap: wrap;
   gap: ${space(1)};
 `;
@@ -576,7 +598,7 @@ const HeaderText = styled('div')`
 
 const SolutionDescriptionWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`
@@ -624,6 +646,7 @@ const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
 `;
 
-const DividerWrapper = styled('div')`
-  margin: 0 ${space(0.5)};
+const ChatButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  margin-left: -${space(0.5)};
 `;

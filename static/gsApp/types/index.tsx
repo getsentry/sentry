@@ -74,6 +74,58 @@ export enum CheckoutType {
   BUNDLE = 'bundle',
 }
 
+export enum ReservedBudgetCategoryType {
+  DYNAMIC_SAMPLING = 'dynamicSampling',
+  SEER = 'seer',
+}
+
+export type ReservedBudgetCategory = {
+  /**
+   * The API name of the budget
+   */
+  apiName: ReservedBudgetCategoryType;
+  /**
+   * The feature flag determining if the product is available for billing
+   */
+  billingFlag: string | null;
+  /**
+   * Backend name of the category (all caps, snake case)
+   */
+  budgetCategoryType: string;
+  /**
+   * whether a customer can use product trials for this budget
+   */
+  canProductTrial: boolean;
+  /**
+   * the categories that are included in the budget
+   */
+  dataCategories: DataCategory[];
+  /**
+   * Default budget for the category, in cents
+   */
+  defaultBudget: number | null;
+  /**
+   * Link to the quotas documentation for the budget
+   */
+  docLink: string;
+  /**
+   * Whether the budget is fixed or variable
+   */
+  isFixed: boolean;
+  /**
+   * Display name of the budget
+   */
+  name: string;
+  /**
+   * The name of the product to display in the checkout flow
+   */
+  productCheckoutName: string;
+  /**
+   * The name of the product associated with the budget
+   */
+  productName: string;
+};
+
 export type Plan = {
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
@@ -82,6 +134,9 @@ export type Plan = {
    * Can be used for category upsells.
    */
   availableCategories: DataCategory[];
+  availableReservedBudgetTypes: Partial<
+    Record<ReservedBudgetCategoryType, ReservedBudgetCategory>
+  >;
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
   budgetTerm: 'pay-as-you-go' | 'on-demand';
@@ -610,6 +665,8 @@ export enum InvoiceItemType {
   ONDEMAND_MONITOR_SEATS = 'ondemand_monitor_seats',
   ONDEMAND_UPTIME = 'ondemand_uptime',
   ONDEMAND_PROFILE_DURATION = 'ondemand_profile_duration',
+  ONDEMAND_SEER_AUTOFIX = 'ondemand_seer_autofix',
+  ONDEMAND_SEER_SCANNER = 'ondemand_seer_scanner',
   RESERVED_ATTACHMENTS = 'reserved_attachments',
   RESERVED_ERRORS = 'reserved_errors',
   RESERVED_TRANSACTIONS = 'reserved_transactions',
@@ -619,6 +676,8 @@ export enum InvoiceItemType {
   RESERVED_MONITOR_SEATS = 'reserved_monitor_seats',
   RESERVED_UPTIME = 'reserved_uptime',
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
+  RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
+  RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
 }
 
 export enum InvoiceStatus {
@@ -873,19 +932,37 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-type PendingReservedBudget = {
+export type PendingReservedBudget = {
   categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
 };
 
 export type ReservedBudget = {
+  /**
+   * The categories included in the budget and their respective ReservedBudgetMetricHistory
+   */
   categories: Partial<Record<DataCategory, ReservedBudgetMetricHistory>>;
+  /**
+   * The amount of free budget gifted in the associated usage cycle
+   */
   freeBudget: number;
+  /**
+   * The id of the ReservedBudgetHistory object
+   */
   id: string;
+  /**
+   * The percentage of the budget used, including gifted budget
+   */
   percentUsed: number;
+  /**
+   * The amount of budget in the associated usage cycle, excluding gifted budget
+   */
   reservedBudget: number;
+  /**
+   * The amount of budget used in the associated usage cycle
+   */
   totalReservedSpend: number;
-};
+} & ReservedBudgetCategory;
 
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents

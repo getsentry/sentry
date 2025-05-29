@@ -1,14 +1,20 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  AGENTS_LANDING_SUB_PATH,
+  AGENTS_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/agents/settings';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -59,7 +65,7 @@ export function InsightsSecondaryNav() {
     : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
       </SecondaryNav.Header>
@@ -91,12 +97,38 @@ export function InsightsSecondaryNav() {
           >
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
-          <SecondaryNav.Item
-            to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
-            analyticsItemName="insights_ai"
+
+          <AgentInsightsFeature
+            organization={organization}
+            renderDisabled={() => (
+              <SecondaryNav.Item
+                to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+                analyticsItemName="insights_ai"
+              >
+                {AI_SIDEBAR_LABEL}
+              </SecondaryNav.Item>
+            )}
           >
-            {AI_SIDEBAR_LABEL}
+            <SecondaryNav.Item
+              to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
+              analyticsItemName="insights_agents"
+            >
+              {AGENTS_SIDEBAR_LABEL}
+            </SecondaryNav.Item>
+          </AgentInsightsFeature>
+        </SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-monitors">
+          <SecondaryNav.Item to={`${baseUrl}/crons/`} analyticsItemName="insights_crons">
+            {t('Crons')}
           </SecondaryNav.Item>
+          <Feature features={['uptime']}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/uptime/`}
+              analyticsItemName="insights_uptime"
+            >
+              {t('Uptime')}
+            </SecondaryNav.Item>
+          </Feature>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-projects-all">
           <SecondaryNav.Item
@@ -137,7 +169,7 @@ export function InsightsSecondaryNav() {
           </SecondaryNav.Section>
         ) : null}
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 

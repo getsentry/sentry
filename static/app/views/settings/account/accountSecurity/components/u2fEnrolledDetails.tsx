@@ -1,9 +1,10 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -15,8 +16,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 function U2fEnrolledDetails(props: any) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
@@ -71,19 +70,12 @@ function Device(props: any) {
         </DeviceInformation>
         <ButtonBar gap={1}>
           <Button size="sm" onClick={() => setEditting(true)}>
-            {t('Rename Device')}
+            {t('Rename device')}
           </Button>
           <Confirm
             onConfirm={() => onRemoveU2fDevice(device)}
             disabled={isLastDevice}
-            message={
-              <Fragment>
-                <ConfirmHeader>{t('Do you want to remove U2F device?')}</ConfirmHeader>
-                <TextBlock>
-                  {t('Are you sure you want to remove the U2F device "%s"?', device.name)}
-                </TextBlock>
-              </Fragment>
-            }
+            message={t('Are you sure you want to remove the device "%s"?', device.name)}
           >
             <Button
               aria-label={t('Remove device')}
@@ -102,6 +94,7 @@ function Device(props: any) {
     <PanelItem key={device.name}>
       <DeviceInformation>
         <DeviceNameInput
+          size="sm"
           type="text"
           value={deviceName}
           onChange={e => {
@@ -125,7 +118,7 @@ function Device(props: any) {
           size="sm"
           title={t('Cancel Rename')}
           aria-label={t('Cancel Rename')}
-          icon={<IconClose size="xs" />}
+          icon={<IconClose />}
           onClick={() => {
             setDeviceName(device.name);
             setEditting(false);

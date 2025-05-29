@@ -442,15 +442,14 @@ export function ActionableItems({event, project}: ActionableItemsProps) {
       )
   );
 
-  for (const errorKey in Object.keys(errorMessages)) {
+  for (const errorKey of Object.keys(errorMessages)) {
     const isWarning = ActionableItemWarning.includes(
       errorKey as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
     );
     const shouldDelete = hasErrorAlert ? isWarning : !isWarning;
 
     if (shouldDelete) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete errorMessages[errorKey];
+      delete errorMessages[errorKey as keyof typeof errorMessages];
     }
   }
 

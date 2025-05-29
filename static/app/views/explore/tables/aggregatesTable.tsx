@@ -35,6 +35,7 @@ import {
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
+  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -54,11 +55,11 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const location = useLocation();
   const {projects} = useProjects();
 
-  const topEvents = useTopEvents();
-  const groupBys = useExploreGroupBys();
-
   const {result, eventView, fields} = aggregatesTableResult;
 
+  const topEvents = useTopEvents();
+  const groupBys = useExploreGroupBys();
+  const visualizes = useExploreVisualizes();
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
@@ -87,7 +88,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -165,7 +166,13 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              const target = viewSamplesTarget(location, query, groupBys, row, {
+              const target = viewSamplesTarget({
+                location,
+                query,
+                groupBys,
+                visualizes,
+                sorts,
+                row,
                 projects,
               });
               return (

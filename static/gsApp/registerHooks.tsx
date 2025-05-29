@@ -350,6 +350,15 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     </PowerFeatureHovercard>
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
+  'feature-disabled:issue-views': p => (
+    <PowerFeatureHovercard
+      features={['organizations:issue-views']}
+      id="issue-views"
+      useLearnMoreLink
+    >
+      {typeof p.children === 'function' ? p.children(p) : p.children}
+    </PowerFeatureHovercard>
+  ),
 
   /**
    * Augment integration installation modals with feature grouping based on

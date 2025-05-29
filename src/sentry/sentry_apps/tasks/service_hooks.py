@@ -1,8 +1,10 @@
-import logging
 from time import time
 
+from sentry import nodestore
 from sentry.api.serializers import serialize
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.http import safe_urlopen
+from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -11,8 +13,6 @@ from sentry.taskworker.namespaces import sentryapp_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
-
-logger = logging.getLogger(__name__)
 
 
 def get_payload_v0(event):
@@ -37,17 +37,34 @@ def get_payload_v0(event):
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry
-def process_service_hook(servicehook_id, event, **kwargs):
+def process_service_hook(
+    servicehook_id: int, project_id: int, group_id: int, event_id: str
+) -> None:
     try:
         servicehook = ServiceHook.objects.get(id=servicehook_id)
     except ServiceHook.DoesNotExist:
         return
 
+    node_id = Event.generate_node_id(project_id, event_id)
+    group = Group.objects.get_from_cache(id=group_id)
+    nodedata = nodestore.backend.get(node_id)
+    event = GroupEvent(
+        project_id=project_id,
+        event_id=event_id,
+        group=group,
+        data=nodedata,
+    )
     if servicehook.version == 0:
-        payload = get_payload_v0(event)
+        payload = json.dumps(get_payload_v0(event))
     else:
         raise NotImplementedError
 
@@ -59,10 +76,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
         "Content-Type": "application/json",
         "X-ServiceHook-Timestamp": str(int(time())),
         "X-ServiceHook-GUID": servicehook.guid,
-        "X-ServiceHook-Signature": servicehook.build_signature(json.dumps(payload)),
+        "X-ServiceHook-Signature": servicehook.build_signature(payload),
     }
 
-    safe_urlopen(
-        url=servicehook.url, data=json.dumps(payload), headers=headers, timeout=5, verify_ssl=False
-    )
-    logger.info("service_hook.success", extra={"project_id": event.project_id})
+    safe_urlopen(url=servicehook.url, data=payload, headers=headers, timeout=5, verify_ssl=False)

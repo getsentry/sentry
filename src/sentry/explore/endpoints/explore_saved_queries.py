@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Case, Count, Exists, IntegerField, OuterRef, Subquery, When
+from django.db.models import Case, Count, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -30,7 +30,11 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
+    ExploreSavedQueryStarred,
+)
 from sentry.locks import locks
 from sentry.search.utils import tokenize_query
 from sentry.utils.locking import UnableToAcquireLock
@@ -123,7 +127,7 @@ PREBUILT_SAVED_QUERIES = [
     },
     {
         "prebuilt_id": 4,
-        "prebuilt_version": 1,
+        "prebuilt_version": 2,
         "name": "Worst Pageloads",
         "dataset": "spans",
         "query": [
@@ -135,6 +139,7 @@ PREBUILT_SAVED_QUERIES = [
                     "span.duration",
                     "transaction",
                     "timestamp",
+                    "measurements.lcp",
                 ],
                 "query": "span.op:pageload measurements.lcp:>0ms",
                 "mode": "samples",
@@ -145,7 +150,7 @@ PREBUILT_SAVED_QUERIES = [
                     },
                     {
                         "chartType": 1,
-                        "yAxes": ["p75(span.duration)", "p90(span.duration)"],
+                        "yAxes": ["p75(measurements.lcp)", "p90(measurements.lcp)"],
                     },
                 ],
                 "orderby": "-measurements.lcp",
@@ -269,7 +274,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:visibility-explore-view", organization, actor=request.user
         )
 
     @extend_schema(
@@ -296,6 +301,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         """
         Retrieve a list of saved queries that are associated with the given organization.
         """
+
+        if not request.user.is_authenticated:
+            return Response(status=400)
 
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -333,7 +341,16 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        order_by: list[Case | str] = []
+        last_visited_query = Subquery(
+            ExploreSavedQueryLastVisited.objects.filter(
+                organization=organization,
+                user_id=request.user.id,
+                explore_saved_query_id=OuterRef("id"),
+            ).values("last_visited")[:1]
+        )
+        queryset = queryset.annotate(user_last_visited=last_visited_query)
+
+        order_by: list[OrderBy | Case | str] = []
 
         sort_by_list = request.query_params.getlist("sortBy")
         if sort_by_list and len(sort_by_list) > 0:
@@ -356,7 +373,11 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                     order_by.append("visits" if desc else "-visits")
 
                 elif sort_by == "recentlyViewed":
-                    order_by.append("last_visited" if desc else "-last_visited")
+                    order_by.append(
+                        F("user_last_visited").asc(nulls_last=True)
+                        if desc
+                        else F("user_last_visited").desc(nulls_last=True)
+                    )
 
                 elif sort_by == "myqueries":
                     order_by.append(
@@ -446,6 +467,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         """
         Create a new trace explorersaved query for the given organization.
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 

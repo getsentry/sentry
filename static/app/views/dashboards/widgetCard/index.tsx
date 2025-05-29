@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -21,6 +21,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -90,6 +91,7 @@ type Props = WithRouterProps & {
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
+  showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -108,7 +110,10 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
+  const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const navigate = useNavigate();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
     const {...rest} = newData;
@@ -117,6 +122,8 @@ function WidgetCard(props: Props) {
     }
 
     setData(prevData => ({...prevData, ...rest}));
+
+    setIsLoadingTextVisible(false);
   };
 
   const {
@@ -141,6 +148,7 @@ function WidgetCard(props: Props) {
     showConfidenceWarning,
     minTableColumnWidth,
     disableZoom,
+    showLoadingText,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -167,6 +175,27 @@ function WidgetCard(props: Props) {
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
+  const onDataFetchStart = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    setIsLoadingTextVisible(false);
+    timeoutRef.current = setTimeout(() => {
+      setIsLoadingTextVisible(true);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [timeoutRef]);
+
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
       setWidgetViewerData({
@@ -180,12 +209,15 @@ function WidgetCard(props: Props) {
         isSampled: data?.isSampled,
       });
 
-      props.router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${props.index}/`,
-        query: location.query,
-      });
+      navigate(
+        {
+          pathname: `${location.pathname}${
+            location.pathname.endsWith('/') ? '' : '/'
+          }widget/${props.index}/`,
+          query: location.query,
+        },
+        {preventScrollReset: true}
+      );
     }
   };
 
@@ -216,6 +248,7 @@ function WidgetCard(props: Props) {
 
   const actions = props.showContextMenu
     ? getMenuOptions(
+        dashboardFilters,
         organization,
         selection,
         widget,
@@ -278,6 +311,8 @@ function WidgetCard(props: Props) {
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
             disableZoom={disableZoom}
+            onDataFetchStart={onDataFetchStart}
+            showLoadingText={showLoadingText && isLoadingTextVisible}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

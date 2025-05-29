@@ -180,6 +180,8 @@ class NodeStorage(local, Service):
         }
         """
         with sentry_sdk.start_span(op="nodestore.get_multi") as span:
+            # Deduplicate ids, preserving order
+            id_list = list(dict.fromkeys(id_list))
             span.set_tag("subkey", str(subkey))
             span.set_tag("num_ids", len(id_list))
 

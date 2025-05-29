@@ -9,11 +9,15 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -23,20 +27,22 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {isAggregateField} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
 import {
   useExploreFields,
   useExploreId,
@@ -59,7 +65,11 @@ import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {combineConfidenceForSeries, type PickableDays} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  findSuggestedColumns,
+  type PickableDays,
+} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
@@ -134,6 +144,20 @@ interface SpanTabSearchSectionProps {
   datePageFilterProps: PickableDays;
 }
 
+function SpansSearchBar({
+  eapSpanSearchQueryBuilderProps,
+}: {
+  eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
+}) {
+  const {displaySeerResults} = useSearchQueryBuilder();
+
+  return displaySeerResults ? (
+    <SeerSearch />
+  ) : (
+    <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+  );
+}
+
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
@@ -143,18 +167,25 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
+  const search = useMemo(() => new MutableSearch(query), [query]);
+  const oldSearch = usePrevious(search);
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
-        const newFields = new MutableSearch(newQuery)
-          .getFilterKeys()
-          .map(key => (key.startsWith('!') ? key.slice(1) : key))
-          // don't add aggregate functions to table fields
-          .filter(key => !isAggregateField(key));
+        const newSearch = new MutableSearch(newQuery);
+        const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          numberAttributes: numberTags,
+          stringAttributes: stringTags,
+        });
+
+        const existingFields = new Set(fields);
+        const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
+
         setExplorePageParams({
           query: newQuery,
-          fields: [...new Set([...fields, ...newFields])],
+          fields: newColumns.length ? [...fields, ...newColumns] : undefined,
         });
       },
       searchSource: 'explore',
@@ -174,7 +205,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       stringTags,
     }),
-    [mode, fields, query, setExplorePageParams, numberTags, stringTags]
+    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -200,7 +231,9 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
               <EnvironmentPageFilter />
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+            <SpansSearchBar
+              eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
+            />
           </FilterSection>
           <StyledSchemaHintsSection>
             <SchemaHintsList
@@ -279,7 +312,7 @@ function SpanTabContentSection({
         ? 'traces'
         : 'samples';
 
-  const limit = 25;
+  const limit = 50;
 
   const isAllowedSelection = useMemo(
     () => checkIsAllowedSelection(selection, maxPickableDays),
@@ -356,7 +389,13 @@ function SpanTabContentSection({
         aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
         expanded={controlSectionExpanded}
         size="xs"
-        icon={<IconDoubleChevron direction={controlSectionExpanded ? 'left' : 'right'} />}
+        icon={
+          <IconChevron
+            isDouble
+            direction={controlSectionExpanded ? 'left' : 'right'}
+            size="xs"
+          />
+        }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
@@ -378,7 +417,6 @@ function SpanTabContentSection({
           visualizes={visualizes}
           setVisualizes={setVisualizes}
           samplingMode={timeseriesSamplingMode}
-          dataset={DiscoverDatasets.SPANS_EAP}
         />
         <ExploreTables
           aggregatesTableResult={aggregatesTableResult}
@@ -390,15 +428,6 @@ function SpanTabContentSection({
         />
       </TourElement>
     </ContentSection>
-  );
-}
-
-function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
-  return (
-    <DoubleChevronWrapper>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
-    </DoubleChevronWrapper>
   );
 }
 
@@ -495,31 +524,44 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-const ChevronButton = styled(Button)<{expanded: boolean}>`
-  width: 28px;
-  border-left-color: ${p => p.theme.background};
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  margin-bottom: ${space(1)};
-  display: none;
+const ChevronButton = withChonk(
+  styled(Button)<{expanded: boolean}>`
+    width: 28px;
+    border-left-color: ${p => p.theme.background};
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    margin-bottom: ${space(1)};
+    display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    display: block;
-  }
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: block;
+    }
 
-  ${p =>
-    p.expanded
-      ? css`
-          margin-left: -13px;
-        `
-      : css`
-          margin-left: -31px;
-        `}
-`;
+    ${p =>
+      p.expanded
+        ? css`
+            margin-left: -13px;
+          `
+        : css`
+            margin-left: -31px;
+          `}
+  `,
+  chonkStyled(Button)<{expanded: boolean}>`
+    margin-bottom: ${space(1)};
+    display: none;
+    margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
-const DoubleChevronWrapper = styled('div')`
-  display: flex;
-`;
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: inline-flex;
+    }
+
+    &::after {
+      border-left-color: ${p => p.theme.background};
+      border-top-left-radius: 0px;
+      border-bottom-left-radius: 0px;
+    }
+  `
+);
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};

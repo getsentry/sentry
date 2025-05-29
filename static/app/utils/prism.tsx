@@ -75,6 +75,8 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   arb: 'json',
   ps1: 'powershell',
   jinja: 'jinja2',
+  // Godot Script - e.g: "file": "res://script_with_errors.gd"
+  gd: 'gdscript',
 };
 
 export const getPrismLanguage = (lang: string) => {

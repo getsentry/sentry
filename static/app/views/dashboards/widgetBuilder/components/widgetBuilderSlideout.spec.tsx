@@ -281,7 +281,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(await screen.findByText('Add Widget'));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+      expect(addErrorMessage).toHaveBeenCalledWith('Title is required during creation');
     });
 
     expect(screen.getByText('Custom Widget Builder')).toBeInTheDocument();
@@ -468,7 +468,10 @@ describe('WidgetBuilderSlideout', () => {
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
-    expect(onSave).toHaveBeenCalledWith({index: undefined, widget: expect.any(Object)});
+    expect(onSave).toHaveBeenCalledWith({
+      index: undefined,
+      widget: expect.any(Object),
+    });
   });
 
   it('should render the widget template title if templates selected', () => {

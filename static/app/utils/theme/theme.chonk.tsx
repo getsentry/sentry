@@ -3,8 +3,8 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled, {
   type CreateStyledComponent,
   type FilteringStyledOptions,
+  type StyledOptions,
 } from '@emotion/styled';
-import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
 import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
@@ -579,8 +579,8 @@ const lightColors = {
   white: '#F6F5FA',
 
   surface500: '#FFFFFF', // background.primary
-  surface400: '#FBFAFF', // background.secondary
-  surface300: '#F9F7FF', // background.tertiary
+  surface400: '#F4F4FB', // background.secondary
+  surface300: '#ECECF8', // background.tertiary
   surface200: '#EBE9F2', // border.muted
   surface100: '#DAD7E5', // border.primary
 
@@ -601,8 +601,8 @@ const lightColors = {
   gray800: '#181423', // content.primary
   gray700: '#524E5E', // ⚠ link.muted.active only
   gray600: '#5B5866', // ⚠ link.muted.hover only
-  gray500: '#6E6C75', // content.secondary, link.muted.default
-  gray400: '#8D8B94', // Graphical Objects and User Interface Components
+  gray500: '#69676F', // content.secondary, link.muted.default
+  gray400: '#87858E', // Graphical Objects and User Interface Components
   gray300: 'rgba(24, 20, 35, 0.07)',
   gray200: 'rgba(24, 20, 35, 0.05)',
   gray100: 'rgba(24, 20, 35, 0.03)',

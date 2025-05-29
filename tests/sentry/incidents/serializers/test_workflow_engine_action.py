@@ -7,10 +7,12 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_action,
     migrate_metric_data_conditions,
 )
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 
 
-class TestActionSerializer(TestWorklowEngineSerializer):
+class TestActionSerializer(TestWorkflowEngineSerializer):
     def test_simple(self) -> None:
         serialized_action = serialize(
             self.critical_action, self.user, WorkflowEngineActionSerializer()

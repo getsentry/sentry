@@ -100,6 +100,7 @@ const FiltersContainer = styled('div')`
 `;
 
 const SearchWrapper = styled(FiltersContainer)`
-  flex-grow: 1;
+  flex: 1;
+  min-width: 0;
   flex-wrap: nowrap;
 `;

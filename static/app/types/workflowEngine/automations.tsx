@@ -1,6 +1,6 @@
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 
-export interface NewAutomation {
+interface NewAutomation {
   actionFilters: DataConditionGroup[];
   detectorIds: string[];
   name: string;
@@ -10,5 +10,5 @@ export interface NewAutomation {
 
 export interface Automation extends Readonly<NewAutomation> {
   readonly id: string;
-  readonly lastTriggered: Date;
+  readonly lastTriggered: string;
 }

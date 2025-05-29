@@ -36,6 +36,10 @@ def validate(migrations_filepath: str, latest_migration_by_app: dict[str, str]) 
             sys.exit(2)
 
 
+def _migration_sort_key(name: str) -> tuple[int, bool]:
+    return int(name.removeprefix("0001_squashed_")[:4]), name.startswith("0001_squashed_")
+
+
 class Command(makemigrations.Command):
     """
     Generates a lockfile so that Git will detect merge conflicts if there's a migration
@@ -62,7 +66,7 @@ class Command(makemigrations.Command):
             ):
                 continue
             latest_migration_by_app[app_label] = max(
-                latest_migration_by_app.get(app_label, ""), name
+                latest_migration_by_app.get(app_label, "0"), name, key=_migration_sort_key
             )
 
         migrations_filepath = os.path.join(

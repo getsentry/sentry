@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';

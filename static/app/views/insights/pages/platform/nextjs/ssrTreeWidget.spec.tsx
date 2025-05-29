@@ -57,6 +57,7 @@ describe('mapResponseToTree', () => {
               name: 'Component',
               type: 'component',
               'avg(span.duration)': 100,
+              'span.description': 'desc',
             },
           ],
           name: 'page',
@@ -96,6 +97,7 @@ describe('mapResponseToTree', () => {
                       name: 'getData',
                       type: 'component',
                       'avg(span.duration)': 100,
+                      'span.description': 'desc1',
                     },
                   ],
                   name: 'page',
@@ -111,6 +113,7 @@ describe('mapResponseToTree', () => {
                   name: 'Component',
                   type: 'component',
                   'avg(span.duration)': 200,
+                  'span.description': 'desc2',
                 },
               ],
               name: 'layout',
@@ -126,7 +129,7 @@ describe('mapResponseToTree', () => {
     });
   });
 
-  it('handles URL encoded path segments', () => {
+  it('does not decode URL encoded path segments', () => {
     const response = [
       {
         'avg(span.duration)': 100,
@@ -148,13 +151,14 @@ describe('mapResponseToTree', () => {
                       name: 'Component',
                       type: 'component',
                       'avg(span.duration)': 100,
+                      'span.description': 'desc',
                     },
                   ],
                   name: 'page',
                   type: 'file',
                 },
               ],
-              name: 'user profile',
+              name: 'user%20profile',
               type: 'folder',
             },
           ],

@@ -19,6 +19,10 @@ type CanvasEventWithTime = eventWithTime & {
   type: EventType.IncrementalSnapshot;
 };
 
+function isCanvasElement(node: Node): node is HTMLCanvasElement {
+  return node instanceof HTMLCanvasElement;
+}
+
 function isCanvasMutationEvent(e: eventWithTime): e is CanvasEventWithTime {
   return (
     e.type === EventType.IncrementalSnapshot &&
@@ -173,8 +177,17 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
    * The image element is saved to `containers` map, which will later get
    * written to when replay is being played.
    */
-  function cloneCanvas(id: number, node: HTMLCanvasElement) {
-    const cloneNode = node.cloneNode() as HTMLCanvasElement;
+  function cloneCanvas(id: number, node: Node) {
+    if (!isCanvasElement(node)) {
+      return null;
+    }
+    const cloneNode = node.cloneNode();
+
+    if (!isCanvasElement(cloneNode)) {
+      Sentry.logger.warn('Replay: cloned node is not a canvas element');
+      return null;
+    }
+
     canvases.set(id, cloneNode);
     document.adoptNode(cloneNode);
     return cloneNode;
@@ -263,9 +276,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     preload(e);
 
     const source = replayer.getMirror().getNode(e.data.id);
-    const target =
-      canvases.get(e.data.id) ||
-      (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
+    const target = canvases.get(e.data.id) || (source && cloneCanvas(e.data.id, source));
 
     if (!target) {
       throw new InvalidCanvasNodeError('No canvas found for id');
@@ -285,10 +296,17 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     });
 
     const img = containers.get(e.data.id);
-    if (img) {
-      img.src = target.toDataURL();
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
+    if (img && isCanvasElement(target)) {
+      try {
+        img.src = target.toDataURL();
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+      } catch (err) {
+        Sentry.logger.warn('Replay: Failed to copy canvas to image', {
+          error: err,
+          element: target.tagName,
+        });
+      }
     }
 
     prune(e);
