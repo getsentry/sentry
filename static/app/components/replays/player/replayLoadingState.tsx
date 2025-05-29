@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import ReplayRequestsThrottledAlert from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -15,6 +16,7 @@ export default function ReplayLoadingState({
   readerResult,
   renderArchived,
   renderError,
+  renderThrottled,
   renderLoading,
   renderMissing,
   renderProcessingError,
@@ -26,10 +28,19 @@ export default function ReplayLoadingState({
   renderLoading?: (results: ReplayReaderResult) => ReactNode;
   renderMissing?: (results: ReplayReaderResult) => ReactNode;
   renderProcessingError?: (results: ReplayReaderResult) => ReactNode;
+  renderThrottled?: (results: ReplayReaderResult) => ReactNode;
 }) {
   const organization = useOrganization();
 
   if (readerResult.fetchError) {
+    if (readerResult.fetchError.status === 429) {
+      // Separate message shown for throttled requests, so not to confuse the user by saying a replay doesn't exist when it actually might
+      return renderThrottled ? (
+        renderThrottled(readerResult)
+      ) : (
+        <ReplayRequestsThrottledAlert />
+      );
+    }
     return renderError ? (
       renderError(readerResult)
     ) : (

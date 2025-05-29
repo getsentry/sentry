@@ -9,7 +9,8 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type RequestError from 'sentry/utils/requestError/requestError';
+// import type RequestError from 'sentry/utils/requestError/requestError';
+import RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -262,6 +263,13 @@ function useReplayData({
       attachments: attachmentPages.flat(2),
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
+      // fetchError: new RequestError('GET', '', new Error(), {
+      //   getResponseHeader: header => null,
+      //   responseJSON: null,
+      //   responseText: '',
+      //   status: 429,
+      //   statusText: 'TooManyRequestsError',
+      // }),
       fetching,
       onRetry: clearQueryCache,
       projectSlug,
