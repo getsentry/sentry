@@ -32,6 +32,7 @@ class Migration(CheckedMigration):
     operations = [
         SafeRunSQL(
             """DROP TABLE IF EXISTS workflow_engine_workflowactiongroupstatus;""",
+            reverse_sql=migrations.RunSQL.noop,
             hints={"tables": ["workflow_engine_workflowactiongroupstatus"]},
         ),  # this migration was successfully run in S4S and DE, partially succeeded in US
         migrations.CreateModel(
