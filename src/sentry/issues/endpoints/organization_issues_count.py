@@ -63,7 +63,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
             query_kwargs["actor"] = request.user
         with start_span(op="start_search") as span:
-            span.set_data("query_kwargs", query_kwargs)
+            # TODO-anton: split dict into multiple attributes
+            span.set_attribute("query_kwargs", query_kwargs)
             result = search.backend.query(**query_kwargs)
             return result.hits
 

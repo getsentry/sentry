@@ -46,9 +46,9 @@ class BaseCache(local):
         if not self.is_default_cache:
             return
 
-        scope = sentry_sdk.Scope.get_current_scope()
+        scope = sentry_sdk.get_current_scope()
         # Do not set this tag if we're in the global scope (which roughly
-        # equates to having a transaction).
-        if scope.transaction:
+        # equates to having a root span).
+        if scope.root_span:
             sentry_sdk.set_tag(f"{op}_default_cache", "true")
             sentry_sdk.set_tag("used_default_cache", "true")

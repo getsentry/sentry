@@ -181,6 +181,11 @@ def traces_sampler(sampling_context):
     if wsgi_path and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
+    # make it fail to I know what tests use this.
+    custom_sample_rate = sampling_context.get("attributes", {}).get("sentry.sample_rate")
+    if custom_sample_rate is not None:
+        raise Exception("some error")
+
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
@@ -237,9 +242,13 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         num_of_spans = len(event["spans"])
 
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
-    if not event["measurements"]:
-        event["measurements"] = {}
-    event["measurements"]["num_of_spans"] = {
+
+    # `measurements` are deprecated and have already been removed from the Python SDK.
+    # We ignore those lines in the mypy check because the SDKs Event type does not have `measurements` anymore.
+    # (on ingest and in the product measurements are still there so it is fine to set them for the time being)
+    if not event["measurements"]:  # type: ignore[typeddict-item]
+        event["measurements"] = {}  # type: ignore[typeddict-unknown-key]
+    event["measurements"]["num_of_spans"] = {  # type: ignore[typeddict-item]
         "value": num_of_spans,
         "unit": None,
     }
@@ -484,7 +493,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )
@@ -578,7 +587,7 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
-    scope = sentry_sdk.Scope.get_current_scope()
+    scope = sentry_sdk.get_current_scope()
     transaction_from_request = get_transaction_name_from_request(request)
 
     if (
@@ -693,19 +702,10 @@ def bind_ambiguous_org_context(
     )
 
 
-def set_measurement(measurement_name, value, unit=None):
-    try:
-        transaction = sentry_sdk.Scope.get_current_scope().transaction
-        if transaction is not None:
-            transaction.set_measurement(measurement_name, value, unit)
-    except Exception:
-        pass
-
-
 def set_span_data(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        span.set_attribute(data_name, value)
 
 
 def merge_context_into_scope(
@@ -744,6 +744,5 @@ __all__ = (
     "patch_transport_for_instrumentation",
     "isolation_scope",
     "set_current_event_project",
-    "set_measurement",
     "traces_sampler",
 )
