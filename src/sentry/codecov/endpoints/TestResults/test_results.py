@@ -1,5 +1,3 @@
-import sentry_sdk
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,116 +5,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.codecov.base import CodecovEndpoint
-
-list_query = """query GetTestResults(
-  $owner: String!
-  $repo: String!
-  $filters: TestResultsFilters
-  $ordering: TestResultsOrdering
-  $first: Int
-  $after: String
-  $last: Int
-  $before: String
-) {
-  owner(username: $owner) {
-    repository: repository(name: $repo) {
-      __typename
-      ... on Repository {
-        testAnalytics {
-          testResults(
-            filters: $filters
-            ordering: $ordering
-            first: $first
-            after: $after
-            last: $last
-            before: $before
-          ) {
-            edges {
-              node {
-                updatedAt
-                avgDuration
-                name
-                failureRate
-                flakeRate
-                commitsFailed
-                totalFailCount
-                totalFlakyFailCount
-                totalSkipCount
-                totalPassCount
-              }
-            }
-            pageInfo {
-              endCursor
-              hasNextPage
-            }
-            totalCount
-          }
-        }
-      }
-      ... on NotFoundError {
-        message
-      }
-      ... on OwnerNotActivatedError {
-        message
-      }
-    }
-  }
-}
-"""
-
-
-class TestResultNodeSerializer(serializers.Serializer):
-    """
-    Serializer for individual test result nodes from GraphQL response
-    """
-
-    updatedAt = serializers.CharField()
-    avgDuration = serializers.FloatField()
-    name = serializers.CharField()
-    failureRate = serializers.FloatField()
-    flakeRate = serializers.FloatField()
-    commitsFailed = serializers.IntegerField()
-    totalFailCount = serializers.IntegerField()
-    totalFlakyFailCount = serializers.IntegerField()
-    totalSkipCount = serializers.IntegerField()
-    totalPassCount = serializers.IntegerField()
-    lastDuration = serializers.FloatField()
-
-
-class TestResultSerializer(serializers.ListSerializer):
-    """
-    Serializer for a list of test results - inherits from ListSerializer to handle arrays
-    """
-
-    child = TestResultNodeSerializer()
-
-    def to_representation(self, graphql_response):
-        """
-        Transform the GraphQL response to the expected client format
-        """
-        try:
-            # Extract test result nodes from the nested GraphQL structure
-            test_results = graphql_response["data"]["owner"]["repository"]["testAnalytics"][
-                "testResults"
-            ]["edges"]
-
-            # Transform each edge to just the node data
-            nodes = []
-            for edge in test_results:
-                node = edge["node"]
-                # Add lastDuration fallback if not present
-                if "lastDuration" not in node:
-                    node["lastDuration"] = node["avgDuration"]
-                nodes.append(node)
-
-            # Use the parent ListSerializer to serialize each test result
-            return super().to_representation(nodes)
-
-        except (KeyError, TypeError) as e:
-            # Handle malformed GraphQL response
-            sentry_sdk.capture_exception(e)
-            return []
-
+from sentry.codecov.client import CodecovApiClient
+from sentry.codecov.endpoints.TestResults.query import query
+from sentry.codecov.endpoints.TestResults.serializers import TestResultSerializer
 
 # Sample GraphQL response structure for reference
 sample_graphql_response = {
@@ -175,24 +66,20 @@ class TestResultsEndpoint(CodecovEndpoint):
     def has_pagination(self, response):
         return True
 
-    def get(self, request: Request, owner: str, repository: str, commit: str) -> Response:
+    def get(self, request: Request, owner: str, repository: str) -> Response:
         """Retrieves the list of test results for a given commit."""
 
         variables = {
             "owner": owner,
             "repo": repository,
-            "commit": commit,
         }
 
         assert variables
 
-        # TODO: Uncomment when CodecovClient is available
-        # graphql_response = CodecovClient.query(list_query, variables)
+        graphql_response = CodecovApiClient.query(query, variables)
 
         graphql_response = sample_graphql_response  # Mock response for now
 
-        # transform response to the response that we want
-        serializer = TestResultSerializer()
-        test_results = serializer.to_representation(graphql_response)
+        test_results = TestResultSerializer().to_representation(graphql_response)
 
         return Response(test_results)
