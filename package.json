@@ -75,6 +75,7 @@
     "@sentry/react": "9.16.1",
     "@sentry/release-parser": "^1.3.1",
     "@sentry/status-page-list": "^0.6.0",
+    "@sentry/toolbar": "1.0.0-beta.14",
     "@sentry/webpack-plugin": "^3.4.0",
     "@spotlightjs/spotlight": "^2.0.0-alpha.1",
     "@swc/plugin-emotion": "9.0.4",
