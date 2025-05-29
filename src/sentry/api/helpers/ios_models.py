@@ -289,5 +289,5 @@ IOS_MODELS: dict[str, str] = {
     "i386": "iOS Simulator (i386)",
     "x86_64": "iOS Simulator (x86_64)",
     # Vision Pro
-    "RealityDevice14,1": "Vision Pro",
+    "RealityDevice14,1": "Apple Vision Pro",
 }
