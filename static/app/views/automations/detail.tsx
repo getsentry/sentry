@@ -18,7 +18,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
