@@ -154,30 +154,25 @@ export function ScreenCharts({additionalFilters}: Props) {
 
       seriesNames.forEach(seriesName => {
         const releaseSeries = release.data[seriesName];
+        const newSeriesName = `${seriesName} ${version}`;
         chartAliases = {
           ...chartAliases,
-          [`${seriesName} ${version}`]: version,
+          [newSeriesName]: version,
         };
 
         if (releaseSeries.meta?.fields[seriesName]) {
-          meta.fields = {
-            ...meta.fields,
-            [`${seriesName} ${version}`]: releaseSeries.meta?.fields[seriesName],
-          };
+          meta.fields[newSeriesName] = releaseSeries.meta?.fields[seriesName];
         }
 
         if (releaseSeries.meta?.units[seriesName]) {
-          meta.units = {
-            ...meta.units,
-            [`${seriesName} ${version}`]: releaseSeries.meta?.units[seriesName],
-          };
+          meta.units[newSeriesName] = releaseSeries.meta?.units[seriesName];
         }
 
         seriesMap[seriesName].push({
           data: releaseSeries.data,
           meta,
           color,
-          seriesName: `${seriesName} ${version}`,
+          seriesName: newSeriesName,
         });
       });
     });
