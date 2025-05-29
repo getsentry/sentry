@@ -281,7 +281,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(await screen.findByText('Add Widget'));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+      expect(addErrorMessage).toHaveBeenCalledWith('Title is required during creation');
     });
 
     expect(screen.getByText('Custom Widget Builder')).toBeInTheDocument();

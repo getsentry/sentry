@@ -368,7 +368,7 @@ export function flattenErrors(
 ): FlatValidationError {
   if (typeof data === 'string') {
     update.error = data;
-  } else {
+  } else if (defined(data)) {
     Object.keys(data).forEach((key: string) => {
       const value = data[key];
       if (typeof value === 'string') {

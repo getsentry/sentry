@@ -11,6 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {Widget} from 'sentry/views/dashboards/types';
+import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
@@ -40,10 +41,15 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       await validateWidget(api, organization.slug, widget);
       onSave({index: defined(widgetIndex) ? Number(widgetIndex) : undefined, widget});
     } catch (error) {
+      let errorMessage = t('Unable to save widget');
       setIsSaving(false);
-      const errorDetails = error.responseJSON || error;
+      const errorDetails = flattenErrors(error.responseJSON || error, {});
       setError(errorDetails);
-      addErrorMessage(t('Unable to save widget'));
+
+      if (Object.keys(errorDetails).length > 0) {
+        errorMessage = errorDetails[Object.keys(errorDetails)[0]!] as string;
+      }
+      addErrorMessage(errorMessage);
     }
   }, [api, onSave, organization, state, widgetIndex, setError, isEditing]);
 
