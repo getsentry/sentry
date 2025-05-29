@@ -27,7 +27,7 @@ import {
 
 type Props = Parameters<typeof getOutputType>[0] &
   SectionProps &
-  UseResizableDrawerResult['resizedElementProps'];
+  Partial<UseResizableDrawerResult['resizedElementProps']>;
 
 export default function NetworkDetailsContent(props: Props) {
   const {item, isSetup, visibleTab, ref} = props;

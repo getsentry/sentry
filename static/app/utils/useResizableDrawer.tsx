@@ -2,7 +2,7 @@ import {useCallback, useRef, useState} from 'react';
 
 import clamp from 'sentry/utils/number/clamp';
 
-export interface UseResizableDrawerOptions {
+interface UseResizableDrawerOptions {
   direction: 'right' | 'left' | 'down' | 'up';
   initialSize?: {height?: number; width?: number};
   max?: {height?: number; width?: number};
