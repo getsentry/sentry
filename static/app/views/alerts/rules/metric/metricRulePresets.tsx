@@ -54,7 +54,7 @@ export function makeDefaultCta({
       to: getAlertRuleExploreUrl({
         rule,
         organization,
-        period: timePeriod.period,
+        timePeriod,
         projectId: projects[0]!.id,
       }),
     };
