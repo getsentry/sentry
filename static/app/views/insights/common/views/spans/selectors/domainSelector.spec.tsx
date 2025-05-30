@@ -41,7 +41,7 @@ describe('DomainSelector', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          query: 'has:sentry.normalized_description span.module:db',
+          query: 'has:sentry.normalized_description span.category:db',
         }),
       ],
     });
@@ -75,7 +75,7 @@ describe('DomainSelector', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          query: 'has:sentry.normalized_description span.module:db span.domain:*p*',
+          query: 'has:sentry.normalized_description span.category:db span.domain:*p*',
         }),
       ],
     });

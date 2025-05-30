@@ -1177,7 +1177,7 @@ type TraceFields =
   | SpanIndexedField.SPAN_DOMAIN
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.SPAN_GROUP
-  | SpanIndexedField.SPAN_MODULE
+  | SpanIndexedField.SPAN_CATEGORY
   | SpanIndexedField.SPAN_OP
   | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
@@ -1224,9 +1224,9 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_MODULE]: {
+  [SpanIndexedField.SPAN_CATEGORY]: {
     desc: t(
-      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+      'The prefix of the span, e.g if `span.op` is `http.client`, then `span.category` is `http`'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
