@@ -92,11 +92,16 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const [hideSteps, setHideSteps] = useState(false);
 
   const handleStarFixabilityView = () => {
+    let projects: number[] = [];
+    if (!organization.features.includes('global-views')) {
+      // org cannot have a view with multiple projects, so we'll just use the current project
+      projects = [Number(project.id)];
+    }
     createIssueView({
       name: 'Easy Fixes 🤖',
       query: 'is:unresolved issue.seer_actionability:high',
       querySort: IssueSortOptions.DATE,
-      projects: [],
+      projects,
       environments: [],
       timeFilters: {
         start: null,
