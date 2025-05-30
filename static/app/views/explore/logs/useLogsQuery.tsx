@@ -14,6 +14,7 @@ import {
   useInfiniteQuery,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import {TokenType} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -98,6 +99,12 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
+  const traceIds = baseSearch?.tokens
+    .filter(
+      token =>
+        token.key === OurLogKnownFieldKey.TRACE_ID && token.type === TokenType.FILTER
+    )
+    .map(token => token.value);
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -112,6 +119,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const params = {
     query: {
       ...eventView.getEventsAPIPayload(location),
+      ...(traceIds ? {traceId: traceIds} : {}),
       cursor,
       per_page: limit ? limit : undefined,
     },
@@ -120,7 +128,10 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     referrer,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/${traceIds ? 'trace-logs' : 'events'}/`,
+    params,
+  ];
 
   return {
     queryKey,
@@ -166,9 +177,12 @@ export function useLogsQuery({
     isError: queryResult.isError,
     isLoading: queryResult.isLoading,
     queryResult,
-    data: queryResult?.data?.data,
+    // /events and /trace-logs have slightly different output formats
+    data: Array.isArray(queryResult?.data) ? queryResult?.data : queryResult?.data?.data,
+    infiniteData: Array.isArray(queryResult?.data)
+      ? queryResult?.data
+      : queryResult?.data?.data,
     error: queryResult.error,
-    infiniteData: queryResult?.data?.data,
     meta: queryResult?.data?.meta,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
