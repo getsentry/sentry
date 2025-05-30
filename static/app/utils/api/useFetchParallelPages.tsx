@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 interface Props {
   /**
@@ -31,14 +32,14 @@ interface Props {
 
 interface ResponsePage<Data> {
   data: undefined | Data;
-  error: unknown;
+  error: RequestError | undefined;
   getResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
 }
 
 interface State<Data> {
-  error: unknown;
+  error: RequestError[] | undefined;
   getLastResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
@@ -148,7 +149,7 @@ export default function useFetchParallelPages<Data>({
             const values = Array.from(responsePages.current.values());
             setState({
               pages: values.map(value => value.data).filter(defined),
-              error: values.map(value => value.error),
+              error: values.map(value => value.error).filter(defined),
               getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
               isError: values.map(value => value.isError).some(Boolean),
               isFetching: values.map(value => value.isFetching).some(Boolean),
