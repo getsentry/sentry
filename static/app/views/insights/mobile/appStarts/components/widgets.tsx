@@ -14,7 +14,7 @@ function SummaryWidgets({additionalFilters}: any) {
       <div style={{gridArea: '1 / 2'}}>
         <DeviceClassBreakdownBarChart
           additionalFilters={additionalFilters}
-          chartHeight={140}
+          chartHeight={150}
         />
       </div>
     </WidgetLayout>
