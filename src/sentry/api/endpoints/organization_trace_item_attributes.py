@@ -31,7 +31,12 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import (
+    can_expose_attribute,
+    is_sentry_convention_replacement_attribute,
+    translate_internal_to_public_alias,
+    translate_to_sentry_conventions,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -169,13 +174,19 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 paginator=ChainPaginator([]),
             )
 
+        use_sentry_conventions = features.has(
+            "organizations:performance-sentry-conventions-fields", organization, actor=request.user
+        )
+
+        sentry_sdk.set_tag("feature.use_sentry_conventions", use_sentry_conventions)
+
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_type = serialized.get("attribute_type")
         item_type = serialized.get("item_type")
 
-        max_attributes = options.get("performance.spans-tags-key.max")
+        max_attributes = options.get("explore.trace-items.keys.max")
         value_substring_match = translate_escape_sequences(substring_match)
         trace_item_type = SupportedTraceItemType(item_type)
         referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
@@ -183,7 +194,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=column_definitions
         )
-        filter, _, _ = resolver.resolve_query(query_string)
+        query_filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
         meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
             trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
@@ -208,17 +219,48 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 page_token=PageToken(offset=offset),
                 type=attr_type,
                 value_substring_match=value_substring_match,
-                intersecting_attributes_filter=filter,
+                intersecting_attributes_filter=query_filter,
             )
 
             with handle_query_errors():
                 rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
-            return [
-                as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
-                for attribute in rpc_response.attributes
-                if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
-            ]
+            if use_sentry_conventions:
+                attribute_keys = {}
+                for attribute in rpc_response.attributes:
+                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type):
+                        attr_key = as_attribute_key(
+                            attribute.name, serialized["attribute_type"], trace_item_type
+                        )
+                        public_alias = attr_key["name"]
+                        replacement = translate_to_sentry_conventions(public_alias, trace_item_type)
+                        if public_alias != replacement:
+                            attr_key = as_attribute_key(
+                                replacement, serialized["attribute_type"], trace_item_type
+                            )
+
+                    attribute_keys[attr_key["name"]] = attr_key
+
+                attributes = list(attribute_keys.values())
+                sentry_sdk.set_context("api_response", {"attributes": attributes})
+                return attributes
+
+            attributes = list(
+                filter(
+                    lambda x: not is_sentry_convention_replacement_attribute(
+                        x["name"], trace_item_type
+                    ),
+                    [
+                        as_attribute_key(
+                            attribute.name, serialized["attribute_type"], trace_item_type
+                        )
+                        for attribute in rpc_response.attributes
+                        if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
+                    ],
+                )
+            )
+            sentry_sdk.set_context("api_response", {"attributes": attributes})
+            return attributes
 
         return self.paginate(
             request=request,
@@ -253,7 +295,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         item_type = serialized.get("item_type")
         substring_match = serialized.get("substring_match", "")
 
-        max_attribute_values = options.get("performance.spans-tags-values.max")
+        max_attribute_values = options.get("explore.trace-items.values.max")
 
         definitions = (
             SPAN_DEFINITIONS

@@ -125,8 +125,6 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   screen_load: t('Action'),
   app_start: t('Action'),
   resource: t('Resource'),
-  crons: t('Action'),
-  uptime: t('Action'),
   other: t('Action'),
   'mobile-ui': t('Action'),
   'mobile-vitals': t('Action'),

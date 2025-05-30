@@ -12,18 +12,15 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {classifyTagKey} from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
   useSetExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 
 import {
   ToolbarFooter,
@@ -55,43 +52,10 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
     [autoSwitchToAggregates, setGroupBys]
   );
 
-  const options: Array<SelectOption<string>> = useMemo(() => {
-    const potentialOptions = [
-      // We do not support grouping by span id, we have a dedicated sample mode for that
-      ...Object.keys(tags).filter(key => key !== 'id'),
-
-      // These options aren't known to exist on this project but it was inserted into
-      // the group bys somehow so it should be a valid options in the group bys.
-      //
-      // One place this may come from is when switching projects/environment/date range,
-      // a tag may disappear based on the selection.
-      ...groupBys.filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy)),
-    ];
-    potentialOptions.sort();
-
-    return [
-      // hard code in an empty option
-      {
-        label: <Disabled>{t('\u2014')}</Disabled>,
-        value: UNGROUPED,
-        textValue: t('\u2014'),
-      },
-      ...potentialOptions.map(key => {
-        const kind = classifyTagKey(key);
-        return {
-          label: key,
-          value: key,
-          textValue: key,
-          trailingItems: <TypeBadge kind={kind} />,
-          showDetailsInOverlay: true,
-          details: <AttributeDetails column={key} kind={kind} label={key} type="span" />,
-        };
-      }),
-    ];
-  }, [groupBys, tags]);
+  const options: Array<SelectOption<string>> = useGroupByFields({groupBys, tags});
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setColumns}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns} defaultColumn={() => ''}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
@@ -120,7 +84,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
                 borderless
                 size="zero"
                 icon={<IconAdd />}
-                onClick={insertColumn}
+                onClick={() => insertColumn()}
                 priority="link"
                 aria-label={t('Add Group')}
               >
@@ -136,7 +100,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
 
 interface ColumnEditorRowProps {
   canDelete: boolean;
-  column: Column;
+  column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
@@ -163,7 +127,7 @@ function ColumnEditorRow({
 
   const label = useMemo(() => {
     const tag = options.find(option => option.value === column.column);
-    return <TriggerLabel>{tag?.label ?? t('None')}</TriggerLabel>;
+    return <TriggerLabel>{tag?.label ?? column.column}</TriggerLabel>;
   }, [column.column, options]);
 
   return (
@@ -217,8 +181,4 @@ const TriggerLabel = styled('span')`
   line-height: normal;
   position: relative;
   font-weight: normal;
-`;
-
-const Disabled = styled('span')`
-  color: ${p => p.theme.subText};
 `;

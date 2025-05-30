@@ -1,5 +1,4 @@
 import type {Theme} from '@emotion/react';
-import Color from 'color';
 
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
@@ -10,66 +9,6 @@ import type {MetricsResponse} from 'sentry/views/insights/types';
 
 export function isCrossPlatform(project: Project) {
   return project.platform && ['react-native', 'flutter'].includes(project.platform);
-}
-
-export function transformReleaseEvents({
-  yAxes,
-  primaryRelease,
-  secondaryRelease,
-  topTransactions,
-  colorPalette,
-  releaseEvents,
-}: {
-  colorPalette: string[] | readonly string[];
-  releaseEvents: any;
-  topTransactions: any;
-  yAxes: YAxis[];
-  primaryRelease?: string;
-  secondaryRelease?: string;
-}): Record<string, Record<string, Series>> {
-  const topTransactionsIndex = Object.fromEntries(
-    topTransactions.map((e: any, i: any) => [e, i])
-  );
-  const transformedReleaseEvents = yAxes.reduce(
-    (acc, yAxis) => ({...acc, [YAXIS_COLUMNS[yAxis]]: {}}),
-    {}
-  );
-
-  yAxes.forEach(val => {
-    [primaryRelease, secondaryRelease].filter(defined).forEach(release => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      transformedReleaseEvents[YAXIS_COLUMNS[val]][release] = {
-        seriesName: release,
-        data: new Array(topTransactions.length).fill(0),
-      };
-    });
-  });
-
-  if (defined(releaseEvents) && defined(primaryRelease)) {
-    releaseEvents.data?.forEach((row: any) => {
-      const release = row.release;
-      const isPrimary = release === primaryRelease;
-      const transaction = row.transaction;
-      const index = topTransactionsIndex[transaction];
-      yAxes.forEach(val => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        if (transformedReleaseEvents[YAXIS_COLUMNS[val]][release]) {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-            name: row.transaction,
-            value: row[YAXIS_COLUMNS[val]],
-            itemStyle: {
-              color: isPrimary
-                ? colorPalette[index]
-                : Color(colorPalette[index]).lighten(0.3).string(),
-            },
-          } as SeriesDataUnit;
-        }
-      });
-    });
-  }
-
-  return transformedReleaseEvents;
 }
 
 export function transformDeviceClassEvents({

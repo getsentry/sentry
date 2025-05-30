@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 import urllib3
+from django.utils.timezone import now
 
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
@@ -57,7 +58,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -131,7 +135,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -159,7 +166,8 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"transaction.method": "foo"}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ],
             is_eap=self.is_eap,
@@ -185,7 +193,8 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"transaction.method": "foo"}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ],
             is_eap=self.is_eap,
@@ -514,12 +523,18 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 self.create_span(
                     {
                         "measurements": {
-                            "messaging.message.body.size": {"value": 1024, "unit": "byte"},
+                            "messaging.message.body.size": {
+                                "value": 1024,
+                                "unit": "byte",
+                            },
                             "messaging.message.receive.latency": {
                                 "value": 1000,
                                 "unit": "millisecond",
                             },
-                            "messaging.message.retry.count": {"value": 2, "unit": "none"},
+                            "messaging.message.retry.count": {
+                                "value": 2,
+                                "unit": "none",
+                            },
                         },
                         "sentry_tags": {
                             "transaction": "queue-processor",
@@ -698,14 +713,30 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_frozen",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_slow",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_total",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            (
+                "stall_count",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -824,7 +855,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     duration=2000,
                     start_ts=self.ten_mins_ago,
                 ),
@@ -1214,7 +1248,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"user.email": "test@test.com"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
@@ -1293,7 +1330,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
     def test_free_text_wildcard_filter(self):
         spans = [
             self.create_span(
-                {"description": "barbarbar", "sentry_tags": {"status": "invalid_argument"}},
+                {
+                    "description": "barbarbar",
+                    "sentry_tags": {"status": "invalid_argument"},
+                },
                 start_ts=self.ten_mins_ago,
             ),
             self.create_span(
@@ -1336,7 +1376,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -1392,7 +1435,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ["description", "tags[foo,number]", "tags[foo,string]", "tags[foo]"],
+                "field": [
+                    "description",
+                    "tags[foo,number]",
+                    "tags[foo,string]",
+                    "tags[foo]",
+                ],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -1425,7 +1473,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ["description", "tags[foo,    number]", "tags[foo, string]", "tags[foo]"],
+                "field": [
+                    "description",
+                    "tags[foo,    number]",
+                    "tags[foo, string]",
+                    "tags[foo]",
+                ],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -1453,7 +1506,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success", "foo": "five"},
+                    },
                     measurements={"foo": {"value": 8}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -1698,7 +1754,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         )
 
     @mock.patch(
-        "sentry.utils.snuba_rpc._snuba_pool.urlopen", side_effect=urllib3.exceptions.TimeoutError
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen",
+        side_effect=urllib3.exceptions.TimeoutError,
     )
     def test_timeout(self, mock_rpc):
         response = self.do_request(
@@ -2247,14 +2304,30 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_frozen",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_slow",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            (
+                "frames_total",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            (
+                "stall_count",
+                "number",
+                None,
+            ),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -2616,7 +2689,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 1", "sentry_tags": {"status_code": "500"}},
+                    {
+                        "description": "description 1",
+                        "sentry_tags": {"status_code": "500"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2625,7 +2701,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 1", "sentry_tags": {"status_code": "200"}},
+                    {
+                        "description": "description 1",
+                        "sentry_tags": {"status_code": "200"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2634,7 +2713,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    {
+                        "description": "description 2",
+                        "sentry_tags": {"status_code": "500"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2643,7 +2725,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    {
+                        "description": "description 2",
+                        "sentry_tags": {"status_code": "500"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -2789,7 +2874,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"trace.status": status}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"trace.status": status}},
+                    start_ts=self.ten_mins_ago,
                 )
                 for status in statuses
             ],
@@ -2826,7 +2912,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"trace.status": status}},
+                    {"sentry_tags": {"status": status}},
                     start_ts=self.ten_mins_ago,
                 )
                 for status in trace_statuses
@@ -2855,7 +2941,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans = [
             self.create_span(
                 {
-                    "sentry_tags": {"trace.status": status},
+                    "sentry_tags": {"status": status},
                     "is_segment": True,
                 },
                 start_ts=self.ten_mins_ago,
@@ -2866,7 +2952,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans.append(
             self.create_span(
                 {
-                    "sentry_tags": {"trace.status": "ok"},
+                    "sentry_tags": {"status": "ok"},
                     "is_segment": False,
                 },
                 start_ts=self.ten_mins_ago,
@@ -2981,7 +3067,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"release": "foo"}}, duration=100, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"release": "foo"}},
+                    duration=100,
+                    start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
                     {"sentry_tags": {"release": "bar"}},
@@ -3040,6 +3128,23 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             == response.data["detail"].title()
         )
 
+    def test_count_if_invalid_param(self):
+        response = self.do_request(
+            {
+                "field": [
+                    "count_if(span.description, equals, queue.process)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Span.Description Is Invalid For Parameter 1 In Count_If."
+            == response.data["detail"].title()
+        )
+
     def test_ttif_ttfd_contribution_rate(self):
         spans = []
         for _ in range(8):
@@ -3053,10 +3158,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans.extend(
             [
                 self.create_span(
-                    {"sentry_tags": {"ttfd": "ttfd", "ttid": ""}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"ttfd": "ttfd", "ttid": ""}},
+                    start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"ttfd": "", "ttid": ""}}, start_ts=self.ten_mins_ago
+                    {"sentry_tags": {"ttfd": "", "ttid": ""}},
+                    start_ts=self.ten_mins_ago,
                 ),
             ]
         )
@@ -3690,7 +3797,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                             "score.ratio.lcp": {"value": 1.0},
                             "score.ratio.inp": {"value": 0.0},
                         },
-                        "sentry_tags": {"transaction": "foo_transaction", "browser.name": "Chrome"},
+                        "sentry_tags": {
+                            "transaction": "foo_transaction",
+                            "browser.name": "Chrome",
+                        },
                     }
                 ),
                 self.create_span(
@@ -3702,7 +3812,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                             "score.ratio.lcp": {"value": 0.0},
                             "score.ratio.inp": {"value": 0.0},
                         },
-                        "sentry_tags": {"transaction": "bar_transaction", "browser.name": "Chrome"},
+                        "sentry_tags": {
+                            "transaction": "bar_transaction",
+                            "browser.name": "Chrome",
+                        },
                     }
                 ),
                 self.create_span(
@@ -3772,7 +3885,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                             "score.ratio.lcp": {"value": 1.0},
                             "score.ratio.inp": {"value": 0.0},
                         },
-                        "sentry_tags": {"transaction": "foo_transaction", "browser.name": "Chrome"},
+                        "sentry_tags": {
+                            "transaction": "foo_transaction",
+                            "browser.name": "Chrome",
+                        },
                     }
                 ),
             ],
@@ -3996,7 +4112,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["description", "tags[http.response.status_code,number]", "count()"],
+                "field": [
+                    "description",
+                    "tags[http.response.status_code,number]",
+                    "count()",
+                ],
                 "query": "!tags[http.response.status_code,number]:200",
                 "orderby": "description",
                 "project": self.project.id,
@@ -4016,73 +4136,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             },
         ]
         assert meta["dataset"] == self.dataset
-
-    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
-    def test_preflight_request(self):
-        span = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
-            start_ts=self.ten_mins_ago,
-        )
-        span["span_id"] = KNOWN_PREFLIGHT_ID
-        span2 = self.create_span(
-            {"description": "zoo", "sentry_tags": {"status": "success"}},
-            start_ts=self.ten_mins_ago,
-        )
-        span2["span_id"] = "b" * 16
-        self.store_spans(
-            [span, span2],
-            is_eap=self.is_eap,
-        )
-        response = self.do_request(
-            {
-                "field": ["id", "description", "count()"],
-                "query": "",
-                "orderby": "description",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "statsPeriod": "1h",
-                "sampling": "PREFLIGHT",
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
-        assert response.data["meta"]["dataScanned"] == "partial"
-
-    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
-    def test_best_effort_request(self):
-        span = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
-            start_ts=self.ten_mins_ago,
-        )
-        span["span_id"] = KNOWN_PREFLIGHT_ID
-        span2 = self.create_span(
-            {"description": "zoo", "sentry_tags": {"status": "success"}},
-            start_ts=self.ten_mins_ago,
-        )
-        span2["span_id"] = "b" * 16
-        self.store_spans(
-            [span, span2],
-            is_eap=self.is_eap,
-        )
-        response = self.do_request(
-            {
-                "field": ["id", "description", "count()"],
-                "query": "",
-                "orderby": "description",
-                "project": self.project.id,
-                "dataset": self.dataset,
-                "statsPeriod": "1h",
-                "sampling": "BEST_EFFORT",
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-        assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
-        assert response.data["data"][1]["id"] == "b" * 16
-        assert response.data["meta"]["dataScanned"] == "full"
 
     def test_internal_fields(self):
         self.store_spans(
@@ -4376,7 +4429,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"user.email": "test@test.com"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
@@ -4413,7 +4469,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"user.email": "test@test.com"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"user.email": "test@test.com"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
@@ -4518,7 +4577,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 self.create_span(
                     {
                         "description": "foo",
-                        "sentry_tags": {"ttid": "ttid", "app_start_type": "warm", "os.name": "iOS"},
+                        "sentry_tags": {
+                            "ttid": "ttid",
+                            "app_start_type": "warm",
+                            "os.name": "iOS",
+                        },
                     },
                     start_ts=self.ten_mins_ago,
                 ),
@@ -4678,3 +4741,419 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     f"tag{c}": c,
                 }
             ]
+
+    def test_ai_total_tokens_returns_integer_meta(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"data": {"ai_total_tokens_used": 100}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"data": {"ai_total_tokens_used": 50}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["sum(ai.total_tokens.used)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data, meta = response.data["data"], response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(ai.total_tokens.used)"] == 150
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"
+
+    def test_release(self):
+        span1 = self.create_span(
+            {
+                "sentry_tags": {
+                    "release": "1.0.8",
+                    "environment": self.environment.name,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        span2 = self.create_span(
+            {
+                "sentry_tags": {
+                    "release": "1.0.9",
+                    "environment": self.environment.name,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:1.0.8",
+                "project": self.project.id,
+                "environment": self.environment.name,
+                "dataset": self.dataset,
+                "orderby": "release",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.8",
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:1*",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "release",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.8",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.9",
+            },
+        ]
+
+    def test_latest_release_alias(self):
+        self.create_release(version="0.8")
+        span1 = self.create_span({"sentry_tags": {"release": "0.8"}}, start_ts=self.ten_mins_ago)
+        self.store_spans([span1], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:latest",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "0.8",
+            }
+        ]
+
+        self.create_release(version="0.9")
+        span2 = self.create_span({"sentry_tags": {"release": "0.9"}}, start_ts=self.ten_mins_ago)
+        self.store_spans([span2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:latest",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "0.9",
+            }
+        ]
+
+    def test_release_stage(self):
+        replaced_release = self.create_release(
+            version="replaced_release",
+            environments=[self.environment],
+            adopted=now(),
+            unadopted=now(),
+        )
+        adopted_release = self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=now(),
+        )
+        self.create_release(version="not_adopted_release", environments=[self.environment])
+
+        adopted_span = self.create_span(
+            {
+                "sentry_tags": {
+                    "environment": self.environment.name,
+                    "release": adopted_release.version,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        replaced_span = self.create_span(
+            {
+                "sentry_tags": {
+                    "environment": self.environment.name,
+                    "release": replaced_release.version,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([adopted_span, replaced_span], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+            "environment": self.environment.name,
+        }
+
+        response = self.do_request({**request, "query": "release.stage:adopted"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": adopted_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "adopted_release",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.stage:low_adoption"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": adopted_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "adopted_release",
+            },
+            {
+                "id": replaced_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "replaced_release",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.stage:[adopted,replaced]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": adopted_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "adopted_release",
+            },
+            {
+                "id": replaced_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "replaced_release",
+            },
+        ]
+
+    def test_semver(self):
+        release_1 = self.create_release(version="test@1.2.1")
+        release_2 = self.create_release(version="test@1.2.2")
+        release_3 = self.create_release(version="test@1.2.3")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.version:>1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        with mock.patch("sentry.search.eap.spans.filter_aliases.constants.MAX_SEARCH_RELEASES", 2):
+            response = self.do_request({**request, "query": "release.version:>1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.version:>=1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.1",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.version:<1.2.2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.1",
+            }
+        ]
+
+        response = self.do_request({**request, "query": "release.version:1.2.2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            }
+        ]
+
+        response = self.do_request({**request, "query": "!release.version:1.2.2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.1",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+    def test_semver_package(self):
+        release_1 = self.create_release(version="test1@1.2.1")
+        release_2 = self.create_release(version="test2@1.2.1")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.package:test1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test1@1.2.1",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.package:test2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test2@1.2.1",
+            },
+        ]
+
+    def test_semver_build(self):
+        release_1 = self.create_release(version="test@1.2.3+121")
+        release_2 = self.create_release(version="test@1.2.3+122")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.build:121"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3+121",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.build:122"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3+122",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.build:121"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3+122",
+            },
+        ]

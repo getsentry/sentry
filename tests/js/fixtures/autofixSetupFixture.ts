@@ -16,6 +16,9 @@ export function AutofixSetupFixture(
       ok: true,
       repos: [],
     },
+    billing: {
+      hasAutofixQuota: true,
+    },
     ...params,
   };
 }

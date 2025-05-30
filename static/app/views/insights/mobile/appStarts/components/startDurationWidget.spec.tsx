@@ -80,7 +80,7 @@ describe('StartDurationWidget', () => {
       },
     } as Location);
 
-    render(<StartDurationWidget chartHeight={200} />);
+    render(<StartDurationWidget />);
     expect(await screen.findByText('Average Cold Start')).toBeInTheDocument();
   });
 
@@ -92,7 +92,7 @@ describe('StartDurationWidget', () => {
       },
     } as Location);
 
-    render(<StartDurationWidget chartHeight={200} />);
+    render(<StartDurationWidget />);
     expect(await screen.findByText('Average Warm Start')).toBeInTheDocument();
   });
 
