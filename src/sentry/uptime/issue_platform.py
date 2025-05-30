@@ -5,13 +5,22 @@ from datetime import datetime, timezone
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import get_project_subscription, get_uptime_subscription
+from sentry.uptime.grouptype import (
+    UptimeDomainCheckFailure,
+    build_event_data,
+    build_evidence_display,
+    build_fingerprint,
+)
+from sentry.uptime.models import get_uptime_subscription
 from sentry.workflow_engine.models.detector import Detector
+
+# XXX(epurkhiser): This module supports the legacy issue creation of uptime
+# failures NOT using the uptime detector handler. In the future this module
+# will be removed.
 
 
 def create_issue_platform_occurrence(result: CheckResult, detector: Detector):
@@ -24,47 +33,8 @@ def create_issue_platform_occurrence(result: CheckResult, detector: Detector):
     )
 
 
-def build_detector_fingerprint_component(detector: Detector) -> str:
-    return f"uptime-detector:{detector.id}"
-
-
-def build_fingerprint(detector: Detector) -> list[str]:
-    return [build_detector_fingerprint_component(detector)]
-
-
 def build_occurrence_from_result(result: CheckResult, detector: Detector) -> IssueOccurrence:
     uptime_subscription = get_uptime_subscription(detector)
-    status_reason = result["status_reason"]
-    assert status_reason
-    failure_reason = f'{status_reason["type"]} - {status_reason["description"]}'
-    evidence_display = [
-        IssueEvidence(
-            name="Failure reason",
-            value=failure_reason,
-            important=True,
-        ),
-        IssueEvidence(
-            name="Duration",
-            value=f"{result["duration_ms"]}ms",
-            important=False,
-        ),
-    ]
-    request_info = result["request_info"]
-    if request_info:
-        evidence_display.append(
-            IssueEvidence(
-                name="Method",
-                value=request_info["request_type"],
-                important=False,
-            )
-        )
-        evidence_display.append(
-            IssueEvidence(
-                name="Status Code",
-                value=str(request_info["http_status_code"]),
-                important=False,
-            ),
-        )
 
     return IssueOccurrence(
         id=uuid.uuid4().hex,
@@ -75,7 +45,7 @@ def build_occurrence_from_result(result: CheckResult, detector: Detector) -> Iss
         type=UptimeDomainCheckFailure,
         issue_title=f"Downtime detected for {uptime_subscription.url}",
         subtitle="Your monitored domain is down",
-        evidence_display=evidence_display,
+        evidence_display=build_evidence_display(result),
         evidence_data={},
         culprit="",  # TODO: The url?
         detection_time=datetime.now(timezone.utc),
@@ -89,27 +59,13 @@ def build_event_data_for_occurrence(
     detector: Detector,
     occurrence: IssueOccurrence,
 ):
-    # Default environment when it hasn't been configured
-    env = detector.config.get("environment", "prod")
-
-    # XXX(epurkhiser): This can be changed over to using the detector ID in the
-    # future once we're no longer using the ProjectUptimeSubscription.id as a tag.
-    project_subscription = get_project_subscription(detector)
+    common_event_data = build_event_data(result, detector)
 
     return {
-        "environment": env,
+        **common_event_data,
         "event_id": occurrence.event_id,
         "fingerprint": occurrence.fingerprint,
-        "platform": "other",
-        "project_id": occurrence.project_id,
-        # We set this to the time that the check was performed
-        "received": datetime.fromtimestamp(result["actual_check_time_ms"] / 1000),
-        "sdk": None,
-        "tags": {
-            "uptime_rule": str(project_subscription.id),
-        },
         "timestamp": occurrence.detection_time.isoformat(),
-        "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")}},
     }
 
 

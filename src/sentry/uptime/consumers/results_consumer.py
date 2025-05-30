@@ -26,6 +26,7 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.result_handler import handle_onboarding_result
+from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
     UptimeStatus,
@@ -43,11 +44,17 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import IncidentStatus, ProjectUptimeSubscriptionMode
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    IncidentStatus,
+    ProjectUptimeSubscriptionMode,
+)
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 
@@ -292,6 +299,33 @@ def handle_active_result(
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
+    organization = detector.project.organization
+
+    if features.has("organizations:uptime-detector-handler", organization):
+        # XXX(epurkhiser): Enabling the uptime-detector-handler will process
+        # check results via the uptime detector handler. However the handler
+        # WILL NOT produce issue occurrences (however it will do nearly
+        # everything else, including logging that it will produce)
+        packet = UptimePacketValue(
+            check_result=result,
+            subscription=uptime_subscription,
+            metric_tags=metric_tags,
+        )
+        process_data_packets(
+            [DataPacket(source_id=str(uptime_subscription.id), packet=packet)],
+            DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        )
+
+        # Bail if we're doing issue creation via detectors, we don't want to
+        # create issues using the legacy system in this case. If this flag is
+        # not enabkled the detector will still run, but will not produce an
+        # issue occurrence.
+        #
+        # Once we've determined that the detector handler is producing issues
+        # the same as the legacy issue creation, we can remove this.
+        if features.has("organizations:uptime-detector-create-issues", organization):
+            return
+
     uptime_status = uptime_subscription.uptime_status
     result_status = result["status"]
 
