@@ -23,6 +23,15 @@ class FrameInfo:
                 return
 
         frame_file_path = frame["filename"]
+        # Some platforms return just the filename rather than a full path
+        # (which will be rejected below), however, they may contain the path
+        # in the abs_path.
+        if is_single_file(frame_file_path) and frame.get("abs_path"):
+            frame_file_path = frame["abs_path"]
+
+        if not frame_file_path:
+            raise UnsupportedFrameInfo("filename or abs_path is required.")
+
         frame_file_path = self.transformations(frame_file_path)
 
         # Using regexes would be better but this is easier to understand
@@ -30,9 +39,11 @@ class FrameInfo:
             not frame_file_path
             or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
-            or frame_file_path.find("/") == -1
         ):
             raise UnsupportedFrameInfo("This path is not supported.")
+
+        if is_single_file(frame_file_path):
+            raise UnsupportedFrameInfo("Single file paths are not supported.")
 
         if not get_extension(frame_file_path):
             raise NeedsExtension("It needs an extension.")
@@ -56,10 +67,6 @@ class FrameInfo:
         if "\\" in frame_file_path:
             is_windows_path = True
             frame_file_path = frame_file_path.replace("\\", "/")
-
-        # Remove leading slash if it exists
-        if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
-            frame_file_path = frame_file_path[1:]
 
         # Remove drive letter if it exists
         if is_windows_path and frame_file_path[1] == ":":
@@ -87,6 +94,10 @@ class FrameInfo:
         if not isinstance(other, FrameInfo):
             return False
         return self.raw_path == other.raw_path
+
+
+def is_single_file(file_path: str) -> bool:
+    return file_path.find("/", 1) == -1
 
 
 # Based on # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
