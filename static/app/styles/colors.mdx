@@ -8,8 +8,6 @@ import DontAccentColors from 'sentry-images/stories/color/dont-accent-colors.svg
 import DontContrast from 'sentry-images/stories/color/dont-contrast.svg';
 import DontDifferentiation from 'sentry-images/stories/color/dont-differentiation.svg';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
@@ -61,80 +59,6 @@ export const LEVELS_PALETTES = [
   ],
 ];
 
-export const FixedWidth = styled('div')`
-  max-width: 800px;
-`;
-
-export const SideBySide = styled('ul')`
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-  & > li {
-    margin: 0;
-  }
-  & > li > div {
-    margin-bottom: 0;
-  }
-
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: ${space(2)};
-`;
-
-export const PalettePanel = styled(Panel)`
-  margin-bottom: 0;
-`;
-
-export const PalettePanelItem = styled(PanelItem)`
-  flex-direction: column;
-  gap: ${space(0.5)};
-
-&:first-child {
-border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-}
-&:last-child {
-border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-}
-&:first-child:last-child {
-border-radius: ${p => p.theme.borderRadius};
-}
-
-background: ${p => p.theme[p.color]};
-color: ${p => p.theme[p.text]};
-`;
-
-export const ExampleImg = styled('img')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  max-width: 400px;
-`;
-
-export const PositiveLabel = styled(({className}) => (
-  <div className={className}>
-    <IconCheckmark />
-    DO
-  </div>
-))`
-  color: ${p => p.theme.green400};
-  align-items: center;
-  display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
-  gap: ${space(0.5)};
-`;
-
-export const NegativeLabel = styled(({className}) => (
-  <div className={className}>
-    <IconClose color="red400" />
-    DON'T
-  </div>
-))`
-  color: ${p => p.theme.red400};
-  align-items: center;
-  display: flex;
-  font-weight: ${p => p.theme.fontWeightBold};
-  gap: ${space(0.5)};
-`;
-
 export const ExampleCardGrid = styled('figcaption')`
   display: grid;
   grid-template-columns: 1fr 2fr;
@@ -146,10 +70,10 @@ export const ExampleCardGrid = styled('figcaption')`
 export function ExampleCard({imgSrc, text, isPositive}) {
   return (
     <figure>
-      <ExampleImg src={imgSrc} />
+      <Storybook.Image src={imgSrc} />
       <ExampleCardGrid>
-        {isPositive ? <PositiveLabel /> : <NegativeLabel />}
-        <span>{text}</span>
+        <Storybook.GuidelineLabel variant={isPositive ? 'do' : 'dont'} />
+        {text}
       </ExampleCardGrid>
     </figure>
   );
@@ -160,28 +84,24 @@ export function ColorPalette({name, palette}) {
 
 return (
 
-<SideBySide>
+<Storybook.SideBySide>
   {palette.map((section, i) => {
     return (
-      <li key={`${name}-${i}`}>
-        <PalettePanel typeof="ul">
-          {section.map((color, index) => {
-            return (
-              <PalettePanelItem
-                key={`${name}-${color.color}-${index}`}
-                color={color.color}
-                text={color.text}
-              >
-                <strong>{color.color}</strong>
-                {theme[color.color]}
-              </PalettePanelItem>
-            );
-          })}
-        </PalettePanel>
-      </li>
+      <div key={`${name}-${i}`}>
+        {section.map((color, index) => {
+          return (
+            <div
+              key={`${name}-${color.color}-${index}`}
+              style={{backgroundColor: theme[color.color]}}
+            >
+              <strong>{color.color}</strong>
+            </div>
+          );
+        })}
+      </div>
     );
   })}
-</SideBySide>
+</Storybook.SideBySide>
 ); }
 
 # Colors

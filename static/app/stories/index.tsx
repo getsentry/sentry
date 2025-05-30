@@ -5,3 +5,5 @@ export {SideBySide} from './layout';
 export {SizingWindow, Grid} from './layout';
 export {story} from './storybook';
 export {ThemeSwitcher, ThemeToggle} from './theme';
+export {GuidelineLabel} from './guidelines';
+export {Image} from './images';
