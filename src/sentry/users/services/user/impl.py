@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models import F, Q, QuerySet
+from django.db.models.functions import Upper
 from django.utils.text import slugify
 
 from sentry.api.serializers.base import Serializer, serialize
@@ -313,7 +314,12 @@ class DatabaseBackedUserService(UserService):
             if "email_verified" in filters:
                 query = query.filter(emails__is_verified=filters["email_verified"])
             if "emails" in filters:
-                query = query.filter(in_iexact("emails__email", filters["emails"]))
+                # Since we can have a lot of emails, the in_iexact helper creates too many
+                # conditions in the query, so we annotate the email and filter by the
+                # uppercased version of the email for case insensitive search
+                query = query.annotate(upper_emails=Upper("emails__email")).filter(
+                    upper_emails__in=map(lambda x: x.upper(), filters["emails"])
+                )
             if "query" in filters:
                 query = query.filter(
                     Q(emails__email__icontains=filters["query"])
