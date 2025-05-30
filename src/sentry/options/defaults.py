@@ -1898,6 +1898,18 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "explore.trace-items.keys.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explore.trace-items.values.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # In Single Tenant with 100% DS, we may need to reverse the UI change made by dynamic-sampling
 # if metrics extraction isn't ready.
