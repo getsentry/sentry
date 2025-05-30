@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from datetime import timedelta
 from decimal import Decimal
-from functools import partial
+from functools import partial, update_wrapper
 from typing import Generic, TypeVar, TypeVarTuple
 
 from django.core.cache import cache
@@ -123,10 +123,7 @@ class CachedFunction(Generic[*Ts, R]):
     def __init__(self, func: Callable[[*Ts], R], cache_ttl: timedelta):
         self.func = func
         self.cache_ttl = cache_ttl
-        self.__name__ = func.__name__
-        self.__qualname__ = func.__qualname__
-        self.__module__ = func.__module__
-        self.__doc__ = func.__doc__
+        update_wrapper(self, func)
 
     def __call__(self, *args: *Ts) -> R:
         cache_key = cache_key_for_cached_func(self.func, *args)
