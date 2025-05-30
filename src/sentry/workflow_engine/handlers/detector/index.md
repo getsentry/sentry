@@ -2,30 +2,28 @@
 
 ## DetectorHandler
 
-The Base `DetectorHandler` abstraction can be used to evaluate DataPackets that can be evaluated by a Detector, and don't require any stateful tracking.
+The `DetectorHandler` is an abstract base class used to implement a new Detector. The `DetectorHandler` is responsible for evaluating data packets and creating issue occurrences based on the evaluation results.
 
-Some examples of these detectors are:
+Examples:
 
-- N+1 Query Detector: It can evaluate the number of queries in a span, and determine that it needs to create an issue.
-
-## StatefulDetectorHandler
-
-The `StatefulDetectorHandler` is used when you need to have knowledge of a previous state to have the detector update correctly.
-
-Examples of stateful detectors are:
-
-- Metric Issues: These issues are based on a metric in time, if the metric breaches a threshold, the detector will create or resolve an issue correspondingly.
+- N+1 Query Detector: Evaluates the number of queries in a span and creates an issue when thresholds are exceeded.
 
 ### Required Methods
 
 #### `create_occurrence`
 
-The `create_occurrence` method is used to create an issue occurrence when the detector reaches a certain threshold. This method is passed the evaluation result (each data condition with each result of the evaluation), the data packet, and the resulting priority change.
+Creates an issue occurrence when the detector reaches a specified threshold.
 
-The result of this method is a `DetectorOccurrence`, this data and other platform data is used to create the IssueOccurrence in the Issue Platform.
+This method receives:
+
+- The evaluation result (each data condition with evaluation results)
+- The DataPacket
+- The resulting priority change
+
+Returns a DetectorOccurrence, which is used along with other platform data to create the IssueOccurrence in the Issue Platform.
 
 ```python
-class ExampleDetectorHandler(StatefulDetectorHandler):
+class ExampleDetectorHandler(DetectorHandler):
     def create_occurrence(
         self,
         evaluation: DataPacketEvaluationType,
@@ -50,7 +48,10 @@ class ExampleDetectorHandler(StatefulDetectorHandler):
 
 #### `extract_value`
 
-This is used to return the value for evaluation in the detector. The value can be the generic value passed in as the `DataPacketEvaluationType` or it can be a grouped evaluation returning a format like: `dict[DetectorGroupType, DataPacketEvaluationType]`.
+Returns the value for evaluation in the detector. This can be:
+
+The generic value passed in as DataPacketEvaluationType
+A grouped evaluation returning the format: `dict[DetectorGroupType, DataPacketEvaluationType]`
 
 ```python
 class ExampleDetectorHandler(StatefulDetectorHandler):
@@ -59,17 +60,43 @@ class ExampleDetectorHandler(StatefulDetectorHandler):
         return data_packet.packet.get("value")
 ```
 
+## StatefulDetectorHandler
+
+The StatefulDetectorHandler is used when the detector needs knowledge of previous states to update correctly. For example, when the detector needs to track the number of times it has reached a certain priority level or when it needs to maintain state across multiple evaluations.
+
+The class extends the `DetectorHandler` and provides additional functionality and a default `evaluate` implementation.
+
+Examples:
+
+- Metric Issues: Issues based on metrics over time. When a metric breaches a threshold, the detector creates or resolves an issue accordingly.
+
+#### State Tracking
+
+The StatefulDetectorHandler uses thresholds and other configurations defined in the Detector to determine which state changes to track.
+
+Cascading thresholds: The detector doesn't only track the current state—it also increments counters for any "lower" thresholds.
+Example: If a detector is configured with thresholds of 3 for critical and 2 for warn, and receives 2 critical occurrences, the detector will increment both the critical and warn threshold counters. This causes the warn threshold to be breached, creating an issue occurrence for the warn level.
+
+To see [`thresholds`](#thresholds) to see how to customize the thresholds for the detector.
+
+### Required Methods
+
+#### `create_occurrence`
+
+See [`create_occurrence`](#create_occurrence) in the `DetectorHandler` class.
+
+#### `extract_value`
+
+See [`extract_value`](#extract_value) in the `DetectorHandler` class.
+
 ### Custom Overrides
 
-#### Thresholds (`.thresholds`)
+#### `thresholds`
 
-StatefulDetectorHandlers will track each time the detector reaches a PriorityLevel.
+StatefulDetectorHandlers track each time the detector reaches a PriorityLevel. When a PriorityLevel's threshold is reached, the detector creates an issue occurrence.
 
-If a PriorityLevel's threshold is reached, the detector will create an issue occurrence. By default, each PriorityLevel's threshold value is set to 1, so the detector will create an issue occurrence each time it reaches that PriorityLevel.
-
-To override these thresholds use the `counters` property in the constructor.
-
-For example:
+Default behavior: Each PriorityLevel's threshold value is set to 1, so the detector creates an issue occurrence every time it reaches that PriorityLevel.
+Override: Use the thresholds property to customize threshold values.
 
 ```python
 class ExampleDetectorHandler(StatefulDetectorHandler):
@@ -83,8 +110,10 @@ class ExampleDetectorHandler(StatefulDetectorHandler):
 
 #### `build_issue_fingerprint`
 
-This method is used to add additional fingerprints to the issue occurrence or status change message. This allows you to create customize how issues are grouped together in the issue platform / feed.
-The default issue occurrence fingerprint is `{detector.id}` or `{detector.id}:{detector_group_key}` The `detector_group_key` is used to group evaluation results for a specific detector. An example of this is could be monitoring errors on an API endpoint, and we want to group the issues by the endpoint path.
+Adds additional fingerprints to the issue occurrence or status change message. This customizes how issues are grouped together in the issue platform/feed.
+Default fingerprint: `{detector.id} or {detector.id}:{detector_group_key}`
+
+The DetectorGroupKey groups evaluation results for a specific detector. For example, when monitoring errors on an API endpoint, you might group issues by endpoint path.
 
 ```python
 class ExampleDetectorHandler(StatefulDetectorHandler):
@@ -93,10 +122,4 @@ class ExampleDetectorHandler(StatefulDetectorHandler):
         return [f"uptime-{uptime.id}"]
 ```
 
-If the above example was used, the resulting fingerprints would be: [`uptime-1`, `1:None`]. Where `uptime-1` is what we defined in `build_issue_fingerprint` and `1:None` is the default fingerprint for the detector.
-
-### State Tracking
-
-How does the detector track state? The `StatefulDetectorHandler` uses the `thresholds` and other thresholds defined in the `Detector` to decide which state changes of the detector track.
-
-The detector doesn't only track the state that just happened though, it also increments for any "lower" thresholds. For example, if a detector is configured to have a threshold of 3 `critical` and 2 `warn` in the threshold and we receive 2 critical occurrences, the detector will increment the `critical` and `warn` thresholds. This will cause the `warn` threshold to be breached, and create an issue occurrence for it.
+In the above example, the resulting fingerprints would be: `[uptime-1, detector:1]`, where `uptime-1` is defined in `build_issue_fingerprint` and `detector:1` is the default detector fingerprint.
