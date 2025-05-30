@@ -138,15 +138,16 @@ class DetectorStateManager:
     def build_key(
         self, group_key: DetectorGroupKey = None, postfix: str | int | None = None
     ) -> str:
+        key = f"detector:{self.detector.id}"
         group_postfix = f"{group_key if group_key is not None else ''}"
 
         if postfix:
             group_postfix = f"{group_postfix}:{postfix}"
 
         if group_postfix:
-            return f"{self.detector.id}:{group_postfix}"
+            return f"{key}:{group_postfix}"
 
-        return f"{self.detector.id}"
+        return key
 
     def commit_state_updates(self):
         self._bulk_commit_detector_state()
