@@ -61,6 +61,15 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.0(@emotion/react@11.14.0(@types/react@19.1.0)(react@19.1.0))(@types/react@19.1.0)(react@19.1.0)
+      '@mdx-js/loader':
+        specifier: ^3.1.0
+        version: 3.1.0(acorn@8.14.1)(webpack@5.99.6)
+      '@mdx-js/mdx':
+        specifier: ^3.1.0
+        version: 3.1.0(acorn@8.14.1)
+      '@pmmmwh/react-refresh-webpack-plugin':
+        specifier: 0.5.16
+        version: 0.5.16(react-refresh@0.16.0)(type-fest@4.37.0)(webpack-dev-server@5.2.1)(webpack@5.99.6)
       '@popperjs/core':
         specifier: ^2.11.5
         version: 2.11.5
@@ -211,6 +220,9 @@ importers:
       '@spotlightjs/spotlight':
         specifier: ^2.0.0-alpha.1
         version: 2.0.0-alpha.1
+      '@swc/plugin-emotion':
+        specifier: 9.0.4
+        version: 9.0.4
       '@tanstack/query-async-storage-persister':
         specifier: ^5.72.1
         version: 5.72.1
@@ -242,8 +254,8 @@ importers:
         specifier: ^2.2.35
         version: 2.2.35
       '@types/jest':
-        specifier: 29.5.12
-        version: 29.5.12
+        specifier: 29.5.14
+        version: 29.5.14
       '@types/js-beautify':
         specifier: ^1.14.3
         version: 1.14.3
@@ -379,6 +391,9 @@ importers:
       gl-matrix:
         specifier: ^3.4.3
         version: 3.4.3
+      html-webpack-plugin:
+        specifier: 5.6.3
+        version: 5.6.3(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.1
@@ -560,15 +575,6 @@ importers:
       '@eslint/js':
         specifier: ^9.22.0
         version: 9.22.0
-      '@mdx-js/loader':
-        specifier: ^3.1.0
-        version: 3.1.0(acorn@8.14.1)(webpack@5.99.6)
-      '@mdx-js/mdx':
-        specifier: ^3.1.0
-        version: 3.1.0(acorn@8.14.1)
-      '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: 0.5.16
-        version: 0.5.16(react-refresh@0.16.0)(type-fest@4.37.0)(webpack-dev-server@5.2.1)(webpack@5.99.6)
       '@sentry-internal/rrweb-types':
         specifier: 2.34.0
         version: 2.34.0
@@ -581,9 +587,6 @@ importers:
       '@styled/typescript-styled-plugin':
         specifier: ^1.0.1
         version: 1.0.1
-      '@swc/plugin-emotion':
-        specifier: 9.0.4
-        version: 9.0.4
       '@tanstack/eslint-plugin-query':
         specifier: ^5.66.1
         version: 5.66.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.3)
@@ -659,9 +662,6 @@ importers:
       globals:
         specifier: ^15.14.0
         version: 15.15.0
-      html-webpack-plugin:
-        specifier: 5.6.3
-        version: 5.6.3(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
       jest:
         specifier: 29.7.0
         version: 29.7.0(@types/node@22.15.21)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@22.15.21)(typescript@5.8.3))
@@ -3215,8 +3215,8 @@ packages:
   '@types/istanbul-reports@3.0.0':
     resolution: {integrity: sha512-nwKNbvnwJ2/mndE9ItP/zc2TCzw6uuodnF4EHYWD+gCQDVBuRQL5UzbZD0/ezy1iKsFU2ZQiDqg4M9dN4+wZgA==}
 
-  '@types/jest@29.5.12':
-    resolution: {integrity: sha512-eDC8bTvT/QhYdxJAulQikueigY5AsdBRH2yDKW3yveW7svY3+DzN84/2NUgkw10RTiJbWqZrTtoGVdYlvFJdLw==}
+  '@types/jest@29.5.14':
+    resolution: {integrity: sha512-ZN+4sdnLUbo8EVvVc2ao0GFW6oVrQRPn4K2lglySj7APvSrgzxHiNNK99us4WDMi57xxA2yggblIAMNhXOotLQ==}
 
   '@types/js-beautify@1.14.3':
     resolution: {integrity: sha512-FMbQHz+qd9DoGvgLHxeqqVPaNRffpIu5ZjozwV8hf9JAGpIOzuAf4wGbRSo8LNITHqGjmmVjaMggTT5P4v4IHg==}
@@ -12019,7 +12019,7 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-report': 3.0.0
 
-  '@types/jest@29.5.12':
+  '@types/jest@29.5.14':
     dependencies:
       expect: 29.7.0
       pretty-format: 29.7.0
