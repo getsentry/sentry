@@ -748,10 +748,8 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            file_name="test-artifact.ipa",
-            sha="abc123def456",
+            git_sha="abc123def456",
             build_configuration="release",
-            extras={"version": "1.0.0", "platform": "ios"},
         )
 
         status, details = get_assemble_status(
@@ -761,9 +759,11 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert details is None
 
         # Check that the file was created
-        files = File.objects.filter(name="test-artifact.ipa", type="preprod.artifact")
+        files = File.objects.filter(type="preprod.artifact")
         assert len(files) == 1
         assert files[0].checksum == total_checksum
+        # Name should start with "preprod-artifact-" and be a UUID since file_name is no longer passed
+        assert files[0].name.startswith("preprod-artifact-")
 
         # Import models here to match the pattern in the source code
         from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
@@ -781,7 +781,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifact.file_id == files[0].id
         assert artifact.build_configuration == build_configs[0]
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
-        assert artifact.extras == {"version": "1.0.0", "platform": "ios"}
 
     def test_assemble_preprod_artifact_without_build_configuration(self):
         content = b"test preprod artifact without build config"
@@ -795,7 +794,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            file_name="test-artifact-no-config.apk",
         )
 
         status, details = get_assemble_status(
@@ -812,8 +810,8 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifact.build_configuration is None
         assert artifact.extras is None
 
-    def test_assemble_preprod_artifact_without_file_name(self):
-        content = b"test preprod artifact without filename"
+    def test_assemble_preprod_artifact_generates_filename(self):
+        content = b"test preprod artifact with generated filename"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
 
@@ -824,7 +822,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            file_name=None,
         )
 
         status, details = get_assemble_status(
@@ -850,7 +847,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=wrong_checksum,
             chunks=[blob.checksum],
-            file_name="test-artifact.ipa",
         )
 
         status, details = get_assemble_status(
@@ -868,7 +864,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[missing_checksum],
-            file_name="test-artifact.ipa",
         )
 
         status, details = get_assemble_status(
@@ -890,7 +885,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            file_name="test-artifact.ipa",
         )
 
         status, details = get_assemble_status(
@@ -912,7 +906,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=nonexistent_project_id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            file_name="test-artifact.ipa",
         )
 
         status, details = get_assemble_status(
@@ -940,7 +933,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
-            file_name="test-artifact-debug.ipa",
             build_configuration="debug",
         )
 
