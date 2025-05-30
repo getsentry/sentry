@@ -186,7 +186,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attribute_type = serialized.get("attribute_type")
         item_type = serialized.get("item_type")
 
-        max_attributes = options.get("performance.spans-tags-key.max")
+        max_attributes = options.get("explore.trace-items.keys.max")
         value_substring_match = translate_escape_sequences(substring_match)
         trace_item_type = SupportedTraceItemType(item_type)
         referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
@@ -295,7 +295,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         item_type = serialized.get("item_type")
         substring_match = serialized.get("substring_match", "")
 
-        max_attribute_values = options.get("performance.spans-tags-values.max")
+        max_attribute_values = options.get("explore.trace-items.values.max")
 
         definitions = (
             SPAN_DEFINITIONS
