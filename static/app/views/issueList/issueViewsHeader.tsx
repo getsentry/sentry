@@ -70,6 +70,8 @@ function IssueViewStarButton() {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
+  const prefersStackedNav = usePrefersStackedNav();
+
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
@@ -100,7 +102,7 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
+  if (!prefersStackedNav || !groupSearchView) {
     return null;
   }
 
@@ -146,8 +148,9 @@ function IssueViewEditMenu() {
   const user = useUser();
   const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
+  if (!prefersStackedNav || !groupSearchView) {
     return null;
   }
 
