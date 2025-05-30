@@ -1,31 +1,18 @@
 [
   {
-    "query": "fruit:apple release:1.2.1",
+    "desc": "Basic text filter sets wildcard to false",
+    "query": "foo:bar",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "key": {"type": "keySimple", "value": "fruit", "quoted": false},
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
-          "value": "apple",
-          "quoted": false,
-          "wildcard": false
-        }
-      },
-      {"type": "spaces", "value": " "},
-      {
-        "type": "filter",
-        "filter": "text",
-        "negated": false,
-        "key": {"type": "keySimple", "value": "release", "quoted": false},
-        "operator": "",
-        "value": {
-          "type": "valueText",
-          "value": "1.2.1",
+          "value": "bar",
           "quoted": false,
           "wildcard": false
         }
@@ -34,40 +21,63 @@
     ]
   },
   {
-    "query": "p95:>5s",
+    "desc": "Value with leading asterisk, sets wildcard to leading",
+    "query": "foo:*bar",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "key": {"type": "keySimple", "value": "p95", "quoted": false},
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
-          "value": ">5s",
+          "value": "*bar",
           "quoted": false,
-          "wildcard": false
+          "wildcard": "leading"
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "query": "p95:>5k",
+    "desc": "Value with quotes, sets wildcard to leading",
+    "query": "foo:\"*bar\"",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "key": {"type": "keySimple", "value": "p95", "quoted": false},
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
         "operator": "",
         "value": {
           "type": "valueText",
-          "value": ">5k",
-          "quoted": false,
-          "wildcard": false
+          "value": "*bar",
+          "quoted": true,
+          "wildcard": "leading"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with quotes and spaces, sets wildcard to leading",
+    "query": "foo:\"*e m\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "*e m",
+          "quoted": true,
+          "wildcard": "leading"
         }
       },
       {"type": "spaces", "value": ""}

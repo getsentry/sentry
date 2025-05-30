@@ -13,7 +13,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3",
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -33,7 +33,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3-hi",
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -53,7 +53,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3-hi",
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -73,7 +73,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3-hi",
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
