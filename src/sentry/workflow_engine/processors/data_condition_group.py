@@ -57,6 +57,10 @@ def get_data_conditions_for_groups(
 def batch_get_slow_conditions(
     data_condition_groups: list[DataConditionGroup],
 ) -> dict[int, list[DataCondition]]:
+    """
+    Get all slow conditions for a list of data condition groups.
+    Returns a dictionary of data condition group id to list of slow conditions.
+    """
     conds_list = get_data_conditions_for_groups([dcg.id for dcg in data_condition_groups])
     return {
         dcg.id: [cond for cond in conds if is_slow_condition(cond)]
