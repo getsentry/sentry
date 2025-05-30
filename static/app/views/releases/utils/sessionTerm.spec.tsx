@@ -477,7 +477,7 @@ describe('Release Health Session Term', function () {
       'apple-ios'
     );
     expect(anrRateSessionTerm).toBe(
-      'Percentage of unique users that experienced a fatal App Hang. You have to enable AppHangsV2 to see this metric.'
+      "Percentage of unique users that experienced a fatal App Hang. You must enable AppHangsV2 to get the correct statistics for the App Hang Rate. AppHangV1 events don't impact this metric."
     );
   });
 
