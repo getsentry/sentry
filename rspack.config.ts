@@ -254,7 +254,7 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        exclude: /\/node_modules\//,
+        exclude: /node_modules[\\/]core-js/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
