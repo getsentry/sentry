@@ -1163,8 +1163,11 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightTokens = generateChonkTokens(lightColors);
 const darkTokens = generateChonkTokens(darkColors);
 
+// The following are dark mode exceptions to the default color mapping
+darkTokens.border.primary = darkColors.surface200;
+
 const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const darkAliases = generateAliases(darkTokens, darkColors);
 
 interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   chart: {
