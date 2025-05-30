@@ -1,8 +1,21 @@
 export interface Action {
+  config: {
+    target_type: ActionTarget;
+    target_display?: string;
+    target_identifier?: string;
+  };
   data: Record<string, unknown>;
   id: string;
   type: ActionType;
   integrationId?: string;
+}
+
+export enum ActionTarget {
+  SPECIFIC = 0,
+  USER = 1,
+  TEAM = 2,
+  SENTRY_APP = 3,
+  ISSUE_OWNERS = 4,
 }
 
 export enum ActionType {

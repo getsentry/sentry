@@ -32,7 +32,7 @@ function SeverityField() {
       }))}
       onChange={(value: string) => {
         onUpdate({
-          severity: value,
+          data: {severity: value},
         });
       }}
     />
