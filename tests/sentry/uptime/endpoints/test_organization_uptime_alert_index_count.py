@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.constants import ObjectStatus
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -12,13 +12,23 @@ class OrganizationUptimeAlertCountTest(UptimeAlertBaseEndpointTest):
         self.login_as(self.user)
 
     def test_simple(self):
-        self.create_project_uptime_subscription(name="Active Alert 1")
-        self.create_project_uptime_subscription(name="Active Alert 2")
-        self.create_project_uptime_subscription(name="Disabled Alert", status=ObjectStatus.DISABLED)
-
-        # Uptime alerts pending deletion should be excluded
-        self.create_project_uptime_subscription(
-            name="Pending Deletion", status=ObjectStatus.PENDING_DELETION
+        self.create_detector(
+            name="Active Alert 1",
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            enabled=True,
+            config={"environment": self.environment.name, "mode": 1},
+        )
+        self.create_detector(
+            name="Active Alert 2",
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            enabled=True,
+            config={"environment": self.environment.name, "mode": 1},
+        )
+        self.create_detector(
+            name="Disabled Alert",
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            enabled=False,
+            config={"environment": self.environment.name, "mode": 1},
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -35,10 +45,23 @@ class OrganizationUptimeAlertCountTest(UptimeAlertBaseEndpointTest):
         env1 = self.create_environment(name="production")
         env2 = self.create_environment(name="staging")
 
-        self.create_project_uptime_subscription(name="Alert 1", env=env1)
-        self.create_project_uptime_subscription(name="Alert 2", env=env2)
-        self.create_project_uptime_subscription(
-            name="Alert 3", env=env1, status=ObjectStatus.DISABLED
+        self.create_detector(
+            name="Alert 1",
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            enabled=True,
+            config={"environment": env1.name, "mode": 1},
+        )
+        self.create_detector(
+            name="Alert 2",
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            enabled=True,
+            config={"environment": env2.name, "mode": 1},
+        )
+        self.create_detector(
+            name="Alert 3",
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            enabled=False,
+            config={"environment": env1.name, "mode": 1},
         )
 
         response = self.get_success_response(self.organization.slug, environment=["production"])
