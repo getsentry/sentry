@@ -54,6 +54,7 @@ mockUseLoadReplayReader.mockImplementation(() => {
     attachments: [],
     errors: [],
     fetchError: undefined,
+    attachmentError: undefined,
     fetching: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,

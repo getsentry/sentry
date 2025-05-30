@@ -50,6 +50,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
       readerResult={readerResult}
       renderArchived={() => null}
       renderError={() => null}
+      renderThrottled={() => null}
       renderLoading={() =>
         replayRecord ? badge : <Placeholder width="30%" height="45px" />
       }

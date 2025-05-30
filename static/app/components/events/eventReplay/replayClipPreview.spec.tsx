@@ -53,6 +53,7 @@ mockUseLoadReplayReader.mockImplementation(() => {
     attachments: [],
     errors: [],
     fetchError: undefined,
+    attachmentError: undefined,
     fetching: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
@@ -127,6 +128,7 @@ describe('ReplayClipPreview', () => {
         attachments: [],
         errors: [],
         fetchError: undefined,
+        attachmentError: undefined,
         fetching: true,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
@@ -148,6 +150,7 @@ describe('ReplayClipPreview', () => {
         attachments: [],
         errors: [],
         fetchError: {status: 400} as RequestError,
+        attachmentError: undefined,
         fetching: false,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
@@ -160,6 +163,48 @@ describe('ReplayClipPreview', () => {
     render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
+  });
+
+  it('Should throw throttled error when fetch returns 429', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachments: [],
+        errors: [],
+        fetchError: {status: 429} as RequestError,
+        attachmentError: undefined,
+        fetching: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(screen.getByTestId('replay-throttled')).toBeVisible();
+  });
+
+  it('Should throw throttled error when fetching an attachment returns 429', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachments: [],
+        errors: [],
+        fetchError: undefined,
+        attachmentError: [{status: 429} as RequestError],
+        fetching: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(screen.getByTestId('replay-throttled')).toBeVisible();
   });
 
   it('Should have the correct time range', () => {

@@ -6,6 +6,7 @@ import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/consta
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import ReplayRequestsThrottledAlert from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
@@ -61,6 +62,11 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
       renderError={() => (
         <InterimSection {...sectionProps}>
           <MissingReplayAlert orgSlug={orgSlug} />
+        </InterimSection>
+      )}
+      renderThrottled={() => (
+        <InterimSection {...sectionProps}>
+          <ReplayRequestsThrottledAlert />
         </InterimSection>
       )}
       renderMissing={() => (

@@ -37,6 +37,7 @@ type Options = {
 };
 
 interface Result {
+  attachmentError: undefined | RequestError[];
   attachments: unknown[];
   errors: ReplayError[];
   fetchError: undefined | RequestError;
@@ -262,6 +263,7 @@ function useReplayData({
       attachments: attachmentPages.flat(2),
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
+      attachmentError: fetchAttachmentsError ?? undefined,
       fetching,
       onRetry: clearQueryCache,
       projectSlug,
