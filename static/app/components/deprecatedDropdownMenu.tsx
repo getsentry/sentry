@@ -388,6 +388,12 @@ class DropdownMenu extends Component<Props, State> {
       },
 
       onClick: (e: React.MouseEvent<E>) => {
+        // eslint-disable-next-line no-console
+        console.log({
+          event: e,
+          isNestedDropdown,
+          isOpen: this.isOpen(),
+        });
         // If we are a nested dropdown, clicking the actor
         // should be a no-op so that the menu doesn't close.
         if (isNestedDropdown) {
