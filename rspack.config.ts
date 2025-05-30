@@ -173,6 +173,13 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
     coreJs: '3.41',
+    targets: [
+      'last 10 Chrome versions',
+      'last 10 Firefox versions',
+      'last 4 Safari major versions',
+      'last 3 iOS major versions',
+      'Firefox ESR',
+    ].join(', '),
   },
   jsc: {
     experimental: {
@@ -209,7 +216,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
 
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
-  target: 'web',
+  target: 'browserslist',
   // Fail on first error instead of continuing to build
   // https://rspack.rs/config/other-options#bail
   bail: IS_PRODUCTION,
