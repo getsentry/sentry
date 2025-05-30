@@ -1226,7 +1226,7 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   },
   [SpanIndexedField.SPAN_CATEGORY]: {
     desc: t(
-      'The prefix of the span, e.g if `span.op` is `http.client`, then `span.category` is `http`'
+      'The prefix of the span operation, e.g if `span.op` is `http.client`, then `span.category` is `http`'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
