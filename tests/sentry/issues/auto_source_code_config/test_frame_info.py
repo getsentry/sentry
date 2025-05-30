@@ -35,10 +35,10 @@ class TestFrameInfo:
         path = "getsentry/billing/tax/manager.py"
         assert FrameInfo({"filename": path}).__repr__() == f"FrameInfo: {path}"
 
-    def test_raises_unsupported(self) -> None:
-        for filepath in UNSUPPORTED_FRAME_FILENAMES:
-            with pytest.raises(UnsupportedFrameInfo):
-                FrameInfo({"filename": filepath})
+    @pytest.mark.parametrize("filepath", UNSUPPORTED_FRAME_FILENAMES)
+    def test_raises_unsupported(self, filepath: str) -> None:
+        with pytest.raises(UnsupportedFrameInfo):
+            FrameInfo({"filename": filepath})
 
     def test_raises_no_extension(self) -> None:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
