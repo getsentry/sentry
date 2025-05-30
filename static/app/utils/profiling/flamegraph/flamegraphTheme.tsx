@@ -329,7 +329,10 @@ export const makeLightChonkFlamegraphTheme = (
 
   return {
     LCH: LCH_LIGHT_CHONK,
-    SIZES,
+    SIZES: {
+      ...SIZES,
+      TIMELINE_LABEL_HEIGHT: 26,
+    },
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT_CHONK),
@@ -419,7 +422,10 @@ export const makeDarkChonkFlamegraphTheme = (
   const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK_CHONK,
-    SIZES,
+    SIZES: {
+      ...SIZES,
+      TIMELINE_LABEL_HEIGHT: 26,
+    },
     FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_DARK_CHONK),
