@@ -5,15 +5,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import {type SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   chartType: ChartType;
   yAxes: string[];
+  groupBy?: SpanFields[];
   search?: MutableSearch;
   title?: string;
 };
 
-export function OpenInExploreButton({yAxes, title, search, chartType}: Props) {
+export function OpenInExploreButton({yAxes, title, search, chartType, groupBy}: Props) {
   const organization = useOrganization();
 
   const url = getExploreUrl({
@@ -28,7 +30,7 @@ export function OpenInExploreButton({yAxes, title, search, chartType}: Props) {
     title: title ?? yAxes[0],
     query: search?.formatString(),
     sort: undefined,
-    groupBy: undefined,
+    groupBy,
   });
 
   return (
