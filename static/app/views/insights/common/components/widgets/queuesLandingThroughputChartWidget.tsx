@@ -9,7 +9,7 @@ export default function QueuesLandingThroughputChartWidget(
     <ThroughputChart
       {...props}
       id="queuesLandingThroughputChartWidget"
-      referrer={Referrer.QUEUES_LANDING_CHARTS}
+      referrer={Referrer.QUEUE_LANDING_THROUGHPUT_CHART}
     />
   );
 }

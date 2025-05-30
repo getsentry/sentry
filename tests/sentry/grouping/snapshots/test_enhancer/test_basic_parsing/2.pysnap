@@ -1,10 +1,113 @@
 ---
-created: '2024-06-06T14:41:17.725971+00:00'
+created: '2025-05-23T05:23:38.419820+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_enhancer.py
 ---
 bases:
 - common:v1
+classifier_rules:
+- actions:
+  - flag: true
+    key: app
+    range: null
+  matchers:
+  - key: path
+    negated: false
+    pattern: '*/code/game/whatever/*'
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    negated: false
+    pattern: native
+  - key: module
+    negated: false
+    pattern: std::*
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: module
+    negated: false
+    pattern: core::*
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    negated: false
+    pattern: javascript
+  - key: path
+    negated: false
+    pattern: '*/test.js'
+- actions:
+  - flag: false
+    key: app
+    range: null
+  matchers:
+  - key: family
+    negated: false
+    pattern: javascript
+  - key: app
+    negated: false
+    pattern: '1'
+  - key: path
+    negated: false
+    pattern: '*/test.js'
+contributes_rules:
+- actions:
+  - flag: false
+    key: group
+    range: up
+  - flag: false
+    key: group
+    range: null
+  matchers:
+  - key: function
+    negated: false
+    pattern: panic_handler
+- actions:
+  - flag: false
+    key: group
+    range: down
+  matchers:
+  - key: function
+    negated: false
+    pattern: ThreadStartWin32
+- actions:
+  - flag: false
+    key: group
+    range: down
+  matchers:
+  - key: function
+    negated: false
+    pattern: ThreadStartLinux
+- actions:
+  - flag: false
+    key: group
+    range: down
+  matchers:
+  - key: function
+    negated: false
+    pattern: ThreadStartMac
+- actions:
+  - value: 3
+    var: max-frames
+  matchers:
+  - key: family
+    negated: false
+    pattern: native
+- actions:
+  - value: 12
+    var: max-frames
+  matchers:
+  - key: value
+    negated: false
+    pattern: '*something*'
 id: null
 rules:
 - actions:

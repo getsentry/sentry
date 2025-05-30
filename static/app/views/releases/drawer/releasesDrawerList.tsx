@@ -1,7 +1,6 @@
 import {useCallback, useRef} from 'react';
-import type {SeriesOption} from 'echarts';
+import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
-import type {EChartsInstance} from 'echarts-for-react';
 
 import {
   type ChartId,
@@ -41,7 +40,7 @@ type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
 
 function createMarkLineUpdater(lineStyle: Partial<MarkLineOption['lineStyle']>) {
   return (
-    echartsInstance: EChartsInstance,
+    echartsInstance: ECharts,
     seriesId: string,
     callbackFn: MarkLineDataCallbackFn
   ) => {

@@ -185,5 +185,5 @@ export function getAutofixRunExists(group: Group) {
 }
 
 export function isIssueQuickFixable(group: Group) {
-  return group.seerFixabilityScore && group.seerFixabilityScore > 0.72;
+  return group.seerFixabilityScore && group.seerFixabilityScore > 0.7;
 }
