@@ -12,7 +12,6 @@ from sentry.issues.auto_source_code_config.frame_info import FrameInfo
 
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/gtm.js",  # Top source; starts with backslash
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
@@ -120,6 +119,10 @@ class TestFrameInfo:
             pytest.param(
                 "app:///../services/something.py",
                 "app:///../services",
+            ),
+            pytest.param(
+                "/gtm.js",
+                "/",
             ),
         ],
     )
