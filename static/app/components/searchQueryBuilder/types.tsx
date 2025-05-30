@@ -25,3 +25,17 @@ export type CallbackSearchState = {
   parsedQuery: ParseResult | null;
   queryIsValid: boolean;
 };
+
+export enum ExtendedTermOperators {
+  DEFAULT = '',
+  GREATER_THAN_EQUAL = '>=',
+  LESS_THAN_EQUAL = '<=',
+  GREATER_THAN = '>',
+  LESS_THAN = '<',
+  EQUAL = '=',
+  NOT_EQUAL = '!=',
+  CONTAINS = 'contains',
+  DOES_NOT_CONTAIN = 'does not contain',
+  STARTS_WITH = 'starts with',
+  ENDS_WITH = 'ends with',
+}
