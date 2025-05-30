@@ -667,7 +667,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
 
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
-        id = f.rule.id
+        id: str | int = f.rule.id
 
         # if we are using the new workflow engine, we need to use the legacy rule id
         # Ignore test notifications
