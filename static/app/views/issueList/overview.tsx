@@ -82,6 +82,7 @@ interface Props
     Record<PropertyKey, string | undefined>,
     {searchId?: string}
   > {
+  headerActions?: ReactNode;
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
@@ -163,6 +164,7 @@ function IssueListOverview({
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
+  headerActions,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -1097,6 +1099,7 @@ function IssueListOverview({
           description={titleDescription}
           realtimeActive={realtimeActive}
           onRealtimeChange={onRealtimeChange}
+          headerActions={headerActions}
         />
       ) : (
         <IssueListHeader
