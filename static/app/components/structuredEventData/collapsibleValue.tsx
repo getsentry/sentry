@@ -63,6 +63,7 @@ export function CollapsibleValue({
       {shouldShowToggleButton && !isExpanded ? (
         <NumItemsButton
           size="zero"
+          priority="transparent"
           onClick={() => {
             expand();
             setIsExpanded(true);
