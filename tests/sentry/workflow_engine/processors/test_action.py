@@ -17,8 +17,9 @@ from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
     filter_recently_fired_actions,
     filter_recently_fired_workflow_actions,
-    get_workflow_group_action_statuses,
+    get_workflow_action_group_statuses,
     is_action_permitted,
+    process_workflow_action_group_statuses,
     update_workflow_action_group_statuses,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -196,7 +197,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status.refresh_from_db()
         assert status.date_updated == timezone.now() - timedelta(hours=1)
 
-    def test_get_workflow_group_action_statuses(self):
+    def test_get_workflow_action_group_statuses(self):
         workflow = self.create_workflow(organization=self.organization)
         WorkflowActionGroupStatus.objects.create(
             workflow=workflow, action=self.action, group=self.group
@@ -206,12 +207,12 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         workflow_ids = {self.workflow.id, workflow.id}
 
-        action_to_statuses = get_workflow_group_action_statuses(
+        action_to_statuses = get_workflow_action_group_statuses(
             {self.action.id: {self.workflow.id}}, self.group, workflow_ids
         )
         assert action_to_statuses == {self.action.id: [status]}
 
-    def test_update_workflow_action_group_statuses(self):
+    def test_process_workflow_action_group_statuses(self):
         workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
         action_group = self.create_data_condition_group(logic_type="any-short")
         self.create_data_condition_group_action(
@@ -228,31 +229,49 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_2 = WorkflowActionGroupStatus.objects.create(
             workflow=workflow, action=action, group=self.group
         )
-        status_2.update(date_updated=timezone.now() - timedelta(days=1))
+        status_2.update(date_updated=timezone.now() - timedelta(days=1, minutes=1))
 
-        action_to_workflows_ids = {action.id: {workflow.id}, self.action.id: {self.workflow.id}}
-        action_to_statuses = {action.id: [status, status_2]}
         workflows = Workflow.objects.all()
-        action_ids = update_workflow_action_group_statuses(
-            action_to_workflows_ids, action_to_statuses, workflows, self.group
+        action_to_statuses = {self.action.id: [status], action.id: [status_2]}
+        action_to_workflows_ids = {self.action.id: {self.workflow.id}, action.id: {workflow.id}}
+
+        action_to_workflow_ids, statuses_to_update, missing_statuses = (
+            process_workflow_action_group_statuses(
+                action_to_workflows_ids, action_to_statuses, workflows, self.group, timezone.now()
+            )
         )
-        assert action_ids == {action.id, self.action.id}
 
-        status_2.refresh_from_db()
-        assert status_2.date_updated == timezone.now()
+        assert action_to_workflow_ids == {
+            self.action.id: self.workflow.id,
+            action.id: workflow.id,
+        }
+        assert statuses_to_update == {status_2.id}
 
-        status.refresh_from_db()
-        assert status.date_updated == timezone.now() - timedelta(hours=1)  # not updated
+        assert len(missing_statuses) == 1
 
-        assert (
-            WorkflowActionGroupStatus.objects.filter(
-                workflow=self.workflow,
-                action=self.action,
-                group=self.group,
-                date_updated=timezone.now(),
-            ).count()
-            == 1
-        )  # created new status
+        missing_status = missing_statuses[0]
+        assert missing_status.workflow == self.workflow
+        assert missing_status.action == self.action
+        assert missing_status.group == self.group
+
+    def test_update_workflow_action_group_statuses(self):
+        status = WorkflowActionGroupStatus.objects.create(
+            workflow=self.workflow, action=self.action, group=self.group
+        )
+        status.update(date_updated=timezone.now() - timedelta(hours=1))
+
+        _, action = self.create_workflow_action(workflow=self.workflow)
+        statuses_to_create = [
+            WorkflowActionGroupStatus(
+                workflow=self.workflow, action=action, group=self.group, date_updated=timezone.now()
+            )
+        ]
+        update_workflow_action_group_statuses(timezone.now(), {status.id}, statuses_to_create)
+
+        all_statuses = WorkflowActionGroupStatus.objects.all()
+        assert all_statuses.count() == 2
+        for status in all_statuses:
+            assert status.date_updated == timezone.now()
 
 
 class TestWorkflowFireHistory(BaseWorkflowTest):
