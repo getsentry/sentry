@@ -81,7 +81,10 @@ describe('SeerNotices', function () {
   it('shows fixability view step if automation is allowed and view not starred', () => {
     const project = getProjectWithAutomation('high');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+      organization: {
+        ...organization,
+        features: ['issue-stream-custom-views', 'trigger-autofix-on-issue-summary'],
+      },
     });
     expect(screen.getByText('Get Some Quick Wins')).toBeInTheDocument();
     expect(screen.getByText('Star Recommended View')).toBeInTheDocument();
@@ -99,7 +102,12 @@ describe('SeerNotices', function () {
     });
     const project = getProjectWithAutomation('medium');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      ...{organization: {...organization, features: []}},
+      ...{
+        organization: {
+          ...organization,
+          features: [],
+        },
+      },
     });
     // Should not find any step titles
     expect(screen.queryByText('Set Up the GitHub Integration')).not.toBeInTheDocument();

@@ -66,6 +66,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
   );
+  const isStarredViewAllowed = organization.features.includes(
+    'issue-stream-custom-views'
+  );
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -82,10 +85,13 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     !codeMappingRepos?.length &&
     !isLoadingPreferences;
   const needsAutomation =
-    project.autofixAutomationTuning === 'off' && isAutomationAllowed;
+    (project.autofixAutomationTuning === 'off' ||
+      project.autofixAutomationTuning === undefined) &&
+    isAutomationAllowed;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed;
+    isAutomationAllowed &&
+    isStarredViewAllowed;
 
   // Warning conditions
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
@@ -269,7 +275,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             )}
 
             {/* Step 4: Fixability View */}
-            {isAutomationAllowed && (
+            {isAutomationAllowed && isStarredViewAllowed && (
               <GuidedSteps.Step
                 key="fixability-view"
                 stepKey="fixability-view"
