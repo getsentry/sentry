@@ -5,11 +5,15 @@ import * as qs from 'query-string';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {IconAdd} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Installation = {
   avatar_url: string;
@@ -18,12 +22,20 @@ type Installation = {
 };
 
 type GithubInstallationProps = {
+  has_scm_multi_org: boolean;
   installation_info: Installation[];
+  organization_slug: string;
 };
 
-export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
-  const [installationID, setInstallationID] = useState<SelectKey>(-1);
+function GithubInstallationSelect({
+  installation_info,
+  has_scm_multi_org,
+  organization_slug,
+}: GithubInstallationProps) {
+  const [installationID, setInstallationID] = useState<SelectKey>('-1');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const source = 'github.multi_org';
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -37,7 +49,7 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
     // redirect to the extensions endpoint with the form fields as query params
     // this is needed so we don't restart the pipeline loading from the original
     // OrganizationIntegrationSetupView route
-    const chosen_installation_id = id ?? installationID ?? -1;
+    const chosen_installation_id = id ?? installationID ?? '-1';
     const currentParams = new URLSearchParams(window.location.search);
     const newParams = {
       ...Object.fromEntries(currentParams),
@@ -68,10 +80,56 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
             />
           )}
           <span>{`${installation.github_account}`}</span>
+          {installation.installation_id === '-1' || has_scm_multi_org || isSelfHosted ? (
+            ''
+          ) : (
+            <IconLightning size="xs" />
+          )}
         </OptionLabelWrapper>
       ),
     })
   );
+
+  const renderInstallationButton = () => {
+    if (installationID === '-1' || has_scm_multi_org) {
+      return (
+        <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
+          {t('Install')}
+        </StyledButton>
+      );
+    }
+
+    if (isSelfHosted) {
+      return (
+        <Tooltip
+          title={t(
+            'Please check your configuration, scm-multi-org feature is not enabled'
+          )}
+        >
+          <StyledButton disabled>{t('Install')}</StyledButton>;
+        </Tooltip>
+      );
+    }
+
+    return (
+      <StyledLinkButton
+        onClick={() => {
+          trackAnalytics(`${source}.upsell`, {
+            organization: organization_slug,
+          });
+        }}
+        href={`${origin}/settings/${organization_slug}/billing/overview/?referrer=upgrade-${source}`}
+        disabled={isSaving || !installationID || isSelfHosted}
+      >
+        <ButtonContent>
+          <Fragment>
+            <IconLightning />
+            {t('Upgrade')}
+          </Fragment>
+        </ButtonContent>
+      </StyledLinkButton>
+    );
+  };
 
   return (
     <Fragment>
@@ -82,6 +140,7 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
             'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
           )}
         </p>
+
         <StyledSelect
           onChange={handleSelect}
           options={selectOptions}
@@ -89,11 +148,7 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
           triggerLabel={installationID ? undefined : 'Choose Installation'}
         />
 
-        <ButtonContainer>
-          <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
-            Install
-          </StyledButton>
-        </ButtonContainer>
+        <ButtonContainer>{renderInstallationButton()}</ButtonContainer>
       </StyledContainer>
     </Fragment>
   );
@@ -104,7 +159,7 @@ const StyledContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   padding: ${space(2)};
-  max-width: 25%;
+  max-width: 33%;
   margin: 0 auto;
   margin-top: 10%;
 `;
@@ -116,7 +171,13 @@ const ButtonContainer = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(0.75)};
+  &:not(:disabled) {
+    background-color: #6c5fc7;
+    color: #fff;
+  }
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   &:not(:disabled) {
     background-color: #6c5fc7;
     color: #fff;
@@ -144,3 +205,11 @@ const StyledSelect = styled(CompactSelect)`
     width: 100%;
   }
 `;
+
+const ButtonContent = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+export default GithubInstallationSelect;
