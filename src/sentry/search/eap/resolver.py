@@ -814,7 +814,7 @@ class SearchResolver:
             else:
                 field_type = None
             # make sure to remove surrounding quotes if it's a tag
-            field = tag_match.group("tag").strip('"') if tag_match else column
+            field = tag_match.group("tag") if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]

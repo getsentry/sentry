@@ -4619,40 +4619,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["dataset"] == self.dataset
 
-    def test_typed_attributes_with_colons(self):
-        span = self.create_span(
-            {
-                "data": {
-                    "flag.evaluation.feature.organizations:foo": True,
-                },
-            },
-            start_ts=self.ten_mins_ago,
-        )
-        self.store_spans(
-            [
-                self.create_span(start_ts=self.ten_mins_ago),
-                span,
-            ],
-            is_eap=self.is_eap,
-        )
-
-        response = self.do_request(
-            {
-                "field": ['tags["flag.evaluation.feature.organizations:foo",number]'],
-                "query": 'has:tags["flag.evaluation.feature.organizations:foo",number]',
-                "project": self.project.id,
-                "dataset": self.dataset,
-            }
-        )
-        assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            {
-                "id": span["span_id"],
-                "project.name": self.project.slug,
-                'tags["flag.evaluation.feature.organizations:foo",number]': 1,
-            },
-        ]
-
     def test_count_if_two_args(self):
         self.store_spans(
             [
