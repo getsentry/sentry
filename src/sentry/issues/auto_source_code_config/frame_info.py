@@ -13,6 +13,7 @@ from .errors import (
 from .utils.platform import PlatformConfig
 
 PREFIXES_TO_REMOVE = ["app:///", "./", "../", "/"]
+NOT_FOUND = -1
 
 
 class FrameInfo:
@@ -26,24 +27,25 @@ class FrameInfo:
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
 
-        # Using regexes would be better but this is easier to understand
-        if (
-            not frame_file_path
-            or frame_file_path[0] in ["[", "<"]
-            or frame_file_path.find(" ") > -1
-            or frame_file_path.find("/") == -1
-        ):
-            raise UnsupportedFrameInfo("This path is not supported.")
-
-        if not get_extension(frame_file_path):
-            raise NeedsExtension("It needs an extension.")
-
         # We normalize the path to be as close to what the path would
         # look like in the source code repository, hence why we remove
         # the straight path prefix and drive letter
         self.normalized_path, removed_prefix = get_normalized_path_and_removed_prefix(
             frame_file_path
         )
+
+        # Using regexes would be better but this is easier to understand
+        if (
+            not frame_file_path
+            or frame_file_path[0] in ["[", "<"]
+            or frame_file_path.find(" ") == NOT_FOUND
+            or self.normalized_path.find("/") == NOT_FOUND
+        ):
+            raise UnsupportedFrameInfo("This path is not supported.")
+
+        if not get_extension(frame_file_path):
+            raise NeedsExtension("It needs an extension.")
+
         if frame_file_path.startswith("/"):
             self.stack_root = ""
         else:
