@@ -25,6 +25,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
@@ -62,9 +63,16 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       addErrorMessage(t('Failed to create view'));
     },
   });
+  const detailedProject = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
 
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
+  );
+  const isStarredViewAllowed = organization.features.includes(
+    'issue-stream-custom-views'
   );
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
@@ -82,10 +90,14 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     !codeMappingRepos?.length &&
     !isLoadingPreferences;
   const needsAutomation =
-    project.autofixAutomationTuning === 'off' && isAutomationAllowed;
+    detailedProject?.data &&
+    (detailedProject?.data?.autofixAutomationTuning === 'off' ||
+      detailedProject?.data?.autofixAutomationTuning === undefined) &&
+    isAutomationAllowed;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed;
+    isAutomationAllowed &&
+    isStarredViewAllowed;
 
   // Warning conditions
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
@@ -269,7 +281,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             )}
 
             {/* Step 4: Fixability View */}
-            {isAutomationAllowed && (
+            {isAutomationAllowed && isStarredViewAllowed && (
               <GuidedSteps.Step
                 key="fixability-view"
                 stepKey="fixability-view"
