@@ -235,6 +235,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -399,17 +400,11 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       return;
     }
 
-    if (!group.hasSeen) {
+    const project = projects.find(p => p.id === group?.project.id);
+    if (!group.hasSeen && project?.isMember) {
       markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
     }
-  }, [
-    api,
-    group?.hasSeen,
-    group?.project?.id,
-    group?.project?.slug,
-    organization.slug,
-    params.groupId,
-  ]);
+  }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
 
   useEffect(() => {
     const locationQuery = qs.parse(window.location.search) || {};
