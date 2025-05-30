@@ -173,7 +173,6 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
     coreJs: '3.41',
-    targets: ['chrome 64', 'edge 79', 'firefox 67', 'opera 51', 'safari 12'],
   },
   jsc: {
     experimental: {
