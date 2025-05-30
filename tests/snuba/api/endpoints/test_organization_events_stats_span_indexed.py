@@ -2192,3 +2192,51 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[0] == (self.day_ago.timestamp(), [{"count": 1}])
         # The timestamp of the last event should be 22:00 and there should also only be 1 event
         assert data[-1] == ((self.day_ago + timedelta(hours=12)).timestamp(), [{"count": 1}])
+
+    def test_top_events_with_timestamp(self):
+        """Users shouldn't groupby timestamp for top events"""
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": "foo", "status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": "bar", "status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {
+                        "segment_name": "baz",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["timestamp", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 400, response.content
