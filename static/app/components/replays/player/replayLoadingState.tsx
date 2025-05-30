@@ -34,9 +34,7 @@ export default function ReplayLoadingState({
 
   const throttledErrorExists =
     readerResult.fetchError?.status === 429 ||
-    readerResult.attachmentError?.find(
-      error => error.status === 429 && readerResult.replay?.hasProcessingErrors()
-    );
+    readerResult.attachmentError?.find(error => error.status === 429);
 
   if (throttledErrorExists) {
     return renderThrottled ? (
