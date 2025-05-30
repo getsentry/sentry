@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
@@ -18,8 +16,16 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
 
-function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
-  return identifier ? `${type} - ${identifier}` : type;
+function getNodeLabel({
+  node,
+  nodeField,
+}: {
+  node: ViewHierarchyWindow;
+  nodeField: ViewHierarchyNodeField;
+}) {
+  const label = node[nodeField] ?? 'type';
+  const {identifier} = node;
+  return identifier ? `${label} - ${identifier}` : label;
 }
 
 function onScrollToNode(
@@ -54,17 +60,19 @@ function onScrollToNode(
   }
 }
 
+// there can be many other properties, but we only care about a few
 export type ViewHierarchyWindow = {
-  alpha: number;
-  height: number;
-  type: string;
-  visible: boolean;
-  width: number;
-  x: number;
-  y: number;
+  alpha?: number;
   children?: ViewHierarchyWindow[];
   depth?: number;
+  height?: number;
   identifier?: string;
+  name?: string;
+  type?: string;
+  visible?: boolean;
+  width?: number;
+  x?: number;
+  y?: number;
 };
 
 export type ViewHierarchyData = {
@@ -72,12 +80,23 @@ export type ViewHierarchyData = {
   windows: ViewHierarchyWindow[];
 };
 
+export type ViewHierarchyNodeField = 'type' | 'name';
+
 type ViewHierarchyProps = {
-  project: Project;
+  emptyMessage: string;
+  nodeField: ViewHierarchyNodeField;
+  showWireframe: boolean;
   viewHierarchy: ViewHierarchyData;
+  platform?: string;
 };
 
-function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
+function ViewHierarchy({
+  viewHierarchy,
+  emptyMessage,
+  showWireframe,
+  platform,
+  nodeField,
+}: ViewHierarchyProps) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
@@ -125,7 +144,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
           handleRowClick(e);
           trackAnalytics('issue_details.view_hierarchy.select_from_tree', {
             organization,
-            platform: project.platform,
+            platform,
             user_org_role: organization.orgRole,
           });
         }}
@@ -133,7 +152,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
         <Node
           id={key}
-          label={getNodeLabel(r.item.node)}
+          label={getNodeLabel({node: r.item.node, nodeField})}
           onExpandClick={() =>
             handleExpandTreeNode(r.item, !r.item.expanded, {expandChildren: false})
           }
@@ -171,31 +190,24 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       handleScrollTo(item => item === node);
       trackAnalytics('issue_details.view_hierarchy.select_from_wireframe', {
         organization,
-        platform: project.platform,
+        platform,
         user_org_role: organization.orgRole,
       });
     },
-    [handleScrollTo, organization, project.platform]
+    [handleScrollTo, organization, platform]
   );
-
-  const showWireframe = project?.platform !== 'unity';
 
   if (!hierarchy.length) {
     return (
       <EmptyStateContainer>
-        <EmptyStateWarning small>
-          {t('There is no view hierarchy data to visualize')}
-        </EmptyStateWarning>
+        <EmptyStateWarning small>{emptyMessage}</EmptyStateWarning>
       </EmptyStateContainer>
     );
   }
 
   const viewHierarchyContent = (
     <Fragment>
-      <RenderingSystem
-        platform={project?.platform}
-        system={viewHierarchy.rendering_system}
-      />
+      <RenderingSystem platform={platform} system={viewHierarchy.rendering_system} />
       <Content>
         <Left hasRight={showWireframe}>
           <TreeContainer>
@@ -209,7 +221,10 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
           </TreeContainer>
           {defined(selectedNode) && (
             <DetailsContainer>
-              <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+              <DetailsPanel
+                data={selectedNode}
+                getTitle={node => getNodeLabel({node, nodeField})}
+              />
             </DetailsContainer>
           )}
         </Left>
@@ -219,7 +234,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
               hierarchy={hierarchy}
               selectedNode={userHasSelected ? selectedNode : undefined}
               onNodeSelect={onWireframeNodeSelect}
-              project={project}
+              platform={platform}
             />
           </Right>
         )}

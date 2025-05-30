@@ -802,7 +802,7 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-export const HeaderContainer = styled('div')<{
+const HeaderContainer = styled('div')<{
   hasProfileMeasurementsChart: boolean;
   isEmbedded: boolean;
 }>`

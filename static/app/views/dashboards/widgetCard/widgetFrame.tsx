@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
@@ -14,7 +15,7 @@ import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widge
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
+interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;

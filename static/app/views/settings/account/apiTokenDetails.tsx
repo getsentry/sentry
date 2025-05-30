@@ -35,7 +35,7 @@ type FetchApiTokenParameters = {
 };
 type FetchApiTokenResponse = InternalAppApiToken;
 
-export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
+const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
   [`/api-tokens/${tokenId}/`] as const;
 
 function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {

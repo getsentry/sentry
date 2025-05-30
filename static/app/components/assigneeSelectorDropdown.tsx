@@ -58,7 +58,7 @@ type AssignableTeam = {
   team: Team;
 };
 
-export interface AssigneeSelectorDropdownProps {
+interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
    * TODO: generalize this for alerts
@@ -112,7 +112,7 @@ export interface AssigneeSelectorDropdownProps {
   ) => React.ReactNode;
 }
 
-export function AssigneeAvatar({
+function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
 }: {
@@ -545,7 +545,7 @@ export default function AssigneeSelectorDropdown({
         size="xs"
         aria-label={t('Invite Member')}
         disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
         }}
@@ -581,6 +581,7 @@ export default function AssigneeSelectorDropdown({
         menuFooter={footerInviteButton}
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
+        strategy="fixed"
       />
     </AssigneeWrapper>
   );
@@ -589,6 +590,7 @@ export default function AssigneeSelectorDropdown({
 export const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
+  text-align: left;
 `;
 
 const AssigneeDropdownButton = styled(DropdownButton)`

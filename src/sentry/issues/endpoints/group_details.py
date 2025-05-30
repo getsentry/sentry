@@ -2,9 +2,9 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,13 +27,13 @@ from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group, get_open_periods_for_group
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
@@ -84,11 +84,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
     }
 
-    def _get_seen_by(self, request: Request, group: Group):
+    def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group: Group):
+    def _get_context_plugins(self, request: Request, group: Group) -> list[dict[str, Any]]:
         project = group.project
         return serialize(
             [
@@ -400,13 +400,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :auth: required
         """
         from sentry.utils import snuba
-
-        issue_platform_deletion_allowed = features.has(
-            "organizations:issue-platform-deletion", group.project.organization, actor=request.user
-        )
-
-        if group.issue_category != GroupCategory.ERROR and not issue_platform_deletion_allowed:
-            raise ValidationError(detail="Only error issues can be deleted.")
 
         try:
             delete_group_list(request, group.project, [group], "delete")

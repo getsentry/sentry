@@ -1,9 +1,10 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 export function RouteComponentPropsFixture<
-  QueryParams extends {[key: string]: string | undefined},
-  RouteParams extends {[key: string]: string | undefined},
+  QueryParams extends Record<string, string | undefined>,
+  RouteParams extends Record<string, string | undefined>,
 >(
   params: Partial<RouteComponentProps<QueryParams, RouteParams>> = {}
 ): RouteComponentProps<QueryParams, RouteParams> {

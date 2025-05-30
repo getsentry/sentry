@@ -24,7 +24,6 @@ from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -125,21 +124,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 {"detail": "File name must not contain special whitespace characters"}, status=400
             )
 
-        dist_name = request.data.get("dist")
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
-
-        # Quickly check for the presence of this file before continuing with
-        # the costly file upload process.
-        if ReleaseFile.objects.filter(
-            organization_id=release.organization_id,
-            release_id=release.id,
-            name=full_name,
-            dist_id=dist.id if dist else dist,
-        ).exists():
-            return Response({"detail": ERR_FILE_EXISTS}, status=409)
-
         headers = {"Content-Type": fileobj.content_type}
         for headerval in request.data.getlist("header") or ():
             try:
@@ -153,6 +137,22 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                         status=400,
                     )
                 headers[k] = v.strip()
+
+        dist_name = request.data.get("dist")
+
+        dist = None
+        if dist_name:
+            dist = release.add_dist(dist_name)
+
+        # Quickly check for the presence of this file before continuing with
+        # the costly file upload process.
+        if ReleaseFile.objects.filter(
+            organization_id=release.organization_id,
+            release_id=release.id,
+            name=full_name,
+            dist_id=dist.id if dist else dist,
+        ).exists():
+            return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
         file = File.objects.create(name=name, type="release.file", headers=headers)
         file.putfile(fileobj, logger=logger)
@@ -169,7 +169,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                     dist_id=dist.id if dist else dist,
                 )
         except IntegrityError:
-            incr_rollback_metrics(ReleaseFile)
             file.delete()
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 

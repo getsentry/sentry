@@ -6,7 +6,11 @@ from django.utils import timezone
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouplink import GroupLink
@@ -18,6 +22,7 @@ from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user_option import UserOption
@@ -470,6 +475,19 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert not serializer.conditions
         result = serialize(group, self.user, serializer=serializer)
         assert result["id"] == str(group.id)
+
+    def test_issue_category(self):
+        group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+
+        assert result["issueCategory"] == GroupCategory.PERFORMANCE.name.lower()
+
+    @with_feature("organizations:issue-taxonomy")
+    def test_issue_category_v2(self):
+        group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+
+        assert result["issueCategory"] == GroupCategory.DB_QUERY.name.lower()
 
 
 class PerformanceGroupSerializerSnubaTest(

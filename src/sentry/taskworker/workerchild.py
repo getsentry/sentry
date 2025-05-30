@@ -83,6 +83,17 @@ def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
     return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
+def status_name(status: TaskActivationStatus.ValueType) -> str:
+    """Convert a TaskActivationStatus to a human readable name"""
+    if status == TASK_ACTIVATION_STATUS_COMPLETE:
+        return "complete"
+    if status == TASK_ACTIVATION_STATUS_FAILURE:
+        return "failure"
+    if status == TASK_ACTIVATION_STATUS_RETRY:
+        return "retry"
+    return f"unknown-{status}"
+
+
 def child_process(
     child_tasks: queue.Queue[TaskActivation],
     processed_tasks: queue.Queue[ProcessingResult],
@@ -101,7 +112,9 @@ def child_process(
     child_worker_init(process_type)
 
     from django.core.cache import cache
+    from usageaccountant import UsageUnit
 
+    from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
     from sentry.taskworker.task import Task
@@ -133,8 +146,6 @@ def child_process(
         processing_pool_name: str,
         process_type: str,
     ) -> None:
-        # print("!!!!!! STARTING WORKER !!!!!!!")
-
         processed_task_count = 0
 
         def handle_alarm(signum: int, frame: FrameType | None) -> None:
@@ -310,6 +321,13 @@ def child_process(
                 )
                 span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
+            # TODO(taskworker) remove this when doing cleanup
+            # The `__start_time` parameter is spliced into task parameters by
+            # sentry.celery.SentryTask._add_metadata and needs to be removed
+            # from kwargs like sentry.tasks.base.instrumented_task does.
+            if "__start_time" in kwargs:
+                kwargs.pop("__start_time")
+
             try:
                 task_func(*args, **kwargs)
                 transaction.set_status(SPANSTATUS.OK)
@@ -328,20 +346,21 @@ def child_process(
         execution_duration = completion_time - start_time
         execution_latency = completion_time - task_added_time
 
-        logger.info(
+        logger.debug(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
                 "execution_duration": execution_duration,
                 "execution_latency": execution_latency,
-                "status": status,
+                "status": status_name(status),
             },
         )
         metrics.incr(
             "taskworker.worker.execute_task",
             tags={
                 "namespace": activation.namespace,
-                "status": status,
+                "taskname": activation.taskname,
+                "status": status_name(status),
                 "processing_pool": processing_pool_name,
             },
         )
@@ -362,6 +381,14 @@ def child_process(
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
             },
+        )
+
+        namespace = taskregistry.get(activation.namespace)
+        usage_accountant.record(
+            resource_id="taskworker",
+            app_feature=namespace.app_feature,
+            amount=int(execution_duration * 1000),
+            usage_type=UsageUnit.MILLISECONDS,
         )
 
         if (

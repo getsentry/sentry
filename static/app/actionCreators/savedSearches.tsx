@@ -88,7 +88,7 @@ export function fetchRecentSearches(
   return promise;
 }
 
-export function makeRecentSearchesQueryKey({
+function makeRecentSearchesQueryKey({
   limit,
   orgSlug,
   savedSearchType,

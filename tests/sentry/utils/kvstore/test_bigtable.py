@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
+from unittest import mock
 
 import pytest
 
@@ -80,3 +81,21 @@ def test_compression_compatibility(request, store_factory) -> None:
 
         for reader in stores.values():
             assert reader.get(key) == value
+
+
+def test_get_uses_5s_timeout_for_retry():
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    with (
+        mock.patch.object(store, "_get_table", return_value=mock_table),
+        mock.patch("sentry_sdk.start_span"),
+    ):
+        mock_table.read_row.return_value = None
+
+        store.get("some-key")
+
+        # Check the retry argument
+        _, kwargs = mock_table.read_row.call_args
+        retry_arg = kwargs["retry"]
+        assert hasattr(retry_arg, "_timeout")
+        assert retry_arg._timeout == 5.0

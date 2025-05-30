@@ -6,6 +6,9 @@ from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -47,7 +50,7 @@ from sentry.search.eap.columns import (
     VirtualColumnDefinition,
 )
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
@@ -66,6 +69,7 @@ class SearchResolver:
     config: SearchResolverConfig
     definitions: ColumnDefinitions
     granularity_secs: int | None = None
+    _query_result_cache: dict[str, EAPResponse] = field(default_factory=dict)
     _resolved_attribute_cache: dict[
         str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
@@ -154,23 +158,18 @@ class SearchResolver:
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             return None
 
-        # TODO: replace this with an IN condition when the RPC supports it
-        filters = [
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=resolved_column.proto_definition,
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str=environment.name),
-                )
-            )
-            for environment in self.params.environments
-            if environment is not None
-        ]
+        envs = [env.name for env in self.params.environments if env is not None]
 
-        if not filters:
+        if not envs:
             return None
 
-        return TraceItemFilter(or_filter=OrFilter(filters=filters))
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=resolved_column.proto_definition,
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_str_array=StrArray(values=envs)),
+            )
+        )
 
     def __resolve_query(
         self, querystring: str | None
@@ -401,14 +400,27 @@ class SearchResolver:
             )
         return final_raw_value
 
+    def convert_term(self, term: event_search.SearchFilter) -> event_search.SearchFilter:
+        name = term.key.name
+
+        converter = self.definitions.filter_aliases.get(name)
+        if converter is not None:
+            term = converter(self.params, term)
+
+        return term
+
     def resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
+        term = self.convert_term(term)
+
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
-            resolved_column, value = self.map_context_to_original_column(term, context_definition)
+            resolved_column, value = self.map_search_term_context_to_original_column(
+                term, context_definition
+            )
             context_definition = None
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
@@ -508,9 +520,8 @@ class SearchResolver:
 
     def map_context_to_original_column(
         self,
-        term: event_search.SearchFilter,
         context_definition: VirtualColumnDefinition,
-    ) -> tuple[ResolvedAttribute, str | int | list[str]]:
+    ) -> ResolvedAttribute:
         """
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
@@ -530,10 +541,30 @@ class SearchResolver:
         if public_alias is None:
             raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
 
-        value = term.value.value
         resolved_column, _ = self.resolve_column(public_alias)
+
         if not isinstance(resolved_column.proto_definition, AttributeKey):
-            raise ValueError(f"{term.key.name} is not valid search term")
+            raise ValueError(f"{resolved_column.public_alias} is not valid search term")
+
+        return resolved_column
+
+    def map_search_term_context_to_original_column(
+        self,
+        term: event_search.SearchFilter,
+        context_definition: VirtualColumnDefinition,
+    ) -> tuple[ResolvedAttribute, str | int | list[str]]:
+        """
+        Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
+        (see https://github.com/getsentry/eap-planning/issues/236)
+        """
+        context = context_definition.constructor(self.params)
+        is_number_column = (
+            context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
+        )
+
+        resolved_column = self.map_context_to_original_column(context_definition)
+
+        value = term.value.value
 
         inverse_value_map: dict[str, list[str]] = {}
         for key, val in context.value_map.items():
@@ -570,8 +601,11 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        proto_definition = resolved_column.proto_definition
 
-        if not isinstance(resolved_column.proto_definition, AttributeAggregation):
+        if not isinstance(
+            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+        ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
         # TODO: Handle different units properly
@@ -582,13 +616,16 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        kwargs = {"op": operator, "val": value}
+        aggregation_key = (
+            "conditional_aggregation"
+            if isinstance(proto_definition, AttributeConditionalAggregation)
+            else "aggregation"
+        )
+        kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(
-                comparison_filter=AggregationComparisonFilter(
-                    aggregation=resolved_column.proto_definition,
-                    op=operator,
-                    val=value,
-                ),
+                comparison_filter=AggregationComparisonFilter(**kwargs),
             ),
             context,
         )
@@ -650,6 +687,8 @@ class SearchResolver:
                         )
                     bool_value = lowered_value in constants.TRUTHY_VALUES
                     return AttributeValue(val_bool=bool_value)
+                elif isinstance(value, bool):
+                    return AttributeValue(val_bool=value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -774,6 +813,7 @@ class SearchResolver:
                 field_type = "string"
             else:
                 field_type = None
+            # make sure to remove surrounding quotes if it's a tag
             field = tag_match.group("tag") if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
@@ -842,12 +882,24 @@ class SearchResolver:
                 f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
             )
 
-        for index, argument_definition in enumerate(function_definition.arguments):
+        missing_args = len(function_definition.arguments) - len(arguments)
+        argument_index = 0
+
+        for argument_definition in function_definition.arguments:
             if argument_definition.ignored:
                 continue
 
-            if index < len(arguments):
-                argument = arguments[index]
+            # If there are missing arguments, and the argument definition has a default arg, use the default arg
+            # this assumes the missing args are at the beginning or end of the arguments list
+            if missing_args > 0 and argument_definition.default_arg:
+                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                parsed_args.append(parsed_argument)
+                missing_args -= 1
+                continue
+
+            if argument_index < len(arguments):
+                argument = arguments[argument_index]
+                argument_index += 1
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
                         raise InvalidSearchQuery(
@@ -855,6 +907,7 @@ class SearchResolver:
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
+                    parsed_args.append(parsed_argument)
                 else:
                     if argument_definition.argument_types is None:
                         parsed_args.append(argument)  # assume it's a string
@@ -868,23 +921,24 @@ class SearchResolver:
                         else:
                             parsed_args.append(argument)
                     continue
-
-            elif argument_definition.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
             else:
                 raise InvalidSearchQuery(
                     f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
-            if (
-                isinstance(argument_definition, AttributeArgumentDefinition)
-                and argument_definition.attribute_types is not None
+            if isinstance(argument_definition, AttributeArgumentDefinition) and (
+                argument_definition.attribute_types is not None
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
-                raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
-                )
-            parsed_args.append(parsed_argument)
+                if argument_definition.field_allowlist is not None:
+                    if parsed_argument.public_alias not in argument_definition.field_allowlist:
+                        raise InvalidSearchQuery(
+                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}."
+                        )
+                else:
+                    raise InvalidSearchQuery(
+                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    )
 
         resolved_arguments = []
         for parsed_arg in parsed_args:
@@ -910,6 +964,8 @@ class SearchResolver:
             search_type=search_type,
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
+            query_result_cache=self._query_result_cache,
+            extrapolation_override=self.config.disable_aggregate_extrapolation,
         )
 
         resolved_context = None

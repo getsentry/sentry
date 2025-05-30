@@ -41,11 +41,8 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     ? selectionMode === 'multiple'
     : listState.selectionManager.selectionMode === 'multiple';
 
-  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed} = useGridListItem(
-    {node, shouldSelectOnPressUp: true},
-    listState,
-    ref
-  );
+  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed, isFocused} =
+    useGridListItem({node, shouldSelectOnPressUp: true}, listState, ref);
 
   const {
     checkboxProps: {
@@ -105,7 +102,9 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
             )}
           </CheckWrap>
         )}
-        {leadingItems}
+        {typeof leadingItems === 'function'
+          ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+          : leadingItems}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps

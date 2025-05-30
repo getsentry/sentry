@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 from typing import Any, ClassVar
 
 from django.conf import settings
@@ -23,7 +24,7 @@ from sentry.db.models.manager.base import BaseManager
 
 # NOTE: There are gaps in the numberation because a
 # few tasks were removed as they are no longer used in the quick start sidebar
-class OnboardingTask:
+class OnboardingTask(enum.IntEnum):
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
@@ -36,11 +37,20 @@ class OnboardingTask:
     REAL_TIME_NOTIFICATIONS = 15
     LINK_SENTRY_TO_SOURCE_CODE = 16
 
+    @classmethod
+    def values(cls) -> list[int]:
+        return [member.value for member in cls]
 
-class OnboardingTaskStatus:
+
+class OnboardingTaskStatus(enum.IntEnum):
     COMPLETE = 1
-    PENDING = 2
+    # deprecated - no longer used
+    # PENDING = 2
     SKIPPED = 3
+
+    @classmethod
+    def values(cls) -> list[int]:
+        return [member.value for member in cls]
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
@@ -71,7 +81,6 @@ class AbstractOnboardingTask(Model):
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
-        (OnboardingTaskStatus.PENDING, "pending"),
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
 
@@ -122,7 +131,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
     TASK_KEY_MAP = dict(TASK_CHOICES)
     TASK_LOOKUP_BY_KEY = {v: k for k, v in TASK_CHOICES}
 
-    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
+    task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
@@ -159,6 +168,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.SESSION_REPLAY,
             OnboardingTask.REAL_TIME_NOTIFICATIONS,
             OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    # These are tasks that can be tightened to a project
+    TRANSFERABLE_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 

@@ -400,6 +400,10 @@ class Endpoint(APIView):
 
                 self.initial(request, *args, **kwargs)
 
+                if getattr(request, "access", None) is None:
+                    # setup default access
+                    request.access = access.from_request(request)
+
                 # Get the appropriate handler method
                 assert request.method is not None
                 method = request.method.lower()
@@ -412,10 +416,6 @@ class Endpoint(APIView):
                     self.kwargs = kwargs
                 else:
                     handler = self.http_method_not_allowed
-
-                if getattr(request, "access", None) is None:
-                    # setup default access
-                    request.access = access.from_request(request)
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",

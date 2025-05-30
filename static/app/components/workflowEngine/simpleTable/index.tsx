@@ -11,7 +11,7 @@ import {
   GridRow,
 } from 'sentry/components/gridEditable/styles';
 
-export interface ColumnConfig<Cell, Row> {
+interface ColumnConfig<Cell, Row> {
   Header: () => React.ReactNode;
   Cell?: (props: {row: Row; value: Cell}) => React.ReactNode;
   /** @default 1fr */

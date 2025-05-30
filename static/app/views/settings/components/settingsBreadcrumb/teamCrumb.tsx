@@ -2,19 +2,17 @@ import debounce from 'lodash/debounce';
 
 import IdBadge from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';
+import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{teamId: string}>;
-
-function TeamCrumb({routes, route, ...props}: Props) {
+function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();

@@ -1,11 +1,21 @@
 import re
 
+from snuba_sdk import Condition, Op
+
 from sentry.integrations.source_code_management.language_parsers import (
     PATCH_PARSERS,
     LanguageParser,
     PythonParser,
     SimpleLanguageParser,
+    stackframe_function_name,
 )
+
+
+def simple_function_name_conditions(
+    function_names: list[str],
+    stack_frame_idx: int,
+):
+    return Condition(stackframe_function_name(stack_frame_idx), Op.IN, function_names)
 
 
 class PythonParserMore(PythonParser):

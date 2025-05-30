@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import PartnerPlanEndingBackground from 'getsentry-images/partnership/plan-ending.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClock} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -33,9 +33,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
-import {PackageStatusIcon} from './packageStatus';
-import {FunctionNameToggleIcon} from './symbol';
-import {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -111,6 +108,7 @@ function DeprecatedLine({
   registersMeta,
   components,
 }: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
@@ -190,7 +188,7 @@ function DeprecatedLine({
   });
 
   return (
-    <StyledLi data-test-id="line" className={className}>
+    <li data-test-id="line" className={className}>
       <StrictClick onClick={isExpandable ? toggleContext : undefined}>
         <DefaultLine
           data-test-id="title"
@@ -325,7 +323,9 @@ function DeprecatedLine({
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
-              <div style={{width: 20, height: 20}} />
+              <div
+                style={theme.isChonk ? {width: 26, height: 20} : {width: 20, height: 20}}
+              />
             )}
           </DefaultLineTagWrapper>
         </DefaultLine>
@@ -345,7 +345,7 @@ function DeprecatedLine({
         frameMeta={frameMeta}
         platform={propPlatform}
       />
-    </StyledLi>
+    </li>
   );
 }
 
@@ -424,23 +424,6 @@ const DefaultLineTagWrapper = styled('div')`
 
 const ToggleContextButton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const StyledLi = styled('li')`
-  ${PackageStatusIcon} {
-    flex-shrink: 0;
-  }
-  :hover {
-    ${PackageStatusIcon} {
-      visibility: visible;
-    }
-    ${AddressToggleIcon} {
-      visibility: visible;
-    }
-    ${FunctionNameToggleIcon} {
-      visibility: visible;
-    }
-  }
 `;
 
 const ToggleButton = styled(Button)`

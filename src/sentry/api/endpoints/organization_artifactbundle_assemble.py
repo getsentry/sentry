@@ -163,7 +163,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                         "dist": dist,
                         "checksum": checksum,
                         "chunks": chunks,
-                        "upload_as_artifact_bundle": True,
                     }
                 )
 

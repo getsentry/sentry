@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 
-export interface PriorityControlGridProps {
+interface PriorityControlGridProps {
   name: string;
   onPriorityChange?: (value: PriorityLevel) => void;
   onThresholdChange?: (level: PriorityLevel, threshold: number) => void;
@@ -20,7 +20,7 @@ export interface PriorityControlGridProps {
   thresholds?: PriorityThresholds;
 }
 
-export interface PriorityThresholds {
+interface PriorityThresholds {
   high?: number;
   medium?: number;
 }
@@ -76,6 +76,7 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
+              placeholder="0"
               // empty string required to keep this as a controlled input
               value={thresholds[PriorityLevel.MEDIUM] ?? ''}
               onChange={threshold => setMediumThreshold(Number(threshold))}
@@ -96,6 +97,7 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
+              placeholder="0"
               // empty string required to keep this as a controlled input
               value={thresholds[PriorityLevel.HIGH] ?? ''}
               onChange={threshold => setHighThreshold(Number(threshold))}

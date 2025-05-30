@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -60,11 +59,6 @@ describe('Project Creation Modal', function () {
         status: 'active',
       }),
     ];
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/rule-conditions/`,
-      body: MOCK_RESP_VERBOSE,
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,

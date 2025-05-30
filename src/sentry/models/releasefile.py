@@ -70,14 +70,14 @@ class ReleaseFile(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField()
+    organization_id = BoundedBigIntegerField(db_index=True)
     # DEPRECATED
     project_id = BoundedBigIntegerField(null=True)
-    release_id = BoundedBigIntegerField()
+    release_id = BoundedBigIntegerField(db_index=True)
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
     name = models.TextField()
-    dist_id = BoundedBigIntegerField(null=True)
+    dist_id = BoundedBigIntegerField(null=True, db_index=True)
 
     #: For classic file uploads, this field is 1.
     #: For release archives, this field is 0.

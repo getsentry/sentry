@@ -46,7 +46,7 @@ export interface TraceResult {
   trace: string;
 }
 
-export type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
+type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
 
 interface TraceResults {
   data: TraceResult[];

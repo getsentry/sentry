@@ -1,21 +1,21 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 function U2fEnrolledDetails(props: any) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
@@ -46,12 +46,12 @@ function U2fEnrolledDetails(props: any) {
               onRemoveU2fDevice={onRemoveU2fDevice}
             />
           ))}
-        <AddAnotherPanelItem>
-          <LinkButton to="/settings/account/security/mfa/u2f/enroll/" size="sm">
-            {t('Add Another Device')}
-          </LinkButton>
-        </AddAnotherPanelItem>
       </PanelBody>
+      <AddAnotherFooter>
+        <LinkButton to="/settings/account/security/mfa/u2f/enroll/" size="sm">
+          {t('Add Another Device')}
+        </LinkButton>
+      </AddAnotherFooter>
     </Panel>
   );
 }
@@ -63,47 +63,38 @@ function Device(props: any) {
 
   if (!isEditing) {
     return (
-      <DevicePanelItem key={device.name}>
+      <PanelItem key={device.name}>
         <DeviceInformation>
-          <Name>{device.name}</Name>
+          {device.name}
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
-        <Actions>
+        <ButtonBar gap={1}>
           <Button size="sm" onClick={() => setEditting(true)}>
-            {t('Rename Device')}
+            {t('Rename device')}
           </Button>
-        </Actions>
-        <Actions>
           <Confirm
             onConfirm={() => onRemoveU2fDevice(device)}
             disabled={isLastDevice}
-            message={
-              <Fragment>
-                <ConfirmHeader>{t('Do you want to remove U2F device?')}</ConfirmHeader>
-                <TextBlock>
-                  {t('Are you sure you want to remove the U2F device "%s"?', device.name)}
-                </TextBlock>
-              </Fragment>
-            }
+            message={t('Are you sure you want to remove the device "%s"?', device.name)}
           >
-            <Button size="sm" priority="danger">
-              <Tooltip
-                disabled={!isLastDevice}
-                title={t('Can not remove last U2F device')}
-              >
-                <IconDelete size="xs" />
-              </Tooltip>
-            </Button>
+            <Button
+              aria-label={t('Remove device')}
+              size="sm"
+              priority="danger"
+              icon={<IconDelete />}
+              title={isLastDevice ? t('Can not remove last U2F device') : undefined}
+            />
           </Confirm>
-        </Actions>
-      </DevicePanelItem>
+        </ButtonBar>
+      </PanelItem>
     );
   }
 
   return (
-    <DevicePanelItem key={device.name}>
+    <PanelItem key={device.name}>
       <DeviceInformation>
         <DeviceNameInput
+          size="sm"
           type="text"
           value={deviceName}
           onChange={e => {
@@ -112,7 +103,7 @@ function Device(props: any) {
         />
         <FadedDateTime date={device.timestamp} />
       </DeviceInformation>
-      <Actions>
+      <ButtonBar gap={1}>
         <Button
           priority="primary"
           size="sm"
@@ -121,23 +112,20 @@ function Device(props: any) {
             setEditting(false);
           }}
         >
-          Rename Device
+          {t('Rename device')}
         </Button>
-      </Actions>
-
-      <Actions>
         <Button
           size="sm"
-          title="Cancel rename"
+          title={t('Cancel Rename')}
+          aria-label={t('Cancel Rename')}
+          icon={<IconClose />}
           onClick={() => {
             setDeviceName(device.name);
             setEditting(false);
           }}
-        >
-          <IconClose size="xs" />
-        </Button>
-      </Actions>
-    </DevicePanelItem>
+        />
+      </ButtonBar>
+    </PanelItem>
   );
 }
 
@@ -146,19 +134,13 @@ const DeviceNameInput = styled(Input)`
   margin-right: ${space(2)};
 `;
 
-const DevicePanelItem = styled(PanelItem)`
-  padding: 0;
-`;
-
 const DeviceInformation = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex: 1 1;
-  height: 72px;
-
-  padding: ${space(2)};
-  padding-right: 0;
+  gap: ${space(1)};
+  margin-right: ${space(1)};
 `;
 
 const FadedDateTime = styled(DateTime)`
@@ -166,15 +148,8 @@ const FadedDateTime = styled(DateTime)`
   opacity: 0.6;
 `;
 
-const Name = styled('div')`
-  flex: 1;
-`;
-
-const Actions = styled('div')`
-  margin: ${space(2)};
-`;
-
-const AddAnotherPanelItem = styled(PanelItem)`
+const AddAnotherFooter = styled(PanelFooter)`
+  display: flex;
   justify-content: flex-end;
   padding: ${space(2)};
 `;

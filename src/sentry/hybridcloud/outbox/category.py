@@ -58,6 +58,7 @@ class OutboxCategory(IntEnum):
     RELOCATION_EXPORT_REPLY = 37  # no longer in use
 
     SEND_VERCEL_INVOICE = 38
+    FTC_CONSENT = 39
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -265,6 +266,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
             OutboxCategory.SEND_VERCEL_INVOICE,
+            OutboxCategory.FTC_CONSENT,
         },
     )
     USER_SCOPE = scope_categories(

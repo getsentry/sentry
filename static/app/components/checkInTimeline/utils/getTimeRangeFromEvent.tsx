@@ -4,7 +4,7 @@ import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import type {Event} from 'sentry/types/event';
 
 // Stores the elapsed minutes for each selectable resolution
-export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
+const resolutionElapsedMinutes: Record<TimeWindow, number> = {
   '1h': 60,
   '24h': 60 * 24,
   '7d': 60 * 24 * 7,

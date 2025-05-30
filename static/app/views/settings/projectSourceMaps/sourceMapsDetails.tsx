@@ -1,9 +1,10 @@
 import {Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
@@ -313,10 +314,10 @@ const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
     );
   ${p =>
     p.hasTypeColumn &&
-    `
-  grid-template-columns:
-    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-    minmax(74px, max-content);
+    css`
+      grid-template-columns:
+        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+        minmax(74px, max-content);
     `}
 `;
 

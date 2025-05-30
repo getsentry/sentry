@@ -12,6 +12,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import FrameInfo, find_roots
 from sentry.models.repository import Repository
 
@@ -49,7 +50,11 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
         def integration_match(integration: RpcIntegration):
             installation = integration.get_installation(self.org_id)
-            return installation.source_url_matches(source_url)
+            # Check if the installation has the source_url_matches method
+            if isinstance(installation, RepositoryIntegration):
+                return installation.source_url_matches(source_url)
+            # Fallback to a basic check if the method doesn't exist
+            return False
 
         def repo_match(repo: Repository):
             return repo.url is not None and source_url.startswith(repo.url)
@@ -111,15 +116,18 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
         source_url = data["source_url"]
-        stack_path = data["stack_path"]
+        frame_info = get_frame_info_from_request(request)
 
+        # validated by `serializer.is_valid()`
+        assert serializer.repo is not None
+        assert serializer.integration is not None
         repo = serializer.repo
         integration = serializer.integration
         installation = integration.get_installation(project.organization_id)
 
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
-        stack_root, source_root = find_roots(FrameInfo({"filename": stack_path}), source_path)
+        stack_root, source_root = find_roots(frame_info, source_path)
 
         return self.respond(
             {
@@ -131,3 +139,12 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                 "defaultBranch": branch,
             }
         )
+
+
+def get_frame_info_from_request(request: Request) -> FrameInfo:
+    frame = {
+        "abs_path": request.data.get("absPath"),
+        "filename": request.data["stackPath"],
+        "module": request.data.get("module"),
+    }
+    return FrameInfo(frame, request.data.get("platform"))

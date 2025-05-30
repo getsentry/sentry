@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
-import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
 
 function renderComponent(eventView: EventView) {
   return render(<IncompatibleAlertQuery eventView={eventView} />);

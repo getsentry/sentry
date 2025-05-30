@@ -1,9 +1,11 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
@@ -70,6 +72,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -142,8 +145,9 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
           sort: `-${SPAN_SELF_TIME}`,
-          useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
     ],

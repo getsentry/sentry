@@ -27,7 +27,10 @@ interface UseReleaseStatsParams {
  */
 export function useReleaseStats(
   {datetime, environments, projects, maxPages = 10}: UseReleaseStatsParams,
-  queryOptions: {staleTime: number} = {staleTime: Infinity}
+  queryOptions: {enabled?: boolean; staleTime?: number} = {
+    staleTime: Infinity,
+    enabled: true,
+  }
 ) {
   const organization = useOrganization();
 
@@ -42,6 +45,7 @@ export function useReleaseStats(
     data,
   } = useInfiniteApiQuery<ReleaseMetaBasic[]>({
     queryKey: [
+      'infinite' as const,
       `/organizations/${organization.slug}/releases/stats/`,
       {
         query: {

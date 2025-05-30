@@ -1,4 +1,4 @@
-export type GuideStep = {
+type GuideStep = {
   /**
    * The main body of the step
    */

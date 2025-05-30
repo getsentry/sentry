@@ -10,7 +10,7 @@ export type WidgetTemplate = Widget & {
   description: string;
 };
 
-export const getDefaultWidgets = (organization: Organization) => {
+const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const transactionsWidgets = [
     {
@@ -18,9 +18,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       title: t('Duration Distribution'),
       description: t('Compare transaction durations across different percentiles.'),
       displayType: DisplayType.LINE,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -46,9 +44,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
       displayType: DisplayType.TOP_N,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -103,9 +99,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       title: t('LCP by Country'),
       description: t('Table showing page load times by country.'),
       displayType: DisplayType.TABLE,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -123,9 +117,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       title: t('Miserable Users'),
       description: t('Unique users who have experienced slow load times.'),
       displayType: DisplayType.BIG_NUMBER,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -145,9 +137,7 @@ export const getDefaultWidgets = (organization: Organization) => {
         'Percentage breakdown of transaction durations over and under 300ms.'
       ),
       displayType: DisplayType.BAR,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.TRANSACTIONS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
       queries: [
         {
@@ -191,9 +181,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       title: t('Top Unhandled Error Types'),
       description: t('Most frequently encountered unhandled errors.'),
       displayType: DisplayType.TOP_N,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.ERRORS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.ERRORS,
       interval: '5m',
       queries: [
         {
@@ -211,9 +199,7 @@ export const getDefaultWidgets = (organization: Organization) => {
       title: t('Users Affected by Errors'),
       description: t('Footprint of unique users affected by errors.'),
       displayType: DisplayType.LINE,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? WidgetType.ERRORS
-        : WidgetType.DISCOVER,
+      widgetType: WidgetType.ERRORS,
       interval: '5m',
       queries: [
         {

@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import {isProjectsCacheEnabled} from 'sentry/appQueryClient';
 import {
   useBootstrapOrganizationQuery,
   useBootstrapProjectsQuery,
@@ -93,9 +92,6 @@ export function OrganizationContextProvider({children}: Props) {
         name: 'ui.bootstrap',
         op: 'ui.render',
         forceTransaction: true,
-        attributes: {
-          cacheEnabled: isProjectsCacheEnabled,
-        },
       });
     }
 

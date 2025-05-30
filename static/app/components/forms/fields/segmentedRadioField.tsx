@@ -9,7 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
-export interface SegmentedRadioFieldProps<Choices extends string = string>
+interface SegmentedRadioFieldProps<Choices extends string = string>
   extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
@@ -73,7 +73,7 @@ function RadioControlGroup<C extends string>({
               <InteractionStateLayer />
               <Radio
                 name={groupName}
-                aria-label={name?.toString()}
+                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
                 disabled={disabled}
                 checked={value === id}
                 onChange={(e: React.FormEvent<HTMLInputElement>) =>
@@ -105,7 +105,7 @@ const Container = styled('div')`
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-export const RadioItem = styled('label', {shouldForwardProp})<{
+const RadioItem = styled('label', {shouldForwardProp})<{
   index: number;
   disabled?: boolean;
 }>`

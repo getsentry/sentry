@@ -104,6 +104,22 @@ class TestGrantExchanger(TestCase):
         self.grant_exchanger.run()
         assert not ApiGrant.objects.filter(id=grant_id)
 
+    def test_race_condition_on_grant_exchange(self):
+        from sentry.locks import locks
+        from sentry.utils.locking import UnableToAcquireLock
+
+        # simulate a race condition on the grant exchange
+        grant_id = self.orm_install.api_grant_id
+        lock = locks.get(
+            ApiGrant.get_lock_key(grant_id),
+            duration=10,
+            name="api_grant",
+        )
+        lock.acquire()
+
+        with pytest.raises(UnableToAcquireLock):
+            self.grant_exchanger.run()
+
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):
         GrantExchanger(

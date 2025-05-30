@@ -1,23 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import type {Index, IndexRange} from 'react-virtualized';
 
-import {type ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
-
-export const EMPTY_INFINITE_LIST_DATA: ReturnType<typeof useFetchInfiniteListData> = {
-  error: null,
-  hasNextPage: false,
-  isError: false,
-  isFetching: false, // If the network is active
-  isFetchingNextPage: false,
-  isFetchingPreviousPage: false,
-  isLoading: false, // If anything is loaded yet
-  // Below are fields that are shims for react-virtualized
-  getRow: () => undefined,
-  isRowLoaded: () => false,
-  issues: [],
-  loadMoreRows: () => Promise.resolve(),
-  hits: 0,
-};
+import type {InfiniteApiQueryKey} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 function uniqueItems<Data extends Record<string, unknown>>(
   items: Data[],
@@ -34,7 +19,7 @@ function uniqueItems<Data extends Record<string, unknown>>(
 }
 
 interface Props {
-  queryKey: NonNullable<ApiQueryKey | undefined>;
+  queryKey: NonNullable<InfiniteApiQueryKey | undefined>;
   uniqueField: string;
   enabled?: boolean;
 }

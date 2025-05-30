@@ -20,7 +20,8 @@ export function useTransaction(props: UseTransactionProps) {
       },
     ],
     {
-      staleTime: 0,
+      // 10 minutes
+      staleTime: 1000 * 60 * 10,
       enabled: !!props.node?.value?.project_slug && !!props.node?.value.event_id,
     }
   );

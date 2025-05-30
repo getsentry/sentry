@@ -112,7 +112,7 @@ export const StatusMessage = styled('div')<{
     p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
 `;
 
-export const BoldCount = styled('div')`
+const BoldCount = styled('div')`
   display: inline;
   font-weight: bold;
 `;

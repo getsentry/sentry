@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:53.142552+00:00'
+created: '2025-04-25T21:22:38.847084+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,53 +10,53 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "testMethod"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "aha"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "eval"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "test"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "map"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "callback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "callAnotherThing"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "aha"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*

@@ -41,7 +41,10 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
+import {
+  collectTraceMeasurements,
+  type RENDERABLE_MEASUREMENTS,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
@@ -167,6 +170,7 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     description?: string;
+    measurements?: Record<string, number>;
   };
 
   // Raw node values
@@ -183,8 +187,9 @@ export declare namespace TraceTree {
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
-  // Represents events that we render an individual row for in the trace waterfall.
-  type TraceEvent = Transaction | Span | TraceError | EAPSpan | EAPError;
+  // Represents events that we get from the trace endpoints and render an individual row for in the trace waterfall, on load.
+  // This excludes spans as they are rendered on-demand as the user zooms in.
+  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -253,13 +258,18 @@ export declare namespace TraceTree {
     spans?: number;
   };
 
+  type OpsBreakdown = Array<{
+    count: number;
+    op: string;
+  }>;
+
   type Indicator = {
     duration: number;
     label: string;
     measurement: Measurement;
     poor: boolean;
     start: number;
-    type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+    type: keyof typeof RENDERABLE_MEASUREMENTS;
     score?: number;
   };
 
@@ -366,7 +376,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         slug: value.project_slug,
       });
 
-      let parentNode;
+      let parentNode: TraceTreeNode<TraceTree.NodeValue>;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
         // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior
@@ -459,6 +469,26 @@ export class TraceTree extends TraceTreeEventDispatcher {
             closestEAPTransaction.occurrences.add(occurence);
           }
         }
+
+        function updateAncestorOpsBreakdown(
+          node: TraceTreeNode<TraceTree.EAPSpan>,
+          op: string
+        ) {
+          let current = node.parent;
+          while (current) {
+            const existing = current.eapSpanOpsBreakdown.find(b => b.op === op);
+            if (existing) {
+              existing.count++;
+            } else {
+              current.eapSpanOpsBreakdown.push({op, count: 1});
+            }
+            current = current.parent;
+          }
+        }
+
+        if (isEAPSpanNode(c)) {
+          updateAncestorOpsBreakdown(c, c.value.op);
+        }
       }
 
       if (isTraceErrorNode(c) || isEAPErrorNode(c)) {
@@ -472,6 +502,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (c.value && 'measurements' in c.value) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
+            tree,
             c,
             c.space[0],
             c.value.measurements,
@@ -633,11 +664,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
           c.errors.add(error);
         }
+
         if (isBrowserRequestSpan(c.value)) {
           const serverRequestHandler = c.parent?.children.find(n =>
             isServerRequestHandlerTransactionNode(n)
           );
-          if (serverRequestHandler) {
+
+          if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
             serverRequestHandler.parent!.children =
               serverRequestHandler.parent!.children.filter(
                 n => n !== serverRequestHandler
@@ -647,6 +680,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
+
       c.children.sort(traceChronologicalSort);
     });
 
@@ -698,6 +732,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       ) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
+            tree,
             node,
             baseTraceNode.space[0],
             node.value.measurements,
@@ -1822,6 +1857,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   // Only supports parent/child swaps (the only ones we need)
+  // E.g. needed for swapping SSR spans: https://github.com/getsentry/rfcs/blob/main/text/0138-achieving-order-between-pageload-and-srr-spans.md
   static Swap({
     parent,
     child,
@@ -2140,7 +2176,7 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     const spanId = isEAPSpanNode(n) ? n.value.event_id : n.value.span_id;
     return `span-${spanId}`;
   }
-  if (isTraceNode(n)) {
+  if (isTraceNode(n) || isEAPTraceNode(n)) {
     return `trace-root`;
   }
 

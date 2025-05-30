@@ -126,6 +126,7 @@ class ProjectKey(Model):
         max_length=32,
         choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
+        db_default=UseCase.USER.value,
     )
 
     # support legacy project keys in API

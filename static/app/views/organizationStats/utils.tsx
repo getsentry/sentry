@@ -1,7 +1,6 @@
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -30,7 +29,7 @@ type FormatOptions = {
  */
 export function formatUsageWithUnits(
   usageQuantity = 0,
-  dataCategory: DataCategoryInfo['plural'],
+  dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ): string {
   if (
@@ -67,9 +66,7 @@ export function formatUsageWithUnits(
 /**
  * Good default for "formatUsageWithUnits"
  */
-export function getFormatUsageOptions(
-  dataCategory: DataCategoryInfo['plural']
-): FormatOptions {
+export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions {
   return {
     isAbbreviated:
       dataCategory !== DATA_CATEGORY_INFO.attachment.plural &&
@@ -90,7 +87,7 @@ export function getFormatUsageOptions(
  * If you are not displaying usage numbers, it might be better to use
  * `formatAbbreviatedNumber` in 'sentry/utils/formatters'
  */
-export function abbreviateUsageNumber(n: number) {
+function abbreviateUsageNumber(n: number) {
   if (n >= BILLION) {
     return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
   }

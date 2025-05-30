@@ -4,11 +4,10 @@ import moment from 'moment-timezone';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import ConfigStore from 'sentry/stores/configStore';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 
-export interface AnomalyMarkerSeriesOptions {
+interface AnomalyMarkerSeriesOptions {
   theme: Theme;
   endDate?: Date;
   startDate?: Date;
@@ -156,8 +155,5 @@ function getDateForTimestamp(timestamp: string | number): Date {
 }
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }

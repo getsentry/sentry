@@ -7,7 +7,7 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
 
-const {organization, router} = initializeOrg({
+const {organization} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -31,7 +31,7 @@ describe('TimeRangeSelector', function () {
   }
 
   function renderComponent(props = {}) {
-    return render(getComponent(props), {router});
+    return render(getComponent(props));
   }
 
   beforeEach(function () {
@@ -51,7 +51,9 @@ describe('TimeRangeSelector', function () {
   });
 
   it('renders when given an invalid relative period', async function () {
-    render(<TimeRangeSelector relative="1y" />, {router, organization});
+    render(<TimeRangeSelector relative="1y" />, {
+      organization,
+    });
     expect(
       await screen.findByRole('button', {name: 'Invalid Period'})
     ).toBeInTheDocument();

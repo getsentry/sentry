@@ -37,20 +37,18 @@ const chonkInputStyles = ({
   theme,
 }: InputStyleProps & {theme: DO_NOT_USE_ChonkTheme}): StrictCSSObject => css`
   ${leadingWidth &&
-  `
+  css`
     padding-left: calc(
-      ${theme.formPadding[size].paddingLeft}px
-      + ${chonkItemsPadding[size]}px
-      + ${leadingWidth}px
+      ${theme.formPadding[size].paddingLeft}px + ${chonkItemsPadding[size]}px +
+        ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
-  `
+  css`
     padding-right: calc(
-      ${theme.formPadding[size].paddingRight}px
-      + ${chonkItemsPadding[size]}px
-      + ${trailingWidth}px
+      ${theme.formPadding[size].paddingRight}px + ${chonkItemsPadding[size]}px +
+        ${trailingWidth}px
     );
   `}
 `;

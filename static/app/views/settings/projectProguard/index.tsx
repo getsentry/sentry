@@ -11,7 +11,6 @@ import type {DebugFile} from 'sentry/types/debugFiles';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -20,18 +19,13 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 
-export type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
+type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
 
 export type ProguardMappingAssociation = {
   releases: string[];
-};
-
-export type AssociatedMapping = {
-  mapping?: DebugFile;
-  releaseAssociation?: DebugIdBundleAssociation[];
 };
 
 function ProjectProguard({organization, location, router, params}: ProjectProguardProps) {

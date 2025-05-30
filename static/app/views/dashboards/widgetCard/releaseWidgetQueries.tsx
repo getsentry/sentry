@@ -13,10 +13,11 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -43,6 +44,7 @@ type Props = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
@@ -63,15 +65,12 @@ function getReleasesQuery(releases: Release[]): {
   releaseQueryString: string;
   releasesUsed: string[];
 } {
-  let releaseCondition = '';
   const releasesArray: string[] = [];
-  releaseCondition += 'release:[' + releases[0]!.version;
   releasesArray.push(releases[0]!.version);
   for (let i = 1; i < releases.length; i++) {
-    releaseCondition += ',' + releases[i]!.version;
     releasesArray.push(releases[i]!.version);
   }
-  releaseCondition += ']';
+  const releaseCondition = `release:[${releasesArray.map(v => (new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
   if (releases.length < 10) {
     return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
   }
@@ -359,6 +358,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       cursor,
       dashboardFilters,
       onDataFetched,
+      onDataFetchStart,
       limit,
     } = this.props;
     const config = ReleasesConfig;
@@ -374,6 +374,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         cursor={cursor}
         limit={limit}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         loading={
           requiresCustomReleaseSorting(widget.queries[0]!)
             ? !this.state.releases

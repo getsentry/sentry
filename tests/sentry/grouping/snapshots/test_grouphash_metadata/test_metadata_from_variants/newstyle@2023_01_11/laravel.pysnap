@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:40.765760+00:00'
+created: '2025-04-25T21:24:38.161169+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,19 +30,19 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "server.php"
               context-line*
                 "require_once __DIR__.'/public/index.php';"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "index.php"
               function*
                 "require_once"
               context-line*
                 "$request = Illuminate\\Http\\Request::capture()"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "web.php"
               function*

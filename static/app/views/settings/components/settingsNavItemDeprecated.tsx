@@ -11,6 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 type Props = {
   label: React.ReactNode;
@@ -56,17 +57,21 @@ function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Prop
 }
 
 const StyledNavItem = styled(RouterNavLink)`
-  display: block;
+  display: flex;
+  gap: ${space(0.75)};
+  align-items: center;
   color: ${p => p.theme.subText};
   font-size: 14px;
   line-height: 30px;
   position: relative;
 
   &.active {
-    color: ${p => p.theme.textColor};
+    color: ${p =>
+      isChonkTheme(p.theme) ? p.theme.tokens.content.accent : p.theme.textColor};
 
     &:before {
-      background: ${p => p.theme.active};
+      background: ${p =>
+        isChonkTheme(p.theme) ? p.theme.tokens.graphics.accent : p.theme.active};
     }
   }
 

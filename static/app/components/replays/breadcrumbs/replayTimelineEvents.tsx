@@ -12,7 +12,6 @@ import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import type {Color} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
@@ -77,8 +76,9 @@ function Event({
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
+      allowShowSnippet={false}
       frame={frame}
-      extraction={undefined}
+      showSnippet={false}
       key={i}
       onClick={() => {
         onClickTimestamp(frame);
@@ -88,6 +88,7 @@ function Event({
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
       onInspectorExpanded={() => {}}
+      onShowSnippet={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
@@ -114,14 +115,14 @@ function Event({
   // Sort the frame colors by color priority
   // Priority order: red300, yellow300, green300, purple300, gray300
   const sortedUniqueColors = uniqueColors.sort(function (x, y) {
-    const colorOrder: Color[] = [
-      'red300',
-      'yellow300',
-      'green300',
-      'purple300',
-      'gray300',
+    const colorOrder: string[] = [
+      theme.tokens.graphics.danger,
+      theme.tokens.graphics.warning,
+      theme.tokens.graphics.success,
+      theme.tokens.graphics.accent,
+      theme.tokens.graphics.muted,
     ];
-    function getColorPos(c: Color) {
+    function getColorPos(c: string) {
       return colorOrder.indexOf(c);
     }
     return getColorPos(x) - getColorPos(y);
@@ -159,13 +160,13 @@ const getBackgroundGradient = ({
   frameCount,
   theme,
 }: {
-  colors: Color[];
+  colors: Array<keyof Theme['tokens']['graphics']>;
   frameCount: number;
   theme: Theme;
 }) => {
-  const c0 = theme[colors[0]!] ?? colors[0]!;
-  const c1 = theme[colors[1]!] ?? colors[1]! ?? c0;
-  const c2 = theme[colors[2]!] ?? colors[2]! ?? c1;
+  const c0 = theme.tokens.graphics[colors[0]!] ?? colors[0]!;
+  const c1 = theme.tokens.graphics[colors[1]!] ?? colors[1]! ?? c0;
+  const c2 = theme.tokens.graphics[colors[2]!] ?? colors[2]! ?? c1;
 
   if (frameCount === 1) {
     return `background: ${c0};`;
@@ -190,7 +191,10 @@ const getBackgroundGradient = ({
     );`;
 };
 
-const IconNode = styled('button')<{colors: Color[]; frameCount: number}>`
+const IconNode = styled('button')<{
+  colors: Array<keyof Theme['tokens']['graphics']>;
+  frameCount: number;
+}>`
   padding: 0;
   border: none;
   grid-column: 1;

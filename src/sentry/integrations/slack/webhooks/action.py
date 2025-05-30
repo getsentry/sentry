@@ -675,8 +675,14 @@ class SlackActionEndpoint(Endpoint):
     def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
         identity_user = slack_request.get_identity_user()
 
+        response_url = slack_request.data["response_url"]
+        webhook_client = WebhookClient(response_url)
+
         if not identity_user:
-            return self.respond_with_text(NO_IDENTITY_MESSAGE)
+            webhook_client.send(
+                text=NO_IDENTITY_MESSAGE, response_type="in_channel", replace_original=False
+            )
+            return self.respond()
 
         member_id = slack_request.callback_data["member_id"]
 
@@ -685,12 +691,22 @@ class SlackActionEndpoint(Endpoint):
         except OrganizationMember.DoesNotExist:
             # member request is gone, likely someone else rejected it
             member_email = slack_request.callback_data["member_email"]
-            return self.respond_with_text(f"Member invitation for {member_email} no longer exists.")
+            webhook_client.send(
+                text=f"Member invitation for {member_email} no longer exists.",
+                response_type="in_channel",
+                replace_original=False,
+            )
+            return self.respond()
 
         organization = member.organization
 
         if not organization.has_access(identity_user):
-            return self.respond_with_text(NO_ACCESS_MESSAGE)
+            webhook_client.send(
+                text=NO_ACCESS_MESSAGE,
+                response_type="in_channel",
+                replace_original=False,
+            )
+            return self.respond()
 
         # row should exist because we have access
         member_of_approver = OrganizationMember.objects.get(
@@ -698,14 +714,18 @@ class SlackActionEndpoint(Endpoint):
         )
         access = from_member(member_of_approver)
         if not access.has_scope("member:admin"):
-            return self.respond_with_text(NO_PERMISSION_MESSAGE)
+            webhook_client.send(
+                text=NO_PERMISSION_MESSAGE, replace_original=False, response_type="in_channel"
+            )
+            return self.respond()
 
         # validate the org options and check against allowed_roles
         allowed_roles = member_of_approver.get_allowed_org_roles_to_invite()
         try:
             member.validate_invitation(identity_user, allowed_roles)
         except UnableToAcceptMemberInvitationException as err:
-            return self.respond_with_text(str(err))
+            webhook_client.send(text=str(err), replace_original=False, response_type="in_channel")
+            return self.respond()
 
         original_status = InviteStatus(member.invite_status)
         try:
@@ -722,7 +742,10 @@ class SlackActionEndpoint(Endpoint):
                     "member_id": member.id,
                 },
             )
-            return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
+            webhook_client.send(
+                text=DEFAULT_ERROR_MESSAGE, replace_original=False, response_type="in_channel"
+            )
+            return self.respond()
 
         if action == "approve_member":
             event_name = "integrations.slack.approve_member_invitation"
@@ -755,7 +778,8 @@ class SlackActionEndpoint(Endpoint):
             verb=verb,
         )
 
-        return self.respond({"text": message})
+        webhook_client.send(text=message, replace_original=False, response_type="in_channel")
+        return self.respond()
 
 
 class _ModalDialog(ABC):

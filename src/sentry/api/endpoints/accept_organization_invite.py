@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def handle_empty_organization_id_or_slug(
-    member_id: int, user_id: int, request: HttpRequest | Request
+    member_id: int, user_id: int | None, request: HttpRequest
 ) -> RpcUserInviteContext | None:
     member_mapping: OrganizationMemberMapping | None = None
     member_mappings: Mapping[int, OrganizationMemberMapping] = {
@@ -70,8 +70,8 @@ def handle_empty_organization_id_or_slug(
 def get_invite_state(
     member_id: int,
     organization_id_or_slug: int | str | None,
-    user_id: int,
-    request: HttpRequest | Request,
+    user_id: int | None,
+    request: HttpRequest,
 ) -> RpcUserInviteContext | None:
 
     if organization_id_or_slug is None:

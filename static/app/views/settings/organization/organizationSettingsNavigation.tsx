@@ -5,6 +5,7 @@ import HookStore from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 import {getOrganizationNavigationConfiguration} from 'sentry/views/settings/organization/navigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -88,6 +89,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
         hooks={hooks}
         hookConfigs={hookConfigs}
         isSelfHosted={isSelfHosted}
+        primaryNavGroup={PrimaryNavGroup.SETTINGS}
       />
     );
   }

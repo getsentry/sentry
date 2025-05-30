@@ -4,6 +4,7 @@ import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction'
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
+import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 type HasSub = {subscription: Subscription};
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
@@ -86,12 +87,20 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
+  'checkout.product_select': Record<
+    SelectableProduct,
+    {
+      enabled: boolean;
+    }
+  > &
+    HasSub;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
+    // TODO(data categories): check if these can be parsed
     attachments?: number;
     errors?: number;
     monitorSeats?: number;
@@ -273,6 +282,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'am_checkout.viewed': 'AM Checkout: Viewed',
   'checkout.bundle_navigation': 'Checkout: Bundle Navigation',
   'checkout.change_plan': 'Checkout: Change Plan',
+  'checkout.product_select': 'Checkout: Product Select',
   'checkout.ondemand_changed': 'Checkout: Ondemand Changed',
   'checkout.payg_changed': 'Checkout: Pay As You Go Budget Changed',
   'checkout.change_contract': 'Checkout: Change Contract',

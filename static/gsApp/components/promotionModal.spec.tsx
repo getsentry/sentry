@@ -5,6 +5,7 @@ import {PromotionFixture} from 'getsentry-test/fixtures/promotion';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PromotionModal from 'getsentry/components/promotionModal';
+import {InvoiceItemType} from 'getsentry/types';
 
 describe('Promotion Modal', function () {
   const organization = OrganizationFixture();
@@ -23,7 +24,7 @@ describe('Promotion Modal', function () {
       amount: 2500,
       billingInterval: 'monthly',
       billingPeriods: 3,
-      creditCategory: 'subscription',
+      creditCategory: InvoiceItemType.SUBSCRIPTION,
       discountType: 'percentPoints',
       disclaimerText:
         "*Receive 40% off the monthly price of Sentry's Team or Business plan subscriptions for your first three months if you upgrade today",

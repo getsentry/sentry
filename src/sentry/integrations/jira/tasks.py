@@ -14,7 +14,6 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @instrumented_task(
@@ -24,7 +23,10 @@ from sentry.utils.rollback_metrics import incr_rollback_metrics
     max_retries=5,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(Integration.DoesNotExist))
@@ -74,7 +76,6 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
                         relationship=GroupLink.Relationship.references,
                     )
             except IntegrityError:
-                incr_rollback_metrics(GroupLink)
                 continue
 
             plugin_issue.delete()
@@ -130,7 +131,10 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_control_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=20,
+        ),
     ),
 )
 @retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))

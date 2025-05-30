@@ -27,10 +27,7 @@ export function useSaveQuery() {
   const invalidateSavedQueries = useInvalidateSavedQueries();
   const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
-  const visualize = visualizes.map(({chartType, yAxes}) => ({
-    chartType,
-    yAxes,
-  }));
+  const visualize = visualizes.map(v => v.toJSON());
 
   const data = useMemo(() => {
     return {

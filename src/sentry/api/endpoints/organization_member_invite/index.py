@@ -158,7 +158,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         referrer = request.query_params.get("referrer")
         omi.send_invite_email(referrer)
         member_invited.send_robust(
-            invited_member=omi,
+            member=omi,
             user=request.user,
             sender=self,
             referrer=request.data.get("referrer"),

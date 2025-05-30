@@ -9,8 +9,8 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
 import EventDetails from 'sentry/views/discover/eventDetails';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
 
 describe('Discover > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
@@ -187,7 +187,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('navigates when tag values are clicked', async function () {
-    const {organization, router} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -205,27 +205,26 @@ describe('Discover > EventDetails', function () {
           ...LocationFixture(),
           query: allEventsView.generateQueryStringObject(),
         }}
-      />,
-      {router}
+      />
     );
 
     // Get the first link as we wrap react-router's link
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
     expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the third link
     expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 
@@ -245,32 +244,31 @@ describe('Discover > EventDetails', function () {
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
-      />,
-      {router}
+      />
     );
 
     // Get the first link as we wrap react-router's link
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/homepage/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
     expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/homepage/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the third link
     expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/homepage/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 
   it('appends tag value to existing query when clicked', async function () {
-    const {organization, router} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -288,26 +286,25 @@ describe('Discover > EventDetails', function () {
           ...LocationFixture(),
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
-      />,
-      {router}
+      />
     );
 
     // Get the first link as we wrap react-router's link
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
     expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
     // Get the third link
     expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 
@@ -329,7 +326,9 @@ describe('Discover > EventDetails', function () {
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const breadcrumb = await screen.findByTestId('breadcrumb-link');

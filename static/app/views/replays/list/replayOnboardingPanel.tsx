@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -100,7 +101,6 @@ export default function ReplayOnboardingPanel() {
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
-            orgSlug={organization.slug}
             primaryAction={primaryAction}
             disabled={primaryActionDisabled}
           />
@@ -111,7 +111,6 @@ export default function ReplayOnboardingPanel() {
 }
 
 interface SetupReplaysCTAProps {
-  orgSlug: string;
   primaryAction: 'setup' | 'create';
   disabled?: boolean;
 }
@@ -119,11 +118,11 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({
   disabled,
   primaryAction = 'setup',
-  orgSlug,
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});
+  const organization = useOrganization();
 
   const FAQ = [
     {
@@ -259,7 +258,7 @@ export function SetupReplaysCTA({
           data-test-id="create-project-btn"
           to={makeProjectsPathname({
             path: '/new/',
-            orgSlug,
+            organization,
           })}
           priority="primary"
           disabled={disabled}

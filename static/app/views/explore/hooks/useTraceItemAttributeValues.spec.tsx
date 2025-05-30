@@ -70,7 +70,7 @@ describe('useTraceItemAttributeValues', () => {
       match: [
         (_url, options) => {
           const query = options?.query || {};
-          return query.query === 'search-query';
+          return query.substringMatch === 'search-query';
         },
       ],
     });

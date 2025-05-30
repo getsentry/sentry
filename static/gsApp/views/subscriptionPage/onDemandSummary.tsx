@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -136,7 +137,7 @@ class OnDemandSummary extends Component<Props, State> {
   }
 
   renderNeedsPaymentSource() {
-    const {organization} = this.props;
+    const {organization, subscription} = this.props;
 
     return (
       <FieldGroup
@@ -150,6 +151,7 @@ class OnDemandSummary extends Component<Props, State> {
             onClick={() =>
               openEditCreditCard({
                 organization,
+                subscription,
                 onSuccess: (data: Subscription) => {
                   SubscriptionStore.set(organization.slug, data);
                 },

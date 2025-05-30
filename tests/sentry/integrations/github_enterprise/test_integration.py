@@ -247,7 +247,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
-        querystring = urlencode({"q": "org:Test Organization ex"})
+        querystring = urlencode({"q": "fork:true org:Test Organization ex"})
         responses.add(
             responses.GET,
             f"{self.base_url}/search/repositories?{querystring}",
@@ -445,3 +445,68 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 ),
             )
         ]
+
+    @responses.activate
+    def test_source_url_matches(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+
+        test_cases = [
+            ("https://github.example.org/Test-Organization/foo", True),
+            ("https://github.example.org/Test-Organization/bar", True),
+            ("https://github.example.org/Other-Organization/bar", False),
+            ("https://github.com/Test-Organization/foo", False),
+        ]
+
+        for url, expected in test_cases:
+            assert installation.source_url_matches(url) == expected
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+
+        source_url = "https://github.example.org/Test-Organization/foo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+
+        source_url = "https://github.example.org/Test-Organization/foo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/github/integration.py"
+        )

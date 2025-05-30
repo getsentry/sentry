@@ -3,8 +3,8 @@ from unittest import mock
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
+from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
 
 
 class GetConditionResultTest(TestCase):
@@ -58,11 +58,52 @@ class EvaluateValueTest(TestCase):
         )
 
         # Raises a TypeError because str vs int comparison
-        with pytest.raises(TypeError):
+        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
             dc.evaluate_value(2)
+            assert mock_logger.exception.call_args[0][0] == "Invalid comparison for data condition"
 
     def test_condition_result_comparison_fails(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result="wrong"
         )
         assert dc.evaluate_value(2) is None
+
+    @mock.patch("sentry.workflow_engine.models.data_condition.condition_handler_registry")
+    def test_condition_evaluation__data_condition_exception(self, mock_registry):
+        class DataConditionHandlerMock(DataConditionHandler[int]):
+            @staticmethod
+            def evaluate_value(value: int, comparison: int) -> bool:
+                raise DataConditionEvaluationException("Something went wrong")
+
+        mock_registry.get.return_value = DataConditionHandlerMock()
+
+        dc = self.create_data_condition(
+            type=Condition.LEVEL,  # this will be overridden by the mock, cannot be a operator
+            comparison=1.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        with mock.patch("sentry.workflow_engine.models.data_condition.logger.info") as mock_logger:
+            dc.evaluate_value(2)
+            assert (
+                mock_logger.call_args[0][0]
+                == "A known error occurred while evaluating a data condition"
+            )
+
+    @mock.patch("sentry.workflow_engine.models.data_condition.condition_handler_registry")
+    def test_condition_evaluation___exception(self, mock_registry):
+        class DataConditionHandlerMock(DataConditionHandler[int]):
+            @staticmethod
+            def evaluate_value(value: int, comparison: int) -> bool:
+                raise Exception("Something went wrong")
+
+        mock_registry.get.return_value = DataConditionHandlerMock()
+
+        dc = self.create_data_condition(
+            type=Condition.LEVEL,  # this will be overridden by the mock, cannot be a operator
+            comparison=1.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        with pytest.raises(Exception):
+            dc.evaluate_value(2)

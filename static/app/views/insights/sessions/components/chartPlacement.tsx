@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,9 +35,27 @@ interface Props {
 export function ChartPlacementSlot({view, index}: Props) {
   const organization = useOrganization();
 
-  const [chartsByIndex, setChartsByIndex] = useSyncedLocalStorageState<
+  const [chartsByIndexAnyName, setChartsByIndex] = useSyncedLocalStorageState<
     (typeof DEFAULT_LAYOUTS)[DomainView]
   >(`insights-sessions-layout-${organization.slug}-${view}`, DEFAULT_LAYOUTS[view]);
+
+  const chartsByIndex = useMemo(() => {
+    return chartsByIndexAnyName.map(name => {
+      // This is a proper chart name, we can just use it
+      if (name && PAGE_CHART_OPTIONS[view].includes(name)) {
+        return name;
+      }
+      // The chart was renamed, use the new name
+      if (name && CHART_RENAMES[name]) {
+        return CHART_RENAMES[name];
+      }
+      // The name wasn't found, so use the default if the index is valid.
+      // If `index` is invalid then we'll see the 'None' chart and the dropdown
+      // will still work to pick another
+      // This might cause the chart to be rendered twice on the screen
+      return PAGE_CHART_OPTIONS[view][index];
+    });
+  }, [chartsByIndexAnyName, index, view]);
 
   const chartOptions = PAGE_CHART_OPTIONS[view].map(opt => ({
     value: opt,
@@ -53,7 +71,7 @@ export function ChartPlacementSlot({view, index}: Props) {
     [chartsByIndex, index, setChartsByIndex]
   );
 
-  const chartName = CHART_RENAMES[chartsByIndex[index] as string] ?? chartsByIndex[index];
+  const chartName = chartsByIndex[index];
   const Chart = chartName && CHART_MAP[chartName];
   if (Chart) {
     return (

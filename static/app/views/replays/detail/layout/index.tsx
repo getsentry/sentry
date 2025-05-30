@@ -73,7 +73,7 @@ function ReplayLayout({
   const focusArea = isLoading ? (
     <Placeholder width="100%" height="100%" />
   ) : (
-    <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
+    <FluidPanel title={<FocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
         <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
       </ErrorBoundary>
@@ -147,10 +147,6 @@ const BodyContent = styled('main')`
   gap: ${space(2)};
   overflow: hidden;
   padding: ${space(2)};
-`;
-
-const SmallMarginFocusTabs = styled(FocusTabs)`
-  margin-bottom: ${space(1)};
 `;
 
 const VideoSection = styled(FluidHeight)`

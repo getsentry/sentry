@@ -11,6 +11,7 @@ import {
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,7 +30,7 @@ export const enum StackedNavigationTour {
   SETTINGS = 'settings',
 }
 
-export const ORDERED_STACKED_NAVIGATION_TOUR = [
+const ORDERED_STACKED_NAVIGATION_TOUR = [
   StackedNavigationTour.ISSUES,
   StackedNavigationTour.EXPLORE,
   StackedNavigationTour.DASHBOARDS,
@@ -70,9 +71,9 @@ export const STACKED_NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-export const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
+const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
-export const StackedNavigationTourContext =
+const StackedNavigationTourContext =
   createContext<TourContextType<StackedNavigationTour> | null>(null);
 
 export function useStackedNavigationTour(): TourContextType<StackedNavigationTour> {
@@ -243,6 +244,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
+  const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useStackedNavigationTour();
   const {data: assistantData} = useAssistant({
@@ -257,11 +259,13 @@ export function useTourModal() {
   useEffect(() => {
     if (shouldShowTourModal && !hasOpenedTourModal.current) {
       hasOpenedTourModal.current = true;
+      trackAnalytics('navigation.tour_modal_shown', {organization});
       openModal(
         props => (
           <NavTourModal
             closeModal={props.closeModal}
             handleDismissTour={() => {
+              trackAnalytics('navigation.tour_modal_dismissed', {organization});
               mutateAssistant({
                 guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
                 status: 'dismissed',
@@ -278,6 +282,7 @@ export function useTourModal() {
           // If user closes modal through other means, also prevent the modal from being shown again.
           onClose: reason => {
             if (reason) {
+              trackAnalytics('navigation.tour_modal_dismissed', {organization});
               mutateAssistant({
                 guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
                 status: 'dismissed',
@@ -288,10 +293,10 @@ export function useTourModal() {
         }
       );
     }
-  }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
+  }, [shouldShowTourModal, startTour, mutateAssistant, endTour, organization]);
 }
 
-export const NAV_REFERRER = 'nav-tour';
+const NAV_REFERRER = 'nav-tour';
 
 export function useIsNavTourActive() {
   const location = useLocation();

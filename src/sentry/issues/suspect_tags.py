@@ -37,10 +37,10 @@ def get_suspect_tag_scores(
     return [
         Score(key=key, score=score)
         for key, score in keyed_kl_score(
-            a=baseline,
-            b=outliers,
-            total_a=baseline_count,
-            total_b=outliers_count,
+            baseline,
+            outliers,
+            total_baseline=baseline_count,
+            total_outliers=outliers_count,
         )
     ]
 

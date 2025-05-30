@@ -129,7 +129,7 @@ type RuleTaskResponse = {
 
 type RouteParams = {projectId?: string; ruleId?: string};
 
-export type IncompatibleRule = {
+type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
 };
@@ -1204,7 +1204,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                 disabled={disabled}
                 priority="danger"
                 confirmText={t('Delete Rule')}
-                onConfirm={this.handleDeleteRule}
+                onConfirm={() => {
+                  this.handleDeleteRule();
+                }}
                 header={<h5>{t('Delete Alert Rule?')}</h5>}
                 message={t(
                   'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',

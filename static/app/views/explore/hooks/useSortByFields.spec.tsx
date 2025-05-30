@@ -40,7 +40,7 @@ describe('useSortByFields', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
 

@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -11,8 +12,9 @@ import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
 import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {AvatarProject} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListRowProps {
   detector: Detector;
@@ -21,15 +23,12 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({
-  detector: {workflowIds, id, name, disabled},
+  detector: {workflowIds, createdBy, id, projectId, name, disabled, type},
   handleSelect,
   selected,
 }: DetectorListRowProps) {
-  const link = `/issues/monitors/${id}/`;
-  const project: AvatarProject = {
-    slug: name,
-    platform: 'javascript-astro',
-  };
+  const organization = useOrganization();
+  const link = makeMonitorDetailsPathname(organization.slug, id);
   const issues: Group[] = [];
   return (
     <RowWrapper disabled={disabled}>
@@ -44,7 +43,7 @@ export function DetectorListRow({
         <CellWrapper>
           <StyledTitleCell
             name={name}
-            project={project}
+            projectId={projectId}
             link={link}
             disabled={disabled}
           />
@@ -52,7 +51,7 @@ export function DetectorListRow({
         <StyledGraphCell />
       </Flex>
       <CellWrapper className="type">
-        <TypeCell type="errors" />
+        <TypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
@@ -61,7 +60,7 @@ export function DetectorListRow({
         />
       </CellWrapper>
       <CellWrapper className="creator">
-        <UserCell user="sentry" />
+        <UserCell user={createdBy ?? 'sentry'} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
         <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />
@@ -103,7 +102,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
+    css`
       ${CellWrapper}, ${StyledGraphCell} {
         opacity: 0.6;
       }
@@ -115,22 +114,23 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
     }
   }
 
-  .open-issues,
+  .type,
+  .owner,
   .last-issue,
   .connected-automations {
     display: none;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 3fr 0.8fr;
 
-    .open-issues {
+    .type {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 3fr 1fr 0.6fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
       display: flex;
@@ -138,14 +138,18 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .connected-automations {
+    .owner {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+
+    .connected-automations {
+      display: flex;
+    }
   }
 `;

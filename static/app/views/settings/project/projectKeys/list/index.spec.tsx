@@ -40,7 +40,10 @@ describe('ProjectKeys', function () {
     });
     const router = RouterFixture({projectId: project.slug});
 
-    render(<ProjectKeys project={project} />, {router});
+    render(<ProjectKeys project={project} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('There are no keys active for this project.')
@@ -49,7 +52,10 @@ describe('ProjectKeys', function () {
 
   it('has clippable box', async function () {
     const router = RouterFixture({projectId: project.slug});
-    render(<ProjectKeys project={ProjectFixture()} />, {router});
+    render(<ProjectKeys project={ProjectFixture()} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const expandButton = await screen.findByRole('button', {name: 'Expand'});
     await userEvent.click(expandButton);
@@ -59,7 +65,10 @@ describe('ProjectKeys', function () {
 
   it('renders for default project', async function () {
     const router = RouterFixture({projectId: project.slug});
-    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {router});
+    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const allDsn = await screen.findAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn).toHaveLength(1);
@@ -86,7 +95,10 @@ describe('ProjectKeys', function () {
 
   it('renders for javascript project', async function () {
     const router = RouterFixture({projectId: project.slug});
-    render(<ProjectKeys project={ProjectFixture({platform: 'javascript'})} />, {router});
+    render(<ProjectKeys project={ProjectFixture({platform: 'javascript'})} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
     const dsn = await screen.findByRole('textbox', {name: 'DSN URL'});
@@ -120,6 +132,7 @@ describe('ProjectKeys', function () {
     const router = RouterFixture({projectId: project.slug});
     render(<ProjectKeys project={ProjectFixture({platform: 'javascript-react'})} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
@@ -193,7 +206,10 @@ describe('ProjectKeys', function () {
 
     const router = RouterFixture({projectId: project.slug});
 
-    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {router});
+    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const allDsn = await screen.findAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn).toHaveLength(2);
@@ -201,7 +217,10 @@ describe('ProjectKeys', function () {
 
   it('deletes key', async function () {
     const router = RouterFixture({projectId: project.slug});
-    render(<ProjectKeys project={ProjectFixture()} />, {router});
+    render(<ProjectKeys project={ProjectFixture()} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
     renderGlobalModal();
@@ -212,7 +231,10 @@ describe('ProjectKeys', function () {
 
   it('disable and enables key', async function () {
     const router = RouterFixture({projectId: project.slug});
-    render(<ProjectKeys project={ProjectFixture()} />, {router});
+    render(<ProjectKeys project={ProjectFixture()} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,

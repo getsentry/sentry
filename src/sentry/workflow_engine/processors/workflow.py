@@ -17,7 +17,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -60,19 +59,6 @@ def delete_workflow(workflow: Workflow) -> bool:
     return True
 
 
-def create_workflow_fire_histories(
-    workflows: set[Workflow], event_data: WorkflowEventData
-) -> list[WorkflowFireHistory]:
-    # Create WorkflowFireHistory objects for triggered workflows
-    fire_histories = [
-        WorkflowFireHistory(
-            workflow=workflow, group=event_data.event.group, event_id=event_data.event.event_id
-        )
-        for workflow in workflows
-    ]
-    return WorkflowFireHistory.objects.bulk_create(fire_histories)
-
-
 def enqueue_workflow(
     workflow: Workflow,
     delayed_conditions: list[DataCondition],
@@ -96,6 +82,16 @@ def enqueue_workflow(
         value=value,
     )
 
+    logger.info(
+        "workflow_engine.enqueue_workflow",
+        extra={
+            "workflow": workflow.id,
+            "group_id": event.group_id,
+            "event_id": event.event_id,
+            "delayed_conditions": [condition.id for condition in delayed_conditions],
+        },
+    )
+
 
 def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
@@ -116,8 +112,6 @@ def evaluate_workflow_triggers(
             if evaluation:
                 triggered_workflows.add(workflow)
 
-    create_workflow_fire_histories(triggered_workflows, event_data)
-
     return triggered_workflows
 
 
@@ -127,13 +121,8 @@ def evaluate_workflows_action_filters(
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
-
     action_conditions = (
-        DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
-        )
+        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
         .prefetch_related("workflowdataconditiongroup_set")
         .distinct()
     )
@@ -149,8 +138,17 @@ def evaluate_workflows_action_filters(
             workflow_event_data = replace(
                 workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
             )
+        else:
+            logger.info(
+                "workflow_engine.evaluate_workflows_action_filters.no_workflow_data_condition_group",
+                extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
+                    "action_condition_id": action_condition.id,
+                },
+            )
 
-        (evaluation, result), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_event_data
         )
 
@@ -165,8 +163,19 @@ def evaluate_workflows_action_filters(
                     WorkflowDataConditionGroupType.ACTION_FILTER,
                 )
         else:
-            if evaluation:
+            if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
+
+    logger.info(
+        "workflow_engine.evaluate_workflows_action_filters",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "workflow_ids": [workflow.id for workflow in workflows],
+            "action_conditions": [action_condition.id for action_condition in action_conditions],
+            "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
+        },
+    )
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
@@ -233,6 +242,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "event_id": event_data.event.event_id,
                 "event_environment_id": environment.id,
                 "workflows": [workflow.id for workflow in workflows],
+                "detector_type": detector.type,
+                "detector_id": detector.id,
             },
         )
 
@@ -249,6 +260,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             logger.info(
                 "workflow_engine.process_workflows.triggered_workflows",
                 extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
                     "event_data": asdict(event_data),
                     "event_environment_id": environment.id,
                     "triggered_workflows": [workflow.id for workflow in triggered_workflows],
@@ -268,6 +281,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.info(
             "workflow_engine.process_workflows.actions (all)",
             extra={
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "action_ids": [action.id for action in actions],
                 "detector_type": detector.type,
@@ -290,10 +305,18 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.info(
             "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "action_ids": [action.id for action in actions],
                 "detector_type": detector.type,
             },
+        )
+    # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
+    if len(actions) > 0:
+        metrics.incr(
+            "workflow_engine.process_workflows.fired_actions",
+            tags={"detector_type": detector.type},
         )
 
     return triggered_workflows

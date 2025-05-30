@@ -14,6 +14,7 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from sentry.utils.performance_issues.base import DetectorType, total_span_time
 from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
@@ -82,6 +83,7 @@ def assert_n_plus_one_db_problem(perf_problems):
 
 
 @pytest.mark.django_db
+@exclude_experimental_detectors
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -130,11 +132,11 @@ class PerformanceDetectionTest(TestCase):
         default_settings = get_detection_settings(self.project)
 
         assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
+        assert default_settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
-        assert default_settings[DetectorType.DB_MAIN_THREAD][0]["detection_enabled"]
-        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["detection_enabled"]
+        assert default_settings[DetectorType.DB_MAIN_THREAD]["detection_enabled"]
+        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD]["detection_enabled"]
         assert default_settings[DetectorType.M_N_PLUS_ONE_DB]["detection_enabled"]
         assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
@@ -158,11 +160,11 @@ class PerformanceDetectionTest(TestCase):
         configured_settings = get_detection_settings(self.project)
 
         assert not configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
-        assert not configured_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
+        assert not configured_settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
-        assert not configured_settings[DetectorType.DB_MAIN_THREAD][0]["detection_enabled"]
-        assert not (configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["detection_enabled"])
+        assert not configured_settings[DetectorType.DB_MAIN_THREAD]["detection_enabled"]
+        assert not (configured_settings[DetectorType.FILE_IO_MAIN_THREAD]["detection_enabled"])
         assert not configured_settings[DetectorType.M_N_PLUS_ONE_DB]["detection_enabled"]
         assert not configured_settings[DetectorType.N_PLUS_ONE_API_CALLS]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
@@ -180,8 +182,8 @@ class PerformanceDetectionTest(TestCase):
         assert (
             default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"] == 0.33
         )
-        assert default_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 16
-        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 16
+        assert default_settings[DetectorType.DB_MAIN_THREAD]["duration_threshold"] == 16
+        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD]["duration_threshold"] == 16
         assert (
             default_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 500 * 1024
         )
@@ -190,7 +192,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
         assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 500
+        assert default_settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
@@ -212,7 +214,7 @@ class PerformanceDetectionTest(TestCase):
             configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
         )
         assert configured_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 500
-        assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
+        assert configured_settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 5000
         assert (
             configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"]
             == 0.8
@@ -225,8 +227,8 @@ class PerformanceDetectionTest(TestCase):
             configured_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"]
             == 7000000
         )
-        assert configured_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 50
-        assert configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 33
+        assert configured_settings[DetectorType.DB_MAIN_THREAD]["duration_threshold"] == 50
+        assert configured_settings[DetectorType.FILE_IO_MAIN_THREAD]["duration_threshold"] == 33
         assert configured_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 500
         assert configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 1000
 
@@ -296,31 +298,41 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
-    @override_options({"performance.issues.consecutive_http.flag_disabled": True})
+    @override_options({"performance.issues.consecutive_http.problem-creation": True})
     def test_boolean_system_option_disables_detector_issue_creation(self):
         event = get_event("consecutive-http/consecutive-http-basic")
         sdk_span_mock = Mock()
 
-        with self.feature("organizations:performance-consecutive-http-detector"):
-            perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
-            assert perf_problems == []
+        perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
+        assert perf_problems == []
 
-    @override_options({"performance.issues.consecutive_http.flag_disabled": False})
+    @override_options({"performance.issues.consecutive_http.problem-creation": False})
     def test_boolean_system_option_enables_detector_issue_creation(self):
         event = get_event("consecutive-http/consecutive-http-basic")
         sdk_span_mock = Mock()
 
-        with self.feature("organizations:performance-consecutive-http-detector"):
-            perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
-            assert perf_problems == [
-                PerformanceProblem(
-                    fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
-                    op="http",
-                    desc="GET https://my-api.io/api/users?page=1",
-                    type=PerformanceConsecutiveHTTPQueriesGroupType,
-                    parent_span_ids=None,
-                    cause_span_ids=[],
-                    offender_span_ids=[
+        perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
+                op="http",
+                desc="GET https://my-api.io/api/users?page=1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "96e0ae187b5481a1",
+                    "8d22b49a27b18270",
+                    "b2bc2ebb42248c74",
+                    "9336922774fd35bc",
+                    "a307ceb77c702cea",
+                    "ac1e90ff646617e7",
+                ],
+                evidence_data={
+                    "op": "http",
+                    "parent_span_ids": None,
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
                         "96e0ae187b5481a1",
                         "8d22b49a27b18270",
                         "b2bc2ebb42248c74",
@@ -328,22 +340,10 @@ class PerformanceDetectionTest(TestCase):
                         "a307ceb77c702cea",
                         "ac1e90ff646617e7",
                     ],
-                    evidence_data={
-                        "op": "http",
-                        "parent_span_ids": None,
-                        "cause_span_ids": [],
-                        "offender_span_ids": [
-                            "96e0ae187b5481a1",
-                            "8d22b49a27b18270",
-                            "b2bc2ebb42248c74",
-                            "9336922774fd35bc",
-                            "a307ceb77c702cea",
-                            "ac1e90ff646617e7",
-                        ],
-                    },
-                    evidence_display=[],
-                )
-            ]
+                },
+                evidence_display=[],
+            )
+        ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self):
@@ -408,18 +408,18 @@ class PerformanceDetectionTest(TestCase):
         assert_n_plus_one_db_problem(perf_problems)
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
+    def test_detects_performance_issues_in_n_plus_one_query(self):
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 8
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    2,
+                    len(perf_problems),
                 ),
                 call(
                     "_pi_sdk_name",
@@ -435,11 +435,6 @@ class PerformanceDetectionTest(TestCase):
                     "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 ),
                 call("_pi_n_plus_one_db", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_ext_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_ext", "b8be6138369491dd"),
             ],
         )
         assert_n_plus_one_db_problem(perf_problems)

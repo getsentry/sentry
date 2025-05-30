@@ -29,7 +29,7 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
-    spans_eap,
+    ourlogs,
     spans_rpc,
     transactions,
 )
@@ -437,9 +437,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
         ) and use_on_demand_metrics
 
-        save_discover_dataset_decision = features.has(
-            "organizations:performance-discover-dataset-selector", organization, actor=request.user
-        )
+        save_discover_dataset_decision = True
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
@@ -462,9 +460,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
-        # Only works when dataset == spans
-        use_rpc = request.GET.get("useRpc", "0") == "1"
-        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
         debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
@@ -473,23 +468,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             limit: int,
             query: str | None,
         ):
-            if use_rpc and dataset == spans_eap:
-                return spans_rpc.run_table_query(
-                    params=snuba_params,
-                    query_string=query or "",
-                    selected_columns=self.get_field_list(organization, request),
-                    orderby=self.get_orderby(request),
-                    offset=offset,
-                    limit=limit,
-                    referrer=referrer,
-                    debug=debug,
-                    config=SearchResolverConfig(
-                        auto_fields=True,
-                        use_aggregate_conditions=use_aggregate_conditions,
-                        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                    ),
-                    sampling_mode=snuba_params.sampling_mode,
-                )
             query_source = self.get_request_source(request)
             return dataset_query(
                 selected_columns=self.get_field_list(organization, request),
@@ -510,11 +488,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
                 query_source=query_source,
                 debug=debug,
             )
@@ -530,13 +504,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             try:
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                 does_widget_have_split = widget.discover_widget_split is not None
-                has_override_feature = features.has(
-                    "organizations:performance-discover-widget-split-override-save",
-                    organization,
-                    actor=request.user,
-                )
 
-                if does_widget_have_split and not has_override_feature:
+                if does_widget_have_split:
                     dataset_query: DatasetQuery
 
                     # This is essentially cached behaviour and we skip the check
@@ -741,6 +710,24 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
 
             def fn(offset, limit):
+                if scoped_dataset == spans_rpc:
+                    return spans_rpc.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=offset,
+                        limit=limit,
+                        referrer=referrer,
+                        debug=debug,
+                        config=SearchResolverConfig(
+                            auto_fields=True,
+                            use_aggregate_conditions=use_aggregate_conditions,
+                            fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                        ),
+                        sampling_mode=snuba_params.sampling_mode,
+                    )
+
                 if save_discover_dataset_decision and discover_saved_query_id:
                     return _discover_data_fn(
                         scoped_dataset.query, offset, limit, scoped_query, discover_saved_query_id
@@ -756,6 +743,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return fn
 
         data_fn = data_fn_factory(dataset)
+
+        max_per_page = 1000 if dataset == ourlogs else None
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
@@ -782,4 +771,5 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         standard_meta=True,
                         dataset=dataset,
                     ),
+                    max_per_page=max_per_page,
                 )

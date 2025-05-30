@@ -57,3 +57,8 @@ class IssueCategoryFilterPerformanceTest(
         tx_event = self.create_performance_issue()
         assert tx_event.group
         self.assertPasses(self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), tx_event)
+
+    def test_transaction_category_v2(self):
+        tx_event = self.create_performance_issue()
+        assert tx_event.group
+        self.assertPasses(self.get_rule(data={"value": GroupCategory.DB_QUERY.value}), tx_event)

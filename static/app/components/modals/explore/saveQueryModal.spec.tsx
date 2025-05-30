@@ -49,7 +49,7 @@ describe('SaveQueryModal', function () {
     );
 
     await userEvent.type(
-      screen.getByTitle('Enter a name for your saved query'),
+      screen.getByTitle('Enter a name for your new query'),
       'Query Name'
     );
 
@@ -73,7 +73,7 @@ describe('SaveQueryModal', function () {
     );
 
     await userEvent.type(
-      screen.getByTitle('Enter a name for your saved query'),
+      screen.getByTitle('Enter a name for your new query'),
       'Query Name'
     );
     await userEvent.click(screen.getByRole('checkbox', {name: 'Starred'}));

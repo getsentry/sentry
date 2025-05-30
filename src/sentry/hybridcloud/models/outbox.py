@@ -9,8 +9,9 @@ from typing import Any, Self
 
 import sentry_sdk
 from django import db
-from django.db import OperationalError, connections, models, router, transaction
+from django.db import DatabaseError, OperationalError, connections, models, router, transaction
 from django.db.models import Count, Max, Min
+from django.db.models.functions import Now
 from django.db.transaction import Atomic
 from django.utils import timezone
 from sentry_sdk.tracing import Span
@@ -45,6 +46,10 @@ class OutboxFlushError(Exception):
     def __init__(self, message: str, outbox: OutboxBase) -> None:
         super().__init__(message)
         self.outbox = outbox
+
+
+class OutboxDatabaseError(DatabaseError):
+    pass
 
 
 class InvalidOutboxError(Exception):
@@ -177,7 +182,9 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
-    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
+    date_added = models.DateTimeField(
+        null=False, default=timezone.now, db_default=Now(), editable=False
+    )
 
     def last_delay(self) -> datetime.timedelta:
         return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
@@ -185,7 +192,7 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
-    def save(self, **kwds: Any) -> None:  # type: ignore[override]
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not OutboxScope.scope_has_category(self.shard_scope, self.category):
             raise InvalidOutboxError(
                 f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
@@ -196,7 +203,7 @@ class OutboxBase(Model):
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
-        super().save(**kwds)
+        super().save(*args, **kwargs)
 
     @contextlib.contextmanager
     def process_shard(self, latest_shard_row: OutboxBase | None) -> Generator[OutboxBase | None]:
@@ -322,32 +329,38 @@ class OutboxBase(Model):
         in_test_assert_no_transaction(
             "drain_shard should only be called outside of any active transaction!"
         )
-        # When we are flushing in a local context, we don't care about outboxes created concurrently --
-        # at best our logic depends on previously created outboxes.
-        latest_shard_row: OutboxBase | None = None
-        if not flush_all:
-            latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediate values,
-            # drop.
-            if latest_shard_row is None:
-                return
 
-        shard_row: OutboxBase | None
-        while True:
-            with self.process_shard(latest_shard_row) as shard_row:
-                if shard_row is None:
-                    break
+        try:
+            # When we are flushing in a local context, we don't care about outboxes created concurrently --
+            # at best our logic depends on previously created outboxes.
+            latest_shard_row: OutboxBase | None = None
+            if not flush_all:
+                latest_shard_row = self.selected_messages_in_shard().last()
+                # If we're not flushing all possible shards, and we don't see any immediate values,
+                # drop.
+                if latest_shard_row is None:
+                    return
 
-                if _test_processing_barrier:
-                    _test_processing_barrier.wait()
+            shard_row: OutboxBase | None
+            while True:
+                with self.process_shard(latest_shard_row) as shard_row:
+                    if shard_row is None:
+                        break
 
-                processed = shard_row.process(is_synchronous_flush=not flush_all)
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
 
-                if _test_processing_barrier:
-                    _test_processing_barrier.wait()
+                    processed = shard_row.process(is_synchronous_flush=not flush_all)
 
-                if not processed:
-                    break
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
+
+                    if not processed:
+                        break
+        except DatabaseError as e:
+            raise OutboxDatabaseError(
+                f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
+            ) from e
 
     @classmethod
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:

@@ -49,6 +49,9 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         """
         self.assert_has_feature(request, team.organization)
 
+        if "teamId" in request.data:
+            del request.data["teamId"]
+
         serializer = ExternalTeamSerializer(
             data={**request.data, "team_id": team.id}, context={"organization": team.organization}
         )

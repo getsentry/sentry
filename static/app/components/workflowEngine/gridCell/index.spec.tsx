@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TooltipContext} from 'sentry/components/core/tooltip';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 import {ActionCell} from './actionCell';
 import {ConnectionCell} from './connectionCell';
@@ -10,7 +11,9 @@ import {TypeCell} from './typeCell';
 
 describe('Action Cell Component', function () {
   it('renders', function () {
-    render(<ActionCell actions={['slack', 'discord', 'email']} />);
+    render(
+      <ActionCell actions={[ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL]} />
+    );
 
     const text = screen.getByText('Slack, Discord, Email');
     expect(text).toBeInTheDocument();
@@ -20,7 +23,7 @@ describe('Action Cell Component', function () {
     const container = document.createElement('div');
     render(
       <TooltipContext value={{container}}>
-        <ActionCell actions={['slack', 'discord', 'email']} />
+        <ActionCell actions={[ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL]} />
       </TooltipContext>
     );
 
@@ -63,7 +66,10 @@ describe('Connection Cell Component', function () {
     const overlay = await screen.findByRole('link');
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveAttribute('href');
-    expect(overlay).toHaveAttribute('href', '/issues/monitors/12345/');
+    expect(overlay).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/monitors/12345/'
+    );
   });
 
   it('renders workflow hovercard', async function () {
@@ -75,7 +81,10 @@ describe('Connection Cell Component', function () {
     const overlay = await screen.findByRole('link');
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveAttribute('href');
-    expect(overlay).toHaveAttribute('href', '/issues/automations/12345/');
+    expect(overlay).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/automations/12345/'
+    );
   });
 });
 

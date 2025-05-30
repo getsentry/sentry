@@ -1,3 +1,5 @@
+import {DataCategory} from 'sentry/types/core';
+
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 
@@ -98,7 +100,7 @@ describe('mapSeriesToChart func', function () {
       orgStats: mockSeries,
       chartDateInterval: '1h',
       chartDateUtc: true,
-      dataCategory: 'transactions',
+      dataCategory: DataCategory.TRANSACTIONS,
       endpointQuery: {},
     });
 
@@ -210,7 +212,7 @@ describe('mapSeriesToChart func', function () {
       },
       chartDateInterval: '1h',
       chartDateUtc: true,
-      dataCategory: 'transactions',
+      dataCategory: DataCategory.TRANSACTIONS,
       endpointQuery: {},
     });
 
@@ -268,7 +270,7 @@ describe('mapSeriesToChart func', function () {
       },
       chartDateInterval: '1h',
       chartDateUtc: true,
-      dataCategory: 'profile_duration',
+      dataCategory: DataCategory.PROFILE_DURATION,
       endpointQuery: {},
     });
 
@@ -337,7 +339,7 @@ describe('mapSeriesToChart func', function () {
       },
       chartDateInterval: '1h',
       chartDateUtc: true,
-      dataCategory: 'profile_duration',
+      dataCategory: DataCategory.PROFILE_DURATION,
       shouldEstimateDroppedProfiles: true,
       endpointQuery: {},
     });

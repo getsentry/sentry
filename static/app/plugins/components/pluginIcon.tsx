@@ -69,7 +69,7 @@ const PLUGIN_ICONS = {
 } satisfies Record<string, string>;
 
 export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
-  pluginId: string | keyof typeof PLUGIN_ICONS;
+  pluginId: keyof typeof PLUGIN_ICONS | (string & {});
   /**
    * @default 20
    */

@@ -22,7 +22,7 @@ const COMMON_HINT_KEYS = [
 
 const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.MESSAGE,
-  OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.PROJECT_ID,
@@ -50,7 +50,7 @@ const SCHEMA_HINTS_HIDDEN_KEYS_LOGS = [
 ];
 
 // Unlike ORDER_KEYS, hidden keys are completely omitted from the schema hints list.
-export const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
+const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
   ...new Set([...SCHEMA_HINTS_HIDDEN_KEYS_LOGS]),
 ];
 

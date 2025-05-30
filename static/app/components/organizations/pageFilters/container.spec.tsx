@@ -24,7 +24,11 @@ const changeQuery = (router: any, query: any) => ({
 });
 
 function renderComponent(component: any, router: any, organization: any) {
-  return render(component, {router, organization});
+  return render(component, {
+    router,
+    organization,
+    deprecatedRouterMocks: true,
+  });
 }
 
 describe('PageFiltersContainer', function () {

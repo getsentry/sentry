@@ -26,7 +26,7 @@ interface BaseCompositeSelectRegion<Value extends SelectKey> {
  * renders as a `ul` with its own list state) whose selection values don't interfere
  * with one another.
  */
-export interface SingleCompositeSelectRegion<Value extends SelectKey>
+interface SingleCompositeSelectRegion<Value extends SelectKey>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       SingleListProps<Value>,
@@ -39,7 +39,7 @@ export interface SingleCompositeSelectRegion<Value extends SelectKey>
  * list (each renders as a `ul` with its own list state) whose selection values don't
  * interfere with one another.
  */
-export interface MultipleCompositeSelectRegion<Value extends SelectKey>
+interface MultipleCompositeSelectRegion<Value extends SelectKey>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       MultipleListProps<Value>,
@@ -51,7 +51,7 @@ export interface MultipleCompositeSelectRegion<Value extends SelectKey>
  * selectable list (each renders as a `ul` with its own list state) whose selection
  * values don't interfere with one another.
  */
-export type CompositeSelectRegion<Value extends SelectKey> =
+type CompositeSelectRegion<Value extends SelectKey> =
   | SingleCompositeSelectRegion<Value>
   | MultipleCompositeSelectRegion<Value>;
 
@@ -65,7 +65,7 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps extends ControlProps {
+interface CompositeSelectProps extends ControlProps {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)

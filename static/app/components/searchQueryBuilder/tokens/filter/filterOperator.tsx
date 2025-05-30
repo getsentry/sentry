@@ -7,13 +7,9 @@ import type {Node} from '@react-types/shared';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {
-  getValidOpsForFilter,
-  isAggregateFilterToken,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -260,27 +256,6 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
       offset={MENU_OFFSET}
     />
   );
-}
-
-export function FilterKeyOperatorVisual({token}: {token: TokenResult<Token.FILTER>}) {
-  if (isAggregateFilterToken(token)) {
-    const {label} = getOperatorInfo(token);
-
-    return (
-      <KeyOpLabelWrapper>
-        <div>
-          <AggregateKeyVisual token={token} /> {label}
-        </div>
-      </KeyOpLabelWrapper>
-    );
-  }
-
-  if (token.filter === FilterType.IS || token.filter === FilterType.HAS) {
-    const {label} = getOperatorInfo(token);
-    return label;
-  }
-
-  return <FilterKeyOperatorLabel keyLabel={token.key.text} opLabel="" />;
 }
 
 const OpButton = styled(UnstyledButton)<{onlyOperator?: boolean}>`

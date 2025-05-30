@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from django.http import HttpRequest, HttpResponse
 
 from sentry.auth.provider import MigratingIdentityId, Provider
@@ -25,7 +27,7 @@ class DummyProvider(Provider):
     name = "Dummy"
     key = "dummy"
 
-    def get_auth_pipeline(self):
+    def get_auth_pipeline(self) -> Sequence[AuthView]:
         return [AskEmail()]
 
     def build_identity(self, state):
@@ -65,7 +67,7 @@ class DummySAML2Provider(SAML2Provider):
     name = "DummySAML2"
     key = "saml2_dummy"
 
-    def get_saml_setup_pipeline(self):
+    def get_saml_setup_pipeline(self) -> list[AuthView]:
         return []
 
     def build_config(self, state):

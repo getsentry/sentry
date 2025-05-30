@@ -94,7 +94,7 @@ export function DataSetStep({
     datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
   }
 
-  if (organization.features.includes('dashboards-eap')) {
+  if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>

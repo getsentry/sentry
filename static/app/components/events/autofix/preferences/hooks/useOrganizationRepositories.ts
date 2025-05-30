@@ -23,7 +23,16 @@ export function useOrganizationRepositories() {
   });
 
   return {
-    data: useMemo(() => pages.flat(), [pages]),
+    data: useMemo(() => {
+      const flattenedRepos = pages.flat();
+      const uniqueReposMap = new Map<string, Repository>();
+      flattenedRepos.forEach(repo => {
+        if (repo.externalId && !uniqueReposMap.has(repo.externalId)) {
+          uniqueReposMap.set(repo.externalId, repo);
+        }
+      });
+      return Array.from(uniqueReposMap.values());
+    }, [pages]),
     isFetching,
   };
 }

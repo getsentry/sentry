@@ -959,6 +959,12 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
+            highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
+        )
+        assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
             highlightContext={"bird-words": ["invalid", 123, "integer"]},
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
@@ -1935,3 +1941,36 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" not in response.data
+
+    def test_autofix_automation_tuning(self):
+        # Test without feature flag - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="low", status_code=400
+        )
+        assert (
+            "trigger-autofix-on-issue-summary feature enabled"
+            in resp.data["autofixAutomationTuning"][0]
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+
+        # Test with feature flag but invalid value - should fail
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_error_response(
+                self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
+            )
+            assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+
+            # Test with feature flag and valid value - should succeed
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
+            )
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
+            assert resp.data["autofixAutomationTuning"] == "medium"
+
+            # Test setting back to off
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, autofixAutomationTuning="off"
+            )
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
+            assert resp.data["autofixAutomationTuning"] == "off"
