@@ -5,7 +5,6 @@ from typing import TypedDict, cast
 import sentry_sdk
 
 from sentry.discover.arithmetic import is_equation
-from sentry.discover.dashboard_widget_split import _get_snuba_dataclass_for_dashboard_widget
 from sentry.discover.dataset_split import _get_equation_list, _get_field_list
 from sentry.discover.translation.mep_to_eap import (
     QueryParts,
@@ -18,8 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsResponse, SnubaParams
-from sentry.snuba import spans_rpc
-from sentry.snuba.metrics_performance import query as metrics_query
+from sentry.snuba import metrics_enhanced_performance, spans_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +40,8 @@ class CompareTableResultDict(TypedDict):
     mismatches: list[str] | None
 
 
-def compare_table_results(metrics_query_result: EventsResponse, snql_eap_result: EAPResponse):
-    eap_data_row = snql_eap_result["data"][0] if len(snql_eap_result["data"]) > 0 else {}
+def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
+    eap_data_row = eap_result["data"][0] if len(eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
     )
@@ -54,7 +52,7 @@ def compare_table_results(metrics_query_result: EventsResponse, snql_eap_result:
         translated_field, *rest = translate_columns([field])
         if data is not None and eap_data_row[translated_field] is None:
             logger.info("Field %s not found in EAP response", field)
-            sentry_sdk.set_tag("dashboard_comparison_mismatch_field", field)
+            sentry_sdk.capture_event("dashboard_comparison_mismatch_field", hint={"field": field})
             mismatches.append(field)
 
     return (len(mismatches) == 0, mismatches)
@@ -76,8 +74,6 @@ def compare_tables_for_dashboard_widget_queries(
             "mismatches": None,
         }
 
-    project = projects[0]
-
     fields = widget_query.fields
     if len(fields) == 0:
         return {
@@ -88,19 +84,27 @@ def compare_tables_for_dashboard_widget_queries(
             "mismatches": None,
         }
 
-    snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
     selected_columns = _get_field_list(fields)
     equations = [equation for equation in _get_equation_list(widget_query.fields or []) if equation]
     query = widget_query.conditions
+
+    environments = dashboard.filters.get("environment", []) if dashboard.filters is not None else []
+
+    snuba_params = SnubaParams(
+        environments=environments,
+        projects=list(projects),
+        organization=organization,
+        stats_period="7d",
+    )
 
     has_metrics_error = False
     has_snql_eap_error = False
 
     try:
-        metrics_query_result = metrics_query(
+        metrics_query_result = metrics_enhanced_performance.query(
             selected_columns,
             query,
-            snuba_dataclass,
+            snuba_params,
             equations,
             orderby=None,
             offset=None,
@@ -113,15 +117,6 @@ def compare_tables_for_dashboard_widget_queries(
         logger.info("Metrics query failed: %s", e)
         has_metrics_error = True
 
-    environments = dashboard.filters.get("environment", []) if dashboard.filters is not None else []
-
-    snuba_params = SnubaParams(
-        environments=environments,
-        projects=[project],
-        organization=organization,
-        stats_period="7d",
-    )
-
     eap_query_parts = translate_mep_to_eap(
         QueryParts(
             query=query,
@@ -132,11 +127,11 @@ def compare_tables_for_dashboard_widget_queries(
     )
 
     try:
-        snql_eap_result = spans_rpc.run_table_query(
+        eap_result = spans_rpc.run_table_query(
             params=snuba_params,
             query_string=eap_query_parts["query"],
             selected_columns=eap_query_parts["selected_columns"],
-            orderby=eap_query_parts["orderby"],
+            orderby=None,
             offset=0,
             limit=1,
             referrer="dashboards.transactions_spans_comparison",
@@ -172,9 +167,9 @@ def compare_tables_for_dashboard_widget_queries(
             "mismatches": None,
         }
     else:
-        passed, mismatches = compare_table_results(metrics_query_result, snql_eap_result)
+        passed, mismatches = compare_table_results(metrics_query_result, eap_result)
         if passed:
-            sentry_sdk.set_tag("dashboard_comparison_passed", True)
+            sentry_sdk.capture_event("dashboard_comparison_passed", hint={"passed": True})
             return {
                 "passed": True,
                 "reason": CompareTableResult.PASSED,
@@ -183,7 +178,7 @@ def compare_tables_for_dashboard_widget_queries(
                 "mismatches": mismatches,
             }
         else:
-            sentry_sdk.set_tag("dashboard_comparison_passed", False)
+            sentry_sdk.capture_event("dashboard_comparison_passed", hint={"passed": False})
             return {
                 "passed": False,
                 "reason": CompareTableResult.FIELD_NOT_FOUND,
