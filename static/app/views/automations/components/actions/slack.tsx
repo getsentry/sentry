@@ -55,7 +55,7 @@ function NotesField() {
       value={action.data.tags}
       onChange={(value: string) => {
         onUpdate({
-          tags: value,
+          data: {tags: value},
         });
       }}
     />
