@@ -348,7 +348,7 @@ class TestGroupOwners(TestCase):
         process_suspect_commits(
             event_with_no_release.event_id,
             event_with_no_release.platform,
-            event_with_no_release.data,
+            get_frame_paths(event_with_no_release),
             event_with_no_release.group_id,
             event_with_no_release.project_id,
         )

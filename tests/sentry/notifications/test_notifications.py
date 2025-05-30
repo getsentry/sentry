@@ -516,7 +516,7 @@ class ActivityNotificationTest(APITestCase):
                     group_id=event.group_id,
                     cache_key=cache_key,
                     project_id=self.project.id,
-                    eventstream_type=EventStreamEventType.Error,
+                    eventstream_type=EventStreamEventType.Error.value,
                 )
 
         msg = mail.outbox[0]
