@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, createRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
@@ -142,8 +142,8 @@ class DropdownMenu extends Component<Props, State> {
     document.removeEventListener('click', this.checkClickOutside, true);
   }
 
-  dropdownMenu: Element | null = null;
-  dropdownActor: Element | null = null;
+  dropdownMenu: React.RefObject<Element | null> = createRef();
+  dropdownActor: React.RefObject<Element | null> = createRef();
 
   mouseLeaveTimeout: number | undefined = undefined;
   mouseEnterTimeout: number | undefined = undefined;
@@ -169,11 +169,11 @@ class DropdownMenu extends Component<Props, State> {
     }
 
     // Dropdown menu itself
-    if (this.dropdownMenu.contains(e.target)) {
+    if (this.dropdownMenu.current?.contains(e.target)) {
       return;
     }
 
-    if (!this.dropdownActor) {
+    if (!this.dropdownActor.current) {
       // Log an error, should be lower priority
       Sentry.withScope(scope => {
         scope.setLevel('warning');
@@ -182,7 +182,7 @@ class DropdownMenu extends Component<Props, State> {
     }
 
     // Button that controls visibility of dropdown menu
-    if (this.dropdownActor?.contains(e.target)) {
+    if (this.dropdownActor.current?.contains(e.target)) {
       return;
     }
 
@@ -237,8 +237,9 @@ class DropdownMenu extends Component<Props, State> {
 
     try {
       if (
-        this.dropdownMenu &&
-        (!(toElement instanceof Element) || !this.dropdownMenu.contains(toElement))
+        this.dropdownMenu.current &&
+        (!(toElement instanceof Element) ||
+          !this.dropdownMenu.current.contains(toElement))
       ) {
         window.clearTimeout(this.mouseLeaveTimeout);
         this.mouseLeaveTimeout = window.setTimeout(() => {
@@ -283,7 +284,7 @@ class DropdownMenu extends Component<Props, State> {
     }
     const {alwaysRenderMenu, isNestedDropdown} = this.props;
 
-    this.dropdownMenu = ref;
+    this.dropdownMenu.current = ref;
 
     // Don't add document event listeners here if we are always rendering menu
     // Instead add when menu is opened
@@ -291,7 +292,7 @@ class DropdownMenu extends Component<Props, State> {
       return;
     }
 
-    if (this.dropdownMenu) {
+    if (this.dropdownMenu.current) {
       // 3rd arg = useCapture = so event capturing vs event bubbling
       document.addEventListener('click', this.checkClickOutside, true);
     } else {
@@ -303,7 +304,7 @@ class DropdownMenu extends Component<Props, State> {
     if (ref && !(ref instanceof Element)) {
       return;
     }
-    this.dropdownActor = ref;
+    this.dropdownActor.current = ref;
   };
 
   handleToggle = (e: React.MouseEvent<Element>) => {
@@ -388,12 +389,6 @@ class DropdownMenu extends Component<Props, State> {
       },
 
       onClick: (e: React.MouseEvent<E>) => {
-        // eslint-disable-next-line no-console
-        console.log({
-          event: e,
-          isNestedDropdown,
-          isOpen: this.isOpen(),
-        });
         // If we are a nested dropdown, clicking the actor
         // should be a no-op so that the menu doesn't close.
         if (isNestedDropdown) {
