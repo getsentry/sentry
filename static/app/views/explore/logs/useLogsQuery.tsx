@@ -14,7 +14,6 @@ import {
   useInfiniteQuery,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import {TokenType} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,6 +23,7 @@ import {
   useLogsCursor,
   useLogsFields,
   useLogsIsFrozen,
+  useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsRefreshInterval,
   useLogsSearch,
@@ -98,15 +98,10 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const isFrozen = useLogsIsFrozen();
+  const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const traceIds = baseSearch?.tokens
-    .filter(
-      token =>
-        token.key === OurLogKnownFieldKey.TRACE_ID && token.type === TokenType.FILTER
-    )
-    .map(token => token.value);
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -121,7 +116,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const params = {
     query: {
       ...eventView.getEventsAPIPayload(location),
-      ...(traceIds ? {traceId: traceIds} : {}),
+      ...(limitToTraceId ? {traceId: limitToTraceId} : {}),
       cursor,
       per_page: limit ? limit : undefined,
     },
@@ -131,7 +126,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${traceIds && isFrozen ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${limitToTraceId && isFrozen ? 'trace-logs' : 'events'}/`,
     params,
   ];
 
