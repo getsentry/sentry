@@ -138,10 +138,10 @@ describe('dropdownMenuDeprecated', function () {
 
     await userEvent.click(screen.getByRole('button'));
     expect(addSpy).toHaveBeenCalledWith('click', expect.anything(), true);
-    expect(removeSpy).not.toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button'));
-    expect(removeSpy).toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalledTimes(2);
 
     addSpy.mockRestore();
     removeSpy.mockRestore();

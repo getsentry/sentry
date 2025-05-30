@@ -142,17 +142,27 @@ function DropdownMenu({
   const mouseLeaveTimeout = useRef<number | undefined>(undefined);
   const mouseEnterTimeout = useRef<number | undefined>(undefined);
 
-  // Store refs to the latest callback functions to avoid stale closures
-  const checkClickOutsideRef = useRef<((e: MouseEvent) => Promise<void>) | null>(null);
-  const handleCloseRef = useRef<
-    ((e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => void) | null
-  >(null);
-
   // Gets open state from props or local state when appropriate
   const isOpen = useCallback(() => {
     const isControlled = typeof isOpenProp !== 'undefined';
     return (isControlled && isOpenProp) || isOpenState;
   }, [isOpenProp, isOpenState]);
+
+  // Closes dropdown menu
+  const handleClose = useCallback(
+    (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => {
+      const isControlled = typeof isOpenProp !== 'undefined';
+
+      if (!isControlled) {
+        setIsOpenState(false);
+      }
+
+      if (typeof onClose === 'function') {
+        onClose(e);
+      }
+    },
+    [isOpenProp, onClose]
+  );
 
   // Checks if click happens inside of dropdown menu (or its button)
   // Closes dropdownmenu if it is "outside"
@@ -200,44 +210,10 @@ function DropdownMenu({
       // ensure any click handlers are run.
       await new Promise(resolve => window.setTimeout(resolve));
 
-      // Use the ref to get the latest handleClose function
-      if (handleCloseRef.current) {
-        handleCloseRef.current();
-      }
+      handleClose();
     },
-    [isOpen, onClickOutside, shouldIgnoreClickOutside]
+    [isOpen, onClickOutside, shouldIgnoreClickOutside, handleClose]
   );
-
-  // Update the ref whenever checkClickOutside changes
-  checkClickOutsideRef.current = checkClickOutside;
-
-  // Closes dropdown menu
-  const handleClose = useCallback(
-    (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => {
-      const isControlled = typeof isOpenProp !== 'undefined';
-
-      if (!isControlled) {
-        setIsOpenState(false);
-      }
-
-      // Clean up click handlers when the menu is closed for menus that are always rendered,
-      // otherwise the click handlers get cleaned up when menu is unmounted
-      if (alwaysRenderMenu || isNestedDropdown) {
-        // Use the ref to get the latest checkClickOutside function
-        if (checkClickOutsideRef.current) {
-          document.removeEventListener('click', checkClickOutsideRef.current, true);
-        }
-      }
-
-      if (typeof onClose === 'function') {
-        onClose(e);
-      }
-    },
-    [isOpenProp, alwaysRenderMenu, isNestedDropdown, onClose]
-  );
-
-  // Update the ref whenever handleClose changes
-  handleCloseRef.current = handleClose;
 
   // Opens dropdown menu
   const handleOpen = useCallback(
@@ -252,17 +228,14 @@ function DropdownMenu({
       // If we always render menu (e.g. DropdownLink), then add the check click outside handlers when we open the menu
       // instead of when the menu component mounts. Otherwise we will have many click handlers attached on initial load.
       if (alwaysRenderMenu || isNestedDropdown) {
-        // Use the ref to get the latest checkClickOutside function
-        if (checkClickOutsideRef.current) {
-          document.addEventListener('click', checkClickOutsideRef.current, true);
-        }
+        document.addEventListener('click', checkClickOutside, true);
       }
 
       if (typeof onOpen === 'function') {
         onOpen(e);
       }
     },
-    [isOpenProp, alwaysRenderMenu, isNestedDropdown, onOpen]
+    [isOpenProp, alwaysRenderMenu, isNestedDropdown, onOpen, checkClickOutside]
   );
 
   // Decide whether dropdown should be closed when mouse leaves element
@@ -437,9 +410,7 @@ function DropdownMenu({
           if (dropdownMenu.current) {
             // 3rd arg = useCapture = so event capturing vs event bubbling
             // Use the ref to get the latest checkClickOutside function
-            if (checkClickOutsideRef.current) {
-              document.addEventListener('click', checkClickOutsideRef.current, true);
-            }
+            document.addEventListener('click', checkClickOutside, true);
           }
         },
         role: 'listbox',
@@ -460,7 +431,13 @@ function DropdownMenu({
         },
       });
     },
-    [alwaysRenderMenu, isNestedDropdown, handleMouseLeave, handleDropdownMenuClick]
+    [
+      alwaysRenderMenu,
+      isNestedDropdown,
+      handleMouseLeave,
+      handleDropdownMenuClick,
+      checkClickOutside,
+    ]
   );
 
   // Cleanup effect (equivalent to componentWillUnmount)
@@ -468,12 +445,14 @@ function DropdownMenu({
     return () => {
       window.clearTimeout(mouseLeaveTimeout.current);
       window.clearTimeout(mouseEnterTimeout.current);
-      // Use the ref to get the latest checkClickOutside function for cleanup
-      if (checkClickOutsideRef.current) {
-        document.removeEventListener('click', checkClickOutsideRef.current, true);
-      }
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('click', checkClickOutside, true);
+    };
+  }, [checkClickOutside]);
 
   // Default anchor = left
   const shouldShowDropdown = isOpen();
