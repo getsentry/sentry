@@ -371,12 +371,15 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
             borderless: true,
             showChevron: false,
             size: 'xs',
-            onClick: () => {
+            'aria-label': t('Example Profiles'),
+          }}
+          onOpenChange={isOpen => {
+            if (isOpen) {
               trackAnalytics('profiling_views.landing.widget.open_list', {
                 organization,
                 source: analyticsSource,
               });
-            },
+            }
           }}
           items={examples}
           menuTitle={t('Example Profiles')}
