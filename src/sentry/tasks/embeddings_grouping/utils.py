@@ -23,7 +23,7 @@ from sentry.seer.similarity.grouping_records import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
     delete_project_grouping_records,
-    post_bulk_grouping_records,
+    post_bulk_grouping_records_for_backfill,
 )
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
@@ -471,7 +471,7 @@ def _make_seer_call(
     create_grouping_records_request: CreateGroupingRecordsRequest, project_id: int
 ) -> BulkCreateGroupingRecordsResponse | None:
     seer_response = _retry_operation(
-        post_bulk_grouping_records,
+        post_bulk_grouping_records_for_backfill,
         create_grouping_records_request,
         retries=20,
         delay=15,
