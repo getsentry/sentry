@@ -528,7 +528,6 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
   if (name === null && version === null) {
     return (
       <Item>
-        {/* <SmallCode>{t('null')}</SmallCode> */}
         {/* <Tag icon={<IconNot />} /> */}
         <IconNot size="xs" color="gray300" />
       </Item>
