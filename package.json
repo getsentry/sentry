@@ -295,6 +295,25 @@
     "knip": "knip",
     "knip:prod": "yarn run knip --production --exclude exports,types"
   },
+  "browserslist": {
+    "production": [
+      "last 10 Chrome versions",
+      "last 10 Firefox versions",
+      "last 4 Safari major versions",
+      "last 3 iOS major versions",
+      "Firefox ESR"
+    ],
+    "development": [
+      "last 10 Chrome versions",
+      "last 10 Firefox versions",
+      "last 4 Safari major versions",
+      "last 3 iOS major versions",
+      "Firefox ESR"
+    ],
+    "test": [
+      "current node"
+    ]
+  },
   "volta": {
     "extends": ".volta.json"
   },
