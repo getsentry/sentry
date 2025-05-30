@@ -560,58 +560,27 @@ function updateIfAction(
   const {groupId, actionId, params} = action;
   const {integrationId, config, data} = params;
 
-  if (integrationId) {
-    return {
-      ...state,
-      actionFilters: state.actionFilters.map(group => {
-        if (group.id !== groupId) {
-          return group;
-        }
-        return {
-          ...group,
-          actions: group.actions?.map(a =>
-            a.id === actionId ? {...a, integrationId} : a
-          ),
-        };
-      }),
-    };
-  }
-
-  if (config) {
-    return {
-      ...state,
-      actionFilters: state.actionFilters.map(group => {
-        if (group.id !== groupId) {
-          return group;
-        }
-        return {
-          ...group,
-          actions: group.actions?.map(a =>
-            a.id === actionId ? {...a, config: {...a.config, ...config}} : a
-          ),
-        };
-      }),
-    };
-  }
-
-  if (data) {
-    return {
-      ...state,
-      actionFilters: state.actionFilters.map(group => {
-        if (group.id !== groupId) {
-          return group;
-        }
-        return {
-          ...group,
-          actions: group.actions?.map(a =>
-            a.id === actionId ? {...a, data: {...a.data, ...data}} : a
-          ),
-        };
-      }),
-    };
-  }
-
-  return state;
+  return {
+    ...state,
+    actionFilters: state.actionFilters.map(group => {
+      if (group.id !== groupId) {
+        return group;
+      }
+      return {
+        ...group,
+        actions: group.actions?.map(a =>
+          a.id === actionId
+            ? {
+                ...a,
+                ...(integrationId && {integrationId}),
+                ...(config && {config: {...a.config, ...config}}),
+                ...(data && {data: {...a.data, ...data}}),
+              }
+            : a
+        ),
+      };
+    }),
+  };
 }
 
 function updateIfLogicType(
