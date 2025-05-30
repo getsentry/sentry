@@ -131,6 +131,107 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
             [resolution_activity],
         )
 
+    def _create_auto_resolved_group(self):
+        group = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            first_seen=self.now - timedelta(days=3),
+        )
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        resolution_activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED_BY_AGE.value,
+            datetime=self.now,
+        )
+
+        return (
+            group,
+            [group.first_seen],
+            [resolution_activity.datetime],
+            [resolution_activity],
+        )
+
+    def _create_auto_resolved_regressed_group(self):
+        group = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            first_seen=self.now - timedelta(days=3),
+        )
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        resolution_activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED_BY_AGE.value,
+            datetime=self.now - timedelta(days=2),
+        )
+
+        group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+        regressed_activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=self.now - timedelta(days=1),
+        )
+
+        return (
+            group,
+            [group.first_seen, regressed_activity.datetime],
+            [resolution_activity.datetime, None],
+            [resolution_activity, None],
+        )
+
+    def _create_regressed_group_with_auto_resolved_cycles(self):
+        group = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            first_seen=self.now - timedelta(days=6),
+        )
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        resolution_activity_1 = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED_BY_AGE.value,
+            datetime=self.now - timedelta(days=5),
+        )
+
+        group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+        regressed_activity_1 = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=self.now - timedelta(days=4),
+        )
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        resolution_activity_2 = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED_BY_AGE.value,
+            datetime=self.now - timedelta(days=3),
+        )
+
+        group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+        regressed_activity_2 = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=self.now - timedelta(days=2),
+        )
+
+        return (
+            group,
+            [group.first_seen, regressed_activity_1.datetime, regressed_activity_2.datetime],
+            [resolution_activity_1.datetime, resolution_activity_2.datetime, None],
+            [resolution_activity_1, resolution_activity_2, None],
+        )
+
     def setup_before_migration(self, app):
         self.now = timezone.now()
         self.organization = Organization.objects.create(name="test", slug="test")
@@ -190,6 +291,26 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
         assert group.status == GroupStatus.RESOLVED
         assert group.substatus is None
         self.test_cases.append(("resolved_group_with_open_period", group, starts, ends, activities))
+
+        # Create a group that has been auto-resolved
+        group, starts, ends, activities = self._create_auto_resolved_group()
+        assert group.status == GroupStatus.RESOLVED
+        assert group.substatus is None
+        self.test_cases.append(("auto_resolved_group", group, starts, ends, activities))
+
+        # Create a group that has been auto-resolved and then regressed
+        group, starts, ends, activities = self._create_auto_resolved_regressed_group()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
+        self.test_cases.append(("auto_resolved_regressed_group", group, starts, ends, activities))
+
+        # Create a group that has been regressed and then auto-resolved and then regressed again
+        group, starts, ends, activities = self._create_regressed_group_with_auto_resolved_cycles()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
+        self.test_cases.append(
+            ("regressed_group_with_auto_resolved_cycles", group, starts, ends, activities)
+        )
 
     def test(self):
         for description, group, starts, ends, activities in self.test_cases:
