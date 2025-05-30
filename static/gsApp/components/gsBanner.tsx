@@ -222,7 +222,7 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uniterrupted access to Sentry.`
+            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
           )
         : t(
             `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
