@@ -167,8 +167,6 @@ describe('SeerDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
-
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
 

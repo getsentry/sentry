@@ -1,4 +1,5 @@
 import type {PlatformKey} from 'sentry/types/project';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -15,8 +16,6 @@ export enum ModuleName {
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
-  CRONS = 'crons',
-  UPTIME = 'uptime',
   SESSIONS = 'sessions',
   OTHER = 'other',
 }
@@ -731,3 +730,5 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type SearchHook = {search: MutableSearch; enabled?: boolean};

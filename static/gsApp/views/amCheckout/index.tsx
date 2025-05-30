@@ -549,7 +549,10 @@ class AMCheckout extends Component<Props, State> {
 
     if (this.state.currentStep === 1) {
       trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-    } else if (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3) {
+    } else if (
+      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
+      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
+    ) {
       trackGetsentryAnalytics('checkout.ondemand_changed', {
         ...analyticsParams,
         cents: validData.onDemandMaxSpend || 0,
