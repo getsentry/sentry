@@ -49,9 +49,7 @@ def get_data_conditions_for_groups(
     by_id = DefaultDict[int, list[DataCondition]](list)
     for cond in DataCondition.objects.filter(condition_group_id__in=data_condition_group_ids):
         by_id[cond.condition_group_id].append(cond)
-    result = [by_id[dcg] for dcg in data_condition_group_ids]
-    assert len(result) == len(data_condition_group_ids)
-    return result
+    return [by_id[dcg] for dcg in data_condition_group_ids]
 
 
 def batch_get_slow_conditions(
