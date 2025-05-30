@@ -1,10 +1,10 @@
+import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   type AggregateFilter,
   allOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
-  type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -35,12 +35,30 @@ export function isAggregateFilterToken(
 }
 
 export function getValidOpsForFilter(
-  filterToken: TokenResult<Token.FILTER>
-): readonly TermOperator[] {
+  filterToken: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+): readonly ExtendedTermOperators[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
+  const isTextFilter =
+    filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
 
   if (fieldDefinition?.allowComparisonOperators) {
-    return allOperators;
+    const validOps = new Set<ExtendedTermOperators>(
+      allOperators as unknown as ExtendedTermOperators[]
+    );
+
+    if (
+      isTextFilter &&
+      fieldDefinition?.allowWildcard === false &&
+      !hasWildcardOperators
+    ) {
+      validOps.delete(ExtendedTermOperators.CONTAINS);
+      validOps.delete(ExtendedTermOperators.DOES_NOT_CONTAIN);
+      validOps.delete(ExtendedTermOperators.STARTS_WITH);
+      validOps.delete(ExtendedTermOperators.ENDS_WITH);
+    }
+
+    return [...validOps];
   }
 
   // If the token is invalid we want to use the possible expected types as our filter type
@@ -56,10 +74,18 @@ export function getValidOpsForFilter(
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
 
   // Find all valid operations
-  const validOps = new Set<TermOperator>(
+  const validOps = new Set<ExtendedTermOperators>(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  // Special case for text, add contains operator
+  if (isTextFilter && fieldDefinition?.allowWildcard !== false && hasWildcardOperators) {
+    validOps.add(ExtendedTermOperators.CONTAINS);
+    validOps.add(ExtendedTermOperators.DOES_NOT_CONTAIN);
+    validOps.add(ExtendedTermOperators.STARTS_WITH);
+    validOps.add(ExtendedTermOperators.ENDS_WITH);
+  }
 
   return [...validOps];
 }
