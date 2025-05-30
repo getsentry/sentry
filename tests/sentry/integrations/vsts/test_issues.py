@@ -443,6 +443,34 @@ class VstsIssueSyncTest(VstsIssueBase):
         ]
         assert responses.calls[2].response.status_code == 200
 
+    @responses.activate
+    @patch(
+        "sentry.integrations.vsts.client.VstsApiClient.get_work_item",
+        side_effect=ApiError(
+            "According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
+        ),
+    )
+    def test_sync_status_outbound_invalid_identity(self, get_work_item):
+        vsts_work_item_id = 5
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.model.id,
+            key=vsts_work_item_id,
+            title="I'm a title!",
+            description="I'm a description.",
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            IntegrationExternalProject.objects.create(
+                external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+                organization_integration_id=self.integration.org_integration.id,
+                resolved_status="Resolved",
+                unresolved_status="New",
+            )
+
+        with pytest.raises(ApiUnauthorized):
+            self.integration.sync_status_outbound(external_issue, True, self.project.id)
+
     def test_get_issue_url(self):
         work_id = 345
         url = self.integration.get_issue_url(work_id)
