@@ -16,6 +16,7 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
@@ -268,8 +269,22 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   width: 34px;
   line-height: 34px;
   border-radius: 50%;
-  background: ${p => (p.isActive ? p.theme.purple300 : p.theme.gray100)};
-  color: ${p => (p.isActive ? p.theme.white : p.theme.subText)};
+  background: ${p =>
+    p.isActive
+      ? isChonkTheme(p.theme)
+        ? p.theme.tokens.graphics.accent
+        : p.theme.purple300
+      : isChonkTheme(p.theme)
+        ? p.theme.tokens.graphics.muted
+        : p.theme.gray100};
+  color: ${p =>
+    p.isActive
+      ? isChonkTheme(p.theme)
+        ? p.theme.white
+        : p.theme.white
+      : isChonkTheme(p.theme)
+        ? p.theme.white
+        : p.theme.subText};
   border: 4px solid ${p => p.theme.background};
 `;
 
