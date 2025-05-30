@@ -549,7 +549,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -655,7 +655,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -702,7 +702,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert safe_urlopen.called
@@ -748,7 +748,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert safe_urlopen.called
@@ -798,7 +798,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert not safe_urlopen.called
@@ -844,7 +844,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert not safe_urlopen.called
@@ -897,7 +897,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
@@ -944,7 +944,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert len(safe_urlopen.mock_calls) == 2
@@ -1013,7 +1013,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert len(safe_urlopen.mock_calls) == 2
@@ -1070,7 +1070,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         assert_success_metric(mock_record)
@@ -1193,7 +1193,7 @@ class TestCommentWebhook(TestCase):
         )
         self.data = {
             "comment_id": self.note.id,
-            "timestamp": self.note.datetime,
+            "timestamp": self.note.datetime.isoformat(),
             "comment": self.note.data["text"],
             "project_slug": self.note.project.slug,
         }

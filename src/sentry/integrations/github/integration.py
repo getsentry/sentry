@@ -160,8 +160,12 @@ class GithubInstallationInfo(TypedDict):
 
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
+    """
+    Builds a query for the GitHub Search API. Always includes both forks and original repositories.
+    Test out your query updates here: https://github.com/search/advanced
+    """
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return f"{account_type}:{name} {query}".encode()
+    return f"fork:true {account_type}:{name} {query}".encode()
 
 
 def error(
@@ -954,6 +958,7 @@ class GithubOrganizationSelection(PipelineView):
                 props={
                     "installation_info": installation_info,
                     "has_scm_multi_org": has_scm_multi_org,
+                    "organization_slug": self.active_user_organization.organization.slug,
                 },
             )
 
