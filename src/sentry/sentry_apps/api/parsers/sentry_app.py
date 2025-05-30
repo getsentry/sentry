@@ -14,6 +14,7 @@ from sentry.sentry_apps.models.sentry_app import (
     UUID_CHARS_IN_SLUG,
     VALID_EVENT_RESOURCES,
 )
+from sentry.sentry_apps.utils.validators import validate_webhook_url
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -211,8 +212,17 @@ class SentryAppParser(Serializer):
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)
+
+        # Validate webhook URL against restricted IP addresses
+        webhook_url = get_current_value("webhookUrl")
+        if webhook_url:
+            try:
+                validate_webhook_url(webhook_url)
+            except Exception as e:
+                raise ValidationError({"webhookUrl": str(e)})
+
         # validate if webhookUrl is missing that we don't have any webhook features enabled
-        if not get_current_value("webhookUrl"):
+        if not webhook_url:
             if get_current_value("isInternal"):
                 # for internal apps, make sure there aren't any events if webhookUrl is null
                 if get_current_value("events"):
