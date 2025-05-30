@@ -240,7 +240,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('span.category', 'db');
+          mutableSearch.addFilterValue('span.category', 'http');
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
