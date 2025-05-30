@@ -166,7 +166,6 @@ describe('ReplayClipPreview', () => {
   });
 
   it('Should throw throttled error when fetch returns 429', () => {
-    // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
@@ -188,7 +187,6 @@ describe('ReplayClipPreview', () => {
   });
 
   it('Should throw throttled error when fetching an attachment returns 429', () => {
-    // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
