@@ -4,8 +4,6 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from sentry.sentry_apps.utils.validators import validate_webhook_url
-
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.apidocs.parameters import build_typed_list
 from sentry.integrations.models.integration_feature import Feature
@@ -16,6 +14,7 @@ from sentry.sentry_apps.models.sentry_app import (
     UUID_CHARS_IN_SLUG,
     VALID_EVENT_RESOURCES,
 )
+from sentry.sentry_apps.utils.validators import validate_webhook_url
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -213,7 +212,7 @@ class SentryAppParser(Serializer):
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)
-        
+
         # Validate webhook URL against restricted IP addresses
         webhook_url = get_current_value("webhookUrl")
         if webhook_url:
@@ -221,7 +220,7 @@ class SentryAppParser(Serializer):
                 validate_webhook_url(webhook_url)
             except Exception as e:
                 raise ValidationError({"webhookUrl": str(e)})
-        
+
         # validate if webhookUrl is missing that we don't have any webhook features enabled
         if not webhook_url:
             if get_current_value("isInternal"):

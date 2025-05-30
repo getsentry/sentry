@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
 from requests import RequestException, Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
-from sentry.exceptions import RestrictedIPAddress
 
 from sentry import audit_log, options
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.integrations.base import is_response_error, is_response_success
 from sentry.integrations.models.utils import get_redis_key
@@ -184,7 +184,7 @@ def send_and_save_webhook_request(
             )
         except (Timeout, ConnectionError, RestrictedIPAddress) as e:
             error_type = e.__class__.__name__.lower()
-            
+
             # Special handling for RestrictedIPAddress
             if isinstance(e, RestrictedIPAddress):
                 error_message = "Webhook URL resolves to a restricted IP address."
@@ -208,7 +208,7 @@ def send_and_save_webhook_request(
                         "url": url,
                     },
                 )
-                
+
             track_response_code(error_type, slug, event)
             buffer.add_request(
                 response_code=TIMEOUT_STATUS_CODE,
@@ -217,11 +217,11 @@ def send_and_save_webhook_request(
                 url=url,
                 headers=app_platform_event.headers,
             )
-            
+
             # Only record timeout for connection issues, not IP restrictions
             if isinstance(e, (Timeout, ConnectionError)):
                 record_timeout(sentry_app, org_id, e)
-                
+
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
