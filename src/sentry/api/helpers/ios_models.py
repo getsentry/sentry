@@ -288,4 +288,6 @@ IOS_MODELS: dict[str, str] = {
     "AppleTV11,1": "Apple TV 4K (2nd gen)",
     "i386": "iOS Simulator (i386)",
     "x86_64": "iOS Simulator (x86_64)",
+    # Vision Pro
+    "RealityDevice14,1": "Apple Vision Pro",
 }
