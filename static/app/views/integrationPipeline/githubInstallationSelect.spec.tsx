@@ -123,7 +123,7 @@ describe('GithubInstallationSelect', () => {
     // Button should show message to upgrade
     expect(
       screen.getByRole('button', {
-        name: 'Upgrade Now',
+        name: 'Upgrade',
       })
     ).toBeInTheDocument();
   });
