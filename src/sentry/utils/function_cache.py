@@ -202,26 +202,20 @@ def build_batched_cache_func[
     """
 
     def inner(args: list[Key]) -> list[R]:
-        result = []
-        missing_indexes = []
-        for i, arg in enumerate(args):
-            cache_key = cache_key_for_batched_func(func_to_cache, arg)
-            cached_val = cache.get(cache_key, None)
-            if cached_val is None:
-                missing_indexes.append(i)
-            result.append(cached_val)
-        if missing_indexes:
-            timeout = cache_ttl.total_seconds()
-            missing_keys = [args[i] for i in missing_indexes]
-            missing_vals = func_to_cache(missing_keys)
-            if len(missing_vals) != len(missing_keys):
+        cache_keys = [cache_key_for_batched_func(func_to_cache, arg) for arg in args]
+        values = cache.get_many(cache_keys)
+        missing_keys = [key for key in cache_keys if key not in values]
+        if missing_keys:
+            key_to_arg = {key: arg for arg, key in zip(args, cache_keys)}
+            missing_args = [key_to_arg[key] for key in missing_keys]
+            missing_vals = func_to_cache(missing_args)
+            if len(missing_vals) != len(missing_args):
                 raise ValueError(
                     f"Function {func_to_cache.__qualname__} returned {len(missing_vals)} results for {len(missing_keys)} keys"
                 )
-            for out_idx, key, val in zip(missing_indexes, missing_keys, missing_vals):
-                result[out_idx] = val
-                cache_key = cache_key_for_batched_func(func_to_cache, key)
-                cache.set(cache_key, val, timeout=timeout)
-        return result
+            fetched = dict(zip(missing_keys, missing_vals))
+            cache.set_many(fetched, timeout=cache_ttl.total_seconds())
+            values.update(fetched)
+        return [values[key] for key in cache_keys]
 
     return inner

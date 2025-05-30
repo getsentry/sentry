@@ -131,6 +131,9 @@ class BatchCacheFuncForModelsTest(TestCase):
             mock_test_func
         )
 
+        # Empty list should work fine.
+        assert decorated_test_func([]) == []
+
         # First call should hit the function
         self.assert_called_with_count(mock_test_func, ["test"], 0)
         assert decorated_test_func(["test"]) == [0]
@@ -138,6 +141,10 @@ class BatchCacheFuncForModelsTest(TestCase):
 
         # Second call should use cache
         assert decorated_test_func(["test"]) == [0]
+        self.assert_called_with_count(mock_test_func, ["test"], 1)
+
+        # Duplicate key should work fine.
+        assert decorated_test_func(["test", "test"]) == [0, 0]
         self.assert_called_with_count(mock_test_func, ["test"], 1)
 
         # Create a model, should invalidate cache
