@@ -9,7 +9,6 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import default_detector_config_data
-from sentry.types.actor import Actor
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -143,7 +142,7 @@ class TestDetectorSerializer(TestCase):
             },
             "workflowIds": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
-            "owner": Actor.from_id(user_id=self.user.id).identifier,
+            "owner": self.user.get_actor_identifier(),
         }
 
     def test_serialize_bulk(self):
