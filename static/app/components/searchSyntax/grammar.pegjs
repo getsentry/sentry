@@ -297,7 +297,7 @@ function_args
     }
 
 aggregate_param
-  = quoted_aggregate_param / raw_aggregate_param
+  = explicit_tag_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 
 raw_aggregate_param
   = param:[^()\t\n, \"]+ {
@@ -307,6 +307,11 @@ raw_aggregate_param
 quoted_aggregate_param
   = '"' param:('\\"' / [^\t\n\"])* '"' {
       return tc.tokenKeyAggregateParam(`"${param.join('')}"`, true);
+    }
+
+explicit_tag_aggregate_param
+  = key:(explicit_tag_key / explicit_string_tag_key / explicit_number_tag_key) {
+      return tc.tokenKeyAggregateParam(key.text, false);
     }
 
 search_key
