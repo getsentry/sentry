@@ -62,7 +62,7 @@ type RenderProps = {
   isOpen: boolean;
 };
 
-export type DeprecatedDropdownMenuProps = {
+export interface DeprecatedDropdownMenuProps {
   /**
    * Render function
    */
@@ -89,23 +89,13 @@ export type DeprecatedDropdownMenuProps = {
    */
   isOpen?: boolean;
   /**
-   * Keeps dropdown menu open when menu is clicked
-   * @default false
-   */
-  keepMenuOpen?: boolean;
-  /**
    * Callback for when we get a click outside of dropdown menus.
    * Useful for when menu is controlled.
    */
   onClickOutside?: (e: MouseEvent) => void;
   onClose?: (e: React.KeyboardEvent | React.MouseEvent | undefined) => void;
   onOpen?: (e: React.MouseEvent | undefined) => void;
-  /**
-   * Callback function to check if we should ignore click outside to
-   * hide dropdown menu
-   */
-  shouldIgnoreClickOutside?: (event: MouseEvent) => boolean;
-};
+}
 
 /**
  * Deprecated dropdown menu. Use these alternatives instead:
@@ -123,7 +113,6 @@ export type DeprecatedDropdownMenuProps = {
  * @deprecated
  */
 function DropdownMenu({
-  keepMenuOpen = false,
   closeOnEscape = true,
   children,
   alwaysRenderMenu,
@@ -132,7 +121,6 @@ function DropdownMenu({
   onClickOutside,
   onClose,
   onOpen,
-  shouldIgnoreClickOutside,
 }: DeprecatedDropdownMenuProps) {
   const [isOpenState, setIsOpenState] = useState(false);
 
@@ -198,10 +186,6 @@ function DropdownMenu({
         return;
       }
 
-      if (typeof shouldIgnoreClickOutside === 'function' && shouldIgnoreClickOutside(e)) {
-        return;
-      }
-
       if (typeof onClickOutside === 'function') {
         onClickOutside(e);
       }
@@ -214,7 +198,7 @@ function DropdownMenu({
 
       handleClose();
     },
-    [isOpen, onClickOutside, shouldIgnoreClickOutside, handleClose]
+    [isOpen, onClickOutside, handleClose]
   );
 
   // Handled in a useEffect to avoid circular dependency from legacy class component
@@ -294,13 +278,9 @@ function DropdownMenu({
   // Control whether we should hide dropdown menu when it is clicked
   const handleDropdownMenuClick = useCallback(
     (e: React.MouseEvent<Element>) => {
-      if (keepMenuOpen) {
-        return;
-      }
-
       handleClose(e);
     },
-    [keepMenuOpen, handleClose]
+    [handleClose]
   );
 
   // This function does nothing?
@@ -393,12 +373,8 @@ function DropdownMenu({
           // action if mouse enters menu again
           window.clearTimeout(mouseLeaveTimeout.current);
         },
-        onMouseLeave: (e: React.MouseEvent<E>) => {
-          handleMouseLeave(e);
-        },
-        onClick: (e: React.MouseEvent<E>) => {
-          handleDropdownMenuClick(e);
-        },
+        onMouseLeave: handleMouseLeave,
+        onClick: handleDropdownMenuClick,
       });
     },
     [
