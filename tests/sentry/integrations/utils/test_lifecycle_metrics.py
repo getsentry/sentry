@@ -93,6 +93,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "exception_summary": repr(ExampleException("")),
             },
             exc_info=mock.ANY,
         )
@@ -125,7 +126,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         with pytest.raises(ExampleException):
             with metric_obj.capture() as lifecycle:
                 lifecycle.add_extra("extra", "value")
-                raise ExampleException
+                raise ExampleException()
 
         self._check_metrics_call_args(mock_metrics, "failure")
         mock_logger.error.assert_called_once_with(
@@ -135,6 +136,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "exception_summary": repr(ExampleException()),
             },
             exc_info=mock.ANY,
         )
@@ -146,7 +148,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         with metric_obj.capture() as lifecycle:
             try:
                 lifecycle.add_extra("extra", "value")
-                raise ExampleException
+                raise ExampleException()
             except ExampleException as exc:
                 lifecycle.record_failure(exc, extra={"even": "more"})
 
@@ -159,6 +161,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "exception_summary": repr(ExampleException()),
             },
             exc_info=mock.ANY,
         )
