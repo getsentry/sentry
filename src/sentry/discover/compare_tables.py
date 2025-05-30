@@ -52,7 +52,11 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
         translated_field, *rest = translate_columns([field])
         if data is not None and eap_data_row[translated_field] is None:
             logger.info("Field %s not found in EAP response", field)
-            sentry_sdk.capture_event("dashboard_comparison_mismatch_field", hint={"field": field})
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("mismatched_field", field)
+                sentry_sdk.capture_message(
+                    "dashboard_comparison_mismatch_field", level="info", scope=scope
+                )
             mismatches.append(field)
 
     return (len(mismatches) == 0, mismatches)
@@ -169,7 +173,9 @@ def compare_tables_for_dashboard_widget_queries(
     else:
         passed, mismatches = compare_table_results(metrics_query_result, eap_result)
         if passed:
-            sentry_sdk.capture_event("dashboard_comparison_passed", hint={"passed": True})
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("passed", True)
+                sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
             return {
                 "passed": True,
                 "reason": CompareTableResult.PASSED,
@@ -178,7 +184,9 @@ def compare_tables_for_dashboard_widget_queries(
                 "mismatches": mismatches,
             }
         else:
-            sentry_sdk.capture_event("dashboard_comparison_passed", hint={"passed": False})
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("passed", False)
+                sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
             return {
                 "passed": False,
                 "reason": CompareTableResult.FIELD_NOT_FOUND,
