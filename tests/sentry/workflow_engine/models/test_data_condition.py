@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -72,9 +73,9 @@ class GetConditionResultTest(TestCase):
 class EvaluateValueTest(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
-        condition_handler_registry.registrations[Condition.REAPPEARED_EVENT] = (
-            MockDataConditionHandlerDictComparison
-        )  # type:ignore[assignment]
+        condition_handler_registry.registrations[Condition.REAPPEARED_EVENT] = cast(
+            DataConditionHandler[Any], MockDataConditionHandlerDictComparison
+        )
         self.workflow_triggers = self.create_data_condition_group()
         self.dict_comparison_dc = self.create_data_condition(
             type=Condition.REAPPEARED_EVENT,
