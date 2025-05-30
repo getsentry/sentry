@@ -117,7 +117,7 @@
     "color": "^4.2.3",
     "compression-webpack-plugin": "11.1.0",
     "copy-webpack-plugin": "13.0.0",
-    "core-js": "^3.41.0",
+    "core-js": "^3.42.0",
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "7.0.2",
