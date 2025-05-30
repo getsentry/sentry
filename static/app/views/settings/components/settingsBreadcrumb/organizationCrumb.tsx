@@ -80,6 +80,7 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
       items={sortBy(organizations, ['name']).map((org, index) => ({
         index,
         value: org,
+        searchKey: org.name,
         label: (
           <MenuItem>
             <IdBadge organization={org} />
