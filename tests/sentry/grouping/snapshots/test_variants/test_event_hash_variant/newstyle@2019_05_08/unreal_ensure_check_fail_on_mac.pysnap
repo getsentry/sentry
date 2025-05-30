@@ -1,5 +1,5 @@
 ---
-created: '2025-02-28T13:16:31.544805+00:00'
+created: '2025-05-12T23:42:02.917624+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -92,8 +92,8 @@ app:
             function*
               "UObject::execCallMathFunction"
           frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "UE::Assert::Private::ExecCheckImplInternal"
@@ -107,30 +107,30 @@ app:
             function*
               "TMulticastDelegateBase<T>::Broadcast<T>"
           frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureException:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureException:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryHub captureException:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient captureException:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
         type*
@@ -221,8 +221,8 @@ app:
             function*
               "UObject::execCallMathFunction"
           frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
           frame* (marked in-app by stack trace rule (family:native package:/Users/** +app))
             function*
               "UE::Assert::Private::ExecCheckImplInternal"
@@ -236,30 +236,30 @@ app:
             function*
               "TMulticastDelegateBase<T>::Broadcast<T>"
           frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked in-app by stack trace rule (family:native package:/Users/** +app))
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
+          frame (marked in-app by stack trace rule (family:native package:/Users/** +app) but ignored due to recursion)
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureException:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "+[SentrySDK captureException:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryHub captureException:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient captureException:withScope:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
 --------------------------------------------------------------------------
@@ -369,28 +369,28 @@ system:
           frame
           frame (ignored due to recursion)
           frame (ignored due to recursion)
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureException:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureException:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryHub captureException:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient captureException:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
         type*
@@ -498,27 +498,27 @@ system:
           frame
           frame (ignored due to recursion)
           frame (ignored due to recursion)
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureException:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "+[SentrySDK captureException:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryHub captureException:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient captureException:withScope:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryThreadInspector getCurrentThreads]"
-          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -group))
             function*
               "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"

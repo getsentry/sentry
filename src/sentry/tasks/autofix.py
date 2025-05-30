@@ -42,6 +42,7 @@ def check_autofix_status(run_id: int):
     soft_time_limit=25,
     taskworker_config=TaskworkerConfig(
         namespace=ingest_errors_tasks,
+        processing_deadline_duration=35,
         retry=Retry(
             times=1,
         ),

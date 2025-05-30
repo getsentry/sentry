@@ -25,6 +25,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -140,6 +141,8 @@ function AutofixHighlightPopupContent({
   isFocused,
   onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
+  const organization = useOrganization();
+
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
@@ -247,6 +250,14 @@ function AutofixHighlightPopupContent({
       is_agent_comment: isAgentComment ?? false,
     });
     setComment('');
+
+    trackAnalytics('autofix.comment_thread.submit', {
+      organization,
+      group_id: groupId,
+      run_id: runId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
   };
 
   const handleContainerClick = (e: React.MouseEvent) => {
@@ -264,6 +275,10 @@ function AutofixHighlightPopupContent({
 
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
+    resolveThread();
+  };
+
+  const resolveThread = () => {
     setHidden(true);
     closeCommentThread({
       thread_id: threadId,
@@ -346,6 +361,9 @@ function AutofixHighlightPopupContent({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit(e);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                resolveThread();
               }
             }}
           />

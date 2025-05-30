@@ -170,9 +170,10 @@ function IssueListOverview({
   const {selection} = usePageFilters();
   const api = useApi();
   const prefersStackedNav = usePrefersStackedNav();
+  const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    prefersStackedNav || typeof realtimeActiveCookie === 'undefined'
+    typeof realtimeActiveCookie === 'undefined' || urlParams.viewId
       ? false
       : realtimeActiveCookie === 'true'
   );
@@ -190,7 +191,6 @@ function IssueListOverview({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, selectedSearchId} = useSavedSearches();
 
@@ -1095,6 +1095,8 @@ function IssueListOverview({
           selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}
+          realtimeActive={realtimeActive}
+          onRealtimeChange={onRealtimeChange}
         />
       ) : (
         <IssueListHeader

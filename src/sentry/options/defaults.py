@@ -1773,7 +1773,7 @@ register(
 )  # ms
 register(
     "performance.issues.http_overhead.http_request_delay_threshold",
-    default=500,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
@@ -1894,6 +1894,18 @@ register(
 )
 register(
     "performance.spans-tags-values.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explore.trace-items.keys.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explore.trace-items.values.max",
     type=Int,
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

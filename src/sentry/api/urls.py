@@ -233,6 +233,9 @@ from sentry.monitors.endpoints.organization_monitor_environment_details import (
     OrganizationMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
+from sentry.monitors.endpoints.organization_monitor_index_count import (
+    OrganizationMonitorIndexCountEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
 )
@@ -610,6 +613,7 @@ from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoi
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_trace import OrganizationTraceEndpoint
+from .endpoints.organization_trace_logs import OrganizationTraceLogsEndpoint
 from .endpoints.organization_trace_meta import OrganizationTraceMetaEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
@@ -1689,6 +1693,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-meta",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-logs/$",
+        OrganizationTraceLogsEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-logs",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace-summary/$",
         OrganizationTraceSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-trace-summary",
@@ -1809,6 +1818,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors/$",
         OrganizationMonitorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors-count/$",
+        OrganizationMonitorIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-index-count",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors-stats/$",

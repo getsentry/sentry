@@ -78,11 +78,11 @@ export default function TestsPage() {
         <PageFilterBar condensed>
           <RepoPicker />
         </PageFilterBar>
+        {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+        <Summaries />
+        <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
+        <TestsOnboardingPage />
       </CodecovProvider>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
-      <TestsOnboardingPage />
     </LayoutGap>
   );
 }
