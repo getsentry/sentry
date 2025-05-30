@@ -136,6 +136,12 @@ describe('SeerDrawer', () => {
       url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
+    });
   });
 
   it('renders consent state if not consented', async () => {

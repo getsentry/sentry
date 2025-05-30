@@ -2,7 +2,7 @@ import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
@@ -54,19 +54,42 @@ describe('SeerNotices', function () {
     });
   });
 
-  it('shows automation step if automation is allowed and tuning is off', () => {
-    const project = getProjectWithAutomation('off');
-    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+  it('shows automation step if automation is allowed and tuning is off', async () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
     });
-    expect(screen.getByText('Unleash Automation')).toBeInTheDocument();
-    expect(screen.getByText('Enable Automation')).toBeInTheDocument();
+    const project = {
+      ...ProjectFixture(),
+      organization: {
+        ...ProjectFixture().organization,
+        features: [],
+      },
+    };
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
+      organization: {
+        ...organization,
+        features: ['trigger-autofix-on-issue-summary'],
+      },
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Unleash Automation')).toBeInTheDocument();
+    });
   });
 
   it('does not show automation step if automation is not allowed', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
+    });
     const project = {
       ...ProjectFixture(),
-      autofixAutomationTuning: 'off' as const,
       organization: {
         ...ProjectFixture().organization,
         features: [],
@@ -79,6 +102,13 @@ describe('SeerNotices', function () {
   });
 
   it('shows fixability view step if automation is allowed and view not starred', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+      },
+    });
     const project = getProjectWithAutomation('high');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
@@ -91,6 +121,13 @@ describe('SeerNotices', function () {
   });
 
   it('does not render guided steps if all onboarding steps are complete', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/group-search-views/starred/`,
       body: [
@@ -105,7 +142,7 @@ describe('SeerNotices', function () {
       ...{
         organization: {
           ...organization,
-          features: [],
+          features: ['trigger-autofix-on-issue-summary'],
         },
       },
     });
