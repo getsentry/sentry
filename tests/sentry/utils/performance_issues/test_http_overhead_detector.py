@@ -154,12 +154,12 @@ class HTTPOverheadDetectorTest(TestCase):
         event = _valid_http_overhead_event(url)
 
         event["spans"] = [
-            overhead_span(1000, 1, url),
-            overhead_span(1000, 2, url),
-            overhead_span(1000, 3, url),
-            overhead_span(1000, 4, url),
-            overhead_span(1000, 5, url),
-            overhead_span(1000, 501, url),  # Request start is at 1ms.
+            overhead_span(1000, 0, url),
+            overhead_span(1000, 200, url),
+            overhead_span(1000, 400, url),
+            overhead_span(1000, 600, url),
+            overhead_span(1000, 800, url),
+            overhead_span(1000, 1000, url),
         ]
         assert self.find_problems(event) == []
 

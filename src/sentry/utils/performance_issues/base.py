@@ -77,10 +77,9 @@ class PerformanceDetector(ABC):
             return None
 
         span_duration = get_span_duration(span)
-        for setting in self.settings:
-            op_prefix = self.find_span_prefix(setting, op)
-            if op_prefix:
-                return op, span_id, op_prefix, span_duration, setting
+        op_prefix = self.find_span_prefix(self.settings, op)
+        if op_prefix:
+            return op, span_id, op_prefix, span_duration, self.settings
         return None
 
     def event(self) -> dict[str, Any]:

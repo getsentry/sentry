@@ -104,7 +104,7 @@ class SlowDBQueryDetector(PerformanceDetector):
         return True
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
-        return self.settings[0]["detection_enabled"]
+        return self.settings["detection_enabled"]
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
