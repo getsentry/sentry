@@ -128,7 +128,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
         </ul>
         <p>
           {t(
-            'Until this situation is resolved you will not be able to send events to Sentry.'
+            'Until this situation is resolved you will not be able to send events to Sentry. Please contact support if you have any questions or need assistance.'
           )}
         </p>
       </Body>
