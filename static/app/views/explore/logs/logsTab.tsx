@@ -200,7 +200,7 @@ export function LogsTabContent({
 
           <LogsItemContainer>
             <Feature
-              features="organizations:ourlogs-live-refresh"
+              features="organizations:ourlogs-infinite-scroll"
               renderDisabled={() => (
                 <LogsTable
                   stringAttributes={stringAttributes}
