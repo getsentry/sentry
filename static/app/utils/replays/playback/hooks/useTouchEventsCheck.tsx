@@ -9,23 +9,22 @@ interface Props {
 
 export default function useTouchEventsCheck({replay}: Props) {
   useEffect(() => {
-    if (!replay?.getVideoEvents()) {
+    if (!replay?.getVideoEvents().length) {
       return;
     }
     const touchEvents = replay.getRRwebTouchEvents() ?? [];
     const grouped = Object.groupBy(touchEvents, (t: any) => t.data.pointerId);
     Object.values(grouped).forEach(t => {
       if (t?.length !== 2) {
-        Sentry.captureMessage(
-          'Mobile replay has mismatching touch start and end events',
-          {
-            tags: {
-              sdk_name: replay.getReplay().sdk.name,
-              sdk_version: replay.getReplay().sdk.version,
-              touch_event_type: typeof t,
-            },
-          }
-        );
+        const replayData = replay.getReplay();
+        Sentry.logger.debug('Mobile replay: mismatching touch start and end events', {
+          sdk_name: replayData.sdk.name,
+          sdk_version: replayData.sdk.version,
+          pointer_id: t?.[0]?.data.pointerId,
+          number_of_events: t?.length,
+          replay_id: replayData.id,
+          url: window.location.href,
+        });
       }
     });
   }, [replay]);
