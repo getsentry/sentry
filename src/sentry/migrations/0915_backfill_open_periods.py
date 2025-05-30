@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.conf import settings
 from django.db import IntegrityError, migrations, router, transaction
@@ -16,10 +16,6 @@ from sentry.utils import redis
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
-if TYPE_CHECKING:
-    from sentry.models.activity import Activity as ActivityModelType
-
-
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 100
@@ -27,7 +23,6 @@ CHUNK_SIZE = 100
 
 # copied constants and enums
 class ActivityType(Enum):
-    SET_UNRESOLVED = 2
     SET_REGRESSION = 6
     SET_RESOLVED = 1
     SET_RESOLVED_IN_RELEASE = 13
@@ -62,70 +57,46 @@ def get_open_periods_for_group(
     activities: list[Any],
     GroupOpenPeriod: Any,
 ) -> list[Any]:
-    # Filter to REGRESSION and SET_RESOLVED_XX activties to find the bounds of each open period.
-    # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
-    # but we don't create an entry for that.
-    open_periods = []
-    start: datetime | None = None
-    end: datetime | None = None
-    end_activity: ActivityModelType | None = None
+    # No activities means the group has been open since the first_seen date
+    if not activities:
+        return [
+            GroupOpenPeriod(
+                group_id=group_id,
+                project_id=project_id,
+                date_started=first_seen,
+            )
+        ]
 
-    # Handle currently open period
-    if status == GroupStatus.UNRESOLVED and len(activities) > 0:
+    open_periods = []
+    regression_time: datetime | None = first_seen
+    for activity in activities:
+        if activity.type == ActivityType.SET_REGRESSION.value and regression_time is None:
+            regression_time = activity.datetime
+
+        elif activity.type in RESOLVED_ACTIVITY_TYPES and regression_time is not None:
+            open_periods.append(
+                GroupOpenPeriod(
+                    group_id=group_id,
+                    project_id=project_id,
+                    date_started=regression_time,
+                    date_ended=activity.datetime,
+                    resolution_activity=activity,
+                    user_id=activity.user_id,
+                )
+            )
+
+            regression_time = None
+
+    # Handle currently open period if the group is unresolved
+    if status == GroupStatus.UNRESOLVED and regression_time is not None:
         open_periods.append(
             GroupOpenPeriod(
                 group_id=group_id,
                 project_id=project_id,
-                date_started=activities[0].datetime,
-                date_ended=None,
-                resolution_activity=None,
-                user_id=None,
+                date_started=regression_time,
             )
         )
-        activities = activities[1:]
 
-    for activity in activities:
-        if activity.type in RESOLVED_ACTIVITY_TYPES:
-            end = activity.datetime
-            end_activity = activity
-        elif activity.type == ActivityType.SET_REGRESSION.value:
-            start = activity.datetime
-            if end is None:
-                logger.error(
-                    "No end activity found for group open period backfill",
-                    extra={"group_id": group_id, "starting_activity": activity.id},
-                )
-            if start is not None and end is not None:
-                if start > end:
-                    logger.error(
-                        "Open period has invalid start and end dates",
-                        extra={"group_id": group_id},
-                    )
-                    return []
-
-                open_periods.append(
-                    GroupOpenPeriod(
-                        group_id=group_id,
-                        project_id=project_id,
-                        date_started=start,
-                        date_ended=end,
-                        resolution_activity=end_activity,
-                        user_id=end_activity.user_id if end_activity else None,
-                    )
-                )
-                end = None
-                end_activity = None
-    # Add the very first open period, which has no UNRESOLVED activity for the group creation
-    open_periods.append(
-        GroupOpenPeriod(
-            group_id=group_id,
-            project_id=project_id,
-            date_started=first_seen,
-            date_ended=end if end else None,
-            resolution_activity=end_activity,
-            user_id=end_activity.user_id if end_activity else None,
-        )
-    )
     return open_periods
 
 
@@ -143,12 +114,15 @@ def _backfill_group_open_periods(
     )
 
     group_ids = [group_id for group_id in group_ids if group_id not in groups_with_open_periods]
-    # Filter the relevant activities for groups that need to be backfilled.
+    # Filter to REGRESSION and SET_RESOLVED_XX activties to find the bounds of each open period.
+    # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
+    # but we don't create an entry for that.
+
     activities = defaultdict(list)
     for activity in Activity.objects.filter(
         group_id__in=group_ids,
         type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
-    ).order_by("-datetime"):
+    ).order_by("datetime"):
         activities[activity.group_id].append(activity)
 
     open_periods = []
