@@ -10,6 +10,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -17,9 +18,10 @@ import {
 import {
   FilterType,
   type ParseResultToken,
-  TermOperator,
-  type Token,
+  type TermOperator,
+  Token,
   type TokenResult,
+  WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
@@ -37,51 +39,55 @@ interface FilterOperatorProps {
 const MENU_OFFSET: [number, number] = [0, 12];
 
 const OP_LABELS = {
-  [TermOperator.DEFAULT]: 'is',
-  [TermOperator.GREATER_THAN]: '>',
-  [TermOperator.GREATER_THAN_EQUAL]: '>=',
-  [TermOperator.LESS_THAN]: '<',
-  [TermOperator.LESS_THAN_EQUAL]: '<=',
-  [TermOperator.NOT_EQUAL]: 'is not',
+  [ExtendedTermOperators.DEFAULT]: 'is',
+  [ExtendedTermOperators.GREATER_THAN]: '>',
+  [ExtendedTermOperators.GREATER_THAN_EQUAL]: '>=',
+  [ExtendedTermOperators.LESS_THAN]: '<',
+  [ExtendedTermOperators.LESS_THAN_EQUAL]: '<=',
+  [ExtendedTermOperators.NOT_EQUAL]: 'is not',
+  [ExtendedTermOperators.CONTAINS]: 'contains',
+  [ExtendedTermOperators.DOES_NOT_CONTAIN]: 'does not contain',
+  [ExtendedTermOperators.STARTS_WITH]: 'starts with',
+  [ExtendedTermOperators.ENDS_WITH]: 'ends with',
 };
 
 const DATE_OP_LABELS = {
-  [TermOperator.GREATER_THAN]: 'is after',
-  [TermOperator.GREATER_THAN_EQUAL]: 'is on or after',
-  [TermOperator.LESS_THAN]: 'is before',
-  [TermOperator.LESS_THAN_EQUAL]: 'is on or before',
-  [TermOperator.EQUAL]: 'is',
-  [TermOperator.DEFAULT]: 'is',
+  [ExtendedTermOperators.GREATER_THAN]: 'is after',
+  [ExtendedTermOperators.GREATER_THAN_EQUAL]: 'is on or after',
+  [ExtendedTermOperators.LESS_THAN]: 'is before',
+  [ExtendedTermOperators.LESS_THAN_EQUAL]: 'is on or before',
+  [ExtendedTermOperators.EQUAL]: 'is',
+  [ExtendedTermOperators.DEFAULT]: 'is',
 };
 
-const DATE_OPTIONS: TermOperator[] = [
-  TermOperator.GREATER_THAN,
-  TermOperator.GREATER_THAN_EQUAL,
-  TermOperator.LESS_THAN,
-  TermOperator.LESS_THAN_EQUAL,
-  TermOperator.EQUAL,
+const DATE_OPTIONS: ExtendedTermOperators[] = [
+  ExtendedTermOperators.GREATER_THAN,
+  ExtendedTermOperators.GREATER_THAN_EQUAL,
+  ExtendedTermOperators.LESS_THAN,
+  ExtendedTermOperators.LESS_THAN_EQUAL,
+  ExtendedTermOperators.EQUAL,
 ];
 
 function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   switch (token.filter) {
     case FilterType.DATE:
     case FilterType.SPECIFIC_DATE:
-      return token.operator;
+      return token.operator as unknown as ExtendedTermOperators;
     case FilterType.RELATIVE_DATE:
       return token.value.sign === '+'
-        ? TermOperator.LESS_THAN
-        : TermOperator.GREATER_THAN;
+        ? ExtendedTermOperators.LESS_THAN
+        : ExtendedTermOperators.GREATER_THAN;
     default:
-      return TermOperator.DEFAULT;
+      return ExtendedTermOperators.DEFAULT;
   }
 }
 
 function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   if (token.negated) {
-    return TermOperator.NOT_EQUAL;
+    return ExtendedTermOperators.NOT_EQUAL;
   }
 
-  return token.operator;
+  return token.operator as unknown as ExtendedTermOperators;
 }
 
 function FilterKeyOperatorLabel({
@@ -105,10 +111,13 @@ function FilterKeyOperatorLabel({
   );
 }
 
-export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
+export function getOperatorInfo(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+): {
   label: ReactNode;
-  operator: TermOperator;
-  options: Array<SelectOption<TermOperator>>;
+  operator: ExtendedTermOperators;
+  options: Array<SelectOption<ExtendedTermOperators>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
@@ -118,7 +127,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
-      options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
+      options: DATE_OPTIONS.map((op): SelectOption<ExtendedTermOperators> => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
@@ -139,18 +148,18 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       label: (
         <FilterKeyOperatorLabel
           keyLabel={token.key.text}
-          opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
+          opLabel={operator === ExtendedTermOperators.NOT_EQUAL ? 'not' : undefined}
           includeKeyLabel
         />
       ),
       options: [
         {
-          value: TermOperator.DEFAULT,
+          value: ExtendedTermOperators.DEFAULT,
           label: <FilterKeyOperatorLabel keyLabel={token.key.text} includeKeyLabel />,
           textValue: 'is',
         },
         {
-          value: TermOperator.NOT_EQUAL,
+          value: ExtendedTermOperators.NOT_EQUAL,
           label: (
             <FilterKeyOperatorLabel
               keyLabel={token.key.text}
@@ -169,18 +178,20 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       operator,
       label: (
         <FilterKeyOperatorLabel
-          keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
+          keyLabel={
+            operator === ExtendedTermOperators.NOT_EQUAL ? 'does not have' : 'has'
+          }
           includeKeyLabel
         />
       ),
       options: [
         {
-          value: TermOperator.DEFAULT,
+          value: ExtendedTermOperators.DEFAULT,
           label: <FilterKeyOperatorLabel keyLabel="has" includeKeyLabel />,
           textValue: 'has',
         },
         {
-          value: TermOperator.NOT_EQUAL,
+          value: ExtendedTermOperators.NOT_EQUAL,
           label: <FilterKeyOperatorLabel keyLabel="does not have" includeKeyLabel />,
           textValue: 'does not have',
         },
@@ -195,9 +206,9 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   return {
     operator,
     label: <OpLabel>{opLabel}</OpLabel>,
-    options: getValidOpsForFilter(token)
-      .filter(op => op !== TermOperator.EQUAL)
-      .map((op): SelectOption<TermOperator> => {
+    options: getValidOpsForFilter(token, hasWildcardOperators)
+      .filter(op => op !== ExtendedTermOperators.EQUAL)
+      .map((op): SelectOption<ExtendedTermOperators> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
         return {
@@ -215,9 +226,69 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
+  const hasWildcardOperators = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
+  const {operator, label, options} = useMemo(
+    () => getOperatorInfo(token, hasWildcardOperators),
+    [token, hasWildcardOperators]
+  );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
+
+  let isContains = false;
+  let isDoesNotContain = false;
+  let isStartsWith = false;
+  let isEndsWith = false;
+
+  if (token.value.type === Token.VALUE_TEXT && hasWildcardOperators) {
+    if (token.negated) {
+      isDoesNotContain = token.value.wildcard === WildcardOperators.SURROUNDED;
+    } else {
+      isContains = token.value.wildcard === WildcardOperators.SURROUNDED;
+      isStartsWith = token.value.wildcard === WildcardOperators.LEADING;
+      isEndsWith = token.value.wildcard === WildcardOperators.TRAILING;
+    }
+  } else if (token.value.type === Token.VALUE_TEXT_LIST && hasWildcardOperators) {
+    if (token.negated) {
+      isDoesNotContain = token.value.items.every(
+        entry => entry.value?.wildcard === WildcardOperators.SURROUNDED
+      );
+    } else {
+      isContains = token.value.items.every(
+        entry => entry.value?.wildcard === WildcardOperators.SURROUNDED
+      );
+      isStartsWith = token.value.items.every(
+        entry => entry.value?.wildcard === WildcardOperators.LEADING
+      );
+      isEndsWith = token.value.items.every(
+        entry => entry.value?.wildcard === WildcardOperators.TRAILING
+      );
+    }
+  }
+
+  let opLabel = label;
+  if (isContains && hasWildcardOperators) {
+    opLabel = <OpLabel>contains</OpLabel>;
+  } else if (isDoesNotContain && hasWildcardOperators) {
+    opLabel = <OpLabel>does not contain</OpLabel>;
+  } else if (isStartsWith && hasWildcardOperators) {
+    opLabel = <OpLabel>starts with</OpLabel>;
+  } else if (isEndsWith && hasWildcardOperators) {
+    opLabel = <OpLabel>ends with</OpLabel>;
+  }
+
+  let value = operator;
+  if (isContains && hasWildcardOperators) {
+    value = ExtendedTermOperators.CONTAINS;
+  } else if (isDoesNotContain && hasWildcardOperators) {
+    value = ExtendedTermOperators.DOES_NOT_CONTAIN;
+  } else if (isStartsWith && hasWildcardOperators) {
+    value = ExtendedTermOperators.STARTS_WITH;
+  } else if (isEndsWith && hasWildcardOperators) {
+    value = ExtendedTermOperators.ENDS_WITH;
+  }
 
   return (
     <CompactSelect
@@ -230,12 +301,12 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
-          {label}
+          {opLabel}
         </OpButton>
       )}
       size="sm"
       options={options}
-      value={operator}
+      value={value}
       onOpenChange={onOpenChange}
       onChange={option => {
         trackAnalytics('search.operator_autocompleted', {
@@ -250,7 +321,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
-          op: option.value,
+          op: option.value as unknown as TermOperator,
         });
       }}
       offset={MENU_OFFSET}
