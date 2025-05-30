@@ -80,8 +80,8 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
 
   return (
     <DeprecatedDropdownMenu>
-      {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
-        <SidebarDropdownRoot {...getRootProps()}>
+      {({isOpen, getActorProps, getMenuProps}) => (
+        <SidebarDropdownRoot>
           <SidebarDropdownActor
             type="button"
             data-test-id="sidebar-dropdown"

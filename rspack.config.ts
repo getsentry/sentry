@@ -169,7 +169,7 @@ for (const locale of supportedLocales) {
 
 const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
-    mode: 'entry',
+    mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
     coreJs: '3.42',
     targets: [

@@ -1,5 +1,3 @@
-import 'core-js/actual';
-
 // This is the entry point of Sentry's frontend application. Want to
 // understand how app boots? Read on!
 //

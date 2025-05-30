@@ -1,4 +1,5 @@
 import {Component, createRef} from 'react';
+import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
@@ -160,7 +161,7 @@ class DropdownMenu extends Component<Props, State> {
   checkClickOutside = async (e: MouseEvent) => {
     const {onClickOutside, shouldIgnoreClickOutside} = this.props;
 
-    if (!this.dropdownMenu || !this.isOpen()) {
+    if (!this.dropdownMenu.current || !this.isOpen()) {
       return;
     }
 
@@ -275,38 +276,6 @@ class DropdownMenu extends Component<Props, State> {
     }
   };
 
-  // When dropdown menu is displayed and mounted to DOM,
-  // bind a click handler to `document` to listen for clicks outside of
-  // this component and close menu if so
-  handleMenuMount = (ref: Element | null) => {
-    if (ref && !(ref instanceof Element)) {
-      return;
-    }
-    const {alwaysRenderMenu, isNestedDropdown} = this.props;
-
-    this.dropdownMenu.current = ref;
-
-    // Don't add document event listeners here if we are always rendering menu
-    // Instead add when menu is opened
-    if (alwaysRenderMenu || isNestedDropdown) {
-      return;
-    }
-
-    if (this.dropdownMenu.current) {
-      // 3rd arg = useCapture = so event capturing vs event bubbling
-      document.addEventListener('click', this.checkClickOutside, true);
-    } else {
-      document.removeEventListener('click', this.checkClickOutside, true);
-    }
-  };
-
-  handleActorMount = (ref: Element | null) => {
-    if (ref && !(ref instanceof Element)) {
-      return;
-    }
-    this.dropdownActor.current = ref;
-  };
-
   handleToggle = (e: React.MouseEvent<Element>) => {
     if (this.isOpen()) {
       this.handleClose(e);
@@ -339,12 +308,12 @@ class DropdownMenu extends Component<Props, State> {
   }: GetActorArgs<E> = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
-    const refProps = {ref: this.handleActorMount};
-
     // Props that the actor needs to have <DropdownMenu> work
-    return {
+    return mergeProps(props, {
       ...props,
-      ...refProps,
+      ref: (ref: Element | null) => {
+        this.dropdownActor.current = ref;
+      },
       style: {...style, outline: 'none'},
       'aria-expanded': this.isOpen(),
       'aria-haspopup': 'listbox',
@@ -403,7 +372,7 @@ class DropdownMenu extends Component<Props, State> {
           onClick(e);
         }
       },
-    };
+    });
   };
 
   // Menu is the menu component that <DropdownMenu> will control
@@ -413,12 +382,33 @@ class DropdownMenu extends Component<Props, State> {
     onMouseEnter,
     ...props
   }: GetMenuArgs<E> = {}): MenuProps<E> => {
-    const refProps = {ref: this.handleMenuMount};
-
     // Props that the menu needs to have <DropdownMenu> work
-    return {
+    return mergeProps(props, {
       ...props,
-      ...refProps,
+      ref: (ref: Element | null) => {
+        if (!ref) {
+          return;
+        }
+
+        this.dropdownMenu.current = ref;
+
+        const {alwaysRenderMenu, isNestedDropdown} = this.props;
+
+        this.dropdownMenu.current = ref;
+
+        // Don't add document event listeners here if we are always rendering menu
+        // Instead add when menu is opened
+        if (alwaysRenderMenu || isNestedDropdown) {
+          return;
+        }
+
+        if (this.dropdownMenu.current) {
+          // 3rd arg = useCapture = so event capturing vs event bubbling
+          document.addEventListener('click', this.checkClickOutside, true);
+        } else {
+          document.removeEventListener('click', this.checkClickOutside, true);
+        }
+      },
       role: 'listbox',
       onMouseEnter: (e: React.MouseEvent<E>) => {
         onMouseEnter?.(e);
@@ -435,7 +425,7 @@ class DropdownMenu extends Component<Props, State> {
         this.handleDropdownMenuClick(e);
         onClick?.(e);
       },
-    };
+    });
   };
 
   render() {
