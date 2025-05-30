@@ -132,16 +132,14 @@ describe('GSBanner', function () {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        'Your account has been suspended with the following reason:'
-      )
+      screen.getByText('Your account has been suspended with the following reason:')
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(
+      screen.getByText(
         'Until this situation is resolved you will not be able to send events to Sentry. Please contact support if you have any questions or need assistance.'
       )
     ).toBeInTheDocument();
-    expect(await screen.findByText('Contact Support')).toBeInTheDocument();
+    expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
   it('renders usage exceeded modal', async function () {
