@@ -136,14 +136,11 @@ class CachedFunction(Generic[*Ts, R]):
     def batch(self, args_list: Sequence[tuple[*Ts]]) -> list[R]:
         cache_keys = [cache_key_for_cached_func(self.func, *args) for args in args_list]
         values = cache.get_many(cache_keys)
-        missing_keys = set()
 
-        for i, cache_key in enumerate(cache_keys):
-            if cache_key not in values:
-                missing_keys.add((args_list[i], cache_key))
+        missing_keys = {ck: args for ck, args in zip(cache_keys, args_list) if ck not in values}
 
         to_cache = {}
-        for args, cache_key in missing_keys:
+        for cache_key, args in missing_keys.items():
             result = self.func(*args)
             values[cache_key] = result
             to_cache[cache_key] = result
