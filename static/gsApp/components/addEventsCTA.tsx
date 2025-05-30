@@ -161,6 +161,10 @@ function AddEventsCTA(props: Props) {
         </StartTrialButton>
       );
     case 'request_upgrade':
+      if (!subscription.canSelfServe || subscription.isManaged) {
+        return null;
+      }
+
       return (
         <Button
           onClick={async () => {
