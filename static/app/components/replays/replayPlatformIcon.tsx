@@ -22,7 +22,7 @@ const iconStyle = (theme: Theme) => ({
   border: '1px solid ' + theme.translucentGray100,
 });
 
-const PlatformIcon = styled(
+const ReplayPlatformIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
     const theme = useTheme();
     const icon = generatePlatformIconName(name, version);
@@ -55,4 +55,4 @@ const PlatformIcon = styled(
   align-items: center;
 `;
 
-export default PlatformIcon;
+export default ReplayPlatformIcon;

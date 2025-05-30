@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
-import PlatformIcon from 'sentry/components/replays/platformIcon';
+import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -19,6 +19,7 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconNot,
   IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -489,7 +490,7 @@ export function TransactionCell({
 }
 
 export function OSCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.os ?? {};
+  const {name, version} = replay.os;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
@@ -500,7 +501,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -516,18 +517,27 @@ export function OSCell({replay, showDropdownFilters}: Props) {
 }
 
 export function BrowserCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.browser ?? {};
+  const {name, version} = replay.browser;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
   }
+
+  if (name === null && version === null) {
+    return (
+      <Item>
+        {/* <Tag icon={<IconNot />} /> */}
+        <IconNot size="xs" color="gray300" />
+      </Item>
+    );
+  }
   return (
     <Item>
       <Container>
         <Tooltip title={`${name} ${version}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
