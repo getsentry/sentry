@@ -76,7 +76,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             format="json",
         )
         assert response.status_code == 200, response.content
-        data = response.data
+        data = response.data["data"]
         assert len(data) == 1
         log_data = data[0]
         assert log_data["project.id"] == self.project.id
@@ -105,7 +105,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             format="json",
         )
         assert response.status_code == 200, response.content
-        data = response.data
+        data = response.data["data"]
         assert len(data) == 2
         log_data = data[0]
         assert log_data["project.id"] == self.project.id
@@ -138,7 +138,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             format="json",
         )
         assert response.status_code == 200, response.content
-        data = response.data
+        data = response.data["data"]
         assert len(data) == 2
         log_data = data[0]
         assert log_data["project.id"] == self.project.id
@@ -196,7 +196,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             format="json",
         )
         assert response.status_code == 200, response.content
-        data = response.data
+        data = response.data["data"]
         assert len(data) == 2
         log_data = data[0]
         assert log_data["project.id"] == self.project.id
