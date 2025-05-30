@@ -175,6 +175,8 @@ function CopyRootCauseButton({
       text={text}
       borderless
       title="Copy root cause as Markdown"
+      analyticsEventName="Autofix: Copy Root Cause as Markdown"
+      analyticsEventKey="autofix.root_cause.copy"
     />
   );
 }
@@ -245,6 +247,8 @@ function AutofixRootCauseDisplay({
               borderless
               title={t('Chat with Seer')}
               onClick={handleSelectDescription}
+              analyticsEventName="Autofix: Root Cause Chat"
+              analyticsEventKey="autofix.root_cause.chat"
             >
               <IconChat size="xs" />
             </ChatButton>

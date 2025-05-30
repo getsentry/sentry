@@ -26,6 +26,7 @@ import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -305,6 +306,8 @@ function CopySolutionButton({
       text={text}
       borderless
       title="Copy solution as Markdown"
+      analyticsEventName="Autofix: Copy Solution as Markdown"
+      analyticsEventKey="autofix.solution.copy"
     />
   );
 }
@@ -320,6 +323,8 @@ function AutofixSolutionDisplay({
   solutionSelected,
   agentCommentThread,
 }: Omit<AutofixSolutionProps, 'repos'>) {
+  const organization = useOrganization();
+
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, _setIsEditing] = useState(false);
@@ -367,6 +372,12 @@ function AutofixSolutionDisplay({
 
       // Clear the input
       setInstructions('');
+
+      trackAnalytics('autofix.solution.add_step', {
+        organization,
+        solution: solutionItems,
+        newStep,
+      });
     }
   };
 
@@ -375,17 +386,37 @@ function AutofixSolutionDisplay({
     handleAddInstruction();
   };
 
-  const handleDeleteItem = useCallback((index: number) => {
-    setSolutionItems(current => current.filter((_, i) => i !== index));
-  }, []);
+  const handleDeleteItem = useCallback(
+    (index: number) => {
+      setSolutionItems(current => current.filter((_, i) => i !== index));
 
-  const handleToggleActive = useCallback((index: number) => {
-    setSolutionItems(current =>
-      current.map((item, i) =>
-        i === index ? {...item, is_active: item.is_active === false ? true : false} : item
-      )
-    );
-  }, []);
+      trackAnalytics('autofix.solution.delete_step', {
+        organization,
+        solution: solutionItems,
+        deletedStep: solutionItems[index],
+      });
+    },
+    [organization, solutionItems]
+  );
+
+  const handleToggleActive = useCallback(
+    (index: number) => {
+      setSolutionItems(current =>
+        current.map((item, i) =>
+          i === index
+            ? {...item, is_active: item.is_active === false ? true : false}
+            : item
+        )
+      );
+
+      trackAnalytics('autofix.solution.toggle_step', {
+        organization,
+        solution: solutionItems,
+        toggledStep: solutionItems[index],
+      });
+    },
+    [organization, solutionItems]
+  );
 
   useEffect(() => {
     setSolutionItems(
@@ -439,6 +470,8 @@ function AutofixSolutionDisplay({
               borderless
               title={t('Chat with Seer')}
               onClick={handleSelectDescription}
+              analyticsEventName="Autofix: Solution Chat"
+              analyticsEventKey="autofix.solution.chat"
             >
               <IconChat size="xs" />
             </ChatButton>
@@ -476,6 +509,8 @@ function AutofixSolutionDisplay({
                     solution: solutionItems,
                   });
                 }}
+                analyticsEventName="Autofix: Code It Up"
+                analyticsEventKey="autofix.solution.code"
               >
                 {t('Code It Up')}
               </Button>
