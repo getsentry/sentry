@@ -291,7 +291,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"key": "span.duration", "name": "span.duration"},
         ]
 
-    @override_options({"performance.spans-tags-key.max": 3})
+    @override_options({"explore.trace-items.keys.max": 3})
     def test_pagination(self):
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -1170,7 +1170,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         response = self.do_request(key="tag")
         assert response.status_code == 400, response.data
 
-    @override_options({"performance.spans-tags-values.max": 2})
+    @override_options({"explore.trace-items.values.max": 2})
     def test_pagination(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz", "qux"]:
