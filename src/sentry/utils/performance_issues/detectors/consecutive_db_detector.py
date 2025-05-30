@@ -193,7 +193,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
         """
         independent_spans = []
-        for span in spans:
+        for span in spans[1:]:
             query: str = span.get("description", None)
             if (
                 query
