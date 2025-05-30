@@ -6,7 +6,7 @@ export default function ReplayRequestsThrottledAlert() {
     <Alert.Container>
       <Alert type="info" showIcon data-test-id="replay-error">
         {t(
-          'You are making too many requests. Reload the page to try again. (change this error message)'
+          "You're sending too many requests in a short period and have been temporarily rate-limited. Please wait a moment and try again."
         )}
       </Alert>
     </Alert.Container>

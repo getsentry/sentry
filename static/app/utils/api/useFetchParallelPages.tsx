@@ -32,7 +32,7 @@ interface Props {
 
 interface ResponsePage<Data> {
   data: undefined | Data;
-  error: RequestError | undefined; // TODO: remove this comment; I think this is guaranteed to be a RequestError since that is what the query function throws, in the fetchDataQuery function in queryClient.tsx
+  error: RequestError | undefined;
   getResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
@@ -149,7 +149,7 @@ export default function useFetchParallelPages<Data>({
             const values = Array.from(responsePages.current.values());
             setState({
               pages: values.map(value => value.data).filter(defined),
-              error: values.map(value => value.error).filter(defined), // (remove this comment): was this change ok to make? didn't seem right having arrays like '[undefined]' here
+              error: values.map(value => value.error).filter(defined),
               getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
               isError: values.map(value => value.isError).some(Boolean),
               isFetching: values.map(value => value.isFetching).some(Boolean),
