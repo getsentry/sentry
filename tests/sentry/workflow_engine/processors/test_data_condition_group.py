@@ -370,7 +370,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
 
     def test_execute_slow_conditions(self):
         group_evaluation, remaining_conditions = process_data_condition_group(
-            self.data_condition_group,
+            self.data_condition_group.id,
             [10],
             False,
         )

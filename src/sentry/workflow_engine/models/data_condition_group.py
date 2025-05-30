@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from enum import StrEnum
 from typing import ClassVar, Self
 
@@ -54,10 +53,3 @@ def batch_get_slow_conditions(dcgs: list[DataConditionGroup]) -> Mapping[int, li
         if is_slow_condition(condition):
             slow_conditions_by_dcg[condition.condition_group_id].append(condition)
     return slow_conditions_by_dcg
-
-
-def get_slow_conditions(dcg: DataConditionGroup) -> list[DataCondition]:
-    """
-    Get all conditions that are considered slow for a given data condition group
-    """
-    return [condition for condition in dcg.conditions.all() if is_slow_condition(condition)]

@@ -45,8 +45,11 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_actions
-from sentry.workflow_engine.models.data_condition_group import batch_get_slow_conditions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
+from sentry.workflow_engine.processors.data_condition_group import (
+    batch_get_slow_conditions,
+    evaluate_data_conditions,
+)
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow import (

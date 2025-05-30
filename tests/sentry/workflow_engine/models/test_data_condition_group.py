@@ -1,9 +1,7 @@
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.models.data_condition_group import (
-    DataConditionGroup,
-    batch_get_slow_conditions,
-)
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.processors.data_condition_group import batch_get_slow_conditions
 
 
 class TestBatchGetSlowConditions(TestCase):
@@ -35,7 +33,14 @@ class TestBatchGetSlowConditions(TestCase):
         condition2 = self.create_slow_condition(dcg2)
         self.create_data_condition(condition_group=self.dcg, type=Condition.EQUAL)
         condition4 = self.create_slow_condition(dcg2)
+        dcg3 = self.create_data_condition_group()
+        condition5 = self.create_slow_condition(dcg3)
         assert batch_get_slow_conditions([self.dcg, dcg2]) == {
             self.dcg.id: [condition1],
             dcg2.id: [condition2, condition4],
+        }
+        assert batch_get_slow_conditions([self.dcg, dcg2, dcg3]) == {
+            self.dcg.id: [condition1],
+            dcg2.id: [condition2, condition4],
+            dcg3.id: [condition5],
         }
