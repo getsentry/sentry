@@ -8,6 +8,7 @@ import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 interface AiConfigResult {
   areAiFeaturesAllowed: boolean;
   hasAutofix: boolean;
+  hasAutofixQuota: boolean;
   hasGithubIntegration: boolean;
   hasResources: boolean;
   hasSummary: boolean;
@@ -18,7 +19,11 @@ interface AiConfigResult {
 
 export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const organization = useOrganization();
-  const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
+  const {
+    data: autofixSetupData,
+    isPending: isAutofixSetupLoading,
+    hasAutofixQuota,
+  } = useAutofixSetup({
     groupId: group.id,
   });
 
@@ -56,5 +61,6 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     isAutofixSetupLoading,
     areAiFeaturesAllowed,
     hasGithubIntegration,
+    hasAutofixQuota,
   };
 };

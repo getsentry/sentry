@@ -12,6 +12,9 @@ interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
 }
 
 export interface AutofixSetupResponse {
+  billing: {
+    hasAutofixQuota: boolean;
+  } | null;
   integration: {
     ok: boolean;
     reason: string | null;
@@ -59,5 +62,6 @@ export function useAutofixSetup(
         queryData.data?.setupAcknowledgement.userHasAcknowledged
     ),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
+    hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
   };
 }
