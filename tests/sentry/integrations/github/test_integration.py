@@ -1319,7 +1319,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             props={
                 "installation_info": installations,
                 "has_scm_multi_org": True,
-                "organization_slug": "foo",
+                "organization_slug": self.organization.slug,
             },
         )
 
@@ -1531,7 +1531,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             props={
                 "installation_info": installations,
                 "has_scm_multi_org": False,
-                "organization_slug": "foo",
+                "organization_slug": self.organization.slug,
             },
         )
 
@@ -1586,7 +1586,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             props={
                 "installation_info": installations,
                 "has_scm_multi_org": False,
-                "organization_slug": "foo",
+                "organization_slug": self.organization.slug,
             },
         )
 
