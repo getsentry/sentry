@@ -18,7 +18,7 @@ interface ConstrainAndAlignListBoxArgs {
   refsToSync: Array<React.RefObject<HTMLElement | null>>;
 }
 
-export function constrainAndAlignListBox({
+function constrainAndAlignListBox({
   popoverRef,
   referenceRef,
   refsToSync,
