@@ -62,18 +62,7 @@ type RenderProps = {
   isOpen: boolean;
 };
 
-type DefaultProps = {
-  /**
-   * closes menu on "Esc" keypress
-   */
-  closeOnEscape?: boolean;
-  /**
-   * Keeps dropdown menu open when menu is clicked
-   */
-  keepMenuOpen?: boolean;
-};
-
-type Props = DefaultProps & {
+export type DeprecatedDropdownMenuProps = {
   /**
    * Render function
    */
@@ -83,6 +72,10 @@ type Props = DefaultProps & {
    * This will change where we attach event handlers
    */
   alwaysRenderMenu?: boolean;
+  /**
+   * closes menu on "Esc" keypress
+   */
+  closeOnEscape?: boolean;
   /**
    * If this is set to true, the dropdown behaves as a "nested dropdown" and is
    * triggered on mouse enter and mouse leave
@@ -94,6 +87,10 @@ type Props = DefaultProps & {
    * only follow `isOpen`.
    */
   isOpen?: boolean;
+  /**
+   * Keeps dropdown menu open when menu is clicked
+   */
+  keepMenuOpen?: boolean;
   /**
    * Callback for when we get a click outside of dropdown menus.
    * Useful for when menu is controlled.
@@ -134,7 +131,7 @@ function DropdownMenu({
   onClose,
   onOpen,
   shouldIgnoreClickOutside,
-}: Props) {
+}: DeprecatedDropdownMenuProps) {
   const [isOpenState, setIsOpenState] = useState(false);
 
   const dropdownMenu = useRef<Element | null>(null);
