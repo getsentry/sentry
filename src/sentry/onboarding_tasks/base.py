@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Generic, TypeVar
 
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import AbstractOnboardingTask
+from sentry.models.project import Project
 from sentry.utils.services import Service
 
 T = TypeVar("T", bound=AbstractOnboardingTask)
@@ -35,5 +37,25 @@ class OnboardingTaskBackend(Service, Generic[T]):
     def create_or_update_onboarding_task(self, organization, user, task, values):
         raise NotImplementedError
 
+    def complete_onboarding_task(
+        self,
+        organization: Organization,
+        task: int,
+        date_completed: datetime | None = None,
+        **task_kwargs,
+    ) -> T | None:
+        raise NotImplementedError
+
+    def has_completed_onboarding_task(organization: Organization, task: int) -> bool:
+        raise NotImplementedError
+
     def try_mark_onboarding_complete(self, organization_id: int):
+        raise NotImplementedError
+
+    def transfer_onboarding_tasks(
+        self,
+        from_organization: Organization,
+        to_organization: Organization,
+        project: Project | None = None,
+    ):
         raise NotImplementedError
