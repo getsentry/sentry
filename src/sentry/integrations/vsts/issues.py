@@ -314,7 +314,11 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
     ) -> None:
         client = self.get_client()
-        work_item = client.get_work_item(external_issue.key)
+        try:
+            work_item = client.get_work_item(external_issue.key)
+        except Exception as e:
+            self.raise_error(e)
+
         # For some reason, vsts doesn't include the project id
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
@@ -352,7 +356,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
 
         try:
             client.update_work_item(external_issue.key, state=status)
-        except (ApiUnauthorized, ApiError) as error:
+        except ApiUnauthorized as error:
             self.logger.info(
                 "vsts.failed-to-change-status",
                 extra={
@@ -362,6 +366,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "exception": error,
                 },
             )
+            raise
         except Exception as e:
             self.raise_error(e)
 
