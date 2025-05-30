@@ -366,6 +366,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "exception": error,
                 },
             )
+            raise
         except Exception as e:
             self.raise_error(e)
 
