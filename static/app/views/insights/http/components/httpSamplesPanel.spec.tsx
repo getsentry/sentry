@@ -233,8 +233,7 @@ describe('HTTPSamplesPanel', () => {
             ],
             per_page: 50,
             project: [],
-            query:
-              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users',
+            query: 'span.op:http.client !has:span.domain transaction:/api/0/users',
             referrer: 'api.performance.http.samples-panel-metrics-ribbon',
             statsPeriod: '10d',
           },
@@ -257,7 +256,7 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+              'span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.performance.http.samples-panel-response-code-chart',
             statsPeriod: '10d',
             topEvents: '5',
@@ -275,7 +274,7 @@ describe('HTTPSamplesPanel', () => {
           query: expect.objectContaining({
             dataset: 'spansIndexed',
             query:
-              'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+              'span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             project: [],
             field: [
               'project',
@@ -426,7 +425,7 @@ describe('HTTPSamplesPanel', () => {
             per_page: 50,
             project: [],
             query:
-              'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             referrer: 'api.performance.http.samples-panel-duration-chart',
             statsPeriod: '10d',
             yAxis: 'avg(span.self_time)',
@@ -441,7 +440,7 @@ describe('HTTPSamplesPanel', () => {
           method: 'GET',
           query: expect.objectContaining({
             query:
-              'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
             additionalFields: [
               'id',
