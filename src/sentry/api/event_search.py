@@ -134,30 +134,31 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep operator? search_value
 
-key                    = ~r"[a-zA-Z0-9_.-]+"
-quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
-explicit_flag_key       = "flags" open_bracket search_key closed_bracket
-explicit_string_flag_key = "flags" open_bracket search_key spaces comma spaces "string" closed_bracket
-explicit_number_flag_key = "flags" open_bracket search_key spaces comma spaces "number" closed_bracket
-explicit_tag_key       = "tags" open_bracket search_key closed_bracket
-explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
-explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
-aggregate_key          = key open_paren spaces function_args? spaces closed_paren
-function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
-aggregate_param        = quoted_aggregate_param / raw_aggregate_param
-raw_aggregate_param    = ~r"[^()\t\n, \"]+"
-quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
-text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
-value                  = ~r"[^()\t\n ]*"
-quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
-in_value               = (&in_value_termination in_value_char)+
-text_in_value          = quoted_value / in_value
-search_value           = quoted_value / value
-numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed_bracket)
-boolean_value          = ~r"(true|1|false|0)"i &end_value
-text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
-numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+key                      = ~r"[a-zA-Z0-9_.-]+"
+escaped_key              = ~r"[a-zA-Z0-9_.:-]+"
+quoted_key               = '"' escaped_key '"'
+explicit_flag_key        = "flags" open_bracket escaped_key closed_bracket
+explicit_string_flag_key = "flags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key = "flags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
+explicit_tag_key         = "tags" open_bracket search_key closed_bracket
+explicit_string_tag_key  = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_tag_key  = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
+aggregate_key            = key open_paren spaces function_args? spaces closed_paren
+function_args            = aggregate_param (spaces comma spaces !comma aggregate_param?)*
+aggregate_param          = quoted_aggregate_param / raw_aggregate_param
+raw_aggregate_param      = ~r"[^()\t\n, \"]+"
+quoted_aggregate_param   = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+search_key               = explicit_flag_key / explicit_string_flag_key / explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+text_key                 = explicit_flag_key / explicit_string_flag_key / explicit_number_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
+value                    = ~r"[^()\t\n ]*"
+quoted_value             = '"' ('\\"' / ~r'[^"]')* '"'
+in_value                 = (&in_value_termination in_value_char)+
+text_in_value            = quoted_value / in_value
+search_value             = quoted_value / value
+numeric_value            = "-"? numeric numeric_unit? &(end_value / comma / closed_bracket)
+boolean_value            = ~r"(true|1|false|0)"i &end_value
+text_in_list             = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
+numeric_in_list          = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -1401,7 +1402,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ]
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2].name}]")
+        return SearchKey(f"flags[{children[2].text}]")
 
     def visit_explicit_string_flag_key(
         self,
@@ -1417,7 +1418,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2].name},string]")
+        return SearchKey(f"flags[{children[2].text},string]")
 
     def visit_explicit_number_flag_key(
         self,
@@ -1433,7 +1434,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2].name},number]")
+        return SearchKey(f"flags[{children[2].text},number]")
 
     def visit_aggregate_key(
         self,
