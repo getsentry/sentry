@@ -9,6 +9,7 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import default_detector_config_data
+from sentry.types.actor import Actor
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -27,12 +28,14 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
+            "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
             "workflowIds": [],
             "config": default_detector_config_data[MetricIssue.slug],
+            "owner": None,
         }
 
     def test_serialize_full(self):
@@ -60,6 +63,7 @@ class TestDetectorSerializer(TestCase):
             name="Test Detector",
             type=MetricIssue.slug,
             workflow_condition_group=condition_group,
+            owner_user_id=self.user.id,
         )
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
@@ -91,6 +95,7 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
+            "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -138,6 +143,7 @@ class TestDetectorSerializer(TestCase):
             },
             "workflowIds": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
+            "owner": Actor.from_id(user_id=self.user.id).identifier,
         }
 
     def test_serialize_bulk(self):
@@ -359,6 +365,7 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": None,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": None,
@@ -424,6 +431,7 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": None,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": {

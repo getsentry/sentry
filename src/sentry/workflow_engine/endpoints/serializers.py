@@ -314,6 +314,9 @@ class DetectorSerializer(Serializer):
                 attrs[item]["config"] = configs[item.id]
             else:
                 attrs[item]["config"] = item.config
+            actor = item.owner
+            if actor:
+                attrs[item]["owner"] = actor.identifier
 
         return attrs
 
@@ -324,6 +327,8 @@ class DetectorSerializer(Serializer):
             "name": obj.name,
             "type": obj.type,
             "workflowIds": attrs.get("workflow_ids"),
+            "owner": attrs.get("owner"),
+            "createdBy": obj.created_by_id,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
@@ -381,6 +386,7 @@ class WorkflowSerializer(Serializer):
             "id": str(obj.id),
             "name": str(obj.name),
             "organizationId": str(obj.organization_id),
+            "createdBy": obj.created_by_id,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "triggers": attrs.get("triggers"),
