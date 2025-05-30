@@ -91,14 +91,14 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     // Only used when in sidebar layout
     const initialSize = isSidebarLayout ? 260 : 0;
 
-    const onResize = (newSize: number, maybeOldSize?: number) => {
+    const onResize = (delta: number) => {
       if (!detailsBarRef.current) {
         return;
       }
 
       if (isSidebarLayout) {
-        detailsBarRef.current.style.width = `100%`;
-        detailsBarRef.current.style.height = `${maybeOldSize ?? newSize}px`;
+        detailsBarRef.current.style.width = `${initialSize + delta}px`;
+        detailsBarRef.current.style.height = `100%`;
       } else {
         detailsBarRef.current.style.height = '';
         detailsBarRef.current.style.width = '';
@@ -113,7 +113,11 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     };
   }, [flamegraphPreferences.layout]);
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const {onMouseDown} = useResizableDrawer(resizableOptions);
+
+  const onDoubleClick = useCallback(() => {
+    resizableOptions.onResize?.(resizableOptions.initialSize, true);
+  }, [resizableOptions]);
 
   return (
     <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
