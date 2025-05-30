@@ -10,13 +10,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
   isVideoReplay,
+  hasLogsFeature,
 }: {
+  hasLogsFeature: boolean;
   isVideoReplay: boolean;
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
+
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
+    [TabKey.LOGS]: hasLogsFeature ? t('Logs') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: t('Trace'),
@@ -32,9 +36,10 @@ type Props = {
 function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
+  const hasLogsFeature = useOrganization().features.includes('ourlogs-enabled');
   const activeTab = getActiveTab();
 
-  const tabs = Object.entries(getReplayTabs({isVideoReplay})).filter(
+  const tabs = Object.entries(getReplayTabs({isVideoReplay, hasLogsFeature})).filter(
     ([_, v]) => v !== null
   );
 

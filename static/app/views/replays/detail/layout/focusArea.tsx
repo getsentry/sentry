@@ -4,6 +4,7 @@ import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
+import OurLogs from 'sentry/views/replays/detail/ourlogs';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -28,6 +29,8 @@ export default function FocusArea({
       return <MemoryPanel />;
     case TabKey.CONSOLE:
       return <Console />;
+    case TabKey.LOGS:
+      return <OurLogs />;
     case TabKey.TAGS:
       return <TagPanel />;
     case TabKey.BREADCRUMBS:
