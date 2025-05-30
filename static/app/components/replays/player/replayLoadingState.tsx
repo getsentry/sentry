@@ -32,8 +32,6 @@ export default function ReplayLoadingState({
 }) {
   const organization = useOrganization();
 
-  // If there is an attachment error, we also require that there is a processing error, since otherwise, an error
-  // may be displayed when the processing was successful
   const throttledErrorExists =
     readerResult.fetchError?.status === 429 ||
     readerResult.attachmentError?.find(
