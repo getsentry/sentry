@@ -18,13 +18,13 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
@@ -37,41 +37,10 @@ interface SeerNoticesProps {
   hasGithubIntegration?: boolean;
 }
 
-// Temporary Seer beta closing alert
-function SeerBetaClosingAlert() {
-  const {isDismissed, dismiss} = useDismissAlert({
-    key: 'seer-beta-closing-alert-dismissed',
-  });
-  if (isDismissed) return null;
-  return (
-    <StyledAlert
-      type="info"
-      showIcon
-      trailingItems={
-        <Button
-          aria-label="dismiss"
-          icon={<IconClose />}
-          onClick={dismiss}
-          size="zero"
-          borderless
-        />
-      }
-    >
-      <AlertBody>
-        <span>
-          <b>Seer beta is ending soon</b>
-        </span>
-        <span>
-          Thanks for trying Seer. FYI: Starting June 10th, Seer will require a $20/month
-          subscription to continue scanning and fixing issues.
-        </span>
-        <ExternalLink href="https://docs.sentry.io/pricing/#seer-pricing/">
-          Learn more
-        </ExternalLink>
-      </AlertBody>
-    </StyledAlert>
-  );
-}
+const SeerBetaClosingAlert = HookOrDefault({
+  hookName: 'component:seer-beta-closing-alert',
+  defaultComponent: () => <div data-test-id="seer-beta-closing-alert" />,
+});
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
@@ -392,12 +361,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
-`;
-
-const AlertBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
 `;
 
 const NoticesContainer = styled('div')`
