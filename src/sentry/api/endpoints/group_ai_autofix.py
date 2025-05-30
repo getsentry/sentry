@@ -126,7 +126,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # Remove unnecessary or sensitive data to reduce returned payload size
             for key in ["usage", "signals"]:
                 response_state.pop(key, None)
-            for request_key in ["issue", "trace_tree", "profile", "issue_summary"]:
+            for request_key in ["issue", "trace_tree", "profile", "issue_summary", "logs"]:
                 if "request" in response_state and request_key in response_state["request"]:
                     del response_state["request"][request_key]
 
