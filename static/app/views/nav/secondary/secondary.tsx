@@ -18,6 +18,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Collapsable} from 'sentry/views/nav/collapsable';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -176,7 +177,9 @@ SecondaryNav.Section = function SecondaryNavSection({
           setIsCollapsed={setIsCollapsedState}
         />
       ) : null}
-      {isCollapsed ? null : children}
+      <Collapsable collapsed={isCollapsed} disabled={!canCollapse}>
+        {children}
+      </Collapsable>
     </Section>
   );
 };
