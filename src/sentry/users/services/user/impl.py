@@ -316,9 +316,9 @@ class DatabaseBackedUserService(UserService):
             if "emails" in filters:
                 # Since we can have a lot of emails, the in_iexact helper creates too many
                 # conditions in the query, so we annotate the email and filter by the
-                # lowercased version of the email for case insensitive search
-                query = query.annotate(lower_emails__email=Upper("emails__email")).filter(
-                    lower_emails__email__in=map(lambda x: x.upper(), filters["emails"])
+                # uppercased version of the email for case insensitive search
+                query = query.annotate(upper_emails=Upper("emails__email")).filter(
+                    upper_emails__in=map(lambda x: x.upper(), filters["emails"])
                 )
             if "query" in filters:
                 query = query.filter(
