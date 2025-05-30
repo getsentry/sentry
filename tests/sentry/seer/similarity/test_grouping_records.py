@@ -12,7 +12,7 @@ from sentry.seer.similarity.grouping_records import (
     POST_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
     delete_grouping_records_by_hash,
-    post_bulk_grouping_records,
+    post_bulk_grouping_records_for_backfill,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -54,10 +54,10 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
         json.dumps(expected_return_value).encode("utf-8"), status=200
     )
 
-    response = post_bulk_grouping_records(_create_grouping_records_request_params())
+    response = post_bulk_grouping_records_for_backfill(_create_grouping_records_request_params())
     assert response == expected_return_value
     mock_logger.info.assert_called_with(
-        "seer.post_bulk_grouping_records.success",
+        "seer.post_bulk_grouping_records_for_backfill.success",
         extra={
             "group_ids": json.dumps(_create_grouping_records_request_params()["group_id_list"]),
             "project_id": 1,
@@ -76,10 +76,10 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
         DUMMY_POOL, settings.SEER_AUTOFIX_URL, "read timed out"
     )
 
-    response = post_bulk_grouping_records(_create_grouping_records_request_params())
+    response = post_bulk_grouping_records_for_backfill(_create_grouping_records_request_params())
     assert response == expected_return_value
     mock_logger.info.assert_called_with(
-        "seer.post_bulk_grouping_records.failure",
+        "seer.post_bulk_grouping_records_for_backfill.failure",
         extra={
             "group_ids": json.dumps(_create_grouping_records_request_params()["group_id_list"]),
             "project_id": 1,
@@ -102,10 +102,10 @@ def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_l
         status=500,
     )
 
-    response = post_bulk_grouping_records(_create_grouping_records_request_params())
+    response = post_bulk_grouping_records_for_backfill(_create_grouping_records_request_params())
     assert response == expected_return_value
     mock_logger.info.assert_called_with(
-        "seer.post_bulk_grouping_records.failure",
+        "seer.post_bulk_grouping_records_for_backfill.failure",
         extra={
             "group_ids": json.dumps(_create_grouping_records_request_params()["group_id_list"]),
             "project_id": 1,
@@ -126,7 +126,7 @@ def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
     )
     empty_data = _create_grouping_records_request_params()
     empty_data["data"] = []
-    response = post_bulk_grouping_records(empty_data)
+    response = post_bulk_grouping_records_for_backfill(empty_data)
     assert response == expected_return_value
 
 
@@ -146,10 +146,10 @@ def test_post_bulk_grouping_records_use_reranking(
 
     params = _create_grouping_records_request_params()
     params.update({"use_reranking": True})
-    response = post_bulk_grouping_records(params)
+    response = post_bulk_grouping_records_for_backfill(params)
     assert response == expected_return_value
     mock_logger.info.assert_called_with(
-        "seer.post_bulk_grouping_records.success",
+        "seer.post_bulk_grouping_records_for_backfill.success",
         extra={
             "group_ids": json.dumps(params["group_id_list"]),
             "project_id": 1,

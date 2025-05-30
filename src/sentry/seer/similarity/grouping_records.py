@@ -70,15 +70,15 @@ def post_bulk_grouping_records_for_backfill(
         )
     except ReadTimeoutError:
         extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
-        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+        logger.info("seer.post_bulk_grouping_records_for_backfill.failure", extra=extra)
         return {"success": False, "reason": "ReadTimeoutError"}
 
     if response.status >= 200 and response.status < 300:
-        logger.info("seer.post_bulk_grouping_records.success", extra=extra)
+        logger.info("seer.post_bulk_grouping_records_for_backfill.success", extra=extra)
         return json.loads(response.data.decode("utf-8"))
     else:
         extra.update({"reason": response.reason})
-        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+        logger.info("seer.post_bulk_grouping_records_for_backfill.failure", extra=extra)
         return {"success": False, "reason": response.reason}
 
 
