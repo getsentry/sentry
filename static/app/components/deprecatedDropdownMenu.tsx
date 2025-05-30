@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
@@ -141,10 +141,13 @@ function DropdownMenu({
   const mouseLeaveTimeout = useRef<number | undefined>(undefined);
   const mouseEnterTimeout = useRef<number | undefined>(undefined);
 
-  // Gets open state from props or local state when appropriate
-  const isOpen = useCallback(() => {
+  const isOpen = useMemo(() => {
     const isControlled = typeof isOpenProp !== 'undefined';
-    return (isControlled && isOpenProp) || isOpenState;
+    if (isControlled) {
+      return isOpenProp;
+    }
+
+    return isOpenState;
   }, [isOpenProp, isOpenState]);
 
   // Closes dropdown menu
@@ -167,7 +170,7 @@ function DropdownMenu({
   // Closes dropdownmenu if it is "outside"
   const checkClickOutside = useCallback(
     async (e: MouseEvent) => {
-      if (!dropdownMenu.current || !isOpen()) {
+      if (!dropdownMenu.current || !isOpen) {
         return;
       }
 
@@ -279,7 +282,7 @@ function DropdownMenu({
 
   const handleToggle = useCallback(
     (e: React.MouseEvent<Element>) => {
-      if (isOpen()) {
+      if (isOpen) {
         handleClose(e);
       } else {
         handleOpen(e);
@@ -307,38 +310,21 @@ function DropdownMenu({
 
   // Actor is the component that will open the dropdown menu
   const getActorProps: GetActorPropsFn = useCallback(
-    <E extends Element = Element>({
-      onClick,
-      onMouseEnter,
-      onMouseLeave,
-      onKeyDown,
-      style = {},
-      ...props
-    }: GetActorArgs<E> = {}) => {
+    <E extends Element = Element>({style = {}, ...props}: GetActorArgs<E> = {}) => {
       // Props that the actor needs to have <DropdownMenu> work
       return mergeProps(props, {
         ref: (ref: Element | null) => {
           dropdownActor.current = ref;
         },
         style: {...style, outline: 'none'},
-        'aria-expanded': isOpen(),
+        'aria-expanded': isOpen,
         'aria-haspopup': 'listbox',
-
         onKeyDown: (e: React.KeyboardEvent<E>) => {
-          if (typeof onKeyDown === 'function') {
-            onKeyDown(e);
-          }
-
           if (e.key === 'Escape' && closeOnEscape) {
             handleClose(e);
           }
         },
-
         onMouseEnter: (e: React.MouseEvent<E>) => {
-          if (typeof onMouseEnter === 'function') {
-            onMouseEnter(e);
-          }
-
           // Only handle mouse enter for nested dropdowns
           if (!isNestedDropdown) {
             return;
@@ -351,18 +337,12 @@ function DropdownMenu({
             handleOpen(e);
           }, MENU_CLOSE_DELAY);
         },
-
         onMouseLeave: (e: React.MouseEvent<E>) => {
-          if (typeof onMouseLeave === 'function') {
-            onMouseLeave(e);
-          }
-
           window.clearTimeout(mouseEnterTimeout.current);
           window.clearTimeout(mouseLeaveTimeout.current);
 
           handleMouseLeave(e);
         },
-
         onClick: (e: React.MouseEvent<E>) => {
           // If we are a nested dropdown, clicking the actor
           // should be a no-op so that the menu doesn't close.
@@ -373,10 +353,6 @@ function DropdownMenu({
           }
 
           handleToggle(e);
-
-          if (typeof onClick === 'function') {
-            onClick(e);
-          }
         },
       });
     },
@@ -393,12 +369,7 @@ function DropdownMenu({
 
   // Menu is the menu component that <DropdownMenu> will control
   const getMenuProps: GetMenuPropsFn = useCallback(
-    <E extends Element = Element>({
-      onClick,
-      onMouseLeave,
-      onMouseEnter,
-      ...props
-    }: GetMenuArgs<E> = {}): MenuProps<E> => {
+    <E extends Element = Element>(props: GetMenuArgs<E> = {}): MenuProps<E> => {
       // Props that the menu needs to have <DropdownMenu> work
       return mergeProps(props, {
         ref: (ref: Element | null) => {
@@ -417,20 +388,16 @@ function DropdownMenu({
           }
         },
         role: 'listbox',
-        onMouseEnter: (e: React.MouseEvent<E>) => {
-          onMouseEnter?.(e);
-
+        onMouseEnter: () => {
           // There is a delay before closing a menu on mouse leave, cancel this
           // action if mouse enters menu again
           window.clearTimeout(mouseLeaveTimeout.current);
         },
         onMouseLeave: (e: React.MouseEvent<E>) => {
-          onMouseLeave?.(e);
           handleMouseLeave(e);
         },
         onClick: (e: React.MouseEvent<E>) => {
           handleDropdownMenuClick(e);
-          onClick?.(e);
         },
       });
     },
@@ -451,11 +418,8 @@ function DropdownMenu({
     };
   }, []);
 
-  // Default anchor = left
-  const shouldShowDropdown = isOpen();
-
   return children({
-    isOpen: shouldShowDropdown,
+    isOpen,
     getRootProps,
     getActorProps,
     getMenuProps,
