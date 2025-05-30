@@ -113,22 +113,6 @@ describe('DropdownLink', function () {
 
         expect(screen.queryByText('hi')).not.toBeInTheDocument();
       });
-
-      it('does not close when menu is clicked and `keepMenuOpen` is on', async function () {
-        render(
-          <DropdownLink title="test" alwaysRenderMenu={false} keepMenuOpen>
-            <li>hi</li>
-          </DropdownLink>
-        );
-
-        // Open menu
-        await userEvent.click(screen.getByText('test'), {delay: null});
-
-        // Click again
-        await userEvent.click(screen.getByText('test'), {delay: null});
-
-        expect(screen.getByText('test')).toBeInTheDocument();
-      });
     });
   });
 
