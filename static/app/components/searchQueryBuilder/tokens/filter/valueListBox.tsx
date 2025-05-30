@@ -87,6 +87,11 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               size="sm"
               style={{maxWidth: overlayProps.style!.maxWidth}}
             />
+            {isLoading && anyItemsShowing ? (
+              <LoadingWrapper height="32px" width="100%">
+                <LoadingIndicator size={24} />
+              </LoadingWrapper>
+            ) : null}
             <Footer isMultiSelect={isMultiSelect} canUseWildcard={canUseWildcard} />
           </Fragment>
         )}
@@ -129,12 +134,12 @@ const FooterContainer = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const LoadingWrapper = styled('div')`
+const LoadingWrapper = styled('div')<{height?: string; width?: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 140px;
-  width: 200px;
+  height: ${p => p.height ?? '140px'};
+  width: ${p => p.width ?? '200px'};
 `;
 
 const Label = styled('div')``;
