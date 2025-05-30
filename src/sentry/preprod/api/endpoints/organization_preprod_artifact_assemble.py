@@ -20,7 +20,7 @@ from sentry.tasks.assemble import (
 
 @region_silo_endpoint
 class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -40,10 +40,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                         "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                     },
                     # Optional metadata
-                    "file_name": {"type": "string"},
-                    "sha": {"type": "string"},
+                    "git_sha": {"type": "string"},
                     "build_configuration": {"type": "string"},
-                    "extras": {"type": "object"},
                 },
                 "required": ["checksum", "chunks"],
                 "additionalProperties": False,
@@ -52,10 +50,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             error_messages = {
                 "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
                 "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
-                "file_name": "The file_name field must be a string.",
-                "sha": "The sha field must be a string.",
+                "git_sha": "The git_sha field must be a string.",
                 "build_configuration": "The build_configuration field must be a string.",
-                "extras": "The extras field must be an object.",
             }
 
             try:
@@ -111,10 +107,8 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
-                    "file_name": data.get("file_name"),
-                    "sha": data.get("sha"),
+                    "git_sha": data.get("git_sha"),
                     "build_configuration": data.get("build_configuration"),
-                    "extras": data.get("extras"),
                 }
             )
 

@@ -690,10 +690,8 @@ def assemble_preprod_artifact(
     project_id,
     checksum,
     chunks,
-    file_name,
-    sha=None,
+    git_sha=None,
     build_configuration=None,
-    extras=None,
     **kwargs,
 ) -> None:
     """
@@ -713,7 +711,7 @@ def assemble_preprod_artifact(
         assemble_result = assemble_file(
             task=AssembleTask.PREPROD_ARTIFACT,
             org_or_project=organization,
-            name=file_name or f"preprod-artifact-{uuid.uuid4().hex}",
+            name=f"preprod-artifact-{uuid.uuid4().hex}",
             checksum=checksum,
             chunks=chunks,
             file_type="preprod.artifact",
@@ -736,7 +734,6 @@ def assemble_preprod_artifact(
             file_id=assemble_result.bundle.id,
             build_configuration=build_config,
             state=PreprodArtifact.ArtifactState.UPLOADED,
-            extras=extras,
         )
 
         logger.info(
@@ -757,7 +754,13 @@ def assemble_preprod_artifact(
         # 4. Update state to PROCESSED when done (also update the date_built value to reflect when the artifact was built, among other fields)
 
     except Exception as e:
-        logger.exception("Failed to assemble preprod artifact")
+        logger.exception(
+            "Failed to assemble preprod artifact",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+            },
+        )
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT,
             org_id,

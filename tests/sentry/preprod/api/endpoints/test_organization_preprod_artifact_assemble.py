@@ -66,26 +66,12 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": checksum,
                 "chunks": [],
-                "file_name": "test.ipa",
-                "sha": "abc123def456",
+                "git_sha": "abc123def456",
                 "build_configuration": "release",
-                "extras": {"version": "1.0.0", "platform": "ios"},
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-
-        # Test with invalid extras field (not an object)
-        response = self.client.post(
-            self.url,
-            data={
-                "checksum": checksum,
-                "chunks": [],
-                "extras": "invalid_string",
-            },
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-        assert response.status_code == 400, response.content
 
     @patch("sentry.tasks.assemble.assemble_preprod_artifact")
     def test_assemble_basic(self, mock_assemble_preprod_artifact):
@@ -113,10 +99,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "file_name": None,
-                "sha": None,
+                "git_sha": None,
                 "build_configuration": None,
-                "extras": None,
             }
         )
 
@@ -133,10 +117,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "file_name": "MyApp.ipa",
-                "sha": "abcdef123456",
+                "git_sha": "abcdef123456",
                 "build_configuration": "release",
-                "extras": {"version": "2.1.0", "platform": "ios", "build_number": 42},
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -150,10 +132,8 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "project_id": self.project.id,
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
-                "file_name": "MyApp.ipa",
-                "sha": "abcdef123456",
+                "git_sha": "abcdef123456",
                 "build_configuration": "release",
-                "extras": {"version": "2.1.0", "platform": "ios", "build_number": 42},
             }
         )
 
@@ -167,7 +147,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [total_checksum],
-                "file_name": "test.apk",
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -186,7 +165,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             data={
                 "checksum": total_checksum,
                 "chunks": [total_checksum],
-                "file_name": "test.apk",
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
