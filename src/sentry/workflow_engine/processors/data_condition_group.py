@@ -1,9 +1,10 @@
 import dataclasses
 import logging
-from typing import TypeVar
+from typing import DefaultDict, TypeVar
 
-from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.function_cache import batch_cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
 from sentry.workflow_engine.types import DataConditionResult
 
@@ -30,16 +31,37 @@ DataConditionGroupResult = tuple[ProcessedDataConditionGroup, list[DataCondition
 
 # We use a defined function rather than a lambda below because otherwise
 # parameter type becomes Any.
-def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
-    return (condition.condition_group_id,)
+def _group_id_from_condition(condition: DataCondition) -> int:
+    return condition.condition_group_id
 
 
-@cache_func_for_models(
+def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
+    return get_data_conditions_for_groups([data_condition_group_id])[0]
+
+
+@batch_cache_func_for_models(
     [(DataCondition, _group_id_from_condition)],
     recalculate=False,
 )
-def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
-    return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
+def get_data_conditions_for_groups(
+    data_condition_group_ids: list[int],
+) -> list[list[DataCondition]]:
+    by_id = DefaultDict[int, list[DataCondition]](list)
+    for cond in DataCondition.objects.filter(condition_group_id__in=data_condition_group_ids):
+        by_id[cond.condition_group_id].append(cond)
+    result = [by_id[dcg] for dcg in data_condition_group_ids]
+    assert len(result) == len(data_condition_group_ids)
+    return result
+
+
+def batch_get_slow_conditions(
+    data_condition_groups: list[DataConditionGroup],
+) -> dict[int, list[DataCondition]]:
+    conds_list = get_data_conditions_for_groups([dcg.id for dcg in data_condition_groups])
+    return {
+        dcg.id: [cond for cond in conds if is_slow_condition(cond)]
+        for dcg, conds in zip(data_condition_groups, conds_list)
+    }
 
 
 def evaluate_condition_group_results(
