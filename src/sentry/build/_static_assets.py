@@ -23,7 +23,6 @@ def _build_static_assets() -> None:
             raise SystemExit(ret)
 
     _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only")
-    _cmd("pnpm", "run", "tsc", "-p", "config/tsconfig.build.json")
     _cmd("pnpm", "run", "build-production")
     _cmd("pnpm", "run", "build-chartcuterie-config")
 
