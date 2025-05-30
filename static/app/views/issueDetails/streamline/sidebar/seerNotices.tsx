@@ -118,7 +118,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     isAutomationAllowed;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed;
+    isAutomationAllowed &&
+    organization.features.includes('issue-stream-custom-views');
 
   // Warning conditions
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
