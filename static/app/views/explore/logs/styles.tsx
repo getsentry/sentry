@@ -8,6 +8,8 @@ import {Body} from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   TableBody,
@@ -310,12 +312,52 @@ export const TopSectionBody = styled(Body)`
   }
 `;
 
-export const BottomSectionBody = styled(Body)`
-  padding-top: 0;
+export const BottomSectionBody = styled('div')`
+  padding: ${space(2)} ${space(2)};
+  padding-top: ${space(1)};
   background-color: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)} ${space(4)};
     padding-top: ${space(1)};
   }
 `;
+
+export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    display: grid;
+    grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
+  }
+`;
+
+export const LogsSidebarCollapseButton = withChonk(
+  styled(Button)<{sidebarOpen: boolean}>`
+    width: 28px;
+    border-left-color: ${p => p.theme.background};
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    margin-bottom: ${space(1)};
+    margin-left: -31px;
+    display: none;
+
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: block;
+    }
+  `,
+  chonkStyled(Button)<{sidebarOpen: boolean}>`
+    margin-bottom: ${space(1)};
+    display: none;
+    margin-left: -31px;
+
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: inline-flex;
+    }
+
+    &::after {
+      border-left-color: ${p => p.theme.background};
+      border-top-left-radius: 0px;
+      border-bottom-left-radius: 0px;
+    }
+  `
+);
