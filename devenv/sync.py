@@ -4,8 +4,8 @@ import importlib.metadata
 import json
 import os
 import shlex
-import subprocess
 import shutil
+import subprocess
 
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv
@@ -84,9 +84,7 @@ def check_minimum_version(minimum_version: str) -> bool:
 
 
 def installed_pnpm(version: str, binroot: str) -> bool:
-    if shutil.which(
-        "pnpm", path=binroot
-    ) != f"{binroot}/pnpm" or not os.path.exists(
+    if shutil.which("pnpm", path=binroot) != f"{binroot}/pnpm" or not os.path.exists(
         f"{binroot}/node-env/bin/pnpm"
     ):
         return False
@@ -165,7 +163,7 @@ Then, use it to run sync this one time.
         reporoot,
     )
 
-    with open(f"{reporoot}/package.json", "r") as f:
+    with open(f"{reporoot}/package.json") as f:
         package_json = json.load(f)
         pnpm = package_json["packageManager"]
         pnpm_version = pnpm.split("@")[-1]
