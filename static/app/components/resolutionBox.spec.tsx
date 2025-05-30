@@ -102,7 +102,6 @@ describe('ResolutionBox', function () {
               current_release_version: currentReleaseVersion,
             },
             dateCreated: new Date().toISOString(),
-            project,
           },
         ]}
       />

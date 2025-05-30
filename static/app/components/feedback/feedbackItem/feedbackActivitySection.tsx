@@ -88,12 +88,11 @@ function FeedbackActivitySection(props: Props) {
         data: n,
         type: GroupActivityType.NOTE,
         dateCreated: new Date().toISOString(),
-        project: feedbackItem.project,
         user: me,
       };
       mutators.handleCreate(n, [newActivity, ...feedbackItem.activity], createOptions);
     },
-    [createOptions, feedbackItem.activity, mutators, feedbackItem.project]
+    [createOptions, feedbackItem.activity, mutators]
   );
 
   const handleUpdate = useCallback(
