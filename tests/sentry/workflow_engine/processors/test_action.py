@@ -204,9 +204,10 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status = WorkflowActionGroupStatus.objects.create(
             workflow=self.workflow, action=self.action, group=self.group
         )
+        workflow_ids = {self.workflow.id, workflow.id}
 
         action_to_statuses = get_workflow_group_action_statuses(
-            {self.action.id: {self.workflow.id}}, self.group
+            {self.action.id: {self.workflow.id}}, self.group, workflow_ids
         )
         assert action_to_statuses == {self.action.id: [status]}
 
