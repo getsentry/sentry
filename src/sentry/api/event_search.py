@@ -156,9 +156,11 @@ explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "n
 
 aggregate_key          = key open_paren spaces function_args? spaces closed_paren
 function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
-aggregate_param        = quoted_aggregate_param / raw_aggregate_param
+aggregate_param        = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key
+
 search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
 text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
@@ -1571,6 +1573,13 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             value = "".join(node.text for node in flatten(children[1]))
 
         return f'"{value}"'
+
+    def visit_explicit_tag_key_aggregate_param(
+        self,
+        node: Node,
+        children: tuple[SearchKey],
+    ) -> str:
+        return children[0].name
 
     def visit_search_key(self, node: Node, children: tuple[str | SearchKey]) -> SearchKey:
         key = children[0]
