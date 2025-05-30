@@ -269,7 +269,6 @@ export function EventGraph({
       staleTime: 0,
     }
   );
-
   const {data: flags} = useIntersectionFlags({
     event,
     query: {
@@ -300,7 +299,7 @@ export function EventGraph({
 
   const flagSeries = useFlagSeries({
     event,
-    flags,
+    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -320,6 +319,7 @@ export function EventGraph({
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartId: EVENT_GRAPH_WIDGET_ID,
+    eventId: event?.id,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -329,6 +329,7 @@ export function EventGraph({
         ? lastEventSeriesTimestamp + eventSeriesInterval
         : undefined,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
