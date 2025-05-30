@@ -27,12 +27,14 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
+            "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
             "workflowIds": [],
             "config": default_detector_config_data[MetricIssue.slug],
+            "owner": None,
         }
 
     def test_serialize_full(self):
@@ -60,6 +62,7 @@ class TestDetectorSerializer(TestCase):
             name="Test Detector",
             type=MetricIssue.slug,
             workflow_condition_group=condition_group,
+            owner_user_id=self.user.id,
         )
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
@@ -91,6 +94,7 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
+            "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -138,6 +142,7 @@ class TestDetectorSerializer(TestCase):
             },
             "workflowIds": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
+            "owner": self.user.get_actor_identifier(),
         }
 
     def test_serialize_bulk(self):
@@ -359,6 +364,7 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": None,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": None,
@@ -424,6 +430,7 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": None,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": {
