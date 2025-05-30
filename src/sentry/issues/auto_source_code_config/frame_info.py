@@ -10,8 +10,9 @@ from .errors import (
     NeedsExtension,
     UnsupportedFrameInfo,
 )
-from .utils.misc import get_straight_path_prefix_end_index
 from .utils.platform import PlatformConfig
+
+PREFIXES_TO_REMOVE = ["app:///", "./", "../", "/"]
 
 
 class FrameInfo:
@@ -37,17 +38,16 @@ class FrameInfo:
         if not get_extension(frame_file_path):
             raise NeedsExtension("It needs an extension.")
 
-        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
-
         # We normalize the path to be as close to what the path would
         # look like in the source code repository, hence why we remove
         # the straight path prefix and drive letter
-        self.normalized_path = frame_file_path[start_at_index:]
-        if start_at_index == 0:
-            self.stack_root = frame_file_path.split("/")[0]
+        self.normalized_path, removed_prefix = get_normalized_path_and_removed_prefix(
+            frame_file_path
+        )
+        if frame_file_path.startswith("/"):
+            self.stack_root = ""
         else:
-            slash_index = frame_file_path.find("/", start_at_index)
-            self.stack_root = frame_file_path[0:slash_index]
+            self.stack_root = removed_prefix + self.normalized_path.split("/")[0]
 
     def transformations(self, frame_file_path: str) -> str:
         self.raw_path = frame_file_path
@@ -56,10 +56,6 @@ class FrameInfo:
         if "\\" in frame_file_path:
             is_windows_path = True
             frame_file_path = frame_file_path.replace("\\", "/")
-
-        # Remove leading slash if it exists
-        if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
-            frame_file_path = frame_file_path[1:]
 
         # Remove drive letter if it exists
         if is_windows_path and frame_file_path[1] == ":":
@@ -87,6 +83,20 @@ class FrameInfo:
         if not isinstance(other, FrameInfo):
             return False
         return self.raw_path == other.raw_path
+
+
+# XXX: This will eventually replace get_straight_path_prefix_end_index
+def get_normalized_path_and_removed_prefix(frame_file_path: str) -> tuple[str, str]:
+    removed_prefix = ""
+    for prefix in PREFIXES_TO_REMOVE:
+        if frame_file_path.startswith(prefix):
+            frame_file_path = frame_file_path.replace(prefix, "", 1)
+            frame_file_path, recursive_removed_prefix = get_normalized_path_and_removed_prefix(
+                frame_file_path
+            )
+            removed_prefix += prefix + recursive_removed_prefix
+
+    return frame_file_path, removed_prefix
 
 
 # Based on # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
