@@ -65,7 +65,7 @@ jobs:
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          pnpm add ts-node && make install-api-docs && make test-api-docs
+          pnpm add ts-node && make test-api-docs
 
       - name: Inspect failure
         if: failure()
