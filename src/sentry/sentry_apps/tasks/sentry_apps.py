@@ -74,9 +74,11 @@ CONTROL_TASK_OPTIONS = {
     "silo_mode": SiloMode.CONTROL,
 }
 
+from sentry.exceptions import RestrictedIPAddress
+
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError, SentryAppSentryError, AssertionError, ValueError),
+    ignore=(ClientError, SentryAppSentryError, AssertionError, ValueError, RestrictedIPAddress),
     ignore_and_capture=(),
 )
 

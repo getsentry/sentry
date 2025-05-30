@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
 from requests import RequestException, Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
+from sentry.exceptions import RestrictedIPAddress
 
 from sentry import audit_log, options
 from sentry.http import safe_urlopen
@@ -181,17 +182,33 @@ def send_and_save_webhook_request(
                 headers=app_platform_event.headers,
                 timeout=options.get("sentry-apps.webhook.timeout.sec"),
             )
-        except (Timeout, ConnectionError) as e:
+        except (Timeout, ConnectionError, RestrictedIPAddress) as e:
             error_type = e.__class__.__name__.lower()
-            lifecycle.add_extras(
-                {
-                    "reason": "send_and_save_webhook_request.timeout",
-                    "error_type": error_type,
-                    "organization_id": org_id,
-                    "integration_slug": sentry_app.slug,
-                    "url": url,
-                },
-            )
+            
+            # Special handling for RestrictedIPAddress
+            if isinstance(e, RestrictedIPAddress):
+                error_message = "Webhook URL resolves to a restricted IP address."
+                lifecycle.add_extras(
+                    {
+                        "reason": "send_and_save_webhook_request.restricted_ip",
+                        "error_type": error_type,
+                        "organization_id": org_id,
+                        "integration_slug": sentry_app.slug,
+                        "url": url,
+                        "error_message": error_message,
+                    },
+                )
+            else:
+                lifecycle.add_extras(
+                    {
+                        "reason": "send_and_save_webhook_request.timeout",
+                        "error_type": error_type,
+                        "organization_id": org_id,
+                        "integration_slug": sentry_app.slug,
+                        "url": url,
+                    },
+                )
+                
             track_response_code(error_type, slug, event)
             buffer.add_request(
                 response_code=TIMEOUT_STATUS_CODE,
@@ -200,7 +217,11 @@ def send_and_save_webhook_request(
                 url=url,
                 headers=app_platform_event.headers,
             )
-            record_timeout(sentry_app, org_id, e)
+            
+            # Only record timeout for connection issues, not IP restrictions
+            if isinstance(e, (Timeout, ConnectionError)):
+                record_timeout(sentry_app, org_id, e)
+                
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
