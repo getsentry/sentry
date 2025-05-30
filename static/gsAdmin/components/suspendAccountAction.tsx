@@ -5,6 +5,8 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 
+// Make sure these match the values in the backend
+// See https://github.com/getsentry/getsentry/blob/cf837619ae7c76e852666afc5578abc0f3f0a97b/getsentry/models/subscription.py#L147
 const suspendReasons = [
   ['event_volume', 'Event Volume', 'This account has greatly exceeded its paid volume'],
   ['fraud', 'Fraudulent', 'This account was reported as fraudulent'],
