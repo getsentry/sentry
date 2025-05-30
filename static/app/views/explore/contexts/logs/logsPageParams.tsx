@@ -252,6 +252,11 @@ export function useLogsCursor() {
   return cursor;
 }
 
+export function useLogsIsFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return !!isTableFrozen;
+}
+
 export function useSetLogsCursor() {
   const setPageParams = useSetLogsPageParams();
   const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();

@@ -23,6 +23,7 @@ import {
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
+  useLogsIsFrozen,
   useLogsProjectIds,
   useLogsRefreshInterval,
   useLogsSearch,
@@ -96,6 +97,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const cursor = useLogsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
+  const isFrozen = useLogsIsFrozen();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
@@ -129,7 +131,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${traceIds ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${traceIds && isFrozen ? 'trace-logs' : 'events'}/`,
     params,
   ];
 
@@ -177,11 +179,8 @@ export function useLogsQuery({
     isError: queryResult.isError,
     isLoading: queryResult.isLoading,
     queryResult,
-    // /events and /trace-logs have slightly different output formats
-    data: Array.isArray(queryResult?.data) ? queryResult?.data : queryResult?.data?.data,
-    infiniteData: Array.isArray(queryResult?.data)
-      ? queryResult?.data
-      : queryResult?.data?.data,
+    data: queryResult?.data?.data,
+    infiniteData: queryResult?.data?.data,
     error: queryResult.error,
     meta: queryResult?.data?.meta,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
