@@ -159,8 +159,10 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     return None
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 # It involves decomposing this logic
+                #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"
                 elif (
-                    "is currently Deleted within the following Microsoft Entra tenant" in str(e)
+                    e.json
+                    and e.json.get("typeKey") == "AadUserStateException"
                     and self.integration_name == IntegrationProviderSlug.AZURE_DEVOPS.value
                 ):
                     lifecycle.record_halt(e)
