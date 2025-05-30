@@ -557,36 +557,36 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
 class ReleaseHealthIntegrationTestCase(TestCase, BaseMetricsTestCase):
 
     def mock_release_project_environments(self):
-        project1 = self.create_project()
-        project2 = self.create_project()
+        self.project1 = self.create_project()
+        self.project2 = self.create_project()
 
-        project1.update(flags=F("flags").bitor(Project.flags.has_releases))
-        project2.update(flags=F("flags").bitor(Project.flags.has_releases))
+        self.project1.update(flags=F("flags").bitor(Project.flags.has_releases))
+        self.project2.update(flags=F("flags").bitor(Project.flags.has_releases))
 
-        release1 = self.create_release(project=project1, version="foo@1.0.0")
-        release2 = self.create_release(project=project1, version="foo@2.0.0")
-        environment1 = self.create_environment(name="prod", project=project1)
-        environment2 = self.create_environment(name="canary", project=project2)
+        self.release1 = self.create_release(project=self.project1, version="foo@1.0.0")
+        self.release2 = self.create_release(project=self.project1, version="foo@2.0.0")
+        self.environment1 = self.create_environment(name="prod", project=self.project1)
+        self.environment2 = self.create_environment(name="canary", project=self.project2)
 
         self.rpe1 = ReleaseProjectEnvironment.objects.create(
-            project_id=project1.id,
-            release_id=release1.id,
-            environment_id=environment1.id,
+            project_id=self.project1.id,
+            release_id=self.release1.id,
+            environment_id=self.environment1.id,
         )
         self.rpe2 = ReleaseProjectEnvironment.objects.create(
-            project_id=project2.id,
-            release_id=release1.id,
-            environment_id=environment1.id,
+            project_id=self.project2.id,
+            release_id=self.release1.id,
+            environment_id=self.environment1.id,
         )
         self.rpe3 = ReleaseProjectEnvironment.objects.create(
-            project_id=project1.id,
-            release_id=release2.id,
-            environment_id=environment1.id,
+            project_id=self.project1.id,
+            release_id=self.release2.id,
+            environment_id=self.environment1.id,
         )
         self.rpe4 = ReleaseProjectEnvironment.objects.create(
-            project_id=project1.id,
-            release_id=release1.id,
-            environment_id=environment2.id,
+            project_id=self.project1.id,
+            release_id=self.release1.id,
+            environment_id=self.environment2.id,
         )
 
     def test_query_adopted_release_project_environments(self):
@@ -618,19 +618,41 @@ class ReleaseHealthIntegrationTestCase(TestCase, BaseMetricsTestCase):
     def test_adopt_release_project_environments(self):
         self.mock_release_project_environments()
 
+        adopted_time = timezone.now()
+
+        rpe5 = ReleaseProjectEnvironment.objects.create(
+            project_id=self.project2.id,
+            release_id=self.release1.id,
+            environment_id=self.environment2.id,
+            unadopted=timezone.now(),
+        )
+
+        rpe6 = ReleaseProjectEnvironment.objects.create(
+            project_id=self.project2.id,
+            release_id=self.release2.id,
+            environment_id=self.environment2.id,
+            adopted=adopted_time,
+        )
+
         # Assert none of the releases have been adopted yet.
         assert self.rpe1.adopted is None
         assert self.rpe2.adopted is None
         assert self.rpe3.adopted is None
         assert self.rpe4.adopted is None
+        assert rpe5.unadopted is not None
+        assert rpe6.adopted == adopted_time
 
-        adopt_release_project_environments([self.rpe1, self.rpe2])
+        adopt_release_project_environments([self.rpe1, self.rpe2, rpe5, rpe6])
 
         # Only the releases found in the list are updated. The remainder are unchanged.
         assert self.rpe1.adopted is not None
         assert self.rpe2.adopted is not None  # type: ignore[unreachable]
         assert self.rpe3.adopted is None
         assert self.rpe4.adopted is None
+        assert rpe5.adopted is not None
+        assert rpe5.unadopted is None
+        assert rpe6.adopted == adopted_time
+        assert rpe6.unadopted is None
 
 
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
