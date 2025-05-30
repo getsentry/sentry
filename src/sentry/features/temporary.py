@@ -502,6 +502,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable live refresh in the logs UI.
     manager.add("organizations:ourlogs-live-refresh", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable infinite scroll in the logs UI.
+    manager.add("organizations:ourlogs-infinite-scroll", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable per-project selection for Jira integration
     manager.add("organizations:jira-per-project-statuses", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable using paginated projects endpoint for Jira integration
