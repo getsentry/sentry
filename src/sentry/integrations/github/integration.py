@@ -958,6 +958,7 @@ class GithubOrganizationSelection(PipelineView):
                 props={
                     "installation_info": installation_info,
                     "has_scm_multi_org": has_scm_multi_org,
+                    "organization_slug": self.active_user_organization.organization.slug,
                 },
             )
 
