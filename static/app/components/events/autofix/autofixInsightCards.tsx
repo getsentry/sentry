@@ -567,7 +567,7 @@ function AutofixInsightCards({
   );
 }
 
-function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const orgSlug = useOrganization().slug;
