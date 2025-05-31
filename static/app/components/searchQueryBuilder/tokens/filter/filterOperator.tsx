@@ -105,10 +105,10 @@ function FilterKeyOperatorLabel({
 
   return (
     <KeyOpLabelWrapper>
-      <Tooltip title={fieldDefinition?.desc} skipWrapper>
+      <Tooltip title={fieldDefinition?.desc}>
         <span>{keyLabel}</span>
+        {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
       </Tooltip>
-      {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
     </KeyOpLabelWrapper>
   );
 }
