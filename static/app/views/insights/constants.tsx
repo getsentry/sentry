@@ -117,7 +117,7 @@ const SPAN_FILTERS: FilterKeySection = {
     SpanIndexedField.SPAN_STATUS,
     SpanIndexedField.SPAN_ACTION,
     SpanIndexedField.SPAN_DOMAIN,
-    SpanIndexedField.SPAN_MODULE,
+    SpanIndexedField.SPAN_CATEGORY,
   ],
 };
 
