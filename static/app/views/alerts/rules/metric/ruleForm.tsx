@@ -1016,15 +1016,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
-  TimeWindowsAreConsistent() {
-    const {currentData, historicalData, timeWindow} = this.state;
-    const currentDataPoint1 = currentData[1];
-    const currentDataPoint0 = currentData[0];
+  timeWindowsAreConsistent() {
+    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const [currentDataPoint0, currentDataPoint1] = currentData;
     if (!currentDataPoint0 || !currentDataPoint1) {
       return false;
     }
-    const historicalDataPoint1 = historicalData[1];
-    const historicalDataPoint0 = historicalData[0];
+    const [historicalDataPoint0, historicalDataPoint1] = historicalData;
     if (!historicalDataPoint0 || !historicalDataPoint1) {
       return false;
     }
@@ -1040,7 +1038,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
       currentData.length === 0 ||
-      historicalData.length === 0
+      historicalData.length === 0 ||
+      !this.timeWindowsAreConsistent()
     ) {
       return;
     }
@@ -1082,10 +1081,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      // don't set the anomalies if historical and current data have incorrect time windows
-      if (!this.TimeWindowsAreConsistent()) {
-        this.setState({anomalies});
-      }
+      this.setState({anomalies});
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
