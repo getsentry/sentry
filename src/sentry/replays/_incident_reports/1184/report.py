@@ -1,3 +1,6 @@
+# flake8: noqa
+# pylint: skip-file
+# type: ignore
 """
 Analysis of INC-1184.  Production backlog of four partitions (two consumers) of the
 ingest-replay-recordings Kafka consumer.
