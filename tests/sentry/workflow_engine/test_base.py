@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -12,7 +14,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import EventType
+from sentry.testutils.factories import EventType, Factories
 from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.models import (
     Action,
@@ -25,7 +27,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 try:
@@ -69,6 +71,33 @@ class MockActionHandler(ActionHandler):
         "required": ["baz"],
         "additionalProperties": False,
     }
+
+
+class DataConditionHandlerMixin:
+    patches: list = []
+
+    def setup_condition_mocks(self, evaluate_value: Callable, module_path: str):
+        class MockDataConditionHandler(DataConditionHandler[int]):
+            @staticmethod
+            def evaluate_value(value: Any, comparison: Any) -> Any:
+                return evaluate_value(value, comparison)
+
+        new_patch = mock.patch(
+            f"{module_path}.condition_handler_registry.get", return_value=MockDataConditionHandler()
+        )
+        self.patches.append(new_patch)
+        new_patch.start()
+
+        return Factories.create_data_condition(
+            type=Condition.LEVEL,  # this will be overridden by the mock, but it cannot be a operator
+            comparison=1.0,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+    def teardown_condition_mocks(self):
+        for patch in self.patches:
+            patch.stop()
+        self.patches = []
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):

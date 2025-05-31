@@ -2158,9 +2158,12 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_data_condition_group(
+        organization: Organization | None = None,
         **kwargs,
     ) -> DataConditionGroup:
-        return DataConditionGroup.objects.create(**kwargs)
+        if organization is None:
+            organization = Factories.create_organization()
+        return DataConditionGroup.objects.create(organization=organization, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2181,8 +2184,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_data_condition(**kwargs) -> DataCondition:
-        return DataCondition.objects.create(**kwargs)
+    def create_data_condition(
+        condition_group: DataConditionGroup | None = None, **kwargs
+    ) -> DataCondition:
+        if condition_group is None:
+            condition_group = Factories.create_data_condition_group()
+        return DataCondition.objects.create(condition_group=condition_group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
