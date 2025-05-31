@@ -708,34 +708,6 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_flags(self):
-        ret_flags = parse_search_query("flags[feature.one]:true")
-        assert ret_flags == [
-            SearchFilter(
-                key=SearchKey(name="flags[feature.one]"),
-                operator="=",
-                value=SearchValue(raw_value="true"),
-            )
-        ]
-
-        ret_flags_numeric = parse_search_query("flags[feature.two,number]:123")
-        assert ret_flags_numeric == [
-            SearchFilter(
-                key=SearchKey(name="flags[feature.two,number]"),
-                operator="=",
-                value=SearchValue(raw_value="123"),
-            )
-        ]
-
-        ret_flags_string = parse_search_query("flags[feature.three,string]:prod")
-        assert ret_flags_string == [
-            SearchFilter(
-                key=SearchKey(name="flags[feature.three,string]"),
-                operator="=",
-                value=SearchValue(raw_value="prod"),
-            )
-        ]
-
     def test_has_tag(self):
         # unquoted key
         assert parse_search_query("has:release") == [
@@ -1055,3 +1027,50 @@ def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
 def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
     with pytest.raises(InvalidSearchQuery):
         assert translate_wildcard_as_clickhouse_pattern(pattern)
+
+
+def test_flag_search():
+    # Assert flag parsing works.
+    response = parse_search_query("flags[a]:true")
+    assert len(response) == 1
+    assert response[0].key.name == "flags[a]"
+    assert response[0].operator == "="
+    assert response[0].value.raw_value == "true"
+
+    # Assert we accept special characters.
+    response = parse_search_query("flags[a_b.c-9:d]:true")
+    assert len(response) == 1
+    assert response[0].key.name == "flags[a_b.c-9:d]"
+    assert response[0].operator == "="
+    assert response[0].value.raw_value == "true"
+
+    # Assert string column types are supported.
+    response = parse_search_query("flags[a:b,string]:true")
+    assert len(response) == 1
+    assert response[0].key.name == "flags[a:b,string]"
+    assert response[0].operator == "="
+    assert response[0].value.raw_value == "true"
+
+    # Assert number column types are supported.
+    response = parse_search_query("flags[a:b,number]:0")
+    assert len(response) == 1
+    assert response[0].key.name == "flags[a:b,number]"
+    assert response[0].operator == "="
+    assert response[0].value.raw_value == "0"
+
+    # Assert unhandled characters route to message.
+    response = parse_search_query("flags[a/b]:true")
+    assert len(response) == 1
+    assert response[0].key.name == "message"
+
+    # Assert quoted keys are routed to message.
+    response = parse_search_query('flags["a:b"]:true')
+    assert len(response) == 1
+    assert response[0].key.name == "message"
+
+    # Assert has properly parsed flags[a:b]
+    response = parse_search_query("has:flags[a:b]")
+    assert len(response) == 1
+    assert response[0].key.name == "flags[a:b]"
+    assert response[0].operator == "!="
+    assert response[0].value.raw_value == ""
