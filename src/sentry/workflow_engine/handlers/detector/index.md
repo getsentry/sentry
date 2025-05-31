@@ -10,6 +10,10 @@ Examples:
 
 ### Required Methods
 
+#### `evaluate`
+
+-- TODO -- This will eventually be a base implementation for evaluating a data packet against a detector's conditions.
+
 #### `create_occurrence`
 
 Creates an issue occurrence when the detector reaches a specified threshold.
@@ -123,3 +127,11 @@ class ExampleDetectorHandler(StatefulDetectorHandler):
 ```
 
 In the above example, the resulting fingerprints would be: `[uptime-1, detector:1]`, where `uptime-1` is defined in `build_issue_fingerprint` and `detector:1` is the default detector fingerprint.
+
+### Implemented Methods
+
+#### `evaluate`
+
+The StatefulDetectorHandler provides a default implementation of the `evaluate` method, which will extract the value from the data packet (`extract_value`), evaluate it against the detectors conditions, and create issue occurrences based on the evaluation results (`create_occurrence`).
+
+This method is not intended to be overridden.
