@@ -133,7 +133,7 @@ tsconfig.*                                               @getsentry/owners-js-bu
 webpack.config.*                                         @getsentry/owners-js-build
 .volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
-yarn.lock                                                @getsentry/owners-js-deps
+pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
 /static/app/icons/                                       @getsentry/design
