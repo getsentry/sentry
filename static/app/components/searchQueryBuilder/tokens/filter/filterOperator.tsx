@@ -5,6 +5,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -85,22 +86,29 @@ function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
 }
 
 function FilterKeyOperatorLabel({
+  keyValue,
   keyLabel,
   opLabel,
   includeKeyLabel,
 }: {
+  keyLabel: string;
+  keyValue: string;
   includeKeyLabel?: boolean;
-  keyLabel?: string;
   opLabel?: string;
 }) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
+  const fieldDefinition = getFieldDefinition(keyValue);
+
   if (!includeKeyLabel) {
     return <OpLabel>{opLabel}</OpLabel>;
   }
 
   return (
     <KeyOpLabelWrapper>
-      <span>{keyLabel}</span>
-      {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
+      <Tooltip title={fieldDefinition?.desc}>
+        <span>{keyLabel}</span>
+        {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
+      </Tooltip>
     </KeyOpLabelWrapper>
   );
 }
@@ -138,6 +146,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       operator,
       label: (
         <FilterKeyOperatorLabel
+          keyValue={token.key.value}
           keyLabel={token.key.text}
           opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
           includeKeyLabel
@@ -146,7 +155,13 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       options: [
         {
           value: TermOperator.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel={token.key.text} includeKeyLabel />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel={token.key.text}
+              keyValue={token.key.value}
+              includeKeyLabel
+            />
+          ),
           textValue: 'is',
         },
         {
@@ -154,6 +169,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
           label: (
             <FilterKeyOperatorLabel
               keyLabel={token.key.text}
+              keyValue={token.key.value}
               opLabel="not"
               includeKeyLabel
             />
@@ -170,18 +186,31 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       label: (
         <FilterKeyOperatorLabel
           keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
+          keyValue={token.key.value}
           includeKeyLabel
         />
       ),
       options: [
         {
           value: TermOperator.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel="has" includeKeyLabel />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel="has"
+              keyValue={token.key.value}
+              includeKeyLabel
+            />
+          ),
           textValue: 'has',
         },
         {
           value: TermOperator.NOT_EQUAL,
-          label: <FilterKeyOperatorLabel keyLabel="does not have" includeKeyLabel />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel="does not have"
+              keyValue={token.key.value}
+              includeKeyLabel
+            />
+          ),
           textValue: 'does not have',
         },
       ],
