@@ -5,9 +5,9 @@ import type {Location} from 'history';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import type {SpanProfileDetailsProps} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {
   SpanProfileDetails,
-  SpanProfileDetailsProps,
   useSpanProfileDetails,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
