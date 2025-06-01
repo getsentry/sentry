@@ -54,6 +54,7 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
+import {useDrawerFlags} from 'sentry/views/releases/utils/useDrawerFlags';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -269,14 +270,25 @@ export function EventGraph({
       staleTime: 0,
     }
   );
-  const {data: flags} = useIntersectionFlags({
-    event,
+  const {flags, isPending, error, pageLinks} = useDrawerFlags({
+    eventId: event.id,
+    groupId: group.id,
     query: {
       start: eventView.start,
       end: eventView.end,
-      period: eventView.statsPeriod,
+      statsPeriod: eventView.statsPeriod,
     },
+    enabled: Boolean(event?.id && group.id),
   });
+  // const {data: flags} = useIntersectionFlags({
+  //   event,
+  //   query: {
+  //     start: eventView.start,
+  //     end: eventView.end,
+  //     statsPeriod: eventView.statsPeriod,
+  //   },
+  // });
+  console.log({flags});
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {

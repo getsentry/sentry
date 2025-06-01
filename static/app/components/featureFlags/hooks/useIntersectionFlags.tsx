@@ -8,10 +8,14 @@ interface Params {
   enabled?: boolean;
 }
 export function useIntersectionFlags({event, query, enabled}: Params) {
+  console.log('useIntersectionFlags', event, query);
   const organization = useOrganization();
   const {data: rawFlagData, ...flagQuery} = useOrganizationFlagLog({
     organization,
-    query,
+    query: {
+      ...query,
+      statsPeriod: query.period,
+    },
     enabled: enabled && Boolean(event),
   });
   if (!rawFlagData?.data?.length || flagQuery.isError || flagQuery.isPending) {
@@ -20,6 +24,7 @@ export function useIntersectionFlags({event, query, enabled}: Params) {
       ...flagQuery,
     };
   }
+  console.log('rawFlagData', rawFlagData);
 
   const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
   const intersectionFlags = rawFlagData.data.filter(f =>
