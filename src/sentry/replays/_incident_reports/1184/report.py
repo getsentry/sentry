@@ -1,6 +1,3 @@
-# flake8: noqa
-# pylint: skip-file
-# type: ignore
 """
 Analysis of INC-1184.  Production backlog of four partitions (two consumers) of the
 ingest-replay-recordings Kafka consumer.
@@ -212,7 +209,8 @@ def test3_over_production_hogs_cpu_time_leading_to_starvation():
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 3 duration", end - start)  # 55 ± 10 milliseconds.
+    print("Test 3 duration", end - start)  # noqa
+    # 55 ± 10 milliseconds.
 
 
 def test4_high_production_to_queue_does_not_starve():
@@ -256,7 +254,8 @@ def test4_high_production_to_queue_does_not_starve():
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 4 duration", end - start)  # 13.5 ± 1 milliseconds.
+    print("Test 4 duration", end - start)  # noqa
+    # 13.5 ± 1 milliseconds.
 
 
 def test5_modulated_message_rejected_intensity_from_production_patterns():
@@ -308,7 +307,8 @@ def test5_modulated_message_rejected_intensity_from_production_patterns():
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 5a duration", end - start)  # 130 ± 5 milliseconds.
+    print("Test 5a duration", end - start)  # noqa
+    # 130 ± 5 milliseconds.
 
     #
     # SPIKEY PRODUCTION PATTERN
@@ -333,7 +333,8 @@ def test5_modulated_message_rejected_intensity_from_production_patterns():
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 5b duration", end - start)  # 740 ± 40 milliseconds.
+    print("Test 5b duration", end - start)  # noqa
+    # 740 ± 40 milliseconds.
 
 
 def test6_production_patterns_with_unbalanced_threads():
@@ -380,7 +381,8 @@ def test6_production_patterns_with_unbalanced_threads():
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 6a duration", end - start)  # 1300 ± 10 milliseconds.
+    print("Test 6a duration", end - start)  # noqa
+    # 1300 ± 10 milliseconds.
 
     #
     # BALANCED WORKER POOL
@@ -412,7 +414,8 @@ def test6_production_patterns_with_unbalanced_threads():
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 6b duration", end - start)  # 1000 ± 50 milliseconds.
+    print("Test 6b duration", end - start)  # noqa
+    # 1000 ± 50 milliseconds.
 
 
 def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_depth():
@@ -464,7 +467,8 @@ def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_dept
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 7a duration", end - start)  # 135 ± 1 milliseconds.
+    print("Test 7a duration", end - start)  # noqa
+    # 135 ± 1 milliseconds.
 
     #
     # BALANCED WORKER POOL
@@ -496,7 +500,8 @@ def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_dept
             time.sleep(0.001)
 
     end = time.time()
-    print("Test 7b duration", end - start)  # 133 ± 1 milliseconds.
+    print("Test 7b duration", end - start)  # noqa
+    # 133 ± 1 milliseconds.
 
 
 def test8_introducing_backoff_reduces_starvation():
@@ -549,7 +554,8 @@ def test8_introducing_backoff_reduces_starvation():
             time.sleep(0.001)
 
     end1 = time.time()
-    print("Test 8 duration", end1 - start1)  # 13.5 ± 1 milliseconds.
+    print("Test 8 duration", end1 - start1)  # noqa
+    # 13.5 ± 1 milliseconds.
 
 
 if __name__ == "__main__":
