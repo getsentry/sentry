@@ -7,8 +7,8 @@ import type {Organization} from 'sentry/types/organization';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
-export default function useDevToolbar(organization: null | Organization) {
-  const showDevToolbar = organization?.features.includes('devtoolbar');
+export default function useInitSentryToolbar(organization: null | Organization) {
+  const showDevToolbar = Boolean(organization?.features.includes('devtoolbar'));
   const isEmployee = useIsSentryEmployee();
   const config = useLegacyStore(ConfigStore);
 

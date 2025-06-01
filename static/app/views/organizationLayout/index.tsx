@@ -15,7 +15,7 @@ import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useDevToolbar from 'sentry/utils/useDevToolbar';
+import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import Nav from 'sentry/views/nav';
@@ -48,7 +48,7 @@ function OrganizationLayout({children}: Props) {
     prefers_stacked_navigation: prefersStackedNav,
   });
 
-  useDevToolbar(organization);
+  useInitSentryToolbar(organization);
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
