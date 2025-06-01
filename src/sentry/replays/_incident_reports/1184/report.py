@@ -11,8 +11,8 @@ import time
 from threading import Semaphore
 
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
-from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.types import Message, Value
+from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
+from arroyo.types import FilteredPayload, Message, Value
 
 
 class Producer:
@@ -28,15 +28,20 @@ class Producer:
         self.step.poll()
 
 
-class Consumer:
+class Consumer(ProcessingStrategy[FilteredPayload | None]):
     def __init__(self):
         self.consumed_count = 0
 
     def submit(self, message):
         self.consumed_count += 1
 
-    def poll(self):
-        pass
+    def poll(self): ...
+
+    def close(self): ...
+
+    def join(self, timeout=None): ...
+
+    def terminate(self): ...
 
 
 class SharedResource:
