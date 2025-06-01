@@ -5,6 +5,12 @@ ingest-replay-recordings Kafka consumer.
 These cases are partially taken from a real production incident with commentary from participants
 included to provide background for each test case. At the end of this file a conclusion is reached.
 The full post-mortem is documented in Notion.
+
+Background:
+The number of workers in our 'upload to GCS step' was increased from 8 to 16. Leading to a steady
+backlog on four partitions. The number of workers was increased to 32 in an attempt to remedy the
+situation but it made the situation slightly worse. Resetting the worker count back to 8 quickly
+burned the backlog and we were back to normal.
 """
 
 import time
