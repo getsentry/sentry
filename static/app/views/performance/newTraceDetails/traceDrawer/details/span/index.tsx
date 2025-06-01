@@ -13,6 +13,7 @@ import {
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -452,7 +453,14 @@ function EAPSpanNodeDetails({
                     <AIOutputSection node={node} attributes={attributes} />
                     <FoldSection
                       sectionKey={SectionKey.SPAN_ATTRIBUTES}
-                      title={t('Attributes')}
+                      title={
+                        <SectionTitleWithQuestionTooltip
+                          title={t('Attributes')}
+                          tooltipText={t(
+                            'These attributes are indexed and can be queries in the Trace Explorer.'
+                          )}
+                        />
+                      }
                       disableCollapsePersistence
                     >
                       <AttributesTree
@@ -469,7 +477,14 @@ function EAPSpanNodeDetails({
                     {isTransaction ? (
                       <FoldSection
                         sectionKey={SectionKey.CONTEXTS}
-                        title={t('Contexts')}
+                        title={
+                          <SectionTitleWithQuestionTooltip
+                            title={t('Contexts')}
+                            tooltipText={t(
+                              "This data is not indexed and can't be queries in the Trace Explorer. For querying, attach these as attributes to your spans."
+                            )}
+                          />
+                        }
                         disableCollapsePersistence
                       >
                         <Request event={eventTransaction} />
@@ -536,3 +551,24 @@ function EAPSpanNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+function SectionTitleWithQuestionTooltip({
+  title,
+  tooltipText,
+}: {
+  title: string;
+  tooltipText: string;
+}) {
+  return (
+    <Flex>
+      <div>{title}</div>
+      <QuestionTooltip title={tooltipText} size="sm" />
+    </Flex>
+  );
+}
+
+const Flex = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
