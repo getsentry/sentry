@@ -234,7 +234,8 @@ def run_top_events_timeseries_query(
         referrer,
         config,
         sampling_mode,
-        table_search_resolver,
+        equations=[],
+        search_resolver=table_search_resolver,
     )
     if len(top_events["data"]) == 0:
         return {}

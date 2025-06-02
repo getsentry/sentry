@@ -35,6 +35,7 @@ from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULA
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.utils import json, snuba_rpc
 from sentry.utils.sdk import set_span_data
@@ -313,6 +314,8 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
     orderby_aliases = {
         resolved_column.public_alias: resolved_column for resolved_column in columns + equations
     }
+    for alias_column in columns:
+        orderby_aliases[get_function_alias(alias_column.public_alias)] = alias_column
     # Orderby is only applicable to TraceItemTableRequest
     resolved_orderby = []
     orderby_columns = query.orderby if query.orderby is not None else []
