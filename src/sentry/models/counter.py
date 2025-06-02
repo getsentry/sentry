@@ -1,7 +1,9 @@
+import sentry_sdk
 from django.conf import settings
 from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -11,9 +13,29 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.locks import locks
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import ingest_errors_tasks
+from sentry.utils import metrics
+from sentry.utils.redis import redis_clusters
+
+CACHED_ID_BLOCK_SIZE = 1000
+"""
+The number of short ids to pre-allocate in Redis.
+"""
+
+
+LOW_WATER_RATIO = 0.2
+"""
+If the number of short ids in Redis is less than this ratio, we will refill the block.
+
+So if block size is 1000 and low water ratio is 0.2,
+we will refill the block when there are less than 200 short ids in Redis
+"""
 
 
 @region_silo_model
@@ -30,12 +52,41 @@ class Counter(Model):
         db_table = "sentry_projectcounter"
 
     @classmethod
-    def increment(cls, project, delta=1):
+    def increment(cls, project, delta=1) -> int:
         """Increments a counter.  This can never decrement."""
-        return increment_project_counter(project, delta)
+        if features.has("projects:short-id-pre-allocation-counter", project) and delta == 1:
+            # only use the cache path if delta is 1, as in other cases we're trying to resolve
+            # a stuck counter
+            return increment_project_counter_in_cache(project)
+        else:
+            return increment_project_counter_in_database(project, delta)
 
 
-def increment_project_counter(project, delta=1, using="default"):
+@sentry_sdk.tracing.trace
+@metrics.wraps("counter.increment_project_counter_in_cache")
+def increment_project_counter_in_cache(project, using="default") -> int:
+    redis_key = make_short_id_counter_key(project.id)
+    redis = redis_clusters.get("default")
+    short_id = redis.lpop(redis_key)
+
+    if short_id is None:  # fallback if not populated in Redis
+        metrics.incr("counter.increment_project_counter_in_cache.fallback")
+        next_id = increment_project_counter_in_database(project, using=using)
+        refill_cached_short_ids.delay(project.id, using=using)
+        return next_id
+    else:
+        metrics.incr("counter.increment_project_counter_in_cache.found_in_redis")
+        remaining = redis.llen(redis_key)
+        if remaining < CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
+            metrics.incr("counter.increment_project_counter_in_cache.refill")
+            refill_cached_short_ids.delay(project.id, using=using)
+
+        return int(short_id)
+
+
+@sentry_sdk.tracing.trace
+@metrics.wraps("counter.increment_project_counter_in_database")
+def increment_project_counter_in_database(project, delta=1, using="default") -> int:
     """This method primarily exists so that south code can use it."""
     if delta <= 0:
         raise ValueError("There is only one way, and that's up.")
@@ -86,7 +137,7 @@ def increment_project_counter(project, delta=1, using="default"):
 
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
-def create_counter_function(app_config, using, **kwargs):
+def create_counter_function(app_config, using, **kwargs) -> None:
     if app_config and app_config.name != "sentry":
         return
 
@@ -126,3 +177,52 @@ def create_counter_function(app_config, using, **kwargs):
 
 
 post_migrate.connect(create_counter_function, dispatch_uid="create_counter_function", weak=False)
+
+
+@instrumented_task(
+    name="sentry.models.counter.refill_cached_short_ids",
+    queue="counters.refill",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_tasks,
+        retry=None,  # No retries since we want to try again on next counter increment
+    ),
+)
+def refill_cached_short_ids(project_id, using="default") -> None:
+    """Refills the Redis short-id counter block for a project."""
+    from sentry.models.project import Project
+
+    redis = redis_clusters.get("default")
+    redis_key = make_short_id_counter_key(project_id)
+
+    lock = locks.get(f"pc:lock:{project_id}", duration=30, name="project_short_id_counter_refill")
+    if lock.locked():
+        # if the lock is already locked, we can return early, as we don't need to refill twice
+        metrics.incr("counter.refill_cached_short_ids.lock_contention")
+        return
+
+    with lock.acquire():
+        # in case the counter was just/already filled, we can return early
+        if redis.llen(redis_key) >= CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
+            metrics.incr("counter.refill_cached_short_ids.early_return")
+            return
+
+        project = Project.objects.get_from_cache(id=project_id)
+
+        # We need the transaction to ensure that the redis push is atomic
+        # with the database counter increment,
+        # otherwise we could have duplicates if the counter is incremented between
+        # the database increment and the redis push.
+        with transaction.atomic(using=using):
+            current_value = increment_project_counter_in_database(
+                project, delta=CACHED_ID_BLOCK_SIZE, using=using
+            )
+            # Append the new block of values to Redis in a single operation
+            start = current_value - CACHED_ID_BLOCK_SIZE + 1
+            redis.rpush(redis_key, *range(start, current_value + 1))
+            redis.expire(redis_key, 60 * 60 * 24 * 365)  # 1 year
+            # TODO: should we delete the keys when a project is deleted instead of / in addition expiring?
+
+
+def make_short_id_counter_key(project_id: int) -> str:
+    return f"pc:{project_id}"
