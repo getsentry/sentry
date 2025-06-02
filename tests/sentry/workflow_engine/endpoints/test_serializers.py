@@ -63,6 +63,7 @@ class TestDetectorSerializer(TestCase):
             type=MetricIssue.slug,
             workflow_condition_group=condition_group,
             owner_user_id=self.user.id,
+            created_by_id=self.user.id,
         )
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
@@ -94,7 +95,7 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
-            "createdBy": None,
+            "createdBy": str(self.user.id),
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -390,6 +391,7 @@ class TestWorkflowSerializer(TestCase):
             config={},
             when_condition_group=when_condition_group,
             environment=self.environment,
+            created_by_id=self.user.id,
         )
 
         condition_group = self.create_data_condition_group(
@@ -430,7 +432,7 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
-            "createdBy": None,
+            "createdBy": str(self.user.id),
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": {
