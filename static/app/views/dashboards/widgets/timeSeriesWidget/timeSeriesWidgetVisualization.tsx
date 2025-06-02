@@ -557,6 +557,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return seriesOfPlottable;
   });
 
+  console.log({seriesFromPlottables});
+
   const seriesIndexToPlottableRangeMap = new RangeMap<Plottable>(
     seriesIndexToPlottableMapRanges
   );
@@ -611,6 +613,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }
     }
   };
+
+  console.log({allSeries});
 
   return (
     <BaseChart
