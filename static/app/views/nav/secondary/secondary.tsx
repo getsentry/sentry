@@ -18,7 +18,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Collapsable} from 'sentry/views/nav/collapsable';
+import {Collapsible} from 'sentry/views/nav/collapsible';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -177,9 +177,9 @@ SecondaryNav.Section = function SecondaryNavSection({
           setIsCollapsed={setIsCollapsedState}
         />
       ) : null}
-      <Collapsable collapsed={isCollapsed} disabled={!canCollapse}>
+      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
         {children}
-      </Collapsable>
+      </Collapsible>
     </Section>
   );
 };
@@ -242,6 +242,14 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
   return <Footer layout={layout}>{children}</Footer>;
 };
+
+function SectionSeparator() {
+  return (
+    <SeparatorWrapper>
+      <Separator />
+    </SeparatorWrapper>
+  );
+}
 
 const Wrapper = styled('div')`
   display: grid;
@@ -342,12 +350,14 @@ const TrailingItems = styled('div')`
   flex-shrink: 0;
 `;
 
-const SectionSeparator = styled('hr')`
-  display: none;
+const SeparatorWrapper = styled('div')`
+  padding: ${space(1.5)} 0;
+`;
 
+const Separator = styled('hr')`
   height: 1px;
   background: ${p => p.theme.innerBorder};
-  margin: ${space(1.5)} ${space(1)};
+  margin: 0 ${space(1)};
   border: none;
 `;
 
