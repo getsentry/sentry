@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import {useFlagsInEventPaginated} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -10,7 +11,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
-import {useDrawerFlags} from 'sentry/views/releases/utils/useDrawerFlags';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
@@ -49,7 +49,7 @@ export function ReleasesDrawerFeatureFlagsTable({
     };
   }, [locationQuery, datetime]);
 
-  const {flags, isPending, error, pageLinks} = useDrawerFlags({
+  const {flags, isPending, error, pageLinks} = useFlagsInEventPaginated({
     eventId,
     groupId,
     query,

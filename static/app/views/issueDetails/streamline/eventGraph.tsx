@@ -20,7 +20,7 @@ import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
-import {useIntersectionFlags} from 'sentry/components/featureFlags/hooks/useIntersectionFlags';
+import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -54,7 +54,6 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
-import {useDrawerFlags} from 'sentry/views/releases/utils/useDrawerFlags';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -270,8 +269,8 @@ export function EventGraph({
       staleTime: 0,
     }
   );
-  const {flags, isPending, error, pageLinks} = useDrawerFlags({
-    eventId: event.id,
+  const {flags} = useFlagsInEvent({
+    eventId: event?.id,
     groupId: group.id,
     query: {
       start: eventView.start,
@@ -280,15 +279,6 @@ export function EventGraph({
     },
     enabled: Boolean(event?.id && group.id),
   });
-  // const {data: flags} = useIntersectionFlags({
-  //   event,
-  //   query: {
-  //     start: eventView.start,
-  //     end: eventView.end,
-  //     statsPeriod: eventView.statsPeriod,
-  //   },
-  // });
-  console.log({flags});
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
