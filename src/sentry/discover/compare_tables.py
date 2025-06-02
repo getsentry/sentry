@@ -144,6 +144,7 @@ def compare_tables_for_dashboard_widget_queries(
             limit=1,
             referrer="dashboards.transactions_spans_comparison",
             transform_alias_to_input_format=True,
+            fallback_to_transactions=True,
         )
 
     except Exception as e:

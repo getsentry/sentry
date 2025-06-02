@@ -115,7 +115,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             fields=["count()", "http.status_code"],
         )
 
-        self.double_write_segment(
+        self.triple_write_segment(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -126,7 +126,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             days_before_now=1,
         )
 
-        self.double_write_segment(
+        self.triple_write_segment(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -137,7 +137,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             days_before_now=2,
         )
 
-        self.double_write_segment(
+        self.triple_write_segment(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -149,7 +149,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             tags={"sentry.http.status_code": "200"},
         )
 
-    def double_write_segment(
+    def triple_write_segment(
         self,
         *,
         project,
@@ -195,6 +195,8 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
 
         if tags := kwargs.get("tags", {}):
             data["tags"] = [[key, val] for key, val in tags.items()]
+
+        self.store_event(data, project_id=self.project.id)
 
         self.store_segment(
             project_id=project.id,
