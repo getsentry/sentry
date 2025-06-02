@@ -1082,7 +1082,8 @@ function NodeActions(props: {
   const params = useParams<{traceSlug?: string}>();
 
   const {data: transaction} = useTransaction({
-    node: isTransactionNode(props.node) ? props.node : null,
+    event_id: props.node.value.event_id,
+    project_slug: props.node.value.project_slug,
     organization,
   });
 
