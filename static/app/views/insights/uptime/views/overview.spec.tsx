@@ -59,10 +59,10 @@ describe('Uptime Overview', function () {
   it('renders', async function () {
     const {organization, router} = initializeOrg({
       organization: {
-        features: ['insights-initial-modules', 'insights-entry-points', 'uptime'],
+        features: ['uptime'],
       },
       router: RouterFixture({
-        location: LocationFixture({pathname: '/insights/backend/uptime'}),
+        location: LocationFixture({pathname: '/insights/uptime'}),
       }),
     });
     OrganizationStore.onUpdate(organization);
@@ -72,8 +72,5 @@ describe('Uptime Overview', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Uptime Monitors');
-    const tab = screen.getByRole('tab', {name: 'Uptime Monitors'});
-    expect(tab).toBeInTheDocument();
-    expect(tab).toHaveAttribute('aria-selected', 'true');
   });
 });

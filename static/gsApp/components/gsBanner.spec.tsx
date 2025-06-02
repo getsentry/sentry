@@ -131,6 +131,15 @@ describe('GSBanner', function () {
     renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your account has been suspended with the following reason:')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Until this situation is resolved you will not be able to send events to Sentry. Please contact support if you have any questions or need assistance.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
   it('renders usage exceeded modal', async function () {
@@ -1190,7 +1199,7 @@ describe('GSBanner', function () {
     expect(screen.getByTestId('modal-continue-button')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'There was an issue with your payment. Update your payment information to ensure uniterrupted access to Sentry.'
+        'There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.'
       )
     ).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('modal-continue-button'));

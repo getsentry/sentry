@@ -2479,6 +2479,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "widgets": [
                 {
                     "title": "EPM table",
+                    "widgetType": "transaction-like",
                     "displayType": "table",
                     "queries": [
                         {

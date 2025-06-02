@@ -175,7 +175,7 @@ describe('CheckoutOverview', function () {
     expect(screen.queryByTestId('on-demand-additional-cost')).not.toBeInTheDocument();
   });
 
-  it('displays Seer Agent AI when enabled', () => {
+  it('displays product when selected', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',
@@ -199,10 +199,10 @@ describe('CheckoutOverview', function () {
     );
 
     expect(screen.getByTestId('seer-reserved')).toBeInTheDocument();
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer AI Agent')).toBeInTheDocument();
   });
 
-  it('does not display Seer Agent AI when not bought', () => {
+  it('does not display product when not selected', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',
@@ -226,6 +226,6 @@ describe('CheckoutOverview', function () {
     );
 
     expect(screen.queryByTestId('seer')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer AI Agent')).not.toBeInTheDocument();
   });
 });
