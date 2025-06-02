@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
-import PlatformIcon from 'sentry/components/replays/platformIcon';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 
 export default function BrowserOSIcons({
   showBrowser = true,
@@ -20,7 +20,7 @@ export default function BrowserOSIcons({
   ) : (
     <Fragment>
       <Tooltip title={`${replayRecord?.os.name ?? ''} ${replayRecord?.os.version ?? ''}`}>
-        <PlatformIcon
+        <ReplayPlatformIcon
           name={replayRecord?.os.name ?? ''}
           version={replayRecord?.os.version ?? undefined}
           showVersion
@@ -32,7 +32,7 @@ export default function BrowserOSIcons({
             replayRecord?.browser.version ?? ''
           }`}
         >
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={replayRecord?.browser.name ?? ''}
             version={replayRecord?.browser.version ?? undefined}
             showVersion

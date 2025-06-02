@@ -142,7 +142,9 @@ function SpanSections({
 
 function LogDetails() {
   const logsQueryResult = useLogsPageDataQueryResult();
-  const hasInfiniteFeature = useOrganization().features.includes('ourlogs-live-refresh');
+  const hasInfiniteFeature = useOrganization().features.includes(
+    'ourlogs-infinite-scroll'
+  );
   const scrollContainer = useRef<HTMLDivElement>(null);
   if (!logsQueryResult?.data?.length) {
     return null;
