@@ -99,7 +99,7 @@ export function MonitorsDropdown() {
       trigger={(props, isOpen) => (
         <DropdownButton size="sm" isOpen={isOpen} {...props}>
           {tn(
-            '%s Monitors',
+            '%s Monitor',
             '%s Monitors',
             cronsData.counts.total + uptimeData.counts.total
           )}
