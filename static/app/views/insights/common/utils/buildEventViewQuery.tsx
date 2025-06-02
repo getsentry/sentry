@@ -3,20 +3,15 @@ import type {Location} from 'history';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 
-const {NORMALIZED_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
+const {NORMALIZED_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_CATEGORY} =
   SpanMetricsField;
 
-const SPAN_FILTER_KEYS = [
-  SPAN_OP,
-  SPAN_DOMAIN,
-  SPAN_ACTION,
-  `!${SPAN_MODULE}`,
-  '!span.category',
-];
+const SPAN_FILTER_KEYS = [SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, `!${SPAN_CATEGORY}`];
 
 export function buildEventViewQuery({
   moduleName,
@@ -56,7 +51,10 @@ export function buildEventViewQuery({
     });
 
   result.push(`has:${NORMALIZED_DESCRIPTION}`);
-  result.push(`${SPAN_MODULE}:${moduleName}`);
+  result.push(`${SPAN_CATEGORY}:${moduleName}`);
+  if (moduleName === ModuleName.DB) {
+    result.push(`!${SPAN_OP}:[${EXCLUDED_DB_OPS.join(',')}]`);
+  }
 
   if (defined(spanCategory)) {
     if (spanCategory === NULL_SPAN_CATEGORY) {

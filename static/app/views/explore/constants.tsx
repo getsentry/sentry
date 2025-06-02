@@ -20,7 +20,6 @@ export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.SPAN_DESCRIPTION,
   SpanIndexedField.SPAN_DOMAIN,
   SpanIndexedField.SPAN_GROUP,
-  SpanIndexedField.SPAN_MODULE,
   SpanIndexedField.SPAN_OP,
   SpanIndexedField.SPAN_STATUS,
   SpanIndexedField.TIMESTAMP,
