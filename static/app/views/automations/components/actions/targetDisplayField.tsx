@@ -6,12 +6,12 @@ export function TargetDisplayField({placeholder}: {placeholder?: string}) {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderInputField
-      name={`${actionId}.data.targetDisplay`}
+      name={`${actionId}.config.target_display`}
       placeholder={placeholder ? placeholder : t('channel name or ID')}
-      value={action.data.targetDisplay}
+      value={action.config.target_display}
       onChange={(value: string) => {
         onUpdate({
-          targetDisplay: value,
+          config: {target_display: value},
         });
       }}
     />
