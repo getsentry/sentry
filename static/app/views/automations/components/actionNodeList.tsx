@@ -23,7 +23,7 @@ interface ActionNodeListProps {
   onAddRow: (actionId: string, actionHandler: ActionHandler) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateAction: (id: string, data: Record<string, any>) => void;
+  updateAction: (id: string, params: Record<string, any>) => void;
 }
 
 interface Option {
