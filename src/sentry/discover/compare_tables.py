@@ -29,7 +29,7 @@ class CompareTableResult(Enum):
     NO_FIELDS = "no_fields"
     NO_PROJECT = "no_project"
     PASSED = "passed"
-    SNQL_EAP_FAILED = "snql_eap_failed"
+    EAP_FAILED = "eap_failed"
 
 
 class CompareTableResultDict(TypedDict):
@@ -40,24 +40,53 @@ class CompareTableResultDict(TypedDict):
     mismatches: list[str] | None
 
 
+mismatched_tags_count: dict[str, int] = {}
+
+
 def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
     eap_data_row = eap_result["data"][0] if len(eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
     )
+    metrics_fields = metrics_query_result["meta"]["fields"]
+
     mismatches = []
-    for field, data in metrics_data_row.items():
-        if is_equation(field):
-            continue
-        translated_field, *rest = translate_columns([field])
-        if data is not None and eap_data_row[translated_field] is None:
-            logger.info("Field %s not found in EAP response", field)
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("mismatched_field", field)
-                sentry_sdk.capture_message(
-                    "dashboard_comparison_mismatch_field", level="info", scope=scope
-                )
+    no_metrics_data = len(metrics_data_row) == 0
+
+    # if there's no metrics data we know there are mismatches,
+    # we will check the EAP data for the names of the mismatched fields
+    if no_metrics_data:
+        for field, data in metrics_fields.items():
+            if is_equation(field):
+                continue
             mismatches.append(field)
+            mismatched_tags_count[field] = mismatched_tags_count.get(field, 0) + 1
+        return (len(mismatches) == 0, mismatches)
+
+    try:
+        for field, data in metrics_data_row.items():
+            if is_equation(field):
+                continue
+            translated_field, *rest = translate_columns([field])
+            if data is not None and eap_data_row[translated_field] is None:
+                logger.info("Field %s not found in EAP response", field)
+                mismatches.append(field)
+
+        # add the count of mismatches for each field to the mismatched_tags_count
+        # after just in case and exception is raised
+        for field in mismatches:
+            mismatched_tags_count[field] = mismatched_tags_count.get(field, 0) + 1
+
+    except Exception:
+        # if there is an error trying to access fields in the EAP data,
+        # return all queried fields as mismatches
+        all_fields_mismatch = []
+        for field, data in metrics_fields.items():
+            if is_equation(field):
+                continue
+            all_fields_mismatch.append(field)
+            mismatched_tags_count[field] = mismatched_tags_count.get(field, 0) + 1
+        return (len(all_fields_mismatch) == 0, all_fields_mismatch)
 
     return (len(mismatches) == 0, mismatches)
 
@@ -102,7 +131,7 @@ def compare_tables_for_dashboard_widget_queries(
     )
 
     has_metrics_error = False
-    has_snql_eap_error = False
+    has_eap_error = False
 
     try:
         metrics_query_result = metrics_enhanced_performance.query(
@@ -144,9 +173,17 @@ def compare_tables_for_dashboard_widget_queries(
         )
     except Exception as e:
         logger.info("EAP query failed: %s", e)
-        has_snql_eap_error = True
+        has_eap_error = True
 
-    if has_metrics_error and has_snql_eap_error:
+    if has_metrics_error and has_eap_error:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.BOTH_FAILED)
+            scope.set_tag(
+                "widget_viewer_url",
+                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+            )
+            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
         return {
             "passed": False,
             "reason": CompareTableResult.BOTH_FAILED,
@@ -155,6 +192,14 @@ def compare_tables_for_dashboard_widget_queries(
             "mismatches": None,
         }
     elif has_metrics_error:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.METRICS_FAILED)
+            scope.set_tag(
+                "widget_viewer_url",
+                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+            )
+            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
         return {
             "passed": False,
             "reason": CompareTableResult.METRICS_FAILED,
@@ -162,10 +207,18 @@ def compare_tables_for_dashboard_widget_queries(
             "widget_query": widget_query,
             "mismatches": None,
         }
-    elif has_snql_eap_error:
+    elif has_eap_error:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.EAP_FAILED)
+            scope.set_tag(
+                "widget_viewer_url",
+                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+            )
+            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
         return {
             "passed": False,
-            "reason": CompareTableResult.SNQL_EAP_FAILED,
+            "reason": CompareTableResult.EAP_FAILED,
             "fields": fields,
             "widget_query": widget_query,
             "mismatches": None,
@@ -175,6 +228,11 @@ def compare_tables_for_dashboard_widget_queries(
         if passed:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("passed", True)
+                scope.set_tag("mismatches", mismatches)
+                scope.set_tag(
+                    "widget_viewer_url",
+                    f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                )
                 sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
             return {
                 "passed": True,
@@ -186,6 +244,12 @@ def compare_tables_for_dashboard_widget_queries(
         else:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("passed", False)
+                scope.set_tag("failed_reason", CompareTableResult.FIELD_NOT_FOUND)
+                scope.set_tag("mismatches", mismatches)
+                scope.set_tag(
+                    "widget_viewer_url",
+                    f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                )
                 sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
             return {
                 "passed": False,

@@ -87,6 +87,34 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             fields=["failure_rate()", "count()", "http.status_code"],
         )
 
+        self.non_existent_field_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            title="Test Non Existent Field Widget",
+            order=3,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        self.non_existent_field_widget_query = DashboardWidgetQuery.objects.create(
+            widget=self.non_existent_field_widget,
+            name="Test Non Existent Field Widget Query",
+            order=3,
+            conditions="",
+            aggregates=[],
+            columns=["non_existent_field", "http.status_code"],
+            fields=["non_existent_field", "http.status_code"],
+        )
+
+        self.non_existent_field_widget_query_2 = DashboardWidgetQuery.objects.create(
+            widget=self.non_existent_field_widget,
+            name="Test Non Existent Field Widget Query 2",
+            order=4,
+            conditions="non_existent_field:1",
+            aggregates=["count()"],
+            columns=["count()", "http.status_code"],
+            fields=["count()", "http.status_code"],
+        )
+
         self.double_write_segment(
             project=self.project,
             trace_id=uuid4().hex,
@@ -199,15 +227,15 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["passed"]
         assert comparison_result["mismatches"] == []
 
-    def test_compare_empty_field_tables(self):
+    def test_compare_error_field_tables(self):
         # testing with apdex() field, which is not supported in EAP and throw an error
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.error_field_widget_query
         )
         assert comparison_result["passed"] is False
-        assert comparison_result["reason"] == CompareTableResult.SNQL_EAP_FAILED
+        assert comparison_result["reason"] == CompareTableResult.EAP_FAILED
 
-    def test_compare_empty_field_tables_2(self):
+    def test_compare_empty_field_tables(self):
         # testing with failure_rate() field, which is not supported in EAP
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.empty_field_widget_query
@@ -217,4 +245,26 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert (
             comparison_result["mismatches"] is not None
             and "failure_rate()" in comparison_result["mismatches"]
+        )
+
+    def test_compare_non_existent_field_tables(self):
+        comparison_result = compare_tables_for_dashboard_widget_queries(
+            self.non_existent_field_widget_query
+        )
+        assert comparison_result["passed"] is False
+        assert comparison_result["reason"] == CompareTableResult.FIELD_NOT_FOUND
+        assert (
+            comparison_result["mismatches"] is not None
+            and "non_existent_field" in comparison_result["mismatches"]
+        )
+
+    def test_compare_non_existent_fields_tables_2(self):
+        comparison_result = compare_tables_for_dashboard_widget_queries(
+            self.non_existent_field_widget_query_2
+        )
+        assert comparison_result["passed"] is False
+        assert comparison_result["reason"] == CompareTableResult.FIELD_NOT_FOUND
+        assert (
+            comparison_result["mismatches"] is not None
+            and ["http.status_code", "count()"] == comparison_result["mismatches"]
         )
