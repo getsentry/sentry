@@ -595,7 +595,7 @@ for key in constants.PROJECT_FIELDS:
         filter_column="project.id",
     )
 
-SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, str] = {}
+SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
 
 
 for definition in SPAN_ATTRIBUTE_DEFINITIONS.values():

@@ -126,7 +126,7 @@ LOGS_REPLACEMENT_MAP: dict[str, str] = {
     if definition.replacement
 }
 
-LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, str] = {}
+LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
 
 for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values():
     if not definition.secondary_alias:
