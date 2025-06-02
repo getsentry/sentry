@@ -47,17 +47,6 @@ export function getValidOpsForFilter(
       allOperators as unknown as ExtendedTermOperators[]
     );
 
-    if (
-      isTextFilter &&
-      fieldDefinition?.allowWildcard === false &&
-      !hasWildcardOperators
-    ) {
-      validOps.delete(ExtendedTermOperators.CONTAINS);
-      validOps.delete(ExtendedTermOperators.DOES_NOT_CONTAIN);
-      validOps.delete(ExtendedTermOperators.STARTS_WITH);
-      validOps.delete(ExtendedTermOperators.ENDS_WITH);
-    }
-
     return [...validOps];
   }
 
