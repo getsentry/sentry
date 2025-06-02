@@ -5,7 +5,7 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
 interface UseEventMarklineSeriesProps {
@@ -67,9 +67,13 @@ export function useCurrentEventMarklineSeries({
         trigger: 'item',
         formatter: () => {
           // Do not use date from xAxis here since we've placed it on the nearest bar
-          const time = getFormattedDate(event.dateCreated, 'MMM D, YYYY LT', {
-            local: !eventView.utc,
-          });
+          const time = getFormattedDate(
+            event.dateCreated,
+            getFormat({timeZone: true, year: true}),
+            {
+              local: !eventView.utc,
+            }
+          );
           return [
             '<div class="tooltip-series">',
             `<div><span class="tooltip-label"><strong>${t('Current Event')}</strong></span></div>`,
