@@ -32,7 +32,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         output_block_size: int | None,
         num_threads: int = 4,  # Defaults to 4 for self-hosted.
         force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
-        max_pending_futures: int = 48,
+        max_pending_futures: int = 512,
     ) -> None:
         # For information on configuring this consumer refer to this page:
         #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
