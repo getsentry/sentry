@@ -1,7 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
-import {Project} from 'sentry/types/project';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
@@ -9,7 +9,7 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 

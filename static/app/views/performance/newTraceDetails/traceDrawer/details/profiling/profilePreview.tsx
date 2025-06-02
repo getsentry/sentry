@@ -11,7 +11,7 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
-import {Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
