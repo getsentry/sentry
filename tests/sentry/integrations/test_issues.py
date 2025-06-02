@@ -428,8 +428,14 @@ class IssueSyncIntegration(TestCase):
         group.substatus = None
         group.save()
         assert group.status == GroupStatus.RESOLVED
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=timezone.now(),
+        )
         open_period = GroupOpenPeriod.objects.get(group=group, project=group.project)
-        open_period.update(date_ended=timezone.now())
+        open_period.close_open_period(resolution_time=timezone.now(), resolution_activity=activity)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="example", external_id="123456")
@@ -598,7 +604,15 @@ class IssueDefaultTest(TestCase):
         self.group.substatus = None
         self.group.save()
 
-        GroupOpenPeriod.objects.get(group_id=self.group.id).update(date_ended=timezone.now())
+        activity = Activity.objects.create(
+            group=self.group,
+            project=self.group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=timezone.now(),
+        )
+        GroupOpenPeriod.objects.get(group_id=self.group.id).close_open_period(
+            resolution_time=timezone.now(), resolution_activity=activity
+        )
 
         integration = self.create_integration(
             organization=self.group.organization, provider="example", external_id="123456"
