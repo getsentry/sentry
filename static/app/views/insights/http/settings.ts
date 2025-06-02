@@ -18,7 +18,7 @@ export const FIELD_ALIASES = {
 };
 
 export const BASE_FILTERS = {
-  'span.op': 'http.client',
+  'span.category': 'http',
 };
 
 export const MODULE_DOC_LINK =
