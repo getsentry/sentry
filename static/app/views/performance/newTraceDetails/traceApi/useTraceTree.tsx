@@ -87,15 +87,16 @@ export function useTraceTree({
       const newTree = TraceTree.FromTrace(trace.data, {
         meta: meta.data,
         replay,
-        preferences: traceState.preferences,
+        preferences: {
+          autogroup: traceState.preferences.autogroup,
+          missing_instrumentation: traceState.preferences.missing_instrumentation,
+        },
       });
 
       setTree(newTree);
       newTree.build();
       return;
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,
@@ -107,6 +108,8 @@ export function useTraceTree({
     meta.data,
     traceSlug,
     traceWaterfallSource,
+    traceState.preferences.missing_instrumentation,
+    traceState.preferences.autogroup,
   ]);
 
   return tree;
