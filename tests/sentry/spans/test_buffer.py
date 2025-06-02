@@ -20,7 +20,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
-    return f"sb:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+    return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
 
 def _payload(span_id: bytes) -> bytes:
