@@ -74,7 +74,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, TestCase):
             raise DataConditionEvaluationException("A known error occurred")
 
         dc = self.setup_condition_mocks(
-            evaluate_value, "sentry.workflow_engine.models.data_condition"
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
         )
 
         with mock.patch("sentry.workflow_engine.models.data_condition.logger.info") as mock_logger:
@@ -91,7 +91,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, TestCase):
             raise Exception("Something went wrong")
 
         dc = self.setup_condition_mocks(
-            evaluate_value, "sentry.workflow_engine.models.data_condition"
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
         )
 
         with pytest.raises(Exception):

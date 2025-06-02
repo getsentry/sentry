@@ -27,7 +27,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    DataConditionHandler,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 try:
@@ -76,17 +81,31 @@ class MockActionHandler(ActionHandler):
 class DataConditionHandlerMixin:
     patches: list = []
 
-    def setup_condition_mocks(self, evaluate_value: Callable, module_path: str):
+    def setup_condition_mocks(
+        self,
+        evaluate_value: Callable[[int, Any], DataConditionResult],
+        module_paths: list[str],
+    ):
+        """
+        Sets up a mock handler for a DataCondition. This method mocks out the registry of the class, and will
+        always return the `MockDataConditionHandler` class.
+
+        :param evaluate_value: The method you want to invoke when `evaluate_value` is called on the mock handler.
+        :param module_paths: A list of the paths to override for the data_condition_handler registry.
+        """
+
         class MockDataConditionHandler(DataConditionHandler[int]):
             @staticmethod
             def evaluate_value(value: Any, comparison: Any) -> Any:
                 return evaluate_value(value, comparison)
 
-        new_patch = mock.patch(
-            f"{module_path}.condition_handler_registry.get", return_value=MockDataConditionHandler()
-        )
-        self.patches.append(new_patch)
-        new_patch.start()
+        for module_path in module_paths:
+            new_patch = mock.patch(
+                f"{module_path}.condition_handler_registry.get",
+                return_value=MockDataConditionHandler(),
+            )
+            self.patches.append(new_patch)
+            new_patch.start()
 
         return Factories.create_data_condition(
             type=Condition.LEVEL,  # this will be overridden by the mock, but it cannot be a operator
@@ -95,6 +114,9 @@ class DataConditionHandlerMixin:
         )
 
     def teardown_condition_mocks(self):
+        """
+        Removes the mocks / patches for the DataConditionHandler.
+        """
         for patch in self.patches:
             patch.stop()
         self.patches = []
