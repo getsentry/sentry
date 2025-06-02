@@ -233,6 +233,9 @@ from sentry.monitors.endpoints.organization_monitor_environment_details import (
     OrganizationMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
+from sentry.monitors.endpoints.organization_monitor_index_count import (
+    OrganizationMonitorIndexCountEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
 )
@@ -373,6 +376,9 @@ from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpo
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
+)
+from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
+    OrganizationUptimeAlertIndexCountEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -1817,6 +1823,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-monitor-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors-count/$",
+        OrganizationMonitorIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-index-count",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors-stats/$",
         OrganizationMonitorIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index-stats",
@@ -2326,6 +2337,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime/$",
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-count/$",
+        OrganizationUptimeAlertIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-index-count",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",

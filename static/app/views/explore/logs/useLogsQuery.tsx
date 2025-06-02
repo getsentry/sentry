@@ -22,6 +22,8 @@ import {
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
+  useLogsIsFrozen,
+  useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsRefreshInterval,
   useLogsSearch,
@@ -95,6 +97,8 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const cursor = useLogsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
+  const isFrozen = useLogsIsFrozen();
+  const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
@@ -112,6 +116,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const params = {
     query: {
       ...eventView.getEventsAPIPayload(location),
+      ...(limitToTraceId ? {traceId: limitToTraceId} : {}),
       cursor,
       per_page: limit ? limit : undefined,
     },
@@ -120,7 +125,10 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     referrer,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/${limitToTraceId && isFrozen ? 'trace-logs' : 'events'}/`,
+    params,
+  ];
 
   return {
     queryKey,
@@ -167,8 +175,8 @@ export function useLogsQuery({
     isLoading: queryResult.isLoading,
     queryResult,
     data: queryResult?.data?.data,
-    error: queryResult.error,
     infiniteData: queryResult?.data?.data,
+    error: queryResult.error,
     meta: queryResult?.data?.meta,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };

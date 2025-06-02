@@ -14,15 +14,17 @@ function ServicesField() {
 
   return (
     <AutomationBuilderSelectField
-      name={`${actionId}.data.targetIdentifier`}
-      value={action.data.targetIdentifier}
+      name={`${actionId}.data.target_identifier`}
+      value={action.data.target_identifier}
       options={services?.map(service => ({
         label: service.name,
         value: service.slug,
       }))}
       onChange={(value: string) => {
         onUpdate({
-          targetIdentifier: value,
+          config: {
+            targetIdentifier: value,
+          },
         });
       }}
     />
