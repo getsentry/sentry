@@ -32,7 +32,7 @@ from sentry.profiles.task import (
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
-from sentry.receivers.onboarding import first_profile_received
+from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
