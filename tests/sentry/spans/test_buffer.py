@@ -123,6 +123,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     span_id="a" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"d" * 16),
@@ -130,6 +131,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"c" * 16),
@@ -137,6 +139,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"b" * 16),
@@ -145,6 +148,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id=None,
                     is_segment_span=True,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
             ]
         )
@@ -188,6 +192,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 _SplitBatch(),
                 Span(
@@ -196,6 +201,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     span_id="b" * 16,
                     parent_span_id="a" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"a" * 16),
@@ -204,6 +210,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     parent_span_id=None,
                     is_segment_span=True,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"c" * 16),
@@ -211,6 +218,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     span_id="c" * 16,
                     parent_span_id="a" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
             ]
         )
@@ -254,6 +262,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     span_id="e" * 16,
                     parent_span_id="d" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"d" * 16),
@@ -261,6 +270,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"b" * 16),
@@ -268,6 +278,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     span_id="b" * 16,
                     parent_span_id="c" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"c" * 16),
@@ -275,6 +286,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     span_id="c" * 16,
                     parent_span_id="a" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"a" * 16),
@@ -283,6 +295,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     parent_span_id=None,
                     is_segment_span=True,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
             ]
         )
@@ -327,6 +340,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     span_id="c" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"d" * 16),
@@ -334,6 +348,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     span_id="d" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"e" * 16),
@@ -341,6 +356,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     span_id="e" * 16,
                     parent_span_id="b" * 16,
                     project_id=1,
+                    end_timestamp_precise=1700000000.0,
                 ),
                 Span(
                     payload=_payload(b"b" * 16),
@@ -349,6 +365,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     parent_span_id=None,
                     is_segment_span=True,
                     project_id=2,
+                    end_timestamp_precise=1700000000.0,
                 ),
             ]
         )
@@ -400,6 +417,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 parent_span_id="d" * 16,
                 project_id=1,
                 is_segment_span=True,
+                end_timestamp_precise=1700000000.0,
             ),
             Span(
                 payload=_payload(b"d" * 16),
@@ -407,6 +425,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 span_id="d" * 16,
                 parent_span_id="b" * 16,
                 project_id=1,
+                end_timestamp_precise=1700000000.0,
             ),
             Span(
                 payload=_payload(b"e" * 16),
@@ -414,6 +433,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 span_id="e" * 16,
                 parent_span_id="b" * 16,
                 project_id=1,
+                end_timestamp_precise=1700000000.0,
             ),
             Span(
                 payload=_payload(b"b" * 16),
@@ -422,6 +442,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 parent_span_id=None,
                 is_segment_span=True,
                 project_id=2,
+                end_timestamp_precise=1700000000.0,
             ),
         ]
     ),
@@ -476,6 +497,7 @@ def test_flush_rebalance(buffer: SpansBuffer):
             parent_span_id=None,
             project_id=1,
             is_segment_span=True,
+            end_timestamp_precise=1700000000.0,
         )
     ]
 
