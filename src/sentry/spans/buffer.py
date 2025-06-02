@@ -33,8 +33,8 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 Now how does that look like in Redis? For each incoming span, we:
 
 1. Try to figure out what the name of the respective span buffer is (`set_key` in `add-buffer.lua`)
-  a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "span-buf:sr:{project_id:trace_id}") to another key.
-  b. Otherwise we use "span-buf:s:{project_id:trace_id}:span_id"
+  a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "sb:sr:{project_id:trace_id}") to another key.
+  b. Otherwise we use "sb:s:{project_id:trace_id}:span_id"
 2. Rename any span buffers keyed under the span's own span ID to `set_key`, merging their contents.
 3. Add the ingested span's payload to the set under `set_key`.
 4. To a "global queue", we write the set's key, sorted by timeout.
@@ -55,10 +55,10 @@ than the original topic.
 
 Glossary for types of keys:
 
-    * span-buf:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
-    * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
-    * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
-    * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:s: set.
+    * sb:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
+    * sb:q:* -- the priority queue, used to determine which segments are ready to be flushed.
+    * sb:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
+    * sb:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right sb:s: set.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
-# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
+# "sb:s:{project_id:trace_id}:span_id", and the type is bytes because our
 # redis client is bytes.
 #
 # The segment ID in the Kafka protocol is only the span ID.
@@ -193,7 +193,7 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
+                    set_key = f"sb:s:{{{project_and_trace}}}:{parent_span_id}"
                     p.zadd(
                         set_key, {span.payload: span.end_timestamp_precise for span in subsegment}
                     )
@@ -287,7 +287,7 @@ class SpansBuffer:
         return self.add_buffer_sha
 
     def _get_queue_key(self, shard: int) -> bytes:
-        return f"span-buf:q:{shard}".encode("ascii")
+        return f"sb:q:{shard}".encode("ascii")
 
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
@@ -467,12 +467,12 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    hrs_key = b"span-buf:hrs:" + segment_key
+                    hrs_key = b"sb:hrs:" + segment_key
                     p.delete(hrs_key)
                     p.unlink(segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    redirect_map_key = b"sb:sr:{%s:%s}" % (project_id, trace_id)
                     p.zrem(flushed_segment.queue_key, segment_key)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
