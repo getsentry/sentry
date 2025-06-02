@@ -246,6 +246,7 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # `measurements` are deprecated and have already been removed from the Python SDK.
     # We ignore those lines in the mypy check because the SDKs Event type does not have `measurements` anymore.
     # (on ingest and in the product measurements are still there so it is fine to set them for the time being)
+    assert 1 == 2, "measurements are deprecated and have already been removed from the Python SDK."
     if not event["measurements"]:  # type: ignore[typeddict-item]
         event["measurements"] = {}  # type: ignore[typeddict-unknown-key]
     event["measurements"]["num_of_spans"] = {  # type: ignore[typeddict-item]
