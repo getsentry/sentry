@@ -141,6 +141,10 @@ function getSelectedValuesFromText(
       const value =
         (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? '';
 
+      // Check if this value is selected by looking at the character after the value in
+      // the text. If there's a comma after the value, it means this value is selected.
+      // We need to check the text content to ensure that we account for any quotes the
+      // user may have added.
       const valueText = item.value?.text ?? '';
       const selected = text.charAt(text.indexOf(valueText) + valueText.length) === ',';
 
