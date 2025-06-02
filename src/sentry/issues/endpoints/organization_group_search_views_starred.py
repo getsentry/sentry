@@ -35,11 +35,6 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         """
         Retrieve a list of starred views for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
         has_global_views = features.has("organizations:global-views", organization)
 
         default_project = None
