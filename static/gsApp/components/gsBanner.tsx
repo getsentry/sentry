@@ -128,7 +128,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
         </ul>
         <p>
           {t(
-            'Until this situation is resolved you will not be able to send events to Sentry.'
+            'Until this situation is resolved you will not be able to send events to Sentry. Please contact support if you have any questions or need assistance.'
           )}
         </p>
       </Body>
@@ -222,7 +222,7 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uniterrupted access to Sentry.`
+            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
           )
         : t(
             `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
@@ -1033,11 +1033,11 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILES,
       categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
     },
-    '/insights/backend/crons/': {
+    '/insights/crons/': {
       product: DataCategory.MONITOR_SEATS,
       categories: [DataCategory.MONITOR_SEATS],
     },
-    '/insights/backend/uptime/': {
+    '/insights/uptime/': {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
     },

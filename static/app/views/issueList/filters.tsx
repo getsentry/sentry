@@ -1,13 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
@@ -22,23 +20,15 @@ interface Props {
 }
 
 function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
-  const organization = useOrganization();
-
-  const hasIssueViews = organization.features.includes('issue-stream-custom-views');
   const prefersStackedNav = usePrefersStackedNav();
 
   return (
     <FiltersContainer prefersStackedNav={prefersStackedNav}>
-      <GuideAnchor
-        target="issue_views_page_filters_persistence"
-        disabled={!hasIssueViews}
-      >
-        <StyledPageFilterBar>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter />
-        </StyledPageFilterBar>
-      </GuideAnchor>
+      <StyledPageFilterBar>
+        <ProjectPageFilter />
+        <EnvironmentPageFilter />
+        <DatePageFilter />
+      </StyledPageFilterBar>
 
       <Search {...{query, onSearch}} />
 

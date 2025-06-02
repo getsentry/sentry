@@ -892,7 +892,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            'has:sentry.normalized_description span.module:db transaction.op:pageload',
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -936,7 +936,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.module:http',
+          query: 'span.category:http',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
