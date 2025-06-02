@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {t, tct} from 'sentry/locale';
 import formatDuration from 'sentry/utils/duration/formatDuration';
-import {DateTime} from 'sentry/components/dateTime';
 
 interface Props {
   startTimestampMs: number;
