@@ -2582,33 +2582,28 @@ export const getFieldDefinition = (
   switch (type) {
     case 'replay':
       if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return REPLAY_FIELD_DEFINITIONS[key];
+        return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
       if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
+        return REPLAY_CLICK_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
+        ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
     case 'feedback':
       if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return FEEDBACK_FIELD_DEFINITIONS[key];
+        return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
     case 'span':
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      if (SPAN_FIELD_DEFINITIONS[key]) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return SPAN_FIELD_DEFINITIONS[key];
+      if (SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS]) {
+        return SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
