@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -7,11 +7,14 @@ import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconAdd} from 'sentry/icons';
+import GlobalModal from 'sentry/components/globalModal';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+// import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 
 type Installation = {
   avatar_url: string;
@@ -24,13 +27,43 @@ type GithubInstallationProps = {
   installation_info: Installation[];
 };
 
-export function GithubInstallationSelect({
+const renderInstallationButton = ({
+  handleSubmit,
+  isSaving,
+  installationID,
+  has_scm_multi_org,
+}: GithubInstallationInstallButtonProps) => {
+  if (installationID === '-1') {
+    return (
+      <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
+        {t('Install')}
+      </StyledButton>
+    );
+  }
+
+  return (
+    <StyledButton
+      onClick={handleSubmit}
+      disabled={isSaving || !installationID || !has_scm_multi_org}
+    >
+      {t('Install')}
+    </StyledButton>
+  );
+};
+
+const InstallButtonHook = HookOrDefault({
+  hookName: 'component:scm-multi-org-install-button',
+  defaultComponent: renderInstallationButton,
+});
+
+function GithubInstallationSelect({
   installation_info,
   has_scm_multi_org,
 }: GithubInstallationProps) {
-  const [installationID, setInstallationID] = useState<SelectKey>(-1);
+  const [installationID, setInstallationID] = useState<SelectKey>('-1');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const shouldAllowMultiOrg = has_scm_multi_org || isSelfHosted;
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -44,7 +77,7 @@ export function GithubInstallationSelect({
     // redirect to the extensions endpoint with the form fields as query params
     // this is needed so we don't restart the pipeline loading from the original
     // OrganizationIntegrationSetupView route
-    const chosen_installation_id = id ?? installationID ?? -1;
+    const chosen_installation_id = id ?? installationID ?? '-1';
     const currentParams = new URLSearchParams(window.location.search);
     const newParams = {
       ...Object.fromEntries(currentParams),
@@ -75,13 +108,23 @@ export function GithubInstallationSelect({
             />
           )}
           <span>{`${installation.github_account}`}</span>
+          {installation.installation_id === '-1' && !shouldAllowMultiOrg ? (
+            ''
+          ) : (
+            <IconLightning size="xs" />
+          )}
         </OptionLabelWrapper>
       ),
     })
   );
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const handleModalClose = useCallback(() => {
+    mainContainerRef.current?.focus?.();
+  }, []);
 
   return (
     <Fragment>
+      <GlobalModal onClose={handleModalClose} />
       <StyledContainer>
         <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
         <p>
@@ -89,27 +132,20 @@ export function GithubInstallationSelect({
             'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
           )}
         </p>
-        <StyledTooltip
-          title={
-            isSelfHosted
-              ? t('This feature is not available')
-              : t('Multi-org is only available to business+ plans')
-          }
-          disabled={has_scm_multi_org}
-        >
-          <StyledSelect
-            disabled={!has_scm_multi_org}
-            onChange={handleSelect}
-            options={selectOptions}
-            value={installationID}
-            triggerLabel={installationID ? undefined : 'Choose Installation'}
-          />
-        </StyledTooltip>
 
+        <StyledSelect
+          onChange={handleSelect}
+          options={selectOptions}
+          value={installationID}
+          triggerLabel={installationID ? undefined : 'Choose Installation'}
+        />
         <ButtonContainer>
-          <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
-            Install
-          </StyledButton>
+          <InstallButtonHook
+            has_scm_multi_org={has_scm_multi_org}
+            installationID={installationID}
+            isSaving={isSaving}
+            handleSubmit={handleSubmit}
+          />
         </ButtonContainer>
       </StyledContainer>
     </Fragment>
@@ -161,6 +197,5 @@ const StyledSelect = styled(CompactSelect)`
     width: 100%;
   }
 `;
-const StyledTooltip = styled(Tooltip)`
-  width: 100%;
-`;
+
+export default GithubInstallationSelect;
