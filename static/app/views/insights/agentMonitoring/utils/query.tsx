@@ -14,6 +14,14 @@ const AI_TOKEN_USAGE_ATTRIBUTE = 'ai.total_tokens.used';
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${AI_TOKEN_USAGE_ATTRIBUTE})`;
 
+export const legacyAttributeKeys = new Map<string, string[]>([
+  ['gen_ai.request.model', ['ai.model.id']],
+  ['gen_ai.usage.input_tokens', ['ai.prompt_tokens.used']],
+  ['gen_ai.usage.output_tokens', ['ai.completion_tokens.used']],
+  ['gen_ai.usage.total_tokens', ['ai.total_tokens.used']],
+  ['gen_ai.usage.total_cost', ['ai.total_cost.used']],
+]);
+
 // TODO: Remove once tool spans have their own op
 function mapMissingSpanOp({
   op = 'default',

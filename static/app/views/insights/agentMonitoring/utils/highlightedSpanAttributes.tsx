@@ -2,10 +2,14 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {formatAbbreviatedNumberWithDynamicPrecision} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {
+  getIsAiSpan,
+  legacyAttributeKeys,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -32,6 +36,29 @@ function ensureAttributeObject(
   return attributes;
 }
 
+/**
+ * Get an attribute from the attribute object, checking both the current and legacy keys.
+ * @param attributeObject - The attribute object.
+ * @param key - The key to check.
+ * @returns The attribute value, or undefined if the attribute is not found.
+ */
+function getAttribute(attributeObject: Record<string, string>, key: string) {
+  if (attributeObject[key]) {
+    return attributeObject[key];
+  }
+  const legacyKeys = legacyAttributeKeys.get(key) ?? [];
+  for (const legacyKey of legacyKeys) {
+    if (attributeObject[legacyKey]) {
+      return attributeObject[legacyKey];
+    }
+  }
+  return undefined;
+}
+
+function formatCost(cost: string) {
+  return `US $${formatAbbreviatedNumberWithDynamicPrecision(cost)}`;
+}
+
 export function getHighlightedSpanAttributes({
   op,
   description,
@@ -51,16 +78,17 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
   const highlightedAttributes = [];
 
-  if (attributeObject['ai.model.id']) {
+  const model = getAttribute(attributeObject, 'gen_ai.request.model');
+  if (model) {
     highlightedAttributes.push({
       name: t('Model'),
-      value: attributeObject['ai.model.id'],
+      value: model,
     });
   }
 
-  const promptTokens = attributeObject['ai.prompt_tokens.used'];
-  const completionTokens = attributeObject['ai.completion_tokens.used'];
-  const totalTokens = attributeObject['ai.total_tokens.used'];
+  const promptTokens = getAttribute(attributeObject, 'gen_ai.usage.input_tokens');
+  const completionTokens = getAttribute(attributeObject, 'gen_ai.usage.output_tokens');
+  const totalTokens = getAttribute(attributeObject, 'gen_ai.usage.total_tokens');
   if (promptTokens && completionTokens && totalTokens) {
     highlightedAttributes.push({
       name: t('Tokens'),
@@ -70,6 +98,14 @@ export function getHighlightedSpanAttributes({
           {`${completionTokens} (Σ ${totalTokens})`}
         </span>
       ),
+    });
+  }
+
+  const totalCosts = getAttribute(attributeObject, 'gen_ai.usage.total_cost');
+  if (totalCosts) {
+    highlightedAttributes.push({
+      name: t('Cost'),
+      value: formatCost(totalCosts),
     });
   }
 
