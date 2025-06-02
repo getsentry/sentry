@@ -5,7 +5,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.utils.types import MetricDetectorUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -166,7 +166,7 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: MetricDetectorUpdate,
+    subscription_update: QuerySubscriptionUpdate,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
     aggregation_value = subscription_update["values"].get("value")

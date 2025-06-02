@@ -6,7 +6,7 @@ import pytest
 from urllib3.response import HTTPResponse
 
 from sentry.incidents.handlers.condition.anomaly_detection_handler import DetectorError
-from sentry.incidents.utils.types import MetricDetectorUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -33,7 +33,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             self.create_detector_and_workflow()
         )
 
-        subscription_update: MetricDetectorUpdate = {
+        subscription_update: QuerySubscriptionUpdate = {
             "subscription_id": str(self.subscription.id),
             "values": {"value": 1},
             "timestamp": datetime.now(UTC),
@@ -46,7 +46,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         )
         self.data_source.detectors.add(self.detector)
 
-        self.data_packet = DataPacket[MetricDetectorUpdate](
+        self.data_packet = DataPacket[QuerySubscriptionUpdate](
             source_id=str(subscription_update["subscription_id"]),
             packet=subscription_update,
         )
@@ -80,7 +80,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             ],
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        self.assert_passes(self.dc, self.data_packet)
+        assert self.dc.evaluate_value(self.data_packet) == DetectorPriorityLevel.HIGH.value
 
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
