@@ -9,7 +9,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from 'sentry/utils/queryClient';
-import GithubInstallationSelect from 'sentry/views/integrationPipeline/githubInstallationSelect';
+import {GithubInstallationSelect} from 'sentry/views/integrationPipeline/githubInstallationSelect';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';

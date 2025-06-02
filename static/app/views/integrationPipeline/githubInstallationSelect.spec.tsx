@@ -2,7 +2,7 @@ import {installation_info} from 'sentry-fixture/githubInstallationSelect';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GithubInstallationSelect from './githubInstallationSelect';
+import {GithubInstallationSelect} from './githubInstallationSelect';
 
 describe('GithubInstallationSelect', () => {
   beforeEach(() => {
