@@ -245,7 +245,7 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
 function SectionSeparator() {
   return (
-    <SeparatorWrapper>
+    <SeparatorWrapper data-separator>
       <Separator />
     </SeparatorWrapper>
   );
@@ -300,7 +300,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 
   /* Hide separators if there is not a previous section */
   [data-nav-section] + & {
-    > hr {
+    > [data-separator] {
       display: block;
     }
   }
@@ -309,7 +309,6 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.fontWeightBold};
   color: ${p.theme.textColor};
-  margin: ${space(1)} 0 ${space(0.5)} 0;
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&
@@ -352,6 +351,7 @@ const TrailingItems = styled('div')`
 
 const SeparatorWrapper = styled('div')`
   padding: ${space(1.5)} 0;
+  display: none;
 `;
 
 const Separator = styled('hr')`
