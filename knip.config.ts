@@ -33,8 +33,6 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storyBook.tsx',
-  // we have some stories in mdx format
-  'static/app/**/*.mdx',
 ];
 
 const config: KnipConfig = {
@@ -46,10 +44,7 @@ const config: KnipConfig = {
   storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
-    'static/app/**/*.mdx',
     'tests/js/**/*.{js,mjs,ts,tsx}',
-    // exclude this directory because it's how you set up mocks in jest (https://jestjs.io/docs/manual-mocks)
-    '!static/{app,gsApp}/**/__mocks__/**',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
     // helper files for tests - it's fine that they are only used in tests
@@ -59,15 +54,7 @@ const config: KnipConfig = {
     '!static/app/stories/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
-    mdx: async text => {
-      const result = await compile(text, {
-        providerImportSource: '@mdx-js/react',
-        jsx: true,
-        outputFormat: 'program',
-      });
-
-      return String(result);
-    },
+    mdx: async text => String(await compile(text)),
   },
   rules: {
     binaries: 'off',
