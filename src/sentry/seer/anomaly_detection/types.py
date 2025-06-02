@@ -1,4 +1,4 @@
-from enum import Enum, IntEnum, StrEnum
+from enum import Enum
 from typing import NotRequired, TypedDict
 
 
@@ -74,30 +74,3 @@ class AnomalyType(Enum):
     LOW_CONFIDENCE = "anomaly_lower_confidence"
     NONE = "none"
     NO_DATA = "no_data"
-
-
-class AnomalyDetectionSensitivity(StrEnum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
-
-class AnomalyDetectionSeasonality(StrEnum):
-    """All combinations of multi select fields for anomaly detection alerts
-    We do not anticipate adding more
-    """
-
-    AUTO = "auto"
-    HOURLY = "hourly"
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    HOURLY_DAILY = "hourly_daily"
-    HOURLY_WEEKLY = "hourly_weekly"
-    HOURLY_DAILY_WEEKLY = "hourly_daily_weekly"
-    DAILY_WEEKLY = "daily_weekly"
-
-
-class AnomalyDetectionThresholdType(IntEnum):
-    ABOVE = 0
-    BELOW = 1
-    ABOVE_AND_BELOW = 2
