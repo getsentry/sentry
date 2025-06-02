@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import testableTransition from 'sentry/utils/testableTransition';
+
 export function Collapsible({
   children,
   collapsed,
@@ -24,25 +26,25 @@ export function Collapsible({
           animate={{
             height: 'auto',
             overflow: 'visible',
-            transition: {
+            transition: testableTransition({
               type: 'spring',
               damping: 50,
               stiffness: 600,
               bounce: 0,
               visualDuration,
               overflow: {delay: visualDuration},
-            },
+            }),
           }}
           exit={{
             height: 0,
             overflow: 'hidden',
-            transition: {
+            transition: testableTransition({
               type: 'spring',
               damping: 50,
               stiffness: 600,
               bounce: 0,
               visualDuration,
-            },
+            }),
           }}
         >
           {/*
