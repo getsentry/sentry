@@ -4,6 +4,7 @@ import zipfile
 from io import BytesIO
 from os.path import join
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -30,6 +31,7 @@ from sentry.profiles.task import (
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
+from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
@@ -1128,3 +1130,44 @@ def test_deprecated_sdks(
         )
     else:
         _push_profile_to_vroom.assert_called()
+
+
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._deobfuscate_profile")
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@django_db_all
+@pytest.mark.parametrize(
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
+)
+def test_process_profile_task_should_flip_project_flag(
+    _push_profile_to_vroom: mock.MagicMock,
+    _deobfuscate_profile: mock.MagicMock,
+    _symbolicate_profile: mock.MagicMock,
+    profile,
+    organization,
+    project,
+    request,
+):
+    with patch(
+        "sentry.receivers.onboarding.record_first_profile",
+    ) as mock_record_first_profile:
+        first_profile_received.connect(mock_record_first_profile, weak=False)
+    _push_profile_to_vroom.return_value = True
+    _deobfuscate_profile.return_value = True
+    _symbolicate_profile.return_value = True
+
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+
+    assert not project.flags.has_profiles
+    process_profile_task(profile=profile)
+
+    mock_record_first_profile.assert_called_once_with(
+        signal=first_profile_received,
+        sender=Project,
+        project=project,
+    )
+    project.refresh_from_db()
+    assert project.flags.has_profiles

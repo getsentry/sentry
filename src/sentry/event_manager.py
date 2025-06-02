@@ -105,16 +105,14 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import (
-    record_first_insight_span,
-    record_first_transaction,
-    record_release_received,
-)
+from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
+    first_transaction_received,
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
@@ -136,6 +134,7 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_data
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -218,27 +217,6 @@ def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
         if result is not None:
             return bool(result)
     return True
-
-
-def get_project_insight_flag(project: Project, module: InsightModules):
-    if module == InsightModules.HTTP:
-        return project.flags.has_insights_http
-    elif module == InsightModules.DB:
-        return project.flags.has_insights_db
-    elif module == InsightModules.ASSETS:
-        return project.flags.has_insights_assets
-    elif module == InsightModules.APP_START:
-        return project.flags.has_insights_app_start
-    elif module == InsightModules.SCREEN_LOAD:
-        return project.flags.has_insights_screen_load
-    elif module == InsightModules.VITAL:
-        return project.flags.has_insights_vitals
-    elif module == InsightModules.CACHE:
-        return project.flags.has_insights_caches
-    elif module == InsightModules.QUEUE:
-        return project.flags.has_insights_queues
-    elif module == InsightModules.LLM_MONITORING:
-        return project.flags.has_insights_llm_monitoring
 
 
 def has_pending_commit_resolution(group: Group) -> bool:
@@ -565,12 +543,12 @@ class EventManager:
                     project=project, event=job["event"], sender=Project
                 )
 
-            if (
-                has_event_minified_stack_trace(job["event"])
-                and not project.flags.has_minified_stack_trace
-            ):
-                first_event_with_minified_stack_trace_received.send_robust(
-                    project=project, event=job["event"], sender=Project
+            if has_event_minified_stack_trace(job["event"]):
+                set_project_flag_and_signal(
+                    project,
+                    "has_minified_stack_trace",
+                    first_event_with_minified_stack_trace_received,
+                    event=job["event"],
                 )
 
         if is_reprocessed:
@@ -2477,6 +2455,19 @@ def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping)
             )
 
 
+INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
+    InsightModules.HTTP: "has_insights_http",
+    InsightModules.DB: "has_insights_db",
+    InsightModules.ASSETS: "has_insights_assets",
+    InsightModules.APP_START: "has_insights_app_start",
+    InsightModules.SCREEN_LOAD: "has_insights_screen_load",
+    InsightModules.VITAL: "has_insights_vitals",
+    InsightModules.CACHE: "has_insights_caches",
+    InsightModules.QUEUE: "has_insights_queues",
+    InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
+}
+
+
 @sentry_sdk.tracing.trace
 def _record_transaction_info(
     jobs: Sequence[Job], projects: ProjectsMapping, skip_send_first_transaction: bool
@@ -2492,12 +2483,22 @@ def _record_transaction_info(
             record_event_processed(project, event)
 
             if not skip_send_first_transaction:
-                record_first_transaction(project, event.datetime)
+                set_project_flag_and_signal(
+                    project,
+                    "has_transactions",
+                    first_transaction_received,
+                    event=event,
+                )
 
             spans = job["data"]["spans"]
             for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if not get_project_insight_flag(project, module) and is_module(spans):
-                    record_first_insight_span(project, module)
+                if is_module(spans):
+                    set_project_flag_and_signal(
+                        project,
+                        INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                        first_insight_span_received,
+                        module=module,
+                    )
 
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None
