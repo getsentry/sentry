@@ -4,7 +4,10 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {
   act,
   render,
@@ -994,6 +997,31 @@ describe('AM2 Checkout', function () {
         checkoutTier={PlanTier.AM2}
       />,
       {organization}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+  });
+
+  it('skips step 1 for business plan with seer', async function () {
+    const seerOrg = OrganizationFixture({features: ['seer-billing']});
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization: seerOrg,
+      planTier: 'am2',
+      plan: 'am2_business',
+    });
+
+    SubscriptionStore.set(organization.slug, seerSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: seerOrg}
     );
     await screen.findByText('Choose Your Plan');
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
