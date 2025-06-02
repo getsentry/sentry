@@ -5,16 +5,19 @@ import * as qs from 'query-string';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalModal from 'sentry/components/globalModal';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-// import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Installation = {
   avatar_url: string;
@@ -25,6 +28,8 @@ type Installation = {
 type GithubInstallationProps = {
   has_scm_multi_org: boolean;
   installation_info: Installation[];
+  organization: Organization;
+  organization_slug: string;
 };
 
 const renderInstallationButton = ({
@@ -59,10 +64,13 @@ const InstallButtonHook = HookOrDefault({
 function GithubInstallationSelect({
   installation_info,
   has_scm_multi_org,
+  organization_slug,
+  organization,
 }: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>('-1');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const source = 'github.multi_org';
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -121,6 +129,47 @@ function GithubInstallationSelect({
     mainContainerRef.current?.focus?.();
   }, []);
 
+  const renderInstallationButtonOld = () => {
+    if (installationID === '-1' || has_scm_multi_org) {
+      return (
+        <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
+          {t('Install')}
+        </StyledButton>
+      );
+    }
+
+    if (isSelfHosted) {
+      return (
+        <Tooltip
+          title={t(
+            'Please check your configuration, scm-multi-org feature is not enabled'
+          )}
+        >
+          <StyledButton disabled>{t('Install')}</StyledButton>;
+        </Tooltip>
+      );
+    }
+
+    return (
+      <StyledLinkButton
+        onClick={() => {
+          trackAnalytics(`${source}.upsell`, {
+            organization: organization_slug,
+          });
+        }}
+        href={`${origin}/settings/${organization_slug}/billing/overview/?referrer=upgrade-${source}`}
+        disabled={isSaving || !installationID || isSelfHosted}
+      >
+        <ButtonContent>
+          <Fragment>
+            <IconLightning />
+            {t('Upgrade')}
+          </Fragment>
+        </ButtonContent>
+      </StyledLinkButton>
+    );
+  };
+
   return (
     <Fragment>
       <GlobalModal onClose={handleModalClose} />
@@ -139,12 +188,16 @@ function GithubInstallationSelect({
           triggerLabel={installationID ? undefined : 'Choose Installation'}
         />
         <ButtonContainer>
-          <InstallButtonHook
-            has_scm_multi_org={has_scm_multi_org}
-            installationID={installationID}
-            isSaving={isSaving}
-            handleSubmit={handleSubmit}
-          />
+          {organization.features.includes('github-multi-org-upsell-modal') ? (
+            <InstallButtonHook
+              has_scm_multi_org={has_scm_multi_org}
+              installationID={installationID}
+              isSaving={isSaving}
+              handleSubmit={handleSubmit}
+            />
+          ) : (
+            renderInstallationButtonOld()
+          )}
         </ButtonContainer>
       </StyledContainer>
     </Fragment>
@@ -172,6 +225,19 @@ const StyledButton = styled(Button)`
     background-color: #6c5fc7;
     color: #fff;
   }
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  &:not(:disabled) {
+    background-color: #6c5fc7;
+    color: #fff;
+  }
+`;
+
+const ButtonContent = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const StyledHeader = styled('h3')`
