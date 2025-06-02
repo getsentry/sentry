@@ -38,7 +38,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
-    position = models.PositiveSmallIntegerField(null=True, db_default=None)
+    position = models.PositiveSmallIntegerField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -48,7 +48,6 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["user_id", "dashboard"],
                 name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
-                deferrable=models.Deferrable.DEFERRED,
             ),
         ]
 
