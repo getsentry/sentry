@@ -3099,14 +3099,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Increases event title character limit
-register(
-    "sentry.save-event.title-char-limit-256.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "sentry.demo_mode.sync_artifact_bundles.enable",
     type=Bool,
