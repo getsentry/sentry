@@ -15,7 +15,7 @@ function ProcessingIcon({status}: Props) {
     case ImageStatus.FETCHING_FAILED: {
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t('The debug information file for this image could not be downloaded')}
         >
           <IconWarning color="warningText" size="xs" />
@@ -25,7 +25,7 @@ function ProcessingIcon({status}: Props) {
     case ImageStatus.MALFORMED: {
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t('The debug information file for this image failed to process')}
         >
           <IconWarning color="warningText" size="xs" />
@@ -35,7 +35,7 @@ function ProcessingIcon({status}: Props) {
     case ImageStatus.MISSING: {
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t('No debug information could be found in any of the specified sources')}
         >
           <IconWarning color="warningText" size="xs" />
@@ -45,7 +45,7 @@ function ProcessingIcon({status}: Props) {
     case ImageStatus.FOUND: {
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t(
             'Debug information for this image was found and successfully processed'
           )}
@@ -57,7 +57,7 @@ function ProcessingIcon({status}: Props) {
     case ImageStatus.UNUSED: {
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t('The image was not required for processing the stack trace')}
         >
           <IconInfo color="subText" size="xs" />
@@ -67,7 +67,7 @@ function ProcessingIcon({status}: Props) {
     case ImageStatus.OTHER: {
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t('An internal error occurred while handling this image')}
         >
           <IconWarning color="warningText" size="xs" />
@@ -81,7 +81,7 @@ function ProcessingIcon({status}: Props) {
       //    (e.g., trying to symbolicate .NET events with Windows PDB files)
       return (
         <Tooltip
-          containerDisplayMode="inline-flex"
+          skipWrapper
           title={t(
             'The debug information file format is not supported or compatible with this event type'
           )}
