@@ -182,7 +182,7 @@ def traces_sampler(sampling_context):
         return SAMPLED_ROUTES[wsgi_path]
 
     # make it fail to I know what tests use this.
-    custom_sample_rate = sampling_context.get("attributes", {}).get("sentry.sample_rate")
+    custom_sample_rate = sampling_context.get("attributes", {}).get("sample_rate")
     if custom_sample_rate is not None:
         raise Exception("some error")
 
