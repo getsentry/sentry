@@ -11,7 +11,8 @@ import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/use
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
-import {SpanFields, SpanQueryFilters} from 'sentry/views/insights/types';
+import type {SpanQueryFilters} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
   id: string;
