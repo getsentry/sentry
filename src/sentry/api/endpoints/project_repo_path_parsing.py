@@ -13,7 +13,8 @@ from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.issues.auto_source_code_config.code_mapping import FrameInfo, find_roots
+from sentry.issues.auto_source_code_config.code_mapping import find_roots
+from sentry.issues.auto_source_code_config.frame_info import FrameInfo
 from sentry.models.repository import Repository
 
 
