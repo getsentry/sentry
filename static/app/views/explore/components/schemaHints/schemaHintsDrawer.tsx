@@ -123,7 +123,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
 
       handleQueryChange(filterQuery);
       searchBarDispatch({
-        type: 'UPDATE_QUERY_WITHOUT_COMMIT',
+        type: 'UPDATE_QUERY',
         query: filterQuery.formatString(),
         focusOverride: {
           itemKey: `filter:${filterQuery
@@ -133,6 +133,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
             .lastIndexOf(hint.key)}`,
           part: 'value',
         },
+        shouldCommitQuery: false,
       });
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,

@@ -50,16 +50,11 @@ type CommitQueryAction = {
   type: 'COMMIT_QUERY';
 };
 
-type UpdateQueryWithoutCommitAction = {
-  query: string;
-  type: 'UPDATE_QUERY_WITHOUT_COMMIT';
-  focusOverride?: FocusOverride | null;
-};
-
 type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  shouldCommitQuery?: boolean;
 };
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
@@ -123,7 +118,6 @@ type UpdateAggregateArgsAction = {
 export type QueryBuilderActions =
   | ClearAction
   | CommitQueryAction
-  | UpdateQueryWithoutCommitAction
   | UpdateQueryAction
   | ResetFocusOverrideAction
   | DeleteTokenAction
@@ -564,19 +558,15 @@ export function useQueryBuilderState({
             ...state,
             committedQuery: state.query,
           };
-        case 'UPDATE_QUERY_WITHOUT_COMMIT':
+        case 'UPDATE_QUERY': {
+          const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
             ...state,
             query: action.query,
+            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
             focusOverride: action.focusOverride ?? null,
           };
-        case 'UPDATE_QUERY':
-          return {
-            ...state,
-            query: action.query,
-            committedQuery: action.query,
-            focusOverride: action.focusOverride ?? null,
-          };
+        }
         case 'RESET_FOCUS_OVERRIDE':
           return {
             ...state,

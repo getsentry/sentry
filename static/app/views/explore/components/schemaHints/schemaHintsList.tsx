@@ -375,7 +375,7 @@ function SchemaHintsList({
       const newQuery = newSearchQuery.formatString();
 
       dispatch({
-        type: 'UPDATE_QUERY_WITHOUT_COMMIT',
+        type: 'UPDATE_QUERY',
         query: newQuery,
         focusOverride: {
           itemKey: `filter:${newSearchQuery
@@ -385,6 +385,7 @@ function SchemaHintsList({
             .lastIndexOf(hint.key)}`,
           part: 'value',
         },
+        shouldCommitQuery: false,
       });
 
       trackAnalytics('trace.explorer.schema_hints_click', {
