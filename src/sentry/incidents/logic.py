@@ -412,9 +412,9 @@ def get_metric_issue_aggregates(
 
         except Exception:
             entity_key = (
-                EntityKey.EAPItems.value
+                EntityKey.EAPItems
                 if options.get("alerts.spans.use-eap-items")
-                else EntityKey.EAPItemsSpan.value
+                else EntityKey.EAPItemsSpan
             )
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
