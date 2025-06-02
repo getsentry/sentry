@@ -44,7 +44,9 @@ def _create_grouping_records_request_params() -> CreateGroupingRecordsRequest:
 
 @pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch(
+    "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
+)
 def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_logger: MagicMock):
     expected_return_value = {
         "success": True,
@@ -69,7 +71,9 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
 
 @pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch(
+    "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
+)
 def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_logger: MagicMock):
     expected_return_value = {"success": False, "reason": "ReadTimeoutError"}
     mock_seer_request.side_effect = ReadTimeoutError(
@@ -93,7 +97,9 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
 
 @pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch(
+    "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
+)
 def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_logger: MagicMock):
     expected_return_value = {"success": False, "reason": "INTERNAL SERVER ERROR"}
     mock_seer_request.return_value = HTTPResponse(
@@ -132,7 +138,9 @@ def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
 
 @pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
-@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+@mock.patch(
+    "sentry.seer.similarity.grouping_records.seer_grouping_backfill_connection_pool.urlopen"
+)
 def test_post_bulk_grouping_records_use_reranking(
     mock_seer_request: MagicMock, mock_logger: MagicMock
 ):
