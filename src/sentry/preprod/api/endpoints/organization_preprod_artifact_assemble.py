@@ -13,6 +13,7 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_t
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
+    assemble_preprod_artifact,
     get_assemble_status,
     set_assemble_status,
 )
@@ -22,7 +23,7 @@ from sentry.tasks.assemble import (
 class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -40,7 +41,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                         "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                     },
                     # Optional metadata
-                    "git_sha": {"type": "string"},
+                    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                     "build_configuration": {"type": "string"},
                 },
                 "required": ["checksum", "chunks"],
@@ -65,7 +66,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                         error_message = error_messages.get(str(field), error_message)
 
                 return Response({"error": error_message}, status=400)
-            except Exception:
+            except (orjson.JSONDecodeError, TypeError):
                 return Response({"error": "Invalid json body"}, status=400)
 
             checksum = data.get("checksum")
@@ -83,9 +84,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
 
             # Check current assembly status
             state, detail = get_assemble_status(AssembleTask.PREPROD_ARTIFACT, project.id, checksum)
-            if state == ChunkFileState.OK:
-                return Response({"state": state, "detail": detail, "missingChunks": []})
-            elif state is not None:
+            if state is not None:
                 return Response({"state": state, "detail": detail, "missingChunks": []})
 
             # There is neither a known file nor a cached state, so we will
@@ -97,9 +96,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             set_assemble_status(
                 AssembleTask.PREPROD_ARTIFACT, project.id, checksum, ChunkFileState.CREATED
             )
-
-            # Trigger assembly task
-            from sentry.tasks.assemble import assemble_preprod_artifact
 
             assemble_preprod_artifact.apply_async(
                 kwargs={
