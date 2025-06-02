@@ -57,7 +57,6 @@ export default function TestsPage() {
 
   return (
     <LayoutGap>
-      <p>Test Analytics</p>
       <CodecovQueryParamsProvider>
         <PageFilterBar condensed>
           <DatePicker />
