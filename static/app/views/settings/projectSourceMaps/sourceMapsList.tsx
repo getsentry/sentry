@@ -204,8 +204,8 @@ export function SourceMapsList({location, router, project}: Props) {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
         docsLink={sourceMapsLinks.sourcemaps}
+        pageLinks={headers?.('Link') ?? ''}
       />
-      <Pagination pageLinks={headers?.('Link') ?? ''} />
     </Fragment>
   );
 }
@@ -299,6 +299,7 @@ interface SourceMapUploadsListProps {
   onClearSearch: () => void;
   onDelete: (id: string) => void;
   project: Project;
+  pageLinks?: string;
   query?: string;
   sourceMapUploads?: SourceMapUpload[];
 }
@@ -311,6 +312,7 @@ function SourceMapUploadsList({
   project,
   query,
   docsLink,
+  pageLinks,
 }: SourceMapUploadsListProps) {
   const organization = useOrganization();
 
@@ -337,31 +339,34 @@ function SourceMapUploadsList({
   }
 
   return (
-    <List>
-      {sourceMapUploads.map(sourceMapUpload => (
-        <Item key={sourceMapUpload.id}>
-          <ItemHeader>
-            <ItemTitle to={sourceMapUploadDetailLink(sourceMapUpload)}>
-              <IconUpload />
-              {tct('[date] ([fileCount] files)', {
-                date: <DateTime year date={sourceMapUpload.date} />,
-                fileCount: sourceMapUpload.fileCount,
-              })}
-            </ItemTitle>
-            <SourceMapUploadDeleteButton
-              onDelete={
-                sourceMapUpload.type === 'debugId'
-                  ? () => onDelete(sourceMapUpload.id)
-                  : undefined
-              }
-            />
-          </ItemHeader>
-          <ItemContent>
-            <SourceMapUploadDetails sourceMapUpload={sourceMapUpload} />
-          </ItemContent>
-        </Item>
-      ))}
-    </List>
+    <Fragment>
+      <List>
+        {sourceMapUploads.map(sourceMapUpload => (
+          <Item key={sourceMapUpload.id}>
+            <ItemHeader>
+              <ItemTitle to={sourceMapUploadDetailLink(sourceMapUpload)}>
+                <IconUpload />
+                {tct('[date] ([fileCount] files)', {
+                  date: <DateTime year date={sourceMapUpload.date} />,
+                  fileCount: sourceMapUpload.fileCount,
+                })}
+              </ItemTitle>
+              <SourceMapUploadDeleteButton
+                onDelete={
+                  sourceMapUpload.type === 'debugId'
+                    ? () => onDelete(sourceMapUpload.id)
+                    : undefined
+                }
+              />
+            </ItemHeader>
+            <ItemContent>
+              <SourceMapUploadDetails sourceMapUpload={sourceMapUpload} />
+            </ItemContent>
+          </Item>
+        ))}
+      </List>
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 
