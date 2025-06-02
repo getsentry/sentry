@@ -44,6 +44,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             processor=datetime_processor,
         ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
         simple_sentry_field("message.template"),
         simple_sentry_field("release"),
