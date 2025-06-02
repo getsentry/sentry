@@ -17,15 +17,11 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.metrics import format_mri_field, is_mri_field
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.actor import parse_and_validate_actor
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import (
-    DetectorOccurrence,
-    EventData,
-    StatefulDetectorHandler,
-)
-from sentry.workflow_engine.handlers.detector.base import EvidenceData
+from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
@@ -43,7 +39,7 @@ class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
 
 
-class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate, int]):
+class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate, int]):
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -51,7 +47,8 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData] | None:
         try:
-            alert_id = AlertRuleDetector.objects.get(detector=self.detector).values("alert_rule_id")
+            alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
+            alert_id = alert_rule_detector.alert_rule_id
         except AlertRuleDetector.DoesNotExist:
             alert_id = None
 
@@ -67,13 +64,23 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             return None
 
         try:
-            snuba_query = SnubaQuery.objects.get(id=data_packet.source_id)
+            query_subscription = QuerySubscription.objects.get(id=data_packet.source_id)
+        except QuerySubscription.DoesNotExist:
+            logger.exception(
+                "Failed to find query subscription related to the detector, cannot create metric issue occurrence",
+                extra={"detector_id": self.detector.id},
+            )
+            return None
+
+        try:
+            snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
         except SnubaQuery.DoesNotExist:
             logger.exception(
                 "Failed to find snuba query related to the detector, cannot create metric issue occurrence",
                 extra={"detector_id": self.detector.id},
             )
             return None
+
         try:
             assignee = parse_and_validate_actor(
                 self.detector.created_by_id, self.detector.project.organization_id
@@ -96,8 +103,10 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
                 resource_id=None,
                 evidence_data={
                     "detector_id": self.detector.id,
-                    "value": 1,
-                    "data_conditions": [detector_trigger.id],
+                    "value": priority,
+                    "data_condition_ids": [detector_trigger.id],
+                    "data_condition_type": detector_trigger.type,
+                    "data_condition_comparison_value": self.extract_value(data_packet),
                     "alert_id": alert_id,
                 },
                 evidence_display=[],  # XXX: may need to pass more info here for the front end
@@ -122,7 +131,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         detector_trigger: DataCondition,
         priority: DetectorPriorityLevel,
     ) -> str:
-        comparison_delta = detector_trigger.config.get("comparison_delta")
+        comparison_delta = self.detector.config.get("comparison_delta")
         agg_display_key = snuba_query.aggregate
 
         if is_mri_field(agg_display_key):
@@ -182,7 +191,7 @@ class MetricIssue(GroupType):
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     detector_settings = DetectorSettings(
-        handler=MetricAlertDetectorHandler,
+        handler=MetricIssueDetectorHandler,
         validator=MetricAlertsDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
