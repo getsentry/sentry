@@ -26,7 +26,7 @@ function DatePickerInput({date, onChange, ...props}: DatePickerInputProps) {
   return (
     <input
       type="date"
-      value={date ? moment(date).format('YYYY-MM-dd') : ''}
+      value={date ? moment(date).format('YYYY-MM-DD') : ''}
       onChange={e => {
         const newDate = new Date(e.target.value + 'T00:00:00');
 
