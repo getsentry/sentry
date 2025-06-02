@@ -53,7 +53,9 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         assert dc.evaluate_value(1) is None
 
     def test_dict_comparison_result(self):
-        def evaluate_value(value: int, comparison: int) -> bool:
+        def evaluate_value(
+            value: int, comparison: dict[str, DetectorPriorityLevel]
+        ) -> DetectorPriorityLevel:
             return (
                 DetectorPriorityLevel.HIGH
                 if comparison["baz"].value > 1
