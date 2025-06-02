@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
-import {useWindowVirtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAutoRefresh,
   useLogsFields,
   useLogsIsTableFrozen,
   useLogsSearch,
@@ -50,6 +51,7 @@ const LOGS_FETCH_NEXT_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 20; // Pixels from
 type LogsTableProps = {
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
+  scrollContainer?: React.RefObject<HTMLElement | null>;
   showHeader?: boolean;
   stringAttributes?: TagCollection;
 };
@@ -58,12 +60,23 @@ export function LogsInfiniteTable({
   showHeader = true,
   numberAttributes,
   stringAttributes,
+  scrollContainer,
 }: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
+  const autoRefresh = useLogsAutoRefresh();
   const {infiniteLogsQueryResult} = useLogsPageData();
-  const {isPending, isEmpty, meta, data, isError, fetchNextPage, fetchPreviousPage} =
-    infiniteLogsQueryResult;
+  const {
+    isPending,
+    isEmpty,
+    meta,
+    data,
+    isError,
+    fetchNextPage,
+    fetchPreviousPage,
+    isFetchingNextPage,
+    isFetchingPreviousPage,
+  } = infiniteLogsQueryResult;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -79,7 +92,7 @@ export function LogsInfiniteTable({
 
   const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
 
-  const virtualizer = useWindowVirtualizer({
+  const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
     estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
     overscan: 150,
@@ -87,20 +100,31 @@ export function LogsInfiniteTable({
     scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
   });
 
+  const containerVirtualizer = useVirtualizer({
+    count: data?.length ?? 0,
+    estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
+    overscan: 150,
+    getScrollElement: () => scrollContainer?.current ?? null,
+    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+  });
+
+  const virtualizer = scrollContainer?.current ? containerVirtualizer : windowVirtualizer;
   const virtualItems = virtualizer.getVirtualItems();
 
   const firstItem = virtualItems[0]?.start;
   const lastItem = virtualItems[virtualItems.length - 1]?.end;
 
   const [paddingTop, paddingBottom] =
-    firstItem && lastItem
+    defined(firstItem) && defined(lastItem)
       ? [
           Math.max(0, firstItem - virtualizer.options.scrollMargin),
           Math.max(0, virtualizer.getTotalSize() - lastItem),
         ]
       : [0, 0];
 
-  const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
+  const {scrollDirection, scrollOffset, isScrolling} = scrollContainer
+    ? containerVirtualizer
+    : virtualizer;
 
   useEffect(() => {
     if (isScrolling) {
@@ -148,6 +172,9 @@ export function LogsInfiniteTable({
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
           {isEmpty && <EmptyRenderer />}
+          {!autoRefresh && !isPending && isFetchingPreviousPage && (
+            <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
+          )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
             const isPastFetchedRows = virtualRow.index > data?.length - 1;
@@ -164,7 +191,9 @@ export function LogsInfiniteTable({
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
                 />
-                {isPastFetchedRows && <LoadingRenderer />}
+                {isPastFetchedRows && (
+                  <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
+                )}
               </Fragment>
             );
           })}
@@ -174,6 +203,9 @@ export function LogsInfiniteTable({
                 <TableBodyCell key={field} style={{height: paddingBottom}} />
               ))}
             </TableRow>
+          )}
+          {!autoRefresh && !isPending && isFetchingNextPage && (
+            <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
           )}
         </LogTableBody>
       </Table>
@@ -286,10 +318,10 @@ function ErrorRenderer() {
   );
 }
 
-function LoadingRenderer() {
+function LoadingRenderer({size}: {size?: number}) {
   return (
-    <TableStatus>
-      <LoadingIndicator />
+    <TableStatus size={size}>
+      <LoadingIndicator size={size} />
     </TableStatus>
   );
 }

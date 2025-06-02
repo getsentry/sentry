@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
-import type {EChartsInstance} from 'echarts-for-react';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import {useParams} from 'sentry/utils/useParams';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -52,7 +52,7 @@ function EventGraphLoadedWidget({
 }: {
   group: Group;
   pageFilters: PageFilters | undefined;
-  chartRef?: React.Ref<EChartsInstance>;
+  chartRef?: React.Ref<ReactEchartsRef>;
 }) {
   const eventView = useIssueDetailsEventView({
     group,

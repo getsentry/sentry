@@ -16,7 +16,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -142,7 +142,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 # Ignore retry errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
-                    self.integration_name == ExternalProviderEnum.GITLAB.value
+                    self.integration_name == IntegrationProviderSlug.GITLAB.value
                     and client.base_url != GITLAB_CLOUD_BASE_URL
                 ):
                     lifecycle.record_halt(e)
@@ -155,6 +155,16 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
 
             except ApiError as e:
                 if e.code in (404, 400):
+                    lifecycle.record_halt(e)
+                    return None
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                # It involves decomposing this logic
+                #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"
+                elif (
+                    e.json
+                    and e.json.get("typeKey") == "AadUserStateException"
+                    and self.integration_name == IntegrationProviderSlug.AZURE_DEVOPS.value
+                ):
                     lifecycle.record_halt(e)
                     return None
                 else:

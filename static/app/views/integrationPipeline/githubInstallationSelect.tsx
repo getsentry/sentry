@@ -9,7 +9,6 @@ import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import GlobalModal from 'sentry/components/globalModal';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-// import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

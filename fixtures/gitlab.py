@@ -169,7 +169,8 @@ MERGE_REQUEST_OPENED_EVENT = b"""{
     "work_in_progress": false,
     "total_time_spent": 0,
     "human_total_time_spent": null,
-    "human_time_estimate": null
+    "human_time_estimate": null,
+    "action": "open"
   },
   "labels": null,
   "repository": {

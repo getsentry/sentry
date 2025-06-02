@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:48.840944+00:00'
+created: '2025-05-12T23:40:58.548136+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -40,7 +40,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
               "FudgeLogTaggedError"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by stack trace rule (category:internals -group))
             function*
               "closure"
           frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
@@ -52,7 +52,7 @@ app:
           frame (marked out of app by the client)
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by stack trace rule (category:internals -group))
             function*
               "closure"
 --------------------------------------------------------------------------
