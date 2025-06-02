@@ -87,7 +87,7 @@ function LogsSectionContent({
   const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
-  const hasInfiniteFeature = organization.features.includes('ourlogs-live-refresh');
+  const hasInfiniteFeature = organization.features.includes('ourlogs-infinite-scroll');
 
   return (
     <Fragment>

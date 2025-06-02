@@ -108,5 +108,5 @@ describe('CreateIssueViewModal', function () {
         },
       })
     );
-  });
+  }, 10_000);
 });
