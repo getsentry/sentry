@@ -319,6 +319,9 @@ export function ReplayCell({
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
+  const location = useLocation();
+  const isIssuesReplayList = location.pathname.includes('issues');
+
   const replayDetailsPathname = makeReplaysPathname({
     path: `/${replay.id}/`,
     organization,
@@ -404,13 +407,21 @@ export function ReplayCell({
             {replay.is_archived ? (
               replay.user.display_name || t('Anonymous User')
             ) : (
-              <MainLink
-                to={detailsTab()}
+              <DisplayNameLink
+                to={
+                  isIssuesReplayList
+                    ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
+                      {
+                        pathname: location.pathname,
+                        query: location.query,
+                      }
+                    : detailsTab()
+                }
                 onClick={trackNavigationEvent}
                 data-has-viewed={replay.has_viewed}
               >
                 {replay.user.display_name || t('Anonymous User')}
-              </MainLink>
+              </DisplayNameLink>
             )}
           </Row>
           <Row gap={0.5}>{subText}</Row>
@@ -442,7 +453,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
   ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : '')}
 `;
 
-const MainLink = styled(Link)`
+const DisplayNameLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
