@@ -28,6 +28,6 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="user",
             name="email_unique",
-            field=models.EmailField(blank=True, max_length=200, unique=True),
+            field=models.EmailField(null=True, max_length=200, unique=True),
         ),
     ]

@@ -107,7 +107,7 @@ class User(Model, AbstractBaseUser):
     email = models.EmailField(_("email address"), blank=True, max_length=200)
     # temporary field that prevents creating new users with the same email address as an existing user on the DB level
     email_unique = models.EmailField(
-        _("unique email address"), blank=True, max_length=200, unique=True
+        _("unique email address"), null=True, max_length=200, unique=True
     )
     is_staff = models.BooleanField(
         _("staff status"),
