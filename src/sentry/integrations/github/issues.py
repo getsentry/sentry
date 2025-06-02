@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any
+from typing import Any, NoReturn
 
 from django.urls import reverse
 
@@ -15,15 +15,31 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError, IntegrationFormError
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
+GITHUB_HALT_ERRORS = {
+    "Validation Failed",
+}
+
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        # Example validation error:
+        # sentry.shared_integrations.exceptions.ApiError: {"message":"Validation Failed","errors":[{"value":"xxx","resource":"Issue","field":"assignee","code":"invalid"}],"documentation_url":"https://docs.github.com/rest/issues/issues#create-an-issue","status":"422"}
+        if isinstance(exc, ApiError) and exc.json.get("message") in GITHUB_HALT_ERRORS:
+            # get errors, in the form key: value and conver to a list
+            errors = exc.json.get("errors")
+            parsed_errors = [f"{error['field']}: {error['code']}" for error in errors]
+            raise IntegrationFormError(parsed_errors)
+        raise super().raise_error(exc, identity=identity)
+
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
@@ -196,7 +212,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         try:
             issue = client.create_issue(repo=repo, data=issue_data)
         except ApiError as e:
-            raise IntegrationError(self.message_from_error(e))
+            raise self.raise_error(e)
 
         return {
             "key": issue["number"],

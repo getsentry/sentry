@@ -5,6 +5,7 @@ from typing import cast
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 from django.test import RequestFactory
 from django.utils import timezone
@@ -15,6 +16,7 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
+from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -257,6 +259,25 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             }
         else:
             self._check_proxying()
+
+    @responses.activate
+    @patch(
+        "sentry.integrations.github.client.GitHubBaseClient.create_issue",
+        side_effect=ApiError(
+            text='{"message": "Validation Failed", "errors": [{"value": "xxx", "resource": "Issue", "field": "assignee", "code": "invalid"}], "documentation_url": "https://docs.github.com/rest/issues/issues#create-an-issue", "status": "422"}',
+        ),
+    )
+    def test_create_issue_with_validation_errors(self, mock_create_issue):
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationFormError) as e:
+            self.install.create_issue(form_data)
+
+        assert str(e.value) == str(IntegrationFormError("['assignee: invalid']"))
 
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
