@@ -18,7 +18,7 @@ export default function ReplayTooltipTime({startTimestampMs, timestampMs}: Props
           'Date: %s',
           getFormattedDate(
             timestampMs,
-            `${getFormat({year: true, seconds: true, timeZone: true})}`,
+            getFormat({year: true, seconds: true, timeZone: true}),
             {
               local: true,
             }
