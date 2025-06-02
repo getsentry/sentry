@@ -74,7 +74,23 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-
+    case ImageStatus.UNSUPPORTED: {
+      // UNSUPPORTED status occurs in two scenarios:
+      // 1. Relay filters out debug images with completely unknown/unrecognized types during event normalization
+      // 2. Symbolicator finds a debug file but it's incompatible with the event type
+      //    (e.g., trying to symbolicate .NET events with Windows PDB files)
+      // See: https://github.com/getsentry/team-ingest/issues/550
+      return (
+        <Tooltip
+          containerDisplayMode="inline-flex"
+          title={t(
+            'The debug information file format is not supported or compatible with this event type'
+          )}
+        >
+          <IconWarning color="warningText" size="xs" />
+        </Tooltip>
+      );
+    }
     default: {
       Sentry.withScope(scope => {
         scope.setLevel('warning');
