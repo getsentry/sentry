@@ -47,7 +47,7 @@ export function ReleasesDrawerFeatureFlagsTable({
       ...datetime,
       cursor: locationQuery[ReleasesDrawerFields.FLAGS_CURSOR],
       per_page: 10,
-      queryReferrer: 'featureFlagsSettings',
+      queryReferrer: 'releasesDrawer',
     };
   }, [locationQuery, datetime]);
 
