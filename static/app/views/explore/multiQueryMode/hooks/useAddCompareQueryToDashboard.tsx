@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -9,7 +8,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -20,8 +23,6 @@ import {
   getQueryMode,
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-
-const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
 export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) {
   const organization = useOrganization();

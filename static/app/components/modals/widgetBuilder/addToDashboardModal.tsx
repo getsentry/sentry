@@ -30,7 +30,12 @@ import type {
   DashboardListItem,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DEFAULT_WIDGET_NAME,
+  DisplayType,
+  MAX_WIDGETS,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
@@ -81,7 +86,6 @@ export type AddToDashboardModalProps = {
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
-const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
 const DEFAULT_ACTIONS: AddToDashboardModalActions[] = [
   'add-and-stay-on-current-page',
