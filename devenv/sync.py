@@ -91,7 +91,7 @@ def installed_pnpm(version: str, binroot: str) -> bool:
 
     stdout = proc.run((f"{binroot}/pnpm", "--version"), stdout=True)
     installed_version = stdout.strip()
-    return version == installed_version:
+    return version == installed_version
 
 
 def install_pnpm(version: str, reporoot: str) -> None:
