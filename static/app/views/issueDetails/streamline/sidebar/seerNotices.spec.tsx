@@ -1,6 +1,7 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -53,6 +54,7 @@ describe('SeerNotices', function () {
       url: `/projects/${organization.slug}/${ProjectFixture().slug}/autofix-repos/`,
       body: [createRepository()],
     });
+    ConfigStore.set('user', UserFixture());
   });
 
   it('shows automation step if automation is allowed and tuning is off', async () => {
