@@ -532,6 +532,7 @@ export function SearchQueryBuilderValueCombobox({
   const organization = useOrganization();
   const {
     getFieldDefinition,
+    getSuggestedFilterKey,
     filterKeys,
     dispatch,
     searchSource,
@@ -546,7 +547,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -617,6 +618,19 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
+      if (token.filter === FilterType.HAS) {
+        const suggested = getSuggestedFilterKey(value);
+        if (suggested) {
+          dispatch({
+            type: 'UPDATE_TOKEN_VALUE',
+            token,
+            value: suggested,
+          });
+          onCommit();
+          return true;
+        }
+      }
+
       const cleanedValue = cleanFilterValue({
         valueType: getFilterValueType(token, fieldDefinition),
         value,
@@ -682,6 +696,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
       selectedValuesUnescaped,
@@ -815,10 +830,11 @@ export function SearchQueryBuilderValueCombobox({
           return (
             <ValueListBox
               {...props}
+              wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
-              canUseWildcard={canUseWildard}
+              canUseWildcard={canUseWildcard}
             />
           );
         };
@@ -856,10 +872,11 @@ export function SearchQueryBuilderValueCombobox({
       };
     }, [
       showDatePicker,
+      topLevelWrapperRef,
       canSelectMultipleValues,
       items,
       isFetching,
-      canUseWildard,
+      canUseWildcard,
       inputValue,
       token,
       analyticsData,

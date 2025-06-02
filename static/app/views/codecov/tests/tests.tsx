@@ -8,6 +8,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import TestsOnboardingPage from 'sentry/views/codecov/tests/onboarding';
 import {DEFAULT_SORT} from 'sentry/views/codecov/tests/settings';
 import {Summaries} from 'sentry/views/codecov/tests/summaries/summaries';
 import type {ValidSort} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
@@ -77,10 +78,11 @@ export default function TestsPage() {
         <PageFilterBar condensed>
           <RepoPicker />
         </PageFilterBar>
+        {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+        <Summaries />
+        <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
+        <TestsOnboardingPage />
       </CodecovProvider>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
     </LayoutGap>
   );
 }

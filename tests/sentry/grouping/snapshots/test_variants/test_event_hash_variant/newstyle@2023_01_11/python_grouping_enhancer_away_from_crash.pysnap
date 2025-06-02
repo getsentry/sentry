@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:13.058609+00:00'
+created: '2025-05-12T23:41:22.419019+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -55,7 +55,7 @@ app:
               "bound_func"
             context-line*
               "return func(self, *args2, **kwargs2)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)

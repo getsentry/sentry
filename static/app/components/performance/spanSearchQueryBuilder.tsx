@@ -189,22 +189,12 @@ function IndexedSpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
-function EapSpanSearchQueryBuilder({
-  initialQuery,
-  searchSource,
-  datetime,
-  onSearch,
-  onBlur,
-}: SpanSearchQueryBuilderProps) {
+function EapSpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
   const {tags: numberTags} = useSpanTags('number');
   const {tags: stringTags} = useSpanTags('string');
 
   const eapSearchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
-    initialQuery,
-    searchSource,
-    datetime,
-    onSearch,
-    onBlur,
+    ...props,
     numberTags,
     stringTags,
   });
