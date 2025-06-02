@@ -210,8 +210,6 @@ def record_first_profile(project, **kwargs):
 @first_replay_received.connect(weak=False, dispatch_uid="onboarding.record_first_replay")
 def record_first_replay(project, **kwargs):
     logger.info("record_first_replay_start")
-    project.update(flags=F("flags").bitor(Project.flags.has_replays))
-
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.SESSION_REPLAY,
