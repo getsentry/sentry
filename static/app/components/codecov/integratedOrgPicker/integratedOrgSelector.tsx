@@ -1,19 +1,14 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-export type ChangeData = {
-  integratedOrg: string | null;
-};
 
 export interface IntegratedOrgSelectorProps
   extends Omit<
@@ -28,30 +23,17 @@ export interface IntegratedOrgSelectorProps
     | 'onInteractOutside'
     | 'closeOnSelect'
     | 'onKeyDown'
-    // TODO: Remove this once we have a real options prop
     | 'options'
   > {
   /**
    * Message to show in the menu footer
    */
+  chosenOrg?: string | null;
   menuFooterMessage?: React.ReactNode;
-  onChange?: (data: ChangeData) => void;
+  onChange?: (data: string) => void;
 }
 
-const SAMPLE_ORG_ITEMS: Item[] = [
-  {
-    value: 'codecov',
-    label: 'codecov',
-    textValue: 'codecov',
-    index: 0,
-  },
-  {
-    value: 'sentry',
-    label: 'sentry',
-    textValue: 'sentry',
-    index: 1,
-  },
-];
+const SAMPLE_ORG_ITEMS = ['codecov', 'sentry', 'my-other-org-with-a-super-long-name'];
 
 function AddIntegratedOrgButton() {
   return (
@@ -78,7 +60,7 @@ function OrgFooterMessage() {
             To access <Link to="placeholder">Integrated Organization</Link>
           </FooterInfoHeading>
           <FooterInfoSubheading>
-            Ensure you login to the same <Link to="placeholder">GitHub identity</Link>
+            Ensure you log in to the same <Link to="placeholder">GitHub identity</Link>
           </FooterInfoSubheading>
         </div>
       </FlexContainer>
@@ -90,27 +72,32 @@ export function IntegratedOrgSelector({
   onChange,
   onClose,
   trigger,
-  menuWidth,
   menuBody,
   menuFooter,
   menuFooterMessage,
+  chosenOrg,
   ...selectProps
 }: IntegratedOrgSelectorProps) {
-  const getOptions = useCallback((items: Item[]): Array<SelectOption<string>> => {
-    const makeOption = (item: Item): SelectOption<string> => {
+  const options = useMemo((): Array<SelectOption<string>> => {
+    const optionSet = new Set<string>([
+      ...(chosenOrg ? [chosenOrg] : []),
+      ...(SAMPLE_ORG_ITEMS.length ? SAMPLE_ORG_ITEMS : []),
+    ]);
+
+    const makeOption = (value: string): SelectOption<string> => {
       return {
-        value: item.value,
-        label: <OptionLabel>{item.label}</OptionLabel>,
-        textValue: item.searchKey,
+        value,
+        label: <OptionLabel>{value}</OptionLabel>,
+        textValue: value,
       };
     };
 
-    return items.map(makeOption);
-  }, []);
+    return [...optionSet].map(makeOption);
+  }, [chosenOrg]);
 
   const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    option => {
-      onChange?.({relative: option.value, start: undefined, end: undefined});
+    newOrg => {
+      onChange?.(newOrg.value);
     },
     [onChange]
   );
@@ -118,14 +105,11 @@ export function IntegratedOrgSelector({
   return (
     <CompactSelect
       {...selectProps}
-      options={getOptions(SAMPLE_ORG_ITEMS)}
-      // TODO: change this to the selected value from the url or localStorage
-      value="codecov"
+      options={options}
+      value={chosenOrg ?? undefined}
       onChange={handleChange}
+      onClose={onClose}
       closeOnSelect
-      onClose={() => {
-        onClose?.();
-      }}
       trigger={
         trigger ??
         ((triggerProps, isOpen) => {
@@ -133,19 +117,18 @@ export function IntegratedOrgSelector({
             <DropdownButton
               isOpen={isOpen}
               size={selectProps.size}
-              data-test-id="page-filter-timerange-selector"
+              data-test-id="page-filter-integrated-org-selector"
               {...triggerProps}
               {...selectProps.triggerProps}
             >
               <TriggerLabelWrap>
-                {/* TODO: change this to the selected value from the url or localStorage */}
-                <TriggerLabel>{selectProps.triggerLabel}</TriggerLabel>
+                <TriggerLabel>{chosenOrg}</TriggerLabel>
               </TriggerLabelWrap>
             </DropdownButton>
           );
         })
       }
-      menuWidth={menuWidth ?? '20rem'}
+      menuWidth={'22em'}
       menuBody={menuBody}
       menuFooter={
         menuFooter || menuFooterMessage ? (
@@ -240,10 +223,17 @@ const FooterInnerWrap = styled('div')`
 `;
 
 const MenuFooterDivider = styled('div')`
-  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
-  padding: ${space(1)} ${space(1.5)};
-  z-index: 2;
-  margin-top: ${space(1)};
+  position: relative;
+  padding: ${space(1)} 0;
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    height: 1px;
+    left: 0;
+    right: 0;
+    background: ${p => p.theme.border};
+  }
 `;
 
 const FlexContainer = styled('div')`

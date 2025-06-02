@@ -63,6 +63,7 @@ export default function TestsPage() {
         <PageFilterBar condensed>
           <DatePicker />
           <RepoPicker />
+          <IntegratedOrgPicker />
         </PageFilterBar>
         {/* TODO: Conditionally show these if the branch we're in is the main branch */}
         <Summaries />
