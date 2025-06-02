@@ -7,6 +7,7 @@ import {
   interchangeableFilterOperators,
   Token,
   type TokenResult,
+  WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -39,8 +40,6 @@ export function getValidOpsForFilter(
   hasWildcardOperators: boolean
 ): readonly ExtendedTermOperators[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
-  const isTextFilter =
-    filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
 
   if (fieldDefinition?.allowComparisonOperators) {
     const validOps = new Set<ExtendedTermOperators>(
@@ -68,6 +67,8 @@ export function getValidOpsForFilter(
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
+  const isTextFilter =
+    filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
   // Special case for text, add contains operator
   if (isTextFilter && fieldDefinition?.allowWildcard !== false && hasWildcardOperators) {
     validOps.add(ExtendedTermOperators.CONTAINS);
@@ -158,4 +159,70 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
     default:
       return FieldValueType.STRING;
   }
+}
+
+type TokenValue = string | boolean | undefined;
+
+function getIsContains(tokenValue: TokenValue) {
+  return tokenValue === WildcardOperators.SURROUNDED;
+}
+
+function getIsStartsWith(tokenValue: TokenValue) {
+  return tokenValue === WildcardOperators.TRAILING;
+}
+
+function getIsEndsWith(tokenValue: TokenValue) {
+  return tokenValue === WildcardOperators.LEADING;
+}
+
+export function getWildcardLabelAndOperator(token: TokenResult<Token.FILTER>) {
+  if (token.value.type === Token.VALUE_TEXT) {
+    if (getIsContains(token.value.wildcard)) {
+      return {
+        label: token.negated ? t('does not contain') : t('contains'),
+        operator: token.negated
+          ? ExtendedTermOperators.DOES_NOT_CONTAIN
+          : ExtendedTermOperators.CONTAINS,
+      };
+    }
+
+    if (getIsStartsWith(token.value.wildcard)) {
+      return {
+        label: t('starts with'),
+        operator: ExtendedTermOperators.STARTS_WITH,
+      };
+    }
+
+    if (getIsEndsWith(token.value.wildcard)) {
+      return {
+        label: t('ends with'),
+        operator: ExtendedTermOperators.ENDS_WITH,
+      };
+    }
+  } else if (token.value.type === Token.VALUE_TEXT_LIST) {
+    if (getIsContains(token.value.items.every(entry => entry.value?.wildcard))) {
+      return {
+        label: token.negated ? t('does not contain') : t('contains'),
+        operator: token.negated
+          ? ExtendedTermOperators.DOES_NOT_CONTAIN
+          : ExtendedTermOperators.CONTAINS,
+      };
+    }
+
+    if (token.value.items.every(entry => getIsStartsWith(entry.value?.wildcard))) {
+      return {
+        label: t('starts with'),
+        operator: ExtendedTermOperators.STARTS_WITH,
+      };
+    }
+
+    if (token.value.items.every(entry => getIsEndsWith(entry.value?.wildcard))) {
+      return {
+        label: t('ends with'),
+        operator: ExtendedTermOperators.ENDS_WITH,
+      };
+    }
+  }
+
+  return null;
 }
