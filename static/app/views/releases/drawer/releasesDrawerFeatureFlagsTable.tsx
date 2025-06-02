@@ -1,11 +1,13 @@
 import {useMemo} from 'react';
 
+import {Alert} from 'sentry/components/core/alert';
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {useFlagsInEventPaginated} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -56,12 +58,26 @@ export function ReleasesDrawerFeatureFlagsTable({
     enabled: Boolean(eventId && groupId),
   });
 
+  if (isPending) {
+    return <Placeholder />;
+  }
+
+  if (error) {
+    return <Alert type="error">{t('Error fetching feature flags')}</Alert>;
+  }
+
+  // If there are no flags, don't render anything
+  // TOOD: Add a CTA
+  if (flags.length === 0) {
+    return null;
+  }
+
   return (
     <FeatureFlagsLogTable
       columns={BASE_COLUMNS}
       flags={flags}
-      isPending={isPending}
-      error={error}
+      isPending={false}
+      error={null}
       pageLinks={pageLinks}
       cursorKeyName={ReleasesDrawerFields.FLAGS_CURSOR}
       onRowMouseOver={onRowMouseOver}
