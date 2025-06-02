@@ -18,6 +18,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Collapsible} from 'sentry/views/nav/collapsible';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -176,7 +177,9 @@ SecondaryNav.Section = function SecondaryNavSection({
           setIsCollapsed={setIsCollapsedState}
         />
       ) : null}
-      {isCollapsed ? null : children}
+      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+        {children}
+      </Collapsible>
     </Section>
   );
 };
@@ -240,6 +243,14 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
   return <Footer layout={layout}>{children}</Footer>;
 };
 
+function SectionSeparator() {
+  return (
+    <SeparatorWrapper data-separator>
+      <Separator />
+    </SeparatorWrapper>
+  );
+}
+
 const Wrapper = styled('div')`
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -289,7 +300,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 
   /* Hide separators if there is not a previous section */
   [data-nav-section] + & {
-    > hr {
+    > [data-separator] {
       display: block;
     }
   }
@@ -298,7 +309,6 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.fontWeightBold};
   color: ${p.theme.textColor};
-  margin: ${space(1)} 0 ${space(0.5)} 0;
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&
@@ -339,12 +349,15 @@ const TrailingItems = styled('div')`
   flex-shrink: 0;
 `;
 
-const SectionSeparator = styled('hr')`
+const SeparatorWrapper = styled('div')`
+  padding: ${space(1.5)} 0;
   display: none;
+`;
 
+const Separator = styled('hr')`
   height: 1px;
   background: ${p => p.theme.innerBorder};
-  margin: ${space(1.5)} ${space(1)};
+  margin: 0 ${space(1)};
   border: none;
 `;
 
