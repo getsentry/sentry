@@ -182,11 +182,6 @@ def traces_sampler(sampling_context):
     if wsgi_path and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
-    # make it fail to I know what tests use this.
-    custom_sample_rate = sampling_context.get("attributes", {}).get("sample_rate")
-    if custom_sample_rate is not None:
-        raise Exception("some error")
-
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
