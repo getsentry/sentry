@@ -82,7 +82,7 @@ jest.mock('@tanstack/react-virtual', () => {
 
 describe('LogsInfiniteTable', function () {
   const organization = OrganizationFixture({
-    features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-live-refresh'],
+    features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-infinite-scroll'],
   });
   const project = ProjectFixture();
 
