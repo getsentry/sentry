@@ -35,7 +35,6 @@ import {
   IconSiren,
   IconStats,
   IconTelescope,
-  IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -269,16 +268,6 @@ function Sidebar() {
     />
   );
 
-  const monitors = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconTimer />}
-      label={t('Crons')}
-      to={`/organizations/${organization.slug}/crons/`}
-      id="crons"
-    />
-  );
-
   const replays = hasOrganization && (
     <Feature
       hookName="feature-disabled:replay-sidebar-item"
@@ -404,6 +393,22 @@ function Sidebar() {
             icon={<SubitemDot collapsed />}
           />
         </AgentInsightsFeature>
+        <SidebarItem
+          {...sidebarItemProps}
+          label={t('Crons')}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/crons/`}
+          id="performance-crons"
+          icon={<SubitemDot collapsed />}
+        />
+        <Feature features={['uptime']} organization={organization}>
+          <SidebarItem
+            {...sidebarItemProps}
+            label={t('Uptime')}
+            to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/uptime/`}
+            id="performance-uptime"
+            icon={<SubitemDot collapsed />}
+          />
+        </Feature>
       </SidebarAccordion>
     </Feature>
   );
@@ -458,7 +463,6 @@ function Sidebar() {
 
                     <SidebarSection>
                       {feedback}
-                      {monitors}
                       {alerts}
                       {dashboards}
                       {releases}

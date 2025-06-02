@@ -86,7 +86,7 @@
           "type": "valueText",
           "value": "-2w",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {

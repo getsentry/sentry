@@ -226,6 +226,8 @@ const iOSDeviceMapping: Record<string, string> = {
   'AppleTV6,2': 'Apple TV 4K',
   'AppleTV11,1': 'Apple TV 4K (2nd generation)',
   'AppleTV14,1': 'Apple TV 4K (3rd generation)',
+  // Apple Vision Pro
+  'RealityDevice14,1': 'Apple Vision Pro',
 };
 
 export {iOSDeviceMapping};
