@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
-from sentry.autofix.utils import AutofixStatus, get_autofix_state
+from sentry.autofix.utils import AutofixStatus, SeerAutomationSource, get_autofix_state
 from sentry.models.group import Group
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -42,6 +42,7 @@ def check_autofix_status(run_id: int):
     soft_time_limit=25,
     taskworker_config=TaskworkerConfig(
         namespace=ingest_errors_tasks,
+        processing_deadline_duration=35,
         retry=Retry(
             times=1,
         ),
@@ -51,4 +52,4 @@ def start_seer_automation(group_id: int):
     from sentry.seer.issue_summary import get_issue_summary
 
     group = Group.objects.get(id=group_id)
-    get_issue_summary(group=group, source="post_process")
+    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)

@@ -10,6 +10,17 @@ The number of tasks a worker will process before it
 selects a new broker instance.
 """
 
+DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS = 3
+"""
+The number of consecutive unavailable errors before the worker will
+stop trying to connect to the broker and choose a new one.
+"""
+
+DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT = 20
+"""
+The number of seconds to wait before a host is considered available again.
+"""
+
 DEFAULT_WORKER_QUEUE_SIZE = 5
 """
 The size of multiprocessing.Queue used to communicate

@@ -14,7 +14,7 @@ describe('useDragNDropColumns', () => {
   it('should insert a column', () => {
     let columns!: string[];
     let setColumns: (columns: string[]) => void;
-    let insertColumn: ReturnType<typeof useDragNDropColumns>['insertColumn'];
+    let insertColumn: (column?: string) => void;
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
@@ -27,8 +27,12 @@ describe('useDragNDropColumns', () => {
     act(() => {
       insertColumn();
     });
-
     expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '']);
+
+    act(() => {
+      insertColumn('span.description');
+    });
+    expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '', 'span.description']);
   });
 
   it('should update a column at a specific index', () => {
