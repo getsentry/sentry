@@ -13,7 +13,7 @@ from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimenta
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.environment import Environment
-from sentry.models.project import Project
+from sentry.models.project import Organization, Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -47,7 +47,11 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     try:
         with metrics.timer("spans.consumers.process_segments.get_project"):
             project = Project.objects.get_from_cache(id=segment_span["project_id"])
-    except Project.DoesNotExist:
+
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+    except (Project.DoesNotExist, Organization.DoesNotExist):
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
