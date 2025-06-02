@@ -89,9 +89,9 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ],
   },
   brokenMonitors: {
-    title: t('Broken Monitors'),
+    title: t('Broken Cron Monitors'),
     description: t(
-      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+      'Notifications for Cron Monitors that have been in a failing state for a prolonged period of time'
     ),
     type: 'select',
     options: [
