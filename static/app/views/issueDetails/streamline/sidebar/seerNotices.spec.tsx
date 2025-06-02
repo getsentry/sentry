@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
 describe('SeerNotices', function () {
@@ -110,10 +111,17 @@ describe('SeerNotices', function () {
       },
     });
     const project = getProjectWithAutomation('high');
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user').options,
+        prefersStackedNavigation: true,
+      },
+    });
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization: {
         ...organization,
-        features: ['issue-stream-custom-views', 'trigger-autofix-on-issue-summary'],
+        features: ['trigger-autofix-on-issue-summary'],
       },
     });
     expect(screen.getByText('Get Some Quick Wins')).toBeInTheDocument();
