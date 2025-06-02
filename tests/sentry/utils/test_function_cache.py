@@ -83,6 +83,29 @@ class CacheFuncForModelsTest(TestCase):
         self.assert_called_with_count(mock_test_func, "test", 3)
         assert decorated_test_func("test") == 2
 
+    def test_batch(self):
+        mock_test_func = create_autospec(count_func)
+        mock_test_func.side_effect = count_func
+        decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)])(mock_test_func)
+
+        results = decorated_test_func.batch([("test1",), ("test2",), ("test3",)])
+        assert results == [0, 0, 0]
+        assert mock_test_func.call_count == 3
+
+        results = decorated_test_func.batch([("test1",), ("test2",), ("test3",)])
+        assert results == [0, 0, 0]
+        assert mock_test_func.call_count == 3
+
+        results = decorated_test_func.batch([("test1",), ("test4",), ("test3",)])
+        assert results == [0, 0, 0]
+        assert mock_test_func.call_count == 4
+
+        CacheModel.objects.create(some_field="test1")
+
+        results = decorated_test_func.batch([("test1",), ("test2",), ("test3",)])
+        assert results == [1, 0, 0]
+        assert mock_test_func.call_count == 5
+
 
 class CacheFuncTest(TestCase):
     def assert_called_with_count(self, mock_test_func, text_search: str, count: int):
@@ -105,3 +128,37 @@ class CacheFuncTest(TestCase):
         self.assert_called_with_count(mock_test_func, "test_2", 1)
         assert decorated_test_func("test_2") == "test_2_yay"
         self.assert_called_with_count(mock_test_func, "test_2", 1)
+
+    def test_batch(self):
+        mock_test_func = create_autospec(simple_func)
+        mock_test_func.side_effect = simple_func
+
+        decorated_test_func = cache_func()(mock_test_func)
+
+        self.assert_called_with_count(mock_test_func, "test1", 0)
+        self.assert_called_with_count(mock_test_func, "test2", 0)
+        self.assert_called_with_count(mock_test_func, "test3", 0)
+
+        args_list = [("test1",), ("test2",), ("test3",), ("test1",)]
+
+        results = decorated_test_func.batch(args_list)
+        assert results == ["test1_yay", "test2_yay", "test3_yay", "test1_yay"]
+        self.assert_called_with_count(mock_test_func, "test1", 1)
+        self.assert_called_with_count(mock_test_func, "test2", 1)
+        self.assert_called_with_count(mock_test_func, "test3", 1)
+        assert mock_test_func.call_count == 3
+
+        mock_test_func.reset_mock()
+        results = decorated_test_func.batch(args_list)
+        assert results == ["test1_yay", "test2_yay", "test3_yay", "test1_yay"]
+        assert mock_test_func.call_count == 0
+
+        mock_test_func.reset_mock()
+        mixed_args_list = [("test1",), ("test4",), ("test2",), ("test5",)]
+        results = decorated_test_func.batch(mixed_args_list)
+        assert results == ["test1_yay", "test4_yay", "test2_yay", "test5_yay"]
+        self.assert_called_with_count(mock_test_func, "test1", 0)
+        self.assert_called_with_count(mock_test_func, "test2", 0)
+        self.assert_called_with_count(mock_test_func, "test4", 1)
+        self.assert_called_with_count(mock_test_func, "test5", 1)
+        assert mock_test_func.call_count == 2
