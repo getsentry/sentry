@@ -225,22 +225,21 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, Any]:
+def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, dict[str, Any]]:
     settings = get_merged_settings(project_id)
 
     return {
-        DetectorType.SLOW_DB_QUERY: [
-            {
-                "duration_threshold": settings["slow_db_query_duration_threshold"],  # ms
-                "allowed_span_ops": ["db"],
-                "detection_enabled": settings["slow_db_queries_detection_enabled"],
-            },
-        ],
+        DetectorType.SLOW_DB_QUERY: {
+            "duration_threshold": settings["slow_db_query_duration_threshold"],  # ms
+            "allowed_span_ops": ["db"],
+            "detection_enabled": settings["slow_db_queries_detection_enabled"],
+        },
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
             "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
             "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
             "minimum_size_bytes": settings["render_blocking_bytes_min"],  # in bytes
+            "maximum_size_bytes": 1_000_000_000,  # 1GB
             "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
@@ -263,20 +262,16 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "consecutive_count_threshold": 2,
             "detection_enabled": settings["consecutive_db_queries_detection_enabled"],
         },
-        DetectorType.FILE_IO_MAIN_THREAD: [
-            {
-                # 16ms is when frame drops will start being evident
-                "duration_threshold": settings["file_io_on_main_thread_duration_threshold"],
-                "detection_enabled": settings["file_io_on_main_thread_detection_enabled"],
-            }
-        ],
-        DetectorType.DB_MAIN_THREAD: [
-            {
-                # Basically the same as file io, but db instead, so continue using 16ms
-                "duration_threshold": settings["db_on_main_thread_duration_threshold"],
-                "detection_enabled": settings["db_on_main_thread_detection_enabled"],
-            }
-        ],
+        DetectorType.FILE_IO_MAIN_THREAD: {
+            # 16ms is when frame drops will start being evident
+            "duration_threshold": settings["file_io_on_main_thread_duration_threshold"],
+            "detection_enabled": settings["file_io_on_main_thread_detection_enabled"],
+        },
+        DetectorType.DB_MAIN_THREAD: {
+            # Basically the same as file io, but db instead, so continue using 16ms
+            "duration_threshold": settings["db_on_main_thread_duration_threshold"],
+            "detection_enabled": settings["db_on_main_thread_detection_enabled"],
+        },
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 5,  # ms
@@ -325,6 +320,7 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
+            "minimum_span_duration": 100,  # ms
         },
         DetectorType.HTTP_OVERHEAD: {
             "http_request_delay_threshold": settings["http_request_delay_threshold"],

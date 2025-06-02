@@ -3,10 +3,12 @@ import {DataCategory} from 'sentry/types/core';
 import type {
   PendingReservedBudget as TPendingReservedBudget,
   ReservedBudget as TReservedBudget,
+  ReservedBudgetCategory as TReservedBudgetCategory,
   ReservedBudgetMetricHistory as TReservedBudgetMetricHistory,
 } from 'getsentry/types';
 import {ReservedBudgetCategoryType} from 'getsentry/types';
 
+type ReservedBudgetCategoryProps = Partial<TReservedBudgetCategory>;
 type BudgetProps = Partial<TReservedBudget>;
 type MetricHistoryProps = Partial<TReservedBudgetMetricHistory>;
 type PendingBudgetProps = Partial<TPendingReservedBudget>;
@@ -21,6 +23,7 @@ export function ReservedBudgetFixture(props: BudgetProps) {
     defaultBudget: null,
     dataCategories: [],
     productName: '',
+    productCheckoutName: '',
     canProductTrial: false,
     billingFlag: null,
   };
@@ -54,10 +57,27 @@ export function ReservedBudgetMetricHistoryFixture(props: MetricHistoryProps) {
   };
 }
 
+export function SeerReservedBudgetCategoryFixture(props: ReservedBudgetCategoryProps) {
+  return {
+    budgetCategoryType: 'SEER',
+    apiName: ReservedBudgetCategoryType.SEER,
+    billingFlag: 'seer-billing',
+    canProductTrial: true,
+    name: 'seer budget',
+    docLink: '', // TODO(seer): add quota doc link
+    isFixed: true,
+    defaultBudget: 25_00,
+    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+    productName: 'seer',
+    productCheckoutName: 'seer AI agent',
+    ...props,
+  };
+}
+
 export function SeerReservedBudgetFixture(props: BudgetProps) {
   const defaultProps = {
     id: '',
-    reservedBudget: 20_00,
+    reservedBudget: 25_00,
     categories: {
       [DataCategory.SEER_AUTOFIX]: ReservedBudgetMetricHistoryFixture({
         reservedCpe: 1_00,
@@ -68,20 +88,30 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
         reservedSpend: 0,
       }),
     },
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    billingFlag: 'seer-billing',
-    apiName: ReservedBudgetCategoryType.SEER,
+    ...SeerReservedBudgetCategoryFixture(props),
     ...props,
   };
 
   return ReservedBudgetFixture(defaultProps);
+}
+
+export function DynamicSamplingReservedBudgetCategoryFixture(
+  props: ReservedBudgetCategoryProps
+) {
+  return {
+    budgetCategoryType: 'DYNAMIC_SAMPLING',
+    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+    billingFlag: null,
+    canProductTrial: false,
+    name: 'spans budget',
+    docLink: '',
+    isFixed: false,
+    defaultBudget: null,
+    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
+    productName: 'dynamic sampling',
+    productCheckoutName: 'dynamic sampling',
+    ...props,
+  };
 }
 
 export function DynamicSamplingReservedBudgetFixture(props: BudgetProps) {
@@ -98,16 +128,7 @@ export function DynamicSamplingReservedBudgetFixture(props: BudgetProps) {
         reservedSpend: 0,
       }),
     },
-    budgetCategoryType: 'DYNAMIC_SAMPLING',
-    name: 'spans budget',
-    docLink: '',
-    isFixed: false,
-    defaultBudget: null,
-    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
-    productName: 'dynamic sampling',
-    canProductTrial: false,
-    billingFlag: null,
-    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+    ...DynamicSamplingReservedBudgetCategoryFixture(props),
     ...props,
   };
 

@@ -4,20 +4,23 @@ import * as qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +32,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   CronsLandingPanel,
   isValidGuide,
@@ -40,19 +42,13 @@ import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewT
 import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {makeMonitorListErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
-import {
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/crons/settings';
+import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
 import type {
   CheckinProcessingError,
   Monitor,
   ProcessingErrorType,
 } from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName} from 'sentry/views/insights/types';
 
 const CronsListPageHeader = HookOrDefault({
   hookName: 'component:crons-list-page-header',
@@ -105,22 +101,22 @@ function CronsOverview() {
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
-  return (
+  const page = (
     <Fragment>
       <CronsListPageHeader organization={organization} />
-      <BackendHeader
-        headerTitle={
-          <Fragment>
-            <GuideAnchor target="crons_backend_insights">{MODULE_TITLE}</GuideAnchor>
+      <Layout.Header unified>
+        <Layout.HeaderContent>
+          <Layout.Title>
+            {t('Cron Monitors')}
             <PageHeadingQuestionTooltip
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-          </Fragment>
-        }
-        module={ModuleName.CRONS}
-        headerActions={
+          </Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
             <Button
               icon={<IconList />}
               size="sm"
@@ -140,8 +136,8 @@ function CronsOverview() {
               </NewMonitorButton>
             )}
           </ButtonBar>
-        }
-      />
+        </Layout.HeaderActions>
+      </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
           <Filters>
@@ -192,17 +188,17 @@ function CronsOverview() {
       </Layout.Body>
     </Fragment>
   );
-}
 
-function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="crons" pageTitle={t('Overview')}>
-      <CronsOverview />
-    </ModulePageProviders>
+    <NoProjectMessage organization={organization}>
+      <SentryDocumentTitle title={t('Cron Monitors')} orgSlug={organization.slug}>
+        <PageFiltersContainer>{page}</PageFiltersContainer>
+      </SentryDocumentTitle>
+    </NoProjectMessage>
   );
 }
 
-export default PageWithProviders;
+export default CronsOverview;
 
 const Filters = styled('div')`
   display: flex;

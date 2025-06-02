@@ -27,6 +27,11 @@ export default function ReplayDetailsPage({readerResult}: Props) {
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
         </Layout.Page>
       )}
+      renderThrottled={({fetchError, onRetry}) => (
+        <Layout.Page withPadding>
+          <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
+        </Layout.Page>
+      )}
       renderLoading={({replayRecord}) => (
         <ReplaysLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
       )}

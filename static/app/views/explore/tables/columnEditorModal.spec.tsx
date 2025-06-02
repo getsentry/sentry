@@ -2,20 +2,24 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
 const stringTags: TagCollection = {
   id: {
     key: 'id',
     name: 'id',
+    kind: FieldKind.TAG,
   },
   project: {
     key: 'project',
     name: 'project',
+    kind: FieldKind.TAG,
   },
   'span.op': {
     key: 'span.op',
     name: 'span.op',
+    kind: FieldKind.TAG,
   },
 };
 
@@ -23,15 +27,11 @@ const numberTags: TagCollection = {
   'span.duration': {
     key: 'span.duration',
     name: 'span.duration',
+    kind: FieldKind.MEASUREMENT,
   },
 };
 
 describe('ColumnEditorModal', function () {
-  beforeEach(function () {
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-  });
-
   it('allows closes modal on apply', async function () {
     const onClose = jest.fn();
 

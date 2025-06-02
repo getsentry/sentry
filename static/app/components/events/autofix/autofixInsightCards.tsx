@@ -13,9 +13,10 @@ import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRo
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
-import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -145,6 +146,8 @@ function AutofixInsightCard({
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleSubmit(e);
+                        } else if (e.key === 'Escape') {
+                          handleCancel();
                         }
                       }}
                     />
@@ -162,10 +165,18 @@ function AutofixInsightCard({
                         type="submit"
                         priority="primary"
                         size="sm"
-                        title={t('Rethink the answer')}
-                        aria-label={t('Rethink the answer')}
+                        title={t('Redo work from here')}
+                        aria-label={t('Redo work from here')}
+                        analyticsEventName="Autofix: Insight Card Rethink Open"
+                        analyticsEventKey="autofix.insight.rethink_open"
+                        analyticsParams={{
+                          insight_card_index: index,
+                          step_index: stepIndex,
+                          group_id: groupId,
+                          run_id: runId,
+                        }}
                       >
-                        <IconRefresh size="sm" />
+                        {'\u23CE'}
                       </Button>
                     </ButtonBar>
                   </EditFormRow>
@@ -197,7 +208,7 @@ function AutofixInsightCard({
                       title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                       icon={
                         <StyledIconChevron
-                          direction={isExpanded ? 'down' : 'right'}
+                          direction={isExpanded ? 'up' : 'down'}
                           size="xs"
                         />
                       }
@@ -208,9 +219,17 @@ function AutofixInsightCard({
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    icon={<IconRefresh size="xs" />}
+                    icon={<FlippedReturnIcon />}
                     aria-label={t('Edit insight')}
                     title={t('Rethink the answer from here')}
+                    analyticsEventName="Autofix: Insight Card Rethink"
+                    analyticsEventKey="autofix.insight.rethink"
+                    analyticsParams={{
+                      insight_card_index: index,
+                      step_index: stepIndex,
+                      group_id: groupId,
+                      run_id: runId,
+                    }}
                   />
                 </RightSection>
               </InsightCardRow>
@@ -305,6 +324,8 @@ function CollapsibleChainLink({
   const [newInsightText, setNewInsightText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
 
+  const organization = useOrganization();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(false);
@@ -312,9 +333,16 @@ function CollapsibleChainLink({
       message: newInsightText,
       step_index: stepIndex,
       retain_insight_card_index:
-        insightCount !== undefined && insightCount > 0 ? insightCount - 1 : null,
+        insightCount !== undefined && insightCount > 0 ? insightCount : null,
     });
     setNewInsightText('');
+
+    trackAnalytics('autofix.step.rethink', {
+      step_index: stepIndex,
+      group_id: groupId,
+      run_id: runId,
+      organization,
+    });
   };
 
   const handleCancel = () => {
@@ -342,10 +370,7 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               icon={
-                <CollapseIconChevron
-                  direction={isCollapsed ? 'right' : 'down'}
-                  size="sm"
-                />
+                <CollapseIconChevron direction={isCollapsed ? 'down' : 'up'} size="sm" />
               }
               aria-label={t('Toggle reasoning visibility')}
             />
@@ -372,6 +397,8 @@ function CollapsibleChainLink({
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSubmit(e);
+                      } else if (e.key === 'Escape') {
+                        handleCancel();
                       }
                     }}
                   />
@@ -388,10 +415,10 @@ function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Rethink the answer')}
-                      aria-label={t('Rethink the answer')}
+                      title={t('Redo work from here')}
+                      aria-label={t('Redo work from here')}
                     >
-                      <IconRefresh size="sm" />
+                      {'\u23CE'}
                     </Button>
                   </ButtonBar>
                 </EditFormRow>
@@ -402,10 +429,19 @@ function CollapsibleChainLink({
               size="zero"
               borderless
               onClick={() => setIsAdding(true)}
-              icon={<IconRefresh size="sm" />}
               title={t('Give feedback and rethink the answer')}
               aria-label={t('Give feedback and rethink the answer')}
-            />
+              analyticsEventName="Autofix: Step Rethink Open"
+              analyticsEventKey="autofix.step.rethink_open"
+              analyticsParams={{
+                step_index: stepIndex,
+                group_id: groupId,
+                run_id: runId,
+              }}
+            >
+              <RethinkLabel>{t('Rethink this answer')}</RethinkLabel>
+              <FlippedReturnIcon />
+            </AddButton>
           ))}
       </RethinkButtonContainer>
     </VerticalLineContainer>
@@ -531,7 +567,7 @@ function AutofixInsightCards({
   );
 }
 
-function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const orgSlug = useOrganization().slug;
@@ -819,4 +855,21 @@ const AddButton = styled(Button)`
   }
 `;
 
+function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
+  return <CheckpointIcon {...props}>{'\u21A9'}</CheckpointIcon>;
+}
+
 export default AutofixInsightCards;
+
+const CheckpointIcon = styled('span')`
+  transform: scaleY(-1);
+  margin-bottom: ${space(0.5)};
+`;
+
+const RethinkLabel = styled('span')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-right: ${space(0.5)};
+`;

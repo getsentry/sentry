@@ -6,8 +6,7 @@ import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RspackPluginInstance,
-  RuleSetRule,
+  SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
@@ -19,6 +18,7 @@ import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
+import packageJson from './package.json';
 
 const {env} = process;
 
@@ -168,7 +168,13 @@ for (const locale of supportedLocales) {
   };
 }
 
-const swcReactLoaderConfig: RuleSetRule['options'] = {
+const swcReactLoaderConfig: SwcLoaderOptions = {
+  env: {
+    mode: 'usage',
+    // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+    coreJs: '3.41',
+    targets: packageJson.browserslist.production,
+  },
   jsc: {
     experimental: {
       plugins: [
@@ -190,11 +196,12 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
-        refresh: DEV_MODE,
+        refresh: SHOULD_HOT_MODULE_RELOAD,
         importSource: '@emotion/react',
       },
     },
   },
+  isModule: 'unknown',
 };
 
 /**
@@ -204,6 +211,9 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   target: 'browserslist',
+  // Fail on first error instead of continuing to build
+  // https://rspack.rs/config/other-options#bail
+  bail: IS_PRODUCTION,
   entry: {
     /**
      * Main Sentry SPA
@@ -232,7 +242,11 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentsincremental
     incremental: DEV_MODE,
     futureDefaults: true,
-    css: true,
+    // Native css parsing not working in production
+    // Build production bundle and open the entrypoints/sentry.css file
+    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
+    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
+    css: false,
   },
   module: {
     /**
@@ -242,7 +256,8 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        exclude: /\/node_modules\//,
+        // Avoids recompiling core-js based on usage imports
+        exclude: /node_modules[\\/]core-js/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -274,13 +289,21 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css/,
-        type: 'css',
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: ['less-loader'],
-        type: 'css',
+        use: [
+          {
+            loader: rspack.CssExtractRspackPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -323,6 +346,16 @@ const appConfig: Configuration = {
     new rspack.ProvidePlugin({
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
+    }),
+
+    /**
+     * Extract CSS into separate files.
+     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
+     */
+    new rspack.CssExtractRspackPlugin({
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: 'entrypoints/[name].css',
     }),
 
     /**
@@ -465,15 +498,7 @@ if (IS_TEST) {
     'js-stubs'
   );
 }
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['integration-docs-platforms'] =
-    path.join(__dirname, 'fixtures/integration-docs/_platforms.json');
-} else {
-  // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  // appConfig.plugins?.push(plugin);
-  // appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
-}
-//
+
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
@@ -724,18 +749,40 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   );
 }
 
-const minificationPlugins: RspackPluginInstance[] = [
+if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  new CompressionPlugin({
-    algorithm: 'gzip',
-    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as unknown as RspackPluginInstance,
-];
+  appConfig.plugins?.push(
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+    })
+  );
 
-if (IS_PRODUCTION) {
-  appConfig.plugins?.push(...minificationPlugins);
+  // Enable sentry-webpack-plugin for production builds
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Only enable in production, annotating is slow in development
+        enabled: true,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -770,28 +817,5 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      // Enabled only in production because annotating is slow
-      enabled: IS_PRODUCTION,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;
