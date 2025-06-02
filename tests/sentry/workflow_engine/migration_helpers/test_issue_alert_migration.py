@@ -20,7 +20,12 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
+    IssueAlertMigrator,
+    UnableToAcquireLockApiError,
+    ensure_default_error_detector,
+)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -431,3 +436,31 @@ class IssueAlertMigratorTest(TestCase):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
         self.assert_nothing_migrated(self.issue_alert)
+
+
+class TestEnsureDefaultErrorDetector(TestCase):
+    def test_ensure_default_error_detector(self):
+        project = self.create_project()
+        detector = ensure_default_error_detector(project)
+        assert detector.name == "Error Detector"
+        assert detector.project_id == project.id
+        assert detector.type == ErrorGroupType.slug
+
+    def test_ensure_default_error_detector__already_exists(self):
+        project = self.create_project()
+        detector = ensure_default_error_detector(project)
+        with patch(
+            "sentry.workflow_engine.migration_helpers.issue_alert_migration.locks.get"
+        ) as mock_lock:
+            assert ensure_default_error_detector(project).id == detector.id
+            # No lock if it already exists.
+            mock_lock.assert_not_called()
+
+    def test_ensure_default_error_detector__lock_fails(self):
+        project = self.create_project()
+        with patch(
+            "sentry.workflow_engine.migration_helpers.issue_alert_migration.locks.get"
+        ) as mock_lock:
+            mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
+            with pytest.raises(UnableToAcquireLockApiError):
+                ensure_default_error_detector(project)

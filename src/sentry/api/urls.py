@@ -38,6 +38,9 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
 )
+from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    OrganizationTraceItemsAttributesRankedEndpoint,
+)
 from sentry.api.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
@@ -230,6 +233,9 @@ from sentry.monitors.endpoints.organization_monitor_environment_details import (
     OrganizationMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
+from sentry.monitors.endpoints.organization_monitor_index_count import (
+    OrganizationMonitorIndexCountEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
 )
@@ -370,6 +376,9 @@ from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpo
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
+)
+from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
+    OrganizationUptimeAlertIndexCountEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -607,6 +616,8 @@ from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoi
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_trace import OrganizationTraceEndpoint
+from .endpoints.organization_trace_logs import OrganizationTraceLogsEndpoint
+from .endpoints.organization_trace_meta import OrganizationTraceMetaEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
@@ -642,6 +653,7 @@ from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
@@ -1527,6 +1539,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attribute-values",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/ranked/$",
+        OrganizationTraceItemsAttributesRankedEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes-ranked",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/$",
         OrganizationSpansFieldsEndpoint.as_view(),
         name="sentry-api-0-organization-spans-fields",
@@ -1674,6 +1691,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        OrganizationTraceMetaEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-meta",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-logs/$",
+        OrganizationTraceLogsEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-logs",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace-summary/$",
         OrganizationTraceSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-trace-summary",
@@ -1794,6 +1821,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors/$",
         OrganizationMonitorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors-count/$",
+        OrganizationMonitorIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-index-count",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors-stats/$",
@@ -2305,6 +2337,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime/$",
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-count/$",
+        OrganizationUptimeAlertIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-index-count",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
@@ -2840,6 +2877,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_chunks/(?P<profiler_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/(?P<chunk_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        ProjectProfilingRawChunkEndpoint.as_view(),
+        name="sentry-api-0-project-profiling-raw-chunk",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/statistical-detector/$",

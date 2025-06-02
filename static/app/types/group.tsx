@@ -114,6 +114,7 @@ export const VALID_ISSUE_CATEGORIES_V2 = [
   IssueCategory.HTTP_CLIENT,
   IssueCategory.FRONTEND,
   IssueCategory.MOBILE,
+  IssueCategory.FEEDBACK,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -465,7 +466,6 @@ export enum GroupActivityType {
 interface GroupActivityBase {
   dateCreated: string;
   id: string;
-  project: Project;
   assignee?: string;
   issue?: Group;
   user?: null | User;

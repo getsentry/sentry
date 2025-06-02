@@ -35,7 +35,7 @@ const httpClientConfig: IssueCategoryConfigMapping = {
       replays: {enabled: true},
       tagsTab: {enabled: true},
     },
-    autofix: false,
+    autofix: true,
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     stacktrace: {enabled: false},
@@ -43,7 +43,7 @@ const httpClientConfig: IssueCategoryConfigMapping = {
     // Performance issues render a custom SpanEvidence component
     evidence: null,
     usesIssuePlatform: true,
-    issueSummary: {enabled: false},
+    issueSummary: {enabled: true},
   },
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: {
     resources: {

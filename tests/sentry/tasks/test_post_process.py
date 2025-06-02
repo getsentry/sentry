@@ -2609,7 +2609,7 @@ class PostProcessGroupErrorTest(
             cache_key=cache_key,
             group_id=event.group_id,
             project_id=event.project_id,
-            eventstream_type=EventStreamEventType.Error,
+            eventstream_type=EventStreamEventType.Error.value,
         )
         return cache_key
 
@@ -2665,6 +2665,7 @@ class PostProcessGroupPerformanceTest(
     SnoozeTestMixin,
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
+    KickOffSeerAutomationTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
@@ -2684,7 +2685,7 @@ class PostProcessGroupPerformanceTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
 
@@ -2724,7 +2725,7 @@ class PostProcessGroupPerformanceTest(
             group_id=event.group_id,
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Error,
+            eventstream_type=EventStreamEventType.Error.value,
         )
 
         assert event_processed_signal_mock.call_count == 0
@@ -2770,7 +2771,7 @@ class PostProcessGroupAggregateEventTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
 
@@ -2783,6 +2784,7 @@ class PostProcessGroupGenericTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    KickOffSeerAutomationTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         data["type"] = "generic"
@@ -2809,7 +2811,7 @@ class PostProcessGroupGenericTest(
             group_id=event.group_id,
             occurrence_id=event.occurrence.id,
             project_id=event.group.project_id,
-            eventstream_type=EventStreamEventType.Generic,
+            eventstream_type=EventStreamEventType.Generic.value,
         )
         return cache_key
 
@@ -2964,7 +2966,7 @@ class PostProcessGroupFeedbackTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
             )
         return cache_key
 

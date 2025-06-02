@@ -6,11 +6,13 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {SelectableRepoItem} from './selectableRepoItem';
 
@@ -48,6 +50,7 @@ export function AddAutofixRepoModalContent({
   isFetchingRepositories,
   maxReposLimit,
 }: Props) {
+  const organization = useOrganization();
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
   const [modalSelectedRepoIds, setModalSelectedRepoIds] =
@@ -180,25 +183,44 @@ export function AddAutofixRepoModalContent({
         )}
       </Body>
       <Footer>
-        <Button
-          priority="primary"
-          onClick={() => {
-            onSave(modalSelectedRepoIds);
-            closeModal();
-          }}
-        >
-          {newModalSelectedRepoIds.length > 0
-            ? tn(
-                'Add %s Repository',
-                'Add %s Repositories',
-                newModalSelectedRepoIds.length
-              )
-            : t('Done')}
-        </Button>
+        <FooterRow>
+          <div>
+            {tct(
+              "Don't see the repo you want? [manageRepositoriesLink:Manage repositories here.]",
+              {
+                manageRepositoriesLink: (
+                  <Link to={`/settings/${organization.slug}/repos/`} />
+                ),
+              }
+            )}
+          </div>
+          <Button
+            priority="primary"
+            onClick={() => {
+              onSave(modalSelectedRepoIds);
+              closeModal();
+            }}
+          >
+            {newModalSelectedRepoIds.length > 0
+              ? tn(
+                  'Add %s Repository',
+                  'Add %s Repositories',
+                  newModalSelectedRepoIds.length
+                )
+              : t('Done')}
+          </Button>
+        </FooterRow>
       </Footer>
     </Fragment>
   );
 }
+
+const FooterRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
 
 const ModalReposContainer = styled('div')`
   height: 35vh;

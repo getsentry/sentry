@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
@@ -169,6 +170,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             return Response(status=403)
 
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+        detector.update(status=ObjectStatus.PENDING_DELETION)
         create_audit_entry(
             request=request,
             organization=detector.project.organization,
