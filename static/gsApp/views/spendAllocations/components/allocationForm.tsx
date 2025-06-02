@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {AllocationTargetTypes} from 'getsentry/constants';
+import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 import {
   getCategoryInfoFromPlural,
@@ -64,7 +64,7 @@ function AllocationForm({
   const [showPrice, setShowPrice] = useState<boolean>(false);
   const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
     initializedData
-      ? (initializedData.billingMetric as DataCategory)
+      ? normalizeBillingMetric(initializedData.billingMetric)
       : initialMetric && getCategoryInfoFromPlural(initialMetric)?.canAllocate
         ? initialMetric
         : DataCategory.ERRORS // default to errors
@@ -544,3 +544,12 @@ const Select = styled(SelectField)`
     padding-left: 0;
   }
 `;
+
+// Normalizes singular billingMetric values to match DataCategory enum using BILLED_DATA_CATEGORY_INFO
+function normalizeBillingMetric(metric: string): DataCategory {
+  return (
+    Object.values(BILLED_DATA_CATEGORY_INFO)
+      .filter(info => info.canAllocate)
+      .find(c => c.name === metric)?.plural ?? (metric as DataCategory)
+  );
+}

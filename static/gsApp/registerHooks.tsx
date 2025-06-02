@@ -6,6 +6,7 @@ import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
 import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
+import SeerBetaClosingAlert from 'getsentry/components/ai/SeerBetaClosingAlert';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import DashboardBanner from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
@@ -204,6 +205,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:insights-date-range-query-limit-footer': () =>
     InsightsDateRangeQueryLimitFooter,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
+  'component:seer-beta-closing-alert': () => SeerBetaClosingAlert,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
@@ -351,7 +353,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
   'feature-disabled:issue-views': p => (
-    <PowerFeatureHovercard features={['organizations:issue-views']} id="issue-views">
+    <PowerFeatureHovercard
+      features={['organizations:issue-views']}
+      id="issue-views"
+      useLearnMoreLink
+    >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>
   ),

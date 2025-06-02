@@ -1,3 +1,4 @@
+from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -40,6 +41,8 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         self.detector_workflow = DetectorWorkflow.objects.create(
             detector=self.detector, workflow=self.workflow
         )
+        self.detector.status = ObjectStatus.PENDING_DELETION
+        self.detector.save()
 
     def test_simple(self):
         self.ScheduledDeletion.schedule(instance=self.detector, days=0)

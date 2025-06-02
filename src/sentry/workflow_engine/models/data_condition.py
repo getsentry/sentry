@@ -10,11 +10,15 @@ from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.utils.registry import NoRegistrationExistsError
+from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+
+class DataConditionEvaluationException(Exception):
+    pass
 
 
 class Condition(StrEnum):
@@ -182,14 +186,29 @@ class DataCondition(DefaultFieldsModel):
         # Otherwise, we need to get the handler and evaluate the value
         try:
             handler = condition_handler_registry.get(condition_type)
-        except NoRegistrationExistsError:
+        except registry.NoRegistrationExistsError:
             logger.exception(
                 "No registration exists for condition",
                 extra={"type": self.type, "id": self.id},
             )
             return None
 
-        result = handler.evaluate_value(value, self.comparison)
+        try:
+            result = handler.evaluate_value(value, self.comparison)
+        except DataConditionEvaluationException as e:
+            metrics.incr("workflow_engine.data_condition.evaluation_error")
+            logger.info(
+                "A known error occurred while evaluating a data condition",
+                extra={
+                    "condition_id": self.id,
+                    "type": self.type,
+                    "comparison": self.comparison,
+                    "value": value,
+                    "error": str(e),
+                },
+            )
+            return None
+
         return self.get_condition_result() if result else None
 
 
@@ -205,7 +224,7 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
 
     try:
         handler = condition_handler_registry.get(condition_type)
-    except NoRegistrationExistsError:
+    except registry.NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
             extra={"type": data_condition.type, "id": data_condition.id},

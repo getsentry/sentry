@@ -584,6 +584,8 @@ def get_sources_for_project(project):
                 # if target_credentials.token is None it means that the
                 # token could not be fetched successfully
                 if token is not None:
+                    # Create a new dict to avoid reference issues
+                    source = deepcopy(source)
                     source["bearer_token"] = token
 
                     # Remove other credentials if we have a token

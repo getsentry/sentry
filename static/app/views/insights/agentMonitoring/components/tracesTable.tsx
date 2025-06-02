@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import GridEditable, {
@@ -6,51 +6,70 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {getAITracesFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agentFlow: string;
   duration: number;
   errors: number;
-  timestamp: string;
-  tokens: string;
-  tools: number;
+  project: string;
+  timestamp: number;
   traceId: string;
-  user: string;
 }
 
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 120},
+  {key: 'project', name: t('Project'), width: 180},
   {key: 'agentFlow', name: t('Agent Flow'), width: COL_WIDTH_UNDEFINED},
   {key: 'duration', name: t('Duration'), width: 100},
   {key: 'errors', name: t('Errors'), width: 100},
-  {key: 'tokens', name: t('Tokens used'), width: 140},
-  {key: 'tools', name: t('Tool calls'), width: 120},
-  {key: 'user', name: t('User'), width: 120},
   {key: 'timestamp', name: t('Timestamp'), width: 120},
 ];
 
 export function TracesTable() {
-  const navigate = useNavigate();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
 
-  // TODO: Replace with actual request
-  const tracesRequest = {
-    data: [],
-    isPending: false,
-    error: false,
-    pageLinks: null,
-    isPlaceholderData: false,
-  };
+  const tracesRequest = useTraces({
+    dataset: DiscoverDatasets.SPANS_EAP,
+    query: `${getAITracesFilter()}`,
+    sort: '-timestamp',
+    limit: 10,
+  });
 
-  const tableData = tracesRequest.data;
+  const tableData = useMemo(() => {
+    if (!tracesRequest.data) {
+      return [];
+    }
+
+    return tracesRequest.data.data.map(span => ({
+      traceId: span.trace,
+      project: span.project ?? '',
+      agentFlow: span.name ?? '',
+      duration: span.duration,
+      errors: span.numErrors,
+      timestamp: span.start,
+    }));
+  }, [tracesRequest.data]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -86,18 +105,7 @@ export function TracesTable() {
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination
-        pageLinks={tracesRequest.pageLinks}
-        onCursor={(cursor, path, currentQuery) => {
-          navigate(
-            {
-              pathname: path,
-              query: {...currentQuery, pathsCursor: cursor},
-            },
-            {replace: true, preventScrollReset: true}
-          );
-        }}
-      />
+      <Pagination pageLinks={'#'} />
     </Fragment>
   );
 }
@@ -109,21 +117,43 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const project = useMemo(
+    () => projects.find(p => p.slug === dataRow.project),
+    [projects, dataRow.project]
+  );
+
+  const traceViewTarget = getTraceDetailsUrl({
+    eventId: dataRow.traceId,
+    source: TraceViewSources.LLM_MODULE, // TODO: change source to AGENT_MONITORING
+    organization,
+    location,
+    traceSlug: dataRow.traceId,
+    dateSelection: normalizeDateTimeParams(selection),
+  });
+
   switch (column.key) {
     case 'traceId':
-      return dataRow.traceId;
+      return <Link to={traceViewTarget}>{dataRow.traceId.slice(0, 8)}</Link>;
+    case 'project':
+      return project ? (
+        <ProjectBadge project={project} avatarSize={16} />
+      ) : (
+        <ProjectBadge project={{slug: dataRow.project}} avatarSize={16} />
+      );
+
     case 'agentFlow':
       return dataRow.agentFlow;
     case 'duration':
-      return dataRow.duration;
+      return getDuration(dataRow.duration / 1000, 2, true);
     case 'errors':
       return dataRow.errors;
-    case 'tokens':
-      return dataRow.tokens;
-    case 'tools':
-      return dataRow.tools;
-    case 'user':
-      return dataRow.user;
+    case 'timestamp':
+      return <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />;
     default:
       return null;
   }

@@ -466,7 +466,6 @@ export enum GroupActivityType {
 interface GroupActivityBase {
   dateCreated: string;
   id: string;
-  project: Project;
   assignee?: string;
   issue?: Group;
   user?: null | User;

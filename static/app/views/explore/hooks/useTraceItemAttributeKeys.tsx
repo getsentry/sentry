@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,6 +20,10 @@ export interface UseTraceItemAttributeBaseProps {
    * The attribute type supported by the endpoint, currently only supports string and number.
    */
   type: 'number' | 'string';
+  /**
+   * Optional list of projects to search. If not provided, it'll use the page filters.
+   */
+  projects?: Project[];
 }
 
 interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
@@ -28,6 +34,7 @@ export function useTraceItemAttributeKeys({
   enabled,
   type,
   traceItemType,
+  projects,
 }: UseTraceItemAttributeKeysProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -35,7 +42,9 @@ export function useTraceItemAttributeKeys({
   const path = `/organizations/${organization.slug}/trace-items/attributes/`;
   const endpointOptions = {
     query: {
-      project: selection.projects,
+      project: defined(projects)
+        ? projects.map(project => project.id)
+        : selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
       itemType: traceItemType,

@@ -1,3 +1,4 @@
+from operator import itemgetter
 from unittest import mock
 from uuid import uuid4
 
@@ -21,7 +22,10 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -59,11 +63,17 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         ]:
             response = self.do_request(features=features)
             assert response.status_code == 200, response.data
-            assert response.data == [
-                {"key": "bar", "name": "Bar"},
-                {"key": "baz", "name": "Baz"},
-                {"key": "foo", "name": "Foo"},
-            ]
+            assert sorted(
+                response.data,
+                key=itemgetter("key"),
+            ) == sorted(
+                [
+                    {"key": "bar", "name": "Bar"},
+                    {"key": "baz", "name": "Baz"},
+                    {"key": "foo", "name": "Foo"},
+                ],
+                key=itemgetter("key"),
+            )
 
 
 class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
@@ -81,7 +91,10 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
 
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -109,17 +122,24 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "string", "process": 1}
+                features=features,
+                query={"dataset": "spans", "type": "string", "process": 1},
             )
             assert response.status_code == 200, response.data
-            assert response.data == [
-                {"key": "bar", "name": "bar"},
-                {"key": "baz", "name": "baz"},
-                {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
-                {"key": "transaction", "name": "transaction"},
-                {"key": "project", "name": "project"},
-            ]
+            assert sorted(
+                response.data,
+                key=itemgetter("key"),
+            ) == sorted(
+                [
+                    {"key": "bar", "name": "bar"},
+                    {"key": "baz", "name": "baz"},
+                    {"key": "foo", "name": "foo"},
+                    {"key": "span.description", "name": "span.description"},
+                    {"key": "transaction", "name": "transaction"},
+                    {"key": "project", "name": "project"},
+                ],
+                key=itemgetter("key"),
+            )
 
     def test_tags_list_nums(self):
         for tag in [
@@ -152,7 +172,8 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             ["organizations:performance-trace-explorer"],
         ]:
             response = self.do_request(
-                features=features, query={"dataset": "spans", "type": "number", "process": 1}
+                features=features,
+                query={"dataset": "spans", "type": "number", "process": 1},
             )
             assert response.status_code == 200, response.data
             assert response.data == [
@@ -192,7 +213,10 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             return self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "key": key,
+                    },
                 ),
                 query,
                 format="json",
@@ -828,7 +852,10 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
             return self.client.get(
                 reverse(
                     self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "key": key,
+                    },
                 ),
                 query,
                 format="json",
