@@ -138,7 +138,7 @@ class AMCheckout extends Component<Props, State> {
         ) {
           return budget.reservedBudget > 0;
         }
-        return false;
+        return true;
       });
       if (selectedAll || !props.organization.features.includes('seer-billing')) {
         step = 2;
