@@ -59,9 +59,9 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
-from sentry.pipeline.base import organization_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
@@ -956,7 +956,7 @@ class GithubOrganizationSelection(PipelineView):
                 return pipeline.next_step()
 
             serialized_organization = organization_service.serialize_organization(
-                id=pipeline.organization.id,
+                id=self.active_user_organization.organization.id,
                 as_user=(
                     serialize_rpc_user(request.user) if isinstance(request.user, User) else None
                 ),
