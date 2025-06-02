@@ -100,34 +100,36 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   );
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
-  const listBoxRefCallback = useCallback((element: HTMLUListElement | null) => {
-    listBoxRef.current = element;
+  const listBoxRefCallback = useCallback(
+    (element: HTMLUListElement | null) => {
+      listBoxRef.current = element;
 
-    if (!element) return undefined;
+      if (!element) return undefined;
 
-    const refsToSync = [listBoxRef, popoverRef];
+      const refsToSync = [listBoxRef, popoverRef];
 
-    constrainAndAlignListBox({
-      popoverRef,
-      refsToSync,
-      referenceRef: wrapperRef,
-    });
-
-    const observer = new ResizeObserver(() => {
       constrainAndAlignListBox({
         popoverRef,
         refsToSync,
         referenceRef: wrapperRef,
       });
-    });
 
-    observer.observe(element);
+      const observer = new ResizeObserver(() => {
+        constrainAndAlignListBox({
+          popoverRef,
+          refsToSync,
+          referenceRef: wrapperRef,
+        });
+      });
 
-    return () => {
-      observer.disconnect();
-    };
-    // all deps are refs but because they're props, the linter complains
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      observer.observe(element);
+
+      return () => {
+        observer.disconnect();
+      };
+    },
+    [listBoxRef, popoverRef, wrapperRef]
+  );
 
   if (!isOpen || (!anyItemsShowing && !isLoading)) {
     return null;
