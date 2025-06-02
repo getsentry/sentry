@@ -12,7 +12,6 @@ from .errors import (
 )
 from .utils.platform import PlatformConfig
 
-PREFIXES_TO_REMOVE = ["app:///", "./", "../", "/"]
 NOT_FOUND = -1
 
 
@@ -30,9 +29,7 @@ class FrameInfo:
         # We normalize the path to be as close to what the path would
         # look like in the source code repository, hence why we remove
         # the straight path prefix and drive letter
-        self.normalized_path, removed_prefix = get_normalized_path_and_removed_prefix(
-            frame_file_path
-        )
+        self.normalized_path, removed_prefix = remove_prefixes(frame_file_path)
 
         # Using regexes would be better but this is easier to understand
         if (
@@ -87,15 +84,20 @@ class FrameInfo:
         return self.raw_path == other.raw_path
 
 
+PREFIXES_TO_REMOVE = ["app:///", "./", "../", "/"]
+
+
 # XXX: This will eventually replace get_straight_path_prefix_end_index
-def get_normalized_path_and_removed_prefix(frame_file_path: str) -> tuple[str, str]:
+def remove_prefixes(frame_file_path: str) -> tuple[str, str]:
+    """
+    This function removes known prefixes to get a path as close to what the path would
+    look like in the source code repository.
+    """
     removed_prefix = ""
     for prefix in PREFIXES_TO_REMOVE:
         if frame_file_path.startswith(prefix):
             frame_file_path = frame_file_path.replace(prefix, "", 1)
-            frame_file_path, recursive_removed_prefix = get_normalized_path_and_removed_prefix(
-                frame_file_path
-            )
+            frame_file_path, recursive_removed_prefix = remove_prefixes(frame_file_path)
             removed_prefix += prefix + recursive_removed_prefix
 
     return frame_file_path, removed_prefix
