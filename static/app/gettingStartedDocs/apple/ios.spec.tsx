@@ -27,7 +27,9 @@ describe('apple-ios onboarding docs', function () {
     });
 
     expect(
-      await screen.findAllByText(textWithMarkupMatcher(/Button\(\"Break the world\"\)/))
+      await screen.findAllByText(
+        textWithMarkupMatcher(/throw MyCustomError\.myFirstIssue/)
+      )
     ).toHaveLength(1);
   });
 
@@ -111,6 +113,6 @@ describe('apple-ios onboarding docs', function () {
 
     expect(
       await screen.findAllByText(textWithMarkupMatcher(/@import Sentry;/))
-    ).toHaveLength(3);
+    ).toHaveLength(1);
   });
 });

@@ -225,26 +225,34 @@ struct SwiftUIApp: App {
 const getVerifySnippet = (params: Params) =>
   isManualSwift(params)
     ? `
-let button = UIButton(type: .roundedRect)
-button.frame = CGRect(x: 20, y: 50, width: 100, height: 30)
-button.setTitle("Break the world", for: [])
-button.addTarget(self, action: #selector(self.breakTheWorld(_:)), for: .touchUpInside)
-view.addSubview(button)
+enum MyCustomError: Error {
+    case myFirstIssue
+}
 
-@IBAction func breakTheWorld(_ sender: AnyObject) {
-    fatalError("Break the world")
+func thisFunctionThrows() throws {
+    throw MyCustomError.myFirstIssue
+}
+
+func verifySentrySDK() {
+    do {
+        try thisFunctionThrows()
+    } catch {
+        SentrySDK.capture(error: error)
+    }
 }`
     : `
-@import Sentry;
+- (void)thisFunctionReturnsAnError:(NSError **)error {
+    *error = [NSError errorWithDomain:@"com.example.myapp"
+                                 code:1001
+                             userInfo:@{
+      NSLocalizedDescriptionKey: @"Something went wrong."
+    }];
+}
 
-UIButton *button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-button.frame = CGRectMake(20, 50, 100, 30);
-[button setTitle:@"Break the world" forState:UIControlStateNormal];
-[button addTarget:self action:@selector(breakTheWorld:) forControlEvents:UIControlEventTouchUpInside];
-[view addSubview:button];
-
-- (IBAction)breakTheWorld:(id)sender {
-    [SentrySDK crash];
+- (void)verifySentrySDK {
+    NSError *error = nil;
+    [self thisFunctionReturnsAnError:&error];
+    [SentrySDK captureError:error];
 }`;
 
 const getReplaySetupSnippet = (params: Params) => `
@@ -259,24 +267,6 @@ SentrySDK.start(configureOptions: { options in
 const getReplayConfigurationSnippet = () => `
 options.sessionReplay.maskAllText = true
 options.sessionReplay.maskAllImages = true`;
-
-const noUIErrorSnippet = (params: Params) =>
-  isManualSwift(params)
-    ? `
-import Sentry
-
-DispatchQueue.global().asyncAfter(deadline: .now() + 10) {
-    SentrySDK.crash()
-}`
-    : `
-@import Sentry;
-
-[SentrySDK performSelector:@selector(crash) withObject:nil afterDelay:10];`;
-
-const buttonSnippetSwift = () => `
-Button("Break the world") {
-    fatalError("Break the world")
-}`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -455,48 +445,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: (
               <p>
                 {tct(
-                  'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can add it to your main [viewController: ViewController].',
+                  'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can call [verifySentrySDK: verifySentrySDK()] from where you want to test it.',
                   {
-                    viewController: <code />,
+                    verifySentrySDK: <code />,
                   }
                 )}
               </p>
             ),
-            configurations: (() => {
-              const configs = [
-                {
-                  language: selectedLanguage(params),
-                  code: getVerifySnippet(params),
-                },
-                {
-                  description: (
-                    <p>
-                      {
-                        'If your application does not have UI, you can use the following line to trigger a crash 10 seconds after the method is called:'
-                      }
-                    </p>
-                  ),
-                  language: selectedLanguage(params),
-                  code: noUIErrorSnippet(params),
-                },
-              ];
-
-              if (isManualSwift(params)) {
-                configs.splice(1, 0, {
-                  description: (
-                    <p>
-                      {
-                        'If you are using SwiftUI, you can use the following button to trigger a crash:'
-                      }
-                    </p>
-                  ),
-                  language: 'swift',
-                  code: buttonSnippetSwift(),
-                });
-              }
-
-              return configs;
-            })(),
+            configurations: [
+              {
+                language: selectedLanguage(params),
+                code: getVerifySnippet(params),
+              },
+            ],
           },
         ],
   nextSteps: () => [
