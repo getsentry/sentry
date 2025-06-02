@@ -50,6 +50,7 @@ from sentry.constants import (
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
@@ -108,7 +109,6 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
-
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
     (
@@ -235,6 +235,12 @@ ORG_OPTIONS = (
         str,
         DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     ),
+    (
+        "ingestThroughTrustedRelaysOnly",
+        "sentry:ingest-through-trusted-relays-only",
+        bool,
+        INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -302,6 +308,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         required=False,
         help_text="The default automation tuning setting for new projects.",
     )
+    ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -375,6 +382,18 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     raise serializers.ValidationError(f"Duplicated key in Trusted Relays: '{key}'")
                 public_keys.add(key)
 
+        return value
+
+    def validate_ingestThroughTrustedRelaysOnly(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
+        ):
+            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
+            raise serializers.ValidationError(
+                "Organization does not have the ingest through trusted relays only feature enabled."
+            )
         return value
 
     def validate_accountRateLimit(self, value):
