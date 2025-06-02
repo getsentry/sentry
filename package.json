@@ -226,6 +226,7 @@
     "react-refresh": "0.16.0",
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
+    "terser": "5.40.0",
     "tsconfig-paths": "^4.2.0",
     "typescript-eslint": "^8.26.0"
   },
@@ -256,6 +257,7 @@
     "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 yarn dev-ui",
     "dev-ui-storybook": "STORYBOOK_TYPES=1 yarn dev-ui",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development rspack --watch",
+    "webpack-profile": "NO_TS_FORK=1 rspack --profile --json > stats.json",
     "install-api-docs": "yarn install --cwd ./api-docs",
     "build-deprecated-docs": "yarn install-api-docs && ts-node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
     "diff-docs": "yarn install-api-docs && ts-node api-docs/openapi-diff.ts",

@@ -12566,7 +12566,7 @@ terser-webpack-plugin@^5.3.11:
     serialize-javascript "^6.0.2"
     terser "^5.31.1"
 
-terser@^5.10.0, terser@^5.31.1:
+terser@5.40.0, terser@^5.10.0, terser@^5.31.1:
   version "5.40.0"
   resolved "https://registry.yarnpkg.com/terser/-/terser-5.40.0.tgz#839a80db42bfee8340085f44ea99b5cba36c55c8"
   integrity sha512-cfeKl/jjwSR5ar7d0FGmave9hFGJT8obyo0z+CrQOylLDbk7X81nPU6vq9VORa5jU30SkDnT2FXjLbR8HLP+xA==
