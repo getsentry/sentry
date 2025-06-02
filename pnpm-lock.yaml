@@ -180,16 +180,16 @@ importers:
         version: 1.23.0
       '@rsdoctor/rspack-plugin':
         specifier: 1.1.2
-        version: 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+        version: 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       '@rsdoctor/webpack-plugin':
         specifier: 1.1.2
-        version: 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+        version: 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       '@rspack/cli':
         specifier: 1.3.10
-        version: 1.3.10(@rspack/core@1.3.10(@swc/helpers@0.5.3))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)
+        version: 1.3.10(@rspack/core@1.3.10(@swc/helpers@0.5.15))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)
       '@rspack/core':
         specifier: 1.3.10
-        version: 1.3.10(@swc/helpers@0.5.3)
+        version: 1.3.10(@swc/helpers@0.5.15)
       '@rspack/plugin-react-refresh':
         specifier: 1.4.3
         version: 1.4.3(react-refresh@0.16.0)
@@ -354,7 +354,7 @@ importers:
         version: 2.50.0
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+        version: 7.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       css-minimizer-webpack-plugin:
         specifier: 7.0.2
         version: 7.0.2(esbuild@0.25.3)(lightningcss@1.29.3)(webpack@5.99.6)
@@ -399,7 +399,7 @@ importers:
         version: 3.4.3
       html-webpack-plugin:
         specifier: 5.6.3
-        version: 5.6.3(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+        version: 5.6.3(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.1
@@ -426,7 +426,7 @@ importers:
         version: 4.3.0
       less-loader:
         specifier: ^12.2.0
-        version: 12.2.0(@rspack/core@1.3.10(@swc/helpers@0.5.3))(less@4.3.0)(webpack@5.99.6)
+        version: 12.2.0(@rspack/core@1.3.10(@swc/helpers@0.5.15))(less@4.3.0)(webpack@5.99.6)
       lightningcss:
         specifier: 1.29.3
         version: 1.29.3
@@ -540,7 +540,7 @@ importers:
         version: 5.3.14(esbuild@0.25.3)(webpack@5.99.6)
       ts-checker-rspack-plugin:
         specifier: 1.1.3
-        version: 1.1.3(@rspack/core@1.3.10(@swc/helpers@0.5.3))(typescript@5.8.3)
+        version: 1.1.3(@rspack/core@1.3.10(@swc/helpers@0.5.15))(typescript@5.8.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.15.21)(typescript@5.8.3)
@@ -1770,24 +1770,20 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@formatjs/ecma402-abstract@1.16.0':
-    resolution: {integrity: sha512-qIH2cmG/oHGrVdApbqDf6/YR+B2A4NdkBjKLeq369OMVkqMFsC5oPSP1xpiyL1cAn+PbNEZHxwOVMYD/C76c6g==}
-    deprecated: 'Broken ESM package exports. See issue #4126, #4127, #4128'
+  '@formatjs/ecma402-abstract@2.3.4':
+    resolution: {integrity: sha512-qrycXDeaORzIqNhBOx0btnhpD1c+/qFIHAN9znofuMJX6QBwtbrmlpWfD4oiUUD2vJUOIYFA/gYtg2KAMGG7sA==}
 
-  '@formatjs/fast-memoize@2.1.0':
-    resolution: {integrity: sha512-w7IzF6Okx2tQXRVlT/cXI4dfS0bvKHhWE5Kn7ajqDVYH4nksUFOMU21Yd4zDENxZ8mFb7IBu7bOopnB2VxZQeA==}
-    deprecated: 'Broken ESM package exports. See issue #4126, #4127, #4128'
+  '@formatjs/fast-memoize@2.2.7':
+    resolution: {integrity: sha512-Yabmi9nSvyOMrlSeGGWDiH7rf3a7sIwplbvo/dlz9WCIjzIQAfy1RMf4S0X3yG724n5Ghu2GmEl5NJIV6O9sZQ==}
 
-  '@formatjs/icu-messageformat-parser@2.5.0':
-    resolution: {integrity: sha512-8AwKRkVIZzVlvZwio1TcLVvUbJw0up1joa8//JIxKVeflqKiZwfzCGAelZt/4hHCEQf9NECose//nODnmBEkNQ==}
-    deprecated: 'Broken ESM package exports. See issue #4126, #4127, #4128'
+  '@formatjs/icu-messageformat-parser@2.11.2':
+    resolution: {integrity: sha512-AfiMi5NOSo2TQImsYAg8UYddsNJ/vUEv/HaNqiFjnI3ZFfWihUtD5QtuX6kHl8+H+d3qvnE/3HZrfzgdWpsLNA==}
 
-  '@formatjs/icu-skeleton-parser@1.5.0':
-    resolution: {integrity: sha512-R/wOg/hxh3JWNB4LHYfNtIe8PC39mkzplh6gtrqCY33EqYeUFEGOYTWJrkXNcoRXlZWQtfrH6REch5r57tAyMQ==}
-    deprecated: 'Broken ESM package exports. See issue #4126, #4127, #4128'
+  '@formatjs/icu-skeleton-parser@1.8.14':
+    resolution: {integrity: sha512-i4q4V4qslThK4Ig8SxyD76cp3+QJ3sAqr7f6q9VVfeGtxG9OhiAk3y9XF6Q41OymsKzsGQ6OQQoJNY4/lI8TcQ==}
 
-  '@formatjs/intl-localematcher@0.3.0':
-    resolution: {integrity: sha512-NFoxXX3dtZ6B53NlCErq181NxN/noMZOWKHfcEPQRNfV0a19THxyjxu2RTSNS3532wGm6fOdid5qsBQWg0Rhtw==}
+  '@formatjs/intl-localematcher@0.6.1':
+    resolution: {integrity: sha512-ePEgLgVCqi2BBFnTMWPfIghu6FkbZnnBVhO2sSxvLfrdFw7wCHAHiDoM2h4NRgjbaY7+B7HgOLZGkK187pZTZg==}
 
   '@googlemaps/js-api-loader@1.16.8':
     resolution: {integrity: sha512-CROqqwfKotdO6EBjZO/gQGVTbeDps5V7Mt9+8+5Q+jTg5CRMi3Ii/L9PmV3USROrt2uWxtGzJHORmByxyo9pSQ==}
@@ -3012,8 +3008,8 @@ packages:
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
 
-  '@swc/helpers@0.5.3':
-    resolution: {integrity: sha512-FaruWX6KdudYloq1AHD/4nU+UsMTdNE8CKyrseXWEcgjDAbvkwJg2QGPAnfIJLIWsjZOSPLOAykK6fuYp4vp4A==}
+  '@swc/helpers@0.5.15':
+    resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
   '@swc/plugin-emotion@9.0.4':
     resolution: {integrity: sha512-kqdJmrZ6DRBeA8ZNOZJiDOpGlavFb+CwSCkPKuvvQ8f8TDTbzKj0kIs8AIHa3PisxvJHp91yE/6eBVIPppFmZw==}
@@ -4024,8 +4020,8 @@ packages:
     resolution: {integrity: sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==}
     engines: {node: '>=6'}
 
-  clsx@2.1.0:
-    resolution: {integrity: sha512-m3iNNWpd9rl3jvvcBnu70ylMdrXt8Vlq4HYadnU5fwcOtvkSQWPmj7amUcDT2qYI7risszBjI5AUIUox9D16pg==}
+  clsx@2.1.1:
+    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
 
   co@4.6.0:
@@ -4386,8 +4382,8 @@ packages:
       supports-color:
         optional: true
 
-  decimal.js@10.4.2:
-    resolution: {integrity: sha512-ic1yEvwT6GuvaYwBLLY6/aFFgjZdySKTE8en/fkU3QICTmRtgtSlFn0u0BXN06InZwtfCelR7j8LRiDI/02iGA==}
+  decimal.js@10.5.0:
+    resolution: {integrity: sha512-8vDa8Qxvr/+d94hSh5P3IJwI5t8/c0KsMp+g8bNw9cY2icONa5aPfvKeieW1WlG0WQYwwhJ7mjui2xtiePQSXw==}
 
   decode-named-character-reference@1.1.0:
     resolution: {integrity: sha512-Wy+JTSbFThEOXQIR2L6mxJvEs+veIzpmqD7ynWxMXGpnk3smkHQOp6forLdHsKpAMW9iJpaBBIxz285t1n1C3w==}
@@ -5469,8 +5465,8 @@ packages:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
     engines: {node: '>=6'}
 
-  import-in-the-middle@1.13.1:
-    resolution: {integrity: sha512-k2V9wNm9B+ysuelDTHjI9d5KPc4l8zAZTGqj+pcynvWkypZd857ryzN8jNC7Pg2YZXNMJcHRPpaDyCBbNyVRpA==}
+  import-in-the-middle@1.14.0:
+    resolution: {integrity: sha512-g5zLT0HaztRJWysayWYiUq/7E5H825QIiecMD2pI5QO7Wzr847l6GDvPvmZaDIdrDtS2w7qRczywxiK6SL5vRw==}
 
   import-local@3.0.2:
     resolution: {integrity: sha512-vjL3+w0oulAVZ0hBHnxa/Nm5TAurf9YLQJDhqRZyqb+VKGOB6LU8t9H1Nr5CIo16vh9XfJTOoHwU0B71S557gA==}
@@ -5524,9 +5520,8 @@ packages:
     resolution: {integrity: sha512-6xwYfHbajpoF0xLW+iwLkhwgvLoZDfjYfoFNu8ftMoXINzwuymNLd9u/KmwtdT2GbR+/Cz66otEGEVVUHX9QLQ==}
     engines: {node: '>=10.13.0'}
 
-  intl-messageformat@10.4.0:
-    resolution: {integrity: sha512-WKmvL2ATvsTJ0CMkO1Hs6f87QlOYZ10opvOJtj0+I3RAQCBxrY8xA3QvVJPJHTS2ru0B7q/kCDyJE1oiiElgyA==}
-    deprecated: 'Broken ESM package exports. See issue #4126, #4127, #4128'
+  intl-messageformat@10.7.16:
+    resolution: {integrity: sha512-UmdmHUmp5CIKKjSoE10la5yfU+AYJAaiYLsodbjL4lji83JNvgOQUjGaGhGrpFCb0Uh7sl7qfP1IyILa8Z40ug==}
 
   invariant@2.2.4:
     resolution: {integrity: sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==}
@@ -9953,27 +9948,29 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@formatjs/ecma402-abstract@1.16.0':
+  '@formatjs/ecma402-abstract@2.3.4':
     dependencies:
-      '@formatjs/intl-localematcher': 0.3.0
+      '@formatjs/fast-memoize': 2.2.7
+      '@formatjs/intl-localematcher': 0.6.1
+      decimal.js: 10.5.0
       tslib: 2.8.1
 
-  '@formatjs/fast-memoize@2.1.0':
+  '@formatjs/fast-memoize@2.2.7':
     dependencies:
       tslib: 2.8.1
 
-  '@formatjs/icu-messageformat-parser@2.5.0':
+  '@formatjs/icu-messageformat-parser@2.11.2':
     dependencies:
-      '@formatjs/ecma402-abstract': 1.16.0
-      '@formatjs/icu-skeleton-parser': 1.5.0
+      '@formatjs/ecma402-abstract': 2.3.4
+      '@formatjs/icu-skeleton-parser': 1.8.14
       tslib: 2.8.1
 
-  '@formatjs/icu-skeleton-parser@1.5.0':
+  '@formatjs/icu-skeleton-parser@1.8.14':
     dependencies:
-      '@formatjs/ecma402-abstract': 1.16.0
+      '@formatjs/ecma402-abstract': 2.3.4
       tslib: 2.8.1
 
-  '@formatjs/intl-localematcher@0.3.0':
+  '@formatjs/intl-localematcher@0.6.1':
     dependencies:
       tslib: 2.8.1
 
@@ -9999,20 +9996,20 @@ snapshots:
 
   '@internationalized/date@3.8.1':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
 
   '@internationalized/message@3.1.7':
     dependencies:
-      '@swc/helpers': 0.5.3
-      intl-messageformat: 10.4.0
+      '@swc/helpers': 0.5.15
+      intl-messageformat: 10.7.16
 
   '@internationalized/number@3.6.2':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
 
   '@internationalized/string@3.2.6':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -10649,7 +10646,7 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.57.2
       '@types/shimmer': 1.2.0
-      import-in-the-middle: 1.13.1
+      import-in-the-middle: 1.14.0
       require-in-the-middle: 7.5.2
       semver: 7.7.2
       shimmer: 1.2.1
@@ -10764,7 +10761,7 @@ snapshots:
       '@react-stately/toggle': 3.8.4(react@19.1.0)
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10785,7 +10782,7 @@ snapshots:
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/combobox': 3.13.5(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10800,7 +10797,7 @@ snapshots:
       '@react-stately/dnd': 3.5.4(react@19.1.0)
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10809,8 +10806,8 @@ snapshots:
       '@react-aria/interactions': 3.25.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
-      clsx: 2.1.0
+      '@swc/helpers': 0.5.15
+      clsx: 2.1.1
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10820,7 +10817,7 @@ snapshots:
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-stately/form': 3.1.4(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10838,7 +10835,7 @@ snapshots:
       '@react-types/checkbox': 3.9.4(react@19.1.0)
       '@react-types/grid': 3.3.2(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10854,7 +10851,7 @@ snapshots:
       '@react-stately/list': 3.12.2(react@19.1.0)
       '@react-stately/tree': 3.8.10(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10867,7 +10864,7 @@ snapshots:
       '@react-aria/ssr': 3.9.8(react@19.1.0)
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10877,7 +10874,7 @@ snapshots:
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-stately/flags': 3.1.1
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10885,7 +10882,7 @@ snapshots:
     dependencies:
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10899,13 +10896,13 @@ snapshots:
       '@react-stately/list': 3.12.2(react@19.1.0)
       '@react-types/listbox': 3.7.0(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
   '@react-aria/live-announcer@3.4.2':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
 
   '@react-aria/menu@3.18.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
@@ -10922,7 +10919,7 @@ snapshots:
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/menu': 3.10.1(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10938,7 +10935,7 @@ snapshots:
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/numberfield': 3.8.11(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10954,7 +10951,7 @@ snapshots:
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/overlays': 3.8.15(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10969,7 +10966,7 @@ snapshots:
       '@react-stately/radio': 3.10.13(react@19.1.0)
       '@react-types/radio': 3.8.9(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10981,7 +10978,7 @@ snapshots:
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-stately/selection': 3.20.2(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -10989,7 +10986,7 @@ snapshots:
     dependencies:
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11002,7 +10999,7 @@ snapshots:
       '@react-stately/slider': 3.6.4(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
       '@react-types/slider': 3.7.11(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11013,13 +11010,13 @@ snapshots:
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/button': 3.12.1(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
   '@react-aria/ssr@3.9.8(react@19.1.0)':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-aria/tabs@3.10.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
@@ -11031,7 +11028,7 @@ snapshots:
       '@react-stately/tabs': 3.8.2(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
       '@react-types/tabs': 3.3.15(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11045,7 +11042,7 @@ snapshots:
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
       '@react-types/textfield': 3.12.2(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11055,7 +11052,7 @@ snapshots:
       '@react-aria/i18n': 3.12.9(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11065,8 +11062,8 @@ snapshots:
       '@react-stately/flags': 3.1.1
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
-      clsx: 2.1.0
+      '@swc/helpers': 0.5.15
+      clsx: 2.1.1
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11075,7 +11072,7 @@ snapshots:
       '@react-aria/interactions': 3.25.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-aria/utils': 3.29.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
@@ -11097,7 +11094,7 @@ snapshots:
   '@react-stately/collections@3.12.4(react@19.1.0)':
     dependencies:
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/combobox@3.10.5(react@19.1.0)':
@@ -11110,24 +11107,24 @@ snapshots:
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/combobox': 3.13.5(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/dnd@3.5.4(react@19.1.0)':
     dependencies:
       '@react-stately/selection': 3.20.2(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/flags@3.1.1':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
 
   '@react-stately/form@3.1.4(react@19.1.0)':
     dependencies:
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/grid@3.11.2(react@19.1.0)':
@@ -11136,7 +11133,7 @@ snapshots:
       '@react-stately/selection': 3.20.2(react@19.1.0)
       '@react-types/grid': 3.3.2(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/list@3.12.2(react@19.1.0)':
@@ -11145,7 +11142,7 @@ snapshots:
       '@react-stately/selection': 3.20.2(react@19.1.0)
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/menu@3.9.4(react@19.1.0)':
@@ -11153,7 +11150,7 @@ snapshots:
       '@react-stately/overlays': 3.6.16(react@19.1.0)
       '@react-types/menu': 3.10.1(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/numberfield@3.9.12(react@19.1.0)':
@@ -11162,14 +11159,14 @@ snapshots:
       '@react-stately/form': 3.1.4(react@19.1.0)
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/numberfield': 3.8.11(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/overlays@3.6.16(react@19.1.0)':
     dependencies:
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/overlays': 3.8.15(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/radio@3.10.13(react@19.1.0)':
@@ -11178,7 +11175,7 @@ snapshots:
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/radio': 3.8.9(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/select@3.6.13(react@19.1.0)':
@@ -11188,7 +11185,7 @@ snapshots:
       '@react-stately/overlays': 3.6.16(react@19.1.0)
       '@react-types/select': 3.9.12(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/selection@3.20.2(react@19.1.0)':
@@ -11196,7 +11193,7 @@ snapshots:
       '@react-stately/collections': 3.12.4(react@19.1.0)
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/slider@3.6.4(react@19.1.0)':
@@ -11204,7 +11201,7 @@ snapshots:
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
       '@react-types/slider': 3.7.11(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/tabs@3.8.2(react@19.1.0)':
@@ -11212,7 +11209,7 @@ snapshots:
       '@react-stately/list': 3.12.2(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
       '@react-types/tabs': 3.3.15(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/toggle@3.8.4(react@19.1.0)':
@@ -11220,7 +11217,7 @@ snapshots:
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/checkbox': 3.9.4(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/tree@3.8.10(react@19.1.0)':
@@ -11229,12 +11226,12 @@ snapshots:
       '@react-stately/selection': 3.20.2(react@19.1.0)
       '@react-stately/utils': 3.10.6(react@19.1.0)
       '@react-types/shared': 3.29.1(react@19.1.0)
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-stately/utils@3.10.6(react@19.1.0)':
     dependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
       react: 19.1.0
 
   '@react-types/button@3.12.1(react@19.1.0)':
@@ -11319,13 +11316,13 @@ snapshots:
 
   '@rsdoctor/client@1.1.2': {}
 
-  '@rsdoctor/core@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/core@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.3.0
-      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/sdk': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/sdk': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       axios: 1.8.4
       browserslist-load-config: 1.0.0
       enhanced-resolve: 5.12.0
@@ -11345,10 +11342,10 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/graph@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/graph@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
-      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       lodash.unionby: 4.8.0
       socket.io: 4.8.1
       source-map: 0.7.4
@@ -11359,14 +11356,14 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/rspack-plugin@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
-      '@rsdoctor/core': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/sdk': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rsdoctor/core': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/sdk': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
       lodash: 4.17.21
     transitivePeerDependencies:
       - '@rsbuild/core'
@@ -11376,12 +11373,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/sdk@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
       '@rsdoctor/client': 1.1.2
-      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       '@types/fs-extra': 11.0.4
       body-parser: 1.20.3
       cors: 2.8.5
@@ -11401,20 +11398,20 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/types@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/types@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
       '@types/connect': 3.4.38
       '@types/estree': 1.0.5
       '@types/tapable': 2.2.7
       source-map: 0.7.4
     optionalDependencies:
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
       webpack: 5.99.6(esbuild@0.25.3)(webpack-cli@6.0.1)
 
-  '@rsdoctor/utils@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/utils@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       '@types/estree': 1.0.5
       acorn: 8.14.1
       acorn-import-attributes: 1.9.5(acorn@8.14.1)
@@ -11435,13 +11432,13 @@ snapshots:
       - supports-color
       - webpack
 
-  '@rsdoctor/webpack-plugin@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)':
+  '@rsdoctor/webpack-plugin@1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)':
     dependencies:
-      '@rsdoctor/core': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/sdk': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
-      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6)
+      '@rsdoctor/core': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/graph': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/sdk': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/types': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
+      '@rsdoctor/utils': 1.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6)
       fs-extra: 11.3.0
       lodash: 4.17.21
       webpack: 5.99.6(esbuild@0.25.3)(webpack-cli@6.0.1)
@@ -11492,11 +11489,11 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.3.10
       '@rspack/binding-win32-x64-msvc': 1.3.10
 
-  '@rspack/cli@1.3.10(@rspack/core@1.3.10(@swc/helpers@0.5.3))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)':
+  '@rspack/cli@1.3.10(@rspack/core@1.3.10(@swc/helpers@0.5.15))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)':
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
-      '@rspack/dev-server': 1.1.1(@rspack/core@1.3.10(@swc/helpers@0.5.3))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
+      '@rspack/dev-server': 1.1.1(@rspack/core@1.3.10(@swc/helpers@0.5.15))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)
       colorette: 2.0.20
       exit-hook: 4.0.0
       interpret: 3.1.1
@@ -11512,18 +11509,18 @@ snapshots:
       - webpack
       - webpack-cli
 
-  '@rspack/core@1.3.10(@swc/helpers@0.5.3)':
+  '@rspack/core@1.3.10(@swc/helpers@0.5.15)':
     dependencies:
       '@module-federation/runtime-tools': 0.13.1
       '@rspack/binding': 1.3.10
       '@rspack/lite-tapable': 1.0.1
       caniuse-lite: 1.0.30001717
     optionalDependencies:
-      '@swc/helpers': 0.5.3
+      '@swc/helpers': 0.5.15
 
-  '@rspack/dev-server@1.1.1(@rspack/core@1.3.10(@swc/helpers@0.5.3))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)':
+  '@rspack/dev-server@1.1.1(@rspack/core@1.3.10(@swc/helpers@0.5.15))(@types/express@4.17.21)(webpack-cli@6.0.1)(webpack@5.99.6)':
     dependencies:
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
       chokidar: 3.6.0
       express: 4.21.2
       http-proxy-middleware: 2.0.9(@types/express@4.17.21)
@@ -11726,7 +11723,7 @@ snapshots:
       '@prisma/instrumentation': 6.8.2(@opentelemetry/api@1.9.0)
       '@sentry/core': 9.24.0
       '@sentry/opentelemetry': 9.24.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.34.0)
-      import-in-the-middle: 1.13.1
+      import-in-the-middle: 1.14.0
       minimatch: 9.0.5
     transitivePeerDependencies:
       - supports-color
@@ -11801,7 +11798,7 @@ snapshots:
 
   '@swc/counter@0.1.3': {}
 
-  '@swc/helpers@0.5.3':
+  '@swc/helpers@0.5.15':
     dependencies:
       tslib: 2.8.1
 
@@ -13006,7 +13003,7 @@ snapshots:
 
   clsx@1.2.1: {}
 
-  clsx@2.1.0: {}
+  clsx@2.1.1: {}
 
   co@4.6.0: {}
 
@@ -13206,7 +13203,7 @@ snapshots:
 
   css-functions-list@3.2.3: {}
 
-  css-loader@7.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6):
+  css-loader@7.1.2(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.3)
       postcss: 8.5.3
@@ -13217,7 +13214,7 @@ snapshots:
       postcss-value-parser: 4.2.0
       semver: 7.7.2
     optionalDependencies:
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
       webpack: 5.99.6(esbuild@0.25.3)(webpack-cli@6.0.1)
 
   css-minimizer-webpack-plugin@7.0.2(esbuild@0.25.3)(lightningcss@1.29.3)(webpack@5.99.6):
@@ -13378,7 +13375,7 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  decimal.js@10.4.2: {}
+  decimal.js@10.5.0: {}
 
   decode-named-character-reference@1.1.0:
     dependencies:
@@ -14608,7 +14605,7 @@ snapshots:
 
   html-tags@3.3.1: {}
 
-  html-webpack-plugin@5.6.3(@rspack/core@1.3.10(@swc/helpers@0.5.3))(webpack@5.99.6):
+  html-webpack-plugin@5.6.3(@rspack/core@1.3.10(@swc/helpers@0.5.15))(webpack@5.99.6):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -14616,7 +14613,7 @@ snapshots:
       pretty-error: 4.0.0
       tapable: 2.2.1
     optionalDependencies:
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
       webpack: 5.99.6(esbuild@0.25.3)(webpack-cli@6.0.1)
 
   htmlparser2@10.0.0:
@@ -14726,7 +14723,7 @@ snapshots:
       parent-module: 1.0.1
       resolve-from: 4.0.0
 
-  import-in-the-middle@1.13.1:
+  import-in-the-middle@1.14.0:
     dependencies:
       acorn: 8.14.1
       acorn-import-attributes: 1.9.5(acorn@8.14.1)
@@ -14771,11 +14768,11 @@ snapshots:
 
   interpret@3.1.1: {}
 
-  intl-messageformat@10.4.0:
+  intl-messageformat@10.7.16:
     dependencies:
-      '@formatjs/ecma402-abstract': 1.16.0
-      '@formatjs/fast-memoize': 2.1.0
-      '@formatjs/icu-messageformat-parser': 2.5.0
+      '@formatjs/ecma402-abstract': 2.3.4
+      '@formatjs/fast-memoize': 2.2.7
+      '@formatjs/icu-messageformat-parser': 2.11.2
       tslib: 2.8.1
 
   invariant@2.2.4:
@@ -15405,7 +15402,7 @@ snapshots:
       cssom: 0.5.0
       cssstyle: 2.3.0
       data-urls: 3.0.2
-      decimal.js: 10.4.2
+      decimal.js: 10.5.0
       domexception: 4.0.0
       escodegen: 2.0.0
       form-data: 4.0.0
@@ -15512,11 +15509,11 @@ snapshots:
       picocolors: 1.1.1
       shell-quote: 1.8.2
 
-  less-loader@12.2.0(@rspack/core@1.3.10(@swc/helpers@0.5.3))(less@4.3.0)(webpack@5.99.6):
+  less-loader@12.2.0(@rspack/core@1.3.10(@swc/helpers@0.5.15))(less@4.3.0)(webpack@5.99.6):
     dependencies:
       less: 4.3.0
     optionalDependencies:
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
       webpack: 5.99.6(esbuild@0.25.3)(webpack-cli@6.0.1)
 
   less@4.3.0:
@@ -17825,7 +17822,7 @@ snapshots:
     dependencies:
       typescript: 5.8.3
 
-  ts-checker-rspack-plugin@1.1.3(@rspack/core@1.3.10(@swc/helpers@0.5.3))(typescript@5.8.3):
+  ts-checker-rspack-plugin@1.1.3(@rspack/core@1.3.10(@swc/helpers@0.5.15))(typescript@5.8.3):
     dependencies:
       '@babel/code-frame': 7.27.1
       '@rspack/lite-tapable': 1.0.1
@@ -17836,7 +17833,7 @@ snapshots:
       picocolors: 1.1.1
       typescript: 5.8.3
     optionalDependencies:
-      '@rspack/core': 1.3.10(@swc/helpers@0.5.3)
+      '@rspack/core': 1.3.10(@swc/helpers@0.5.15)
 
   ts-node@10.9.2(@types/node@22.15.21)(typescript@5.8.3):
     dependencies:
