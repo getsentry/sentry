@@ -209,7 +209,10 @@ class DataCondition(DefaultFieldsModel):
             )
             return None
 
-        return self.get_condition_result() if result else None
+        if isinstance(result, bool):
+            return self.get_condition_result() if result else None
+
+        return result
 
 
 def is_slow_condition(condition: DataCondition) -> bool:
