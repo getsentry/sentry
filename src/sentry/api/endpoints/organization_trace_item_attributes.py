@@ -38,6 +38,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import (
     can_expose_attribute,
+    get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_to_sentry_conventions,
@@ -152,6 +153,7 @@ def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
 ):
     key = translate_internal_to_public_alias(name, type, item_type)
+    secondary_aliases = get_secondary_aliases(name, item_type)
 
     if key is not None:
         name = key
@@ -160,12 +162,19 @@ def as_attribute_key(
     else:
         key = name
 
-    return {
+    attribute_key = {
         # key is what will be used to query the API
         "key": key,
         # name is what will be used to display the tag nicely in the UI
         "name": name,
     }
+
+    if secondary_aliases:
+        attribute_key["secondaryAliases"] = [
+            {"key": key, "name": secondary} for secondary in secondary_aliases
+        ]
+
+    return attribute_key
 
 
 @region_silo_endpoint
@@ -251,7 +260,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 replacement, serialized["attribute_type"], trace_item_type
                             )
 
-                    attribute_keys[attr_key["name"]] = attr_key
+                        attribute_keys[attr_key["name"]] = attr_key
 
                 attributes = list(attribute_keys.values())
                 sentry_sdk.set_context("api_response", {"attributes": attributes})
