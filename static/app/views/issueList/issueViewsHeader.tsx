@@ -36,6 +36,7 @@ type IssueViewsHeaderProps = {
   selectedProjectIds: number[];
   title: ReactNode;
   description?: ReactNode;
+  headerActions?: ReactNode;
 };
 
 function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
@@ -213,6 +214,7 @@ function IssueViewsHeader({
   description,
   realtimeActive,
   onRealtimeChange,
+  headerActions,
 }: IssueViewsHeaderProps) {
   const {projects} = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
@@ -231,6 +233,7 @@ function IssueViewsHeader({
         <StyledLayoutTitle>
           <PageTitle title={title} description={description} />
           <Actions>
+            {headerActions}
             {!viewId && (
               <DisableInDemoMode>
                 <Button
