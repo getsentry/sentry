@@ -547,7 +547,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -830,10 +830,11 @@ export function SearchQueryBuilderValueCombobox({
           return (
             <ValueListBox
               {...props}
+              wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
-              canUseWildcard={canUseWildard}
+              canUseWildcard={canUseWildcard}
             />
           );
         };
@@ -871,10 +872,11 @@ export function SearchQueryBuilderValueCombobox({
       };
     }, [
       showDatePicker,
+      topLevelWrapperRef,
       canSelectMultipleValues,
       items,
       isFetching,
-      canUseWildard,
+      canUseWildcard,
       inputValue,
       token,
       analyticsData,
