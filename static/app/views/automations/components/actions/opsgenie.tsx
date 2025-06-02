@@ -32,7 +32,7 @@ function PriorityField() {
       }))}
       onChange={(value: string) => {
         onUpdate({
-          priority: value,
+          data: {priority: value},
         });
       }}
     />
