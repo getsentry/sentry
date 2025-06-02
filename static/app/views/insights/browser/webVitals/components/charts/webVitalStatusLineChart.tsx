@@ -1,30 +1,29 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LineSeriesOption, SeriesOption} from 'echarts';
-import {ItemStyleOption} from 'echarts/types/src/util/types';
+import type {LineSeriesOption, SeriesOption} from 'echarts';
+import type {ItemStyleOption} from 'echarts/types/src/util/types';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/types';
-import {
+import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/types';
+import type {
   Plottable,
   PlottableTimeSeriesValueType,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
-import {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {
-  DiscoverSeries,
-  useMetricsSeries,
-} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanIndexedField, SubregionCode} from 'sentry/views/insights/types';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {SubregionCode} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 interface Props {
   webVital: WebVitals | null;
