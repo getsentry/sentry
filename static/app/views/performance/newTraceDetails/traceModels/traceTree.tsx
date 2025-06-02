@@ -165,6 +165,8 @@ export declare namespace TraceTree {
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
+    profile_id: string;
+    profiler_id: string;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
