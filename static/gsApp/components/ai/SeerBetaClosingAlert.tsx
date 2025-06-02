@@ -40,8 +40,8 @@ function SeerBetaClosingAlert() {
           </span>
           <span>
             Thanks for trying Seer. Starting June 10, Seer will require a committed budget
-            to continue scanning and fixing issues. Reach out to your account manager to
-            learn more.
+            to continue scanning and fixing issues. You won't be charged unless you
+            actively opt in. Reach out to your account manager to learn more.
           </span>
         </AlertBody>
       </StyledAlert>
@@ -67,7 +67,8 @@ function SeerBetaClosingAlert() {
         </span>
         <span>
           Thanks for trying Seer. Starting June 10, Seer will require a $20/month
-          subscription to continue scanning and fixing issues.
+          subscription. You won't be charged unless you actively opt in to continue to use
+          Seer to scan and fix issues.
         </span>
         <ExternalLink href="https://docs.sentry.io/pricing/#seer-pricing/">
           Learn more
