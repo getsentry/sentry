@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -18,11 +18,15 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -33,6 +37,11 @@ interface SeerNoticesProps {
   project: Project;
   hasGithubIntegration?: boolean;
 }
+
+const SeerBetaClosingAlert = HookOrDefault({
+  hookName: 'component:seer-beta-closing-alert',
+  defaultComponent: () => <div data-test-id="seer-beta-closing-alert" />,
+});
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
@@ -54,9 +63,16 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       addErrorMessage(t('Failed to create view'));
     },
   });
+  const detailedProject = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
 
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
+  );
+  const isStarredViewAllowed = organization.features.includes(
+    'issue-stream-custom-views'
   );
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
@@ -74,29 +90,46 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     !codeMappingRepos?.length &&
     !isLoadingPreferences;
   const needsAutomation =
-    project.autofixAutomationTuning === 'off' && isAutomationAllowed;
+    detailedProject?.data &&
+    (detailedProject?.data?.autofixAutomationTuning === 'off' ||
+      detailedProject?.data?.autofixAutomationTuning === undefined) &&
+    isAutomationAllowed;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed;
+    isAutomationAllowed &&
+    isStarredViewAllowed;
 
   // Warning conditions
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
   const hasSingleUnreadableRepo = unreadableRepos.length === 1;
 
-  const anyStepIncomplete =
-    needsGithubIntegration ||
-    needsRepoSelection ||
-    needsAutomation ||
-    needsFixabilityView;
+  // Use localStorage for collapsed state
+  const [stepsCollapsed, setStepsCollapsed] = useLocalStorageState(
+    `seer-onboarding-collapsed:${project.id}`,
+    false
+  );
 
-  const [hideSteps, setHideSteps] = useState(false);
+  // Calculate incomplete steps
+  const stepConditions = [
+    needsGithubIntegration,
+    needsRepoSelection,
+    needsAutomation,
+    needsFixabilityView,
+  ];
+  const incompleteSteps = stepConditions.filter(Boolean).length;
+  const anyStepIncomplete = incompleteSteps > 0;
 
   const handleStarFixabilityView = () => {
+    let projects: number[] = [];
+    if (!organization.features.includes('global-views')) {
+      // org cannot have a view with multiple projects, so we'll just use the current project
+      projects = [Number(project.id)];
+    }
     createIssueView({
       name: 'Easy Fixes 🤖',
       query: 'is:unresolved issue.seer_actionability:high',
       querySort: IssueSortOptions.DATE,
-      projects: [],
+      projects,
       environments: [],
       timeFilters: {
         start: null,
@@ -110,7 +143,23 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   return (
     <NoticesContainer>
-      {anyStepIncomplete && !hideSteps && (
+      <SeerBetaClosingAlert />
+      {/* Collapsed summary */}
+      {anyStepIncomplete && stepsCollapsed && (
+        <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
+          <SeerWaitingIcon size="lg" style={{marginRight: 8}} />
+          <span>
+            {t(
+              'Only %s step%s left to get the most out of Seer.',
+              incompleteSteps,
+              incompleteSteps === 1 ? '' : 's'
+            )}
+          </span>
+          <IconChevron direction="down" style={{marginLeft: 'auto'}} />
+        </CollapsedSummaryCard>
+      )}
+      {/* Full guided steps */}
+      {anyStepIncomplete && !stepsCollapsed && (
         <Fragment>
           <StepsHeader>
             <SeerWaitingIcon size="xl" />
@@ -232,7 +281,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             )}
 
             {/* Step 4: Fixability View */}
-            {isAutomationAllowed && (
+            {isAutomationAllowed && isStarredViewAllowed && (
               <GuidedSteps.Step
                 key="fixability-view"
                 stepKey="fixability-view"
@@ -259,7 +308,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </StepImageCol>
                 </StepContentRow>
                 <GuidedSteps.StepButtons>
-                  <Button onClick={() => setHideSteps(true)} size="sm">
+                  <Button onClick={() => setStepsCollapsed(true)} size="sm">
                     {t('Skip for Now')}
                   </Button>
                   <Button onClick={handleStarFixabilityView} size="sm" priority="primary">
@@ -323,7 +372,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const NoticesContainer = styled('div')`
@@ -384,4 +433,24 @@ const StepsDivider = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.border};
   margin: ${space(3)} 0;
+`;
+
+const CollapsedSummaryCard = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  background: ${p => p.theme.pink400}10;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 6px;
+  padding: ${space(1)};
+  margin-bottom: ${space(2)};
+  cursor: pointer;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 500;
+  color: ${p => p.theme.textColor};
+  transition: box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  &:hover {
+    background: ${p => p.theme.pink400}20;
+  }
 `;

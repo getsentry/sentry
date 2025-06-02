@@ -70,9 +70,8 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
         if bad is not None:
             bad_object, reason = bad
             raise TypeError(
-                "Task %s was invoked with an object that we do not want "
-                "to pass via pickle (%r, reason is %s) in argument %s"
-                % (task.name, bad_object, reason, name)
+                "Task %s was called with a parameter that cannot be JSON "
+                "encoded (%r, reason is %s) in argument %s" % (task.name, bad_object, reason, name)
             )
 
 
@@ -100,12 +99,22 @@ class SentryTask(Task):
         # Add the start time when the task was kicked off for async processing by the calling code
         kwargs["__start_time"] = datetime.now().timestamp()
 
+    def __call__(self, *args, **kwargs):
+        self._validate_parameters(args, kwargs)
+        return super().__call__(*args, **kwargs)
+
     def delay(self, *args, **kwargs):
         self._add_metadata(kwargs)
         return super().delay(*args, **kwargs)
 
     def apply_async(self, *args, **kwargs):
         self._add_metadata(kwargs)
+        self._validate_parameters(args, kwargs)
+
+        with metrics.timer("jobs.delay", instance=self.name):
+            return Task.apply_async(self, *args, **kwargs)
+
+    def _validate_parameters(self, args: tuple[Any, ...], kwargs: dict[str, Any]):
         # If there is a bad use of pickle create a sentry exception to be found and fixed later.
         # If this is running in tests, instead raise the exception and fail outright.
         should_complain = (
@@ -142,9 +151,6 @@ class SentryTask(Task):
                 )
                 if should_complain:
                     raise
-
-        with metrics.timer("jobs.delay", instance=self.name):
-            return Task.apply_async(self, *args, **kwargs)
 
 
 class SentryRequest(Request):

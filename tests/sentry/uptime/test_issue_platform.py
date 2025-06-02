@@ -9,37 +9,14 @@ from sentry.issues.producer import PayloadType
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
 from sentry.uptime.issue_platform import (
-    build_detector_fingerprint_component,
     build_event_data_for_occurrence,
-    build_fingerprint,
     build_occurrence_from_result,
     create_issue_platform_occurrence,
     resolve_uptime_issue,
 )
 from sentry.uptime.models import get_detector
-
-
-class BuildDetectorFingerprintComponentTest(UptimeTestCase):
-    def test_build_detector_fingerprint_component(self):
-        project_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
-
-        fingerprint_component = build_detector_fingerprint_component(detector)
-        assert fingerprint_component == f"uptime-detector:{detector.id}"
-
-
-class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
-    def test_build_fingerprint_for_project_subscription(self):
-        project_subscription = self.create_project_uptime_subscription()
-        detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
-
-        fingerprint = build_fingerprint(detector)
-        expected_fingerprint = [build_detector_fingerprint_component(detector)]
-        assert fingerprint == expected_fingerprint
 
 
 @freeze_time()
@@ -135,7 +112,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
                 build_detector_fingerprint_component(detector),
             ],
             "platform": "other",
-            "project_id": 1,
+            "project_id": detector.project_id,
             "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
             "tags": {"uptime_rule": str(project_subscription.id)},

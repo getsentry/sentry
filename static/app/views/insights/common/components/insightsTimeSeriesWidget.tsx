@@ -40,6 +40,7 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
+import {type SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
@@ -50,6 +51,7 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  groupBy?: SpanFields[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
@@ -58,7 +60,7 @@ export interface InsightsTimeSeriesWidgetProps
   samples?: Samples;
   search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
-  showReleaseAs?: 'line' | 'bubble';
+  showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
 }
 
@@ -68,7 +70,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const pageFiltersSelection = props.pageFilters || pageFilters.selection;
-  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection);
+  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection, {
+    enabled: props.showReleaseAs !== 'none',
+  });
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -77,7 +81,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   const hasChartActionsEnabled =
     organization.features.includes('insights-chart-actions') && useEap;
-  const yAxes: string[] = [];
+  const yAxes = new Set<string>();
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     showLegend: props.showLegend,
@@ -93,7 +97,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             ? Area
             : Bars;
 
-      yAxes.push(timeSeries.yAxis);
+      // yAxis should not contain whitespace, some yAxes are like `epm() span.op:queue.publish`
+      yAxes.add(timeSeries?.yAxis?.split(' ')[0] ?? '');
 
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
@@ -162,6 +167,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     chartType = ChartType.BAR;
   }
 
+  const yAxisArray = [...yAxes];
+
   return (
     <ChartContainer height={props.height}>
       <Widget
@@ -185,13 +192,14 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {hasChartActionsEnabled && (
               <OpenInExploreButton
                 chartType={chartType}
-                yAxes={yAxes}
+                yAxes={yAxisArray}
+                groupBy={props.groupBy}
                 title={props.title}
                 search={props.search}
               />
             )}
             {hasChartActionsEnabled && (
-              <CreateAlertButton yAxis={yAxes[0]} search={props.search} />
+              <CreateAlertButton yAxis={yAxisArray[0]} search={props.search} />
             )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
