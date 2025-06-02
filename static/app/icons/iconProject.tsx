@@ -14,8 +14,6 @@ function IconProject(props: SVGIconProps) {
             className="cls-1"
             d="m12.25,13.25H3.75c-.55,0-1-.45-1-1V3.75c0-.55.45-1,1-1h2.88c.38,0,.73.21.89.55l.45.89c.17.34.52.55.89.55h3.38c.55,0,1,.45,1,1v6.5c0,.55-.45,1-1,1Z"
           />
-          <polyline className="cls-1" points="9.25 7.57 10.84 9.16 9.25 10.75" />
-          <polyline className="cls-1" points="6.75 10.75 5.16 9.16 6.75 7.57" />
         </Fragment>
       ) : (
         <Fragment>

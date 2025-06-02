@@ -88,6 +88,7 @@ describe('GroupReplaysPlayer', () => {
     replayReaderResult: {
       attachments: [],
       errors: [],
+      attachmentError: undefined,
       fetchError: undefined,
       fetching: false,
       onRetry: jest.fn(),

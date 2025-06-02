@@ -6,7 +6,7 @@ import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RuleSetRule,
+  SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
@@ -18,6 +18,7 @@ import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
+import packageJson from './package.json';
 
 const {env} = process;
 
@@ -167,7 +168,14 @@ for (const locale of supportedLocales) {
   };
 }
 
-const swcReactLoaderConfig: RuleSetRule['options'] = {
+const swcReactLoaderConfig: SwcLoaderOptions = {
+  env: {
+    mode: 'usage',
+    // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+    coreJs: '3.41.0',
+    targets: packageJson.browserslist.production,
+    shippedProposals: true,
+  },
   jsc: {
     experimental: {
       plugins: [
@@ -177,6 +185,15 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
             sourceMap: true,
             // The "dev-only" option does not seem to apply correctly
             autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+        [
+          'swc-plugin-component-annotate',
+          {
+            'annotate-fragments': false,
+            'component-attr': 'data-sentry-component',
+            'element-attr': 'data-sentry-element',
+            'source-file-attr': 'data-sentry-source-file',
           },
         ],
       ],
@@ -189,11 +206,12 @@ const swcReactLoaderConfig: RuleSetRule['options'] = {
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
-        refresh: DEV_MODE,
+        refresh: SHOULD_HOT_MODULE_RELOAD,
         importSource: '@emotion/react',
       },
     },
   },
+  isModule: 'unknown',
 };
 
 /**
@@ -248,7 +266,8 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        exclude: /\/node_modules\//,
+        // Avoids recompiling core-js based on usage imports
+        exclude: /node_modules[\\/]core-js/,
         loader: 'builtin:swc-loader',
         options: swcReactLoaderConfig,
       },
@@ -763,8 +782,8 @@ if (IS_PRODUCTION) {
         create: false,
       },
       reactComponentAnnotation: {
-        // Only enable in production, annotating is slow in development
-        enabled: true,
+        // Using swc-plugin-react-component-annotate instead
+        enabled: false,
       },
       bundleSizeOptimizations: {
         // This is enabled so that our SDKs send exceptions to Sentry

@@ -24,8 +24,6 @@ from ..types import Span
 EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
 EXTENSION_ALLOW_LIST = ("JSON",)
 
-MINIMUM_SPAN_DURATION = timedelta(milliseconds=100)  # ms
-
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
     __slots__ = "stored_problems"
@@ -40,7 +38,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         self.consecutive_http_spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        if not LargeHTTPPayloadDetector._is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         data = span.get("data", None)
@@ -61,19 +59,17 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def _store_performance_problem(self, span: Span) -> None:
         fingerprint = self._fingerprint(span)
-        offender_span_ids = []
-        if offender_span_id := span.get("span_id", None):
-            offender_span_ids.append(offender_span_id)
+        offender_span_id: str = span.get("span_id", None)
         desc: str = span.get("description", None)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
-            fingerprint,
-            "http",
+            fingerprint=fingerprint,
+            op="http",
             desc=desc,
             type=PerformanceLargeHTTPPayloadGroupType,
             cause_span_ids=[],
             parent_span_ids=None,
-            offender_span_ids=offender_span_ids,
+            offender_span_ids=[offender_span_id],
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",
@@ -88,17 +84,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             evidence_data={
                 "parent_span_ids": [],
                 "cause_span_ids": [],
-                "offender_span_ids": offender_span_ids,
+                "offender_span_ids": [offender_span_id],
                 "op": "http",
                 "transaction_name": self._event.get("description", ""),
                 "repeating_spans": get_span_evidence_value(span),
                 "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
-                "num_repeating_spans": str(len(offender_span_ids)),
+                "num_repeating_spans": 1,
             },
         )
 
-    @classmethod
-    def _is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op: str = span.get("op", "") or ""
         hash = span.get("hash", None)
@@ -111,7 +106,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not op.startswith("http"):
             return False
 
-        if get_span_duration(span) < MINIMUM_SPAN_DURATION:
+        if get_span_duration(span) < timedelta(
+            milliseconds=self.settings.get("minimum_span_duration")
+        ):
             return False
 
         normalized_description = description.strip().upper()

@@ -223,9 +223,12 @@ class TestKeyBuilders(unittest.TestCase):
     def test(self):
         assert (
             self.build_handler().state_manager.build_key("test", "dedupe_value")
-            == "123:test:dedupe_value"
+            == "detector:123:test:dedupe_value"
         )
-        assert self.build_handler().state_manager.build_key("test", "name_1") == "123:test:name_1"
+        assert (
+            self.build_handler().state_manager.build_key("test", "name_1")
+            == "detector:123:test:name_1"
+        )
 
     def test_different_dedupe_keys(self):
         handler = self.build_handler()
@@ -477,7 +480,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 group_key="val1",
                 is_triggered=False,
                 result=StatusChangeMessage(
-                    fingerprint=[f"{handler.detector.id}:val1"],
+                    fingerprint=[f"detector:{handler.detector.id}:val1"],
                     project_id=self.project.id,
                     new_status=1,
                     new_substatus=None,
