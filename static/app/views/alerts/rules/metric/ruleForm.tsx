@@ -1018,17 +1018,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   timeWindowsAreConsistent() {
     const {currentData = [], historicalData = [], timeWindow} = this.state;
-    const [currentDataPoint0, currentDataPoint1] = currentData;
-    if (!currentDataPoint0 || !currentDataPoint1) {
-      return false;
-    }
-    const [historicalDataPoint0, historicalDataPoint1] = historicalData;
-    if (!historicalDataPoint0 || !historicalDataPoint1) {
-      return false;
-    }
-
-    const currentTimeWindow = (currentDataPoint1[0] - currentDataPoint0[0]) / 60;
-    const historicalTimeWindow = (historicalDataPoint1[0] - historicalDataPoint0[0]) / 60;
+    const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
+    const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
   }
 
@@ -1448,6 +1439,25 @@ function formatStatsToHistoricalDataset(
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
       ) ?? [])
     : [];
+}
+
+function getTimeWindowFromDataset(
+  data: ReturnType<typeof formatStatsToHistoricalDataset>,
+  defaultWindow: TimeWindow
+): number {
+  for (let i = 0; i < data.length; i++) {
+    const [timestampA] = data[i] ?? [];
+    const [timestampB] = data[i + 1] ?? [];
+    if (!timestampA || !timestampB) {
+      break;
+    }
+    // ignore duplicate timestamps
+    if (timestampA === timestampB) {
+      continue;
+    }
+    return Math.abs(timestampB - timestampA) / 60;
+  }
+  return defaultWindow;
 }
 
 const Main = styled(Layout.Main)`
