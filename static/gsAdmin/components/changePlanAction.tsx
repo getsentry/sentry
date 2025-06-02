@@ -55,7 +55,8 @@ function ChangePlanAction({
   const hasCurrentSeerBudget = useMemo(() => {
     return (
       subscription.reservedBudgets?.some(
-        budget => budget.apiName === ReservedBudgetCategoryType.SEER
+        budget =>
+          budget.apiName === ReservedBudgetCategoryType.SEER && budget.reservedBudget > 0
       ) ?? false
     );
   }, [subscription.reservedBudgets]);
