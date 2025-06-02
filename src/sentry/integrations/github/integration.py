@@ -926,7 +926,14 @@ class GithubOrganizationSelection(PipelineView):
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
 
-                if not has_scm_multi_org:
+                # Validate the same org is installing and that they have the multi org feature
+                installing_organization_slug = pipeline.fetch_state("installing_organization_slug")
+                is_same_installing_org = (
+                    (installing_organization_slug is not None)
+                    and installing_organization_slug
+                    == self.active_user_organization.organization.slug
+                )
+                if not has_scm_multi_org or not is_same_installing_org:
                     lifecycle.record_failure(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
                     return error(
                         request,
@@ -951,7 +958,9 @@ class GithubOrganizationSelection(PipelineView):
 
                 pipeline.bind_state("chosen_installation", chosen_installation_id)
                 return pipeline.next_step()
-
+            pipeline.bind_state(
+                "installing_organization_slug", self.active_user_organization.organization.slug
+            )
             return self.render_react_view(
                 request=request,
                 pipeline_name="githubInstallationSelect",
