@@ -262,7 +262,6 @@ const Header = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
   padding: 0 ${space(1)} 0 ${space(2)};
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
