@@ -717,9 +717,7 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(
-        self, selected_columns: list[str], has_aggregates: bool | None = None
-    ) -> tuple[
+    def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
         list[
             ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
         ],
@@ -735,7 +733,6 @@ class SearchResolver:
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
             span.set_tag("SearchResolver.selected_columns", stripped_columns)
-        has_aggregates = False if has_aggregates is None else has_aggregates
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
