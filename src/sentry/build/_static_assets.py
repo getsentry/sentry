@@ -24,8 +24,8 @@ def _build_static_assets() -> None:
 
     _cmd("yarn", "install", "--production", "--frozen-lockfile", "--quiet")
     _cmd("yarn", "tsc", "-p", "config/tsconfig.build.json")
-    _cmd("yarn", "build-production", "--bail")
-    _cmd("yarn", "build-chartcuterie-config", "--bail")
+    _cmd("yarn", "build-production")
+    _cmd("yarn", "build-chartcuterie-config")
 
 
 def main() -> int:

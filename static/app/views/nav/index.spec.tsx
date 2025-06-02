@@ -78,6 +78,16 @@ describe('Nav', function () {
       body: {},
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/explore/saved/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/`,
+      body: [],
+    });
+
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       options: {
@@ -185,6 +195,16 @@ describe('Nav', function () {
       ).toBeInTheDocument();
     });
 
+    it('previews secondary nav when hovering over other primary items', async function () {
+      renderNav();
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+      await screen.findByRole('link', {name: 'Traces'});
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
+      await screen.findByRole('link', {name: 'All Dashboards'});
+    });
+
     describe('sections', function () {
       it('renders organization/account settings secondary nav when on settings routes', function () {
         renderNav({initialPathname: '/settings/organization/'});
@@ -281,10 +301,12 @@ describe('Nav', function () {
         await userEvent.hover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'true'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
 
         // Moving pointer away should hide the sidebar
         await userEvent.unhover(

@@ -34,7 +34,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                     message.payload.value,
                     level=options.get("taskworker.try_compress.profile_metrics.level"),
                 )
-            )
+            ).decode("utf-8")
             metrics.distribution(
                 "profiling.profile_metrics.compressed_bytes",
                 len(b64encoded_compressed),

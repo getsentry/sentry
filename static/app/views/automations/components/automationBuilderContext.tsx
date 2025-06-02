@@ -1,7 +1,7 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
 import {uuid4} from '@sentry/core';
 
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
+import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
   DataConditionGroupLogicType,
@@ -100,8 +100,8 @@ export function useAutomationBuilderReducer() {
       [dispatch]
     ),
     addIfAction: useCallback(
-      (groupId: string, actionType: ActionType) =>
-        dispatch({type: 'ADD_IF_ACTION', groupId, actionType}),
+      (groupId: string, actionId: string, actionHandler: ActionHandler) =>
+        dispatch({type: 'ADD_IF_ACTION', groupId, actionId, actionHandler}),
       [dispatch]
     ),
     removeIfAction: useCallback(
@@ -135,7 +135,7 @@ interface AutomationBuilderState {
 // 2. The AutomationActions interface
 interface AutomationActions {
   addIf: () => void;
-  addIfAction: (groupId: string, actionType: ActionType) => void;
+  addIfAction: (groupId: string, actionId: string, actionHandler: ActionHandler) => void;
   addIfCondition: (groupId: string, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
   removeIf: (groupId: string) => void;
@@ -245,7 +245,8 @@ type UpdateIfConditionAction = {
 };
 
 type AddIfActionAction = {
-  actionType: ActionType;
+  actionHandler: ActionHandler;
+  actionId: string;
   groupId: string;
   type: 'ADD_IF_ACTION';
 };
@@ -468,7 +469,7 @@ function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
-  const {groupId, actionType} = action;
+  const {groupId, actionId, actionHandler} = action;
   return {
     ...state,
     actionFilters: state.actionFilters.map(group => {
@@ -480,9 +481,13 @@ function addIfAction(
         actions: [
           ...(group.actions ?? []),
           {
-            id: uuid4(),
-            type: actionType,
-            data: {},
+            id: actionId,
+            type: actionHandler.type,
+            data: {
+              ...(actionHandler.sentryApp
+                ? {targetIdentifier: actionHandler.sentryApp.id}
+                : {}),
+            },
           },
         ],
       };

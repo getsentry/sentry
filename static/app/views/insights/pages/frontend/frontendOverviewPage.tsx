@@ -252,7 +252,12 @@ function EAPOverviewPage() {
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              {!showOnboarding && (
+              {showOnboarding ? (
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
+              ) : (
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
                 >
@@ -264,13 +269,6 @@ function EAPOverviewPage() {
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <FrontendOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

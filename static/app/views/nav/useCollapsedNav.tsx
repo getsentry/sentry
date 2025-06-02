@@ -1,10 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useInteractOutside} from '@react-aria/interactions';
 
+import {
+  NAV_SIDEBAR_COLLAPSE_DELAY_MS,
+  NAV_SIDEBAR_OPEN_DELAY_MS,
+} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 
-// Slightly delay closing the nav to prevent accidental dismissal
-const CLOSE_DELAY = 200;
 const IGNORE_ELEMENTS = [
   // Tooltips are rendered in document.body so will cause the nav to close
   '[data-tooltip="true"]',
@@ -22,7 +24,13 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNav() {
-  const {navParentRef, isCollapsed, isInteractingRef, endInteraction} = useNavContext();
+  const {
+    navParentRef,
+    isCollapsed,
+    isInteractingRef,
+    endInteraction,
+    setActivePrimaryNavGroup,
+  } = useNavContext();
 
   const [isOpen, setIsOpen] = useState(false);
   const isHoveredRef = useRef(false);
@@ -31,7 +39,8 @@ export function useCollapsedNav() {
     isHoveredRef.current = false;
     endInteraction();
     setIsOpen(false);
-  }, [endInteraction]);
+    setActivePrimaryNavGroup(null);
+  }, [endInteraction, setActivePrimaryNavGroup]);
 
   const shouldNavStayOpen = useCallback(() => {
     const hasKeyboardFocus = navParentRef.current?.querySelector(':focus-visible');
@@ -52,9 +61,11 @@ export function useCollapsedNav() {
 
   // Resets hover state if nav is disabled
   // Without this the menu will pop back open when collapsing
-  if (!isCollapsed && isOpen) {
-    closeNav();
-  }
+  useEffect(() => {
+    if (!isCollapsed && isOpen) {
+      closeNav();
+    }
+  });
 
   // Sets up event listeners hover and focus changes
   useEffect(() => {
@@ -65,19 +76,28 @@ export function useCollapsedNav() {
 
     const navParentEl = navParentRef.current;
     let closeTimer: NodeJS.Timeout;
+    let openTimer: NodeJS.Timeout;
 
     const hoverIn = () => {
       clearTimeout(closeTimer);
+      clearTimeout(openTimer);
+
       isHoveredRef.current = true;
-      setIsOpen(true);
+
+      openTimer = setTimeout(() => {
+        setIsOpen(true);
+      }, NAV_SIDEBAR_OPEN_DELAY_MS);
     };
 
     const hoverOut = () => {
+      clearTimeout(openTimer);
+      clearTimeout(closeTimer);
+
       isHoveredRef.current = false;
 
       closeTimer = setTimeout(() => {
         tryCloseNav();
-      }, CLOSE_DELAY);
+      }, NAV_SIDEBAR_COLLAPSE_DELAY_MS);
     };
 
     const handleMouseEnter = () => {

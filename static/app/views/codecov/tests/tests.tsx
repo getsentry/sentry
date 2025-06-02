@@ -1,12 +1,14 @@
 import styled from '@emotion/styled';
 
+import CodecovProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
-// import TestAnalyticsTable from 'sentry/components/codecov/testAnalytics/testAnalyticsTable';
+import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import TestsOnboardingPage from 'sentry/views/codecov/tests/onboarding';
 import {DEFAULT_SORT} from 'sentry/views/codecov/tests/settings';
 import {Summaries} from 'sentry/views/codecov/tests/summaries/summaries';
 import type {ValidSort} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
@@ -72,9 +74,15 @@ export default function TestsPage() {
           <DatePicker />
         </PageFilterBar>
       </PageFiltersContainer>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
+      <CodecovProvider>
+        <PageFilterBar condensed>
+          <RepoPicker />
+        </PageFilterBar>
+        {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+        <Summaries />
+        <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
+        <TestsOnboardingPage />
+      </CodecovProvider>
     </LayoutGap>
   );
 }

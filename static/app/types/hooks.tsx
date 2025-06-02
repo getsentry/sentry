@@ -193,6 +193,7 @@ type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
+  'component:seer-beta-closing-alert': () => React.ComponentType;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
@@ -239,6 +240,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
+  'feature-disabled:issue-views': FeatureDisabledHook;
   'feature-disabled:open-discover': FeatureDisabledHook;
   'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;

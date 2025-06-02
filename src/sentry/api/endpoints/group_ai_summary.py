@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupAiEndpoint
+from sentry.autofix.utils import SeerAutomationSource
 from sentry.models.group import Group
 from sentry.seer.issue_summary import get_issue_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -37,7 +38,10 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
         force_event_id = data.get("event_id", None)
 
         summary_data, status_code = get_issue_summary(
-            group=group, user=request.user, force_event_id=force_event_id, source="issue_details"
+            group=group,
+            user=request.user,
+            force_event_id=force_event_id,
+            source=SeerAutomationSource.ISSUE_DETAILS,
         )
 
         return Response(summary_data, status=status_code)

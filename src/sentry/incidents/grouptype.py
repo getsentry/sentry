@@ -7,19 +7,16 @@ from typing import Any
 from sentry import features
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
-from sentry.incidents.utils.types import MetricDetectorUpdate, QuerySubscriptionUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import (
-    DetectorOccurrence,
-    StatefulGroupingDetectorHandler,
-)
+from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.handlers.detector.base import EvidenceData
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
@@ -30,7 +27,7 @@ class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
 
 
-class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate, int]):
+class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate, int]):
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
@@ -47,21 +44,11 @@ class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscripti
         )
         return occurrence, {}
 
-    @property
-    def counter_names(self) -> list[str]:
-        # Placeholder for now, this should be a list of counters that we want to update as we go above warning / critical
-        return []
-
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
     def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return data_packet.packet["values"]["value"]
-
-    def extract_group_values(
-        self, data_packet: DataPacket[MetricDetectorUpdate]
-    ) -> dict[DetectorGroupKey, int]:
-        return {None: data_packet.packet["values"]["value"]}
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
