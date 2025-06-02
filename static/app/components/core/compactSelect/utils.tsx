@@ -316,7 +316,7 @@ export function HiddenSectionToggle({
         id={`${listId}-section-toggle-${item.key}`}
       >
         {allOptionsSelected ? t('Unselect All in ') : t('Select All in ')}
-        {item.textValue ?? item.rendered}
+        {item.textValue || item.rendered}
       </button>
     </VisuallyHidden>
   );
