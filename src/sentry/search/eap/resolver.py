@@ -980,7 +980,7 @@ class SearchResolver:
 
     def resolve_equations(self, equations: list[str]) -> tuple[
         list[ResolvedEquation],
-        list[VirtualColumnDefinition | None],
+        list[VirtualColumnDefinition],
     ]:
         formulas = []
         contexts = []
@@ -992,7 +992,7 @@ class SearchResolver:
 
     def resolve_equation(self, equation: str) -> tuple[
         ResolvedEquation,
-        list[VirtualColumnDefinition | None],
+        list[VirtualColumnDefinition],
     ]:
         """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
         it'll help callers with extra information, like the existence of aggregates and the search type
@@ -1050,13 +1050,12 @@ class SearchResolver:
         else:
             # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
             col, context = self.resolve_column(operation)
-            if isinstance(col, ResolvedAttribute):
-                key = "key"
-            elif isinstance(col, ResolvedAggregate):
-                key = "aggregation"
-            elif isinstance(col, ResolvedConditionalAggregate):
-                key = "conditional_aggregation"
-            elif isinstance(col, ResolvedFormula):
-                key = "formula"
             contexts = [context] if context is not None else []
-            return Column(**{key: col.proto_definition}), contexts
+            if isinstance(col, ResolvedAttribute):
+                return Column(key=col.proto_definition), contexts
+            elif isinstance(col, ResolvedAggregate):
+                return Column(aggregation=col.proto_definition), contexts
+            elif isinstance(col, ResolvedConditionalAggregate):
+                return Column(conditional_aggregation=col.proto_definition), contexts
+            elif isinstance(col, ResolvedFormula):
+                return Column(formula=col.proto_definition), contexts
