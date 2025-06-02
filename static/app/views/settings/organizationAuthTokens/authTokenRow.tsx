@@ -5,7 +5,6 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
@@ -159,13 +158,7 @@ export function OrganizationAuthTokensAuthTokenRow({
               size="sm"
               disabled={isRevoking || !revokeToken}
               aria-label={t('Revoke %s', token.name)}
-              icon={
-                isRevoking ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={<IconSubtract isCircled size="xs" />}
             >
               {t('Revoke')}
             </Button>
