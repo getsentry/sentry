@@ -39,26 +39,15 @@ export default function ListContent() {
     true
   );
 
-  const showDeadRageClickCards = !rageClicksSdkVersion.needsUpdate && !allMobileProj;
+  const isLoading = hasSentReplays.fetching || rageClicksSdkVersion.isFetching;
+  const showDeadRageClickCards =
+    !rageClicksSdkVersion.needsUpdate && !allMobileProj && !isLoading;
 
   useRouteAnalyticsParams({
     hasSessionReplay,
     hasSentReplays: hasSentReplays.hasSentOneReplay,
     hasRageClickMinSDK: !rageClicksSdkVersion.needsUpdate,
   });
-
-  // show loading
-  if (hasSentReplays.fetching || rageClicksSdkVersion.isFetching) {
-    return (
-      <Fragment>
-        <FiltersContainer>
-          <ReplaysFilters />
-          <ReplaysSearch />
-        </FiltersContainer>
-        <LoadingIndicator />
-      </Fragment>
-    );
-  }
 
   // show onboarding
   if (!hasSessionReplay || !hasSentReplays.hasSentOneReplay) {
@@ -87,7 +76,7 @@ export default function ListContent() {
         </SearchWrapper>
       </FiltersContainer>
       {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
-      <ReplaysList />
+      {isLoading ? <LoadingIndicator /> : <ReplaysList />}
     </Fragment>
   );
 }
