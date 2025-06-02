@@ -145,6 +145,8 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
+  // XXX: These are NOT used for display purpose but only to determine if the
+  // dates are at the start or end of the day
   const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
   const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
 
