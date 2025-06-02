@@ -37,7 +37,10 @@ export function GithubInstallationSelect({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const source = 'github.multi_org';
-  const doesntRequireUpgrade = has_scm_multi_org || isSelfHosted;
+
+  const doesntRequireUpgrade = (id: SelectKey): boolean => {
+    return has_scm_multi_org || isSelfHosted || id === '-1';
+  };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -82,7 +85,7 @@ export function GithubInstallationSelect({
             />
           )}
           <span>{`${installation.github_account}`}</span>
-          {installation.installation_id === '-1' || doesntRequireUpgrade ? (
+          {doesntRequireUpgrade(installation.installation_id) ? (
             ''
           ) : (
             <IconLightning size="xs" />
@@ -93,7 +96,17 @@ export function GithubInstallationSelect({
   );
 
   const renderInstallationButton = () => {
-    if (installationID === '-1' || doesntRequireUpgrade) {
+    if (installationID !== '-1' && isSelfHosted) {
+      return (
+        <FeatureDisabled
+          features={['integrations-scm-multi-org']}
+          featureName={t('Cross-Org Source Code Management')}
+          hideHelpToggle
+        />
+      );
+    }
+
+    if (doesntRequireUpgrade(installationID)) {
       return (
         <Button
           priority="primary"
@@ -102,16 +115,6 @@ export function GithubInstallationSelect({
         >
           {t('Install')}
         </Button>
-      );
-    }
-
-    if (isSelfHosted) {
-      return (
-        <FeatureDisabled
-          features={['integrations-scm-multi-org']}
-          featureName={t('Cross-Org Source Code Management')}
-          hideHelpToggle
-        />
       );
     }
 
