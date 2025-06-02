@@ -1,8 +1,8 @@
 import dataclasses
 import logging
-from typing import DefaultDict, TypeVar
+from typing import TypeVar
 
-from sentry.utils.function_cache import batch_cache_func_for_models
+from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
@@ -31,38 +31,30 @@ DataConditionGroupResult = tuple[ProcessedDataConditionGroup, list[DataCondition
 
 # We use a defined function rather than a lambda below because otherwise
 # parameter type becomes Any.
-def _group_id_from_condition(condition: DataCondition) -> int:
-    return condition.condition_group_id
+def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
+    return (condition.condition_group_id,)
 
 
-def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
-    return get_data_conditions_for_groups([data_condition_group_id])[0]
-
-
-@batch_cache_func_for_models(
+@cache_func_for_models(
     [(DataCondition, _group_id_from_condition)],
     recalculate=False,
 )
-def get_data_conditions_for_groups(
+def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
+    return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
+
+
+def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
-) -> list[list[DataCondition]]:
-    by_id = DefaultDict[int, list[DataCondition]](list)
-    for cond in DataCondition.objects.filter(condition_group_id__in=data_condition_group_ids):
-        by_id[cond.condition_group_id].append(cond)
-    return [by_id[dcg] for dcg in data_condition_group_ids]
-
-
-def batch_get_slow_conditions(
-    data_condition_groups: list[DataConditionGroup],
 ) -> dict[int, list[DataCondition]]:
     """
-    Get all slow conditions for a list of data condition groups.
-    Returns a dictionary of data condition group id to list of slow conditions.
+    Takes a list of DataConditionGroup IDs and returns a dict with
+    the slow conditions associated with each ID.
     """
-    conds_list = get_data_conditions_for_groups([dcg.id for dcg in data_condition_groups])
+    args_list = [(group_id,) for group_id in data_condition_group_ids]
+    results = get_data_conditions_for_group.batch(args_list)
     return {
-        dcg.id: [cond for cond in conds if is_slow_condition(cond)]
-        for dcg, conds in zip(data_condition_groups, conds_list)
+        group_id: [cond for cond in conditions if is_slow_condition(cond)]
+        for group_id, conditions in zip(data_condition_group_ids, results)
     }
 
 

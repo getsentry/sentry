@@ -47,8 +47,8 @@ from sentry.workflow_engine.models.data_condition import (
 from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.processors.data_condition_group import (
-    batch_get_slow_conditions,
     evaluate_data_conditions,
+    get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.log_util import track_batch_performance
@@ -228,9 +228,10 @@ def get_condition_query_groups(
     Map unique condition queries to the group IDs that need to checked for that query.
     """
     condition_groups: dict[UniqueConditionQuery, set[int]] = defaultdict(set)
-    slow_conditions_by_dcg = batch_get_slow_conditions(data_condition_groups)
+    dcg_to_slow_conditions = get_slow_conditions_for_groups(list(dcg_to_groups.keys()))
     for dcg in data_condition_groups:
-        for condition in slow_conditions_by_dcg[dcg.id]:
+        slow_conditions = dcg_to_slow_conditions[dcg.id]
+        for condition in slow_conditions:
             workflow_id = dcg_to_workflow.get(dcg.id)
             workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
             for condition_query in generate_unique_queries(condition, workflow_env):
@@ -279,9 +280,9 @@ def get_groups_to_fire(
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
 ) -> dict[int, set[DataConditionGroup]]:
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
-    slow_conditions_by_dcg = batch_get_slow_conditions(data_condition_groups)
+    dcg_to_slow_conditions = get_slow_conditions_for_groups(list(dcg_to_groups.keys()))
     for dcg in data_condition_groups:
-        slow_conditions = slow_conditions_by_dcg[dcg.id]
+        slow_conditions = dcg_to_slow_conditions[dcg.id]
         action_match = DataConditionGroup.Type(dcg.logic_type)
         workflow_id = dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
