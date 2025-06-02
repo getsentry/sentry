@@ -12,8 +12,8 @@ export const CONSUMER_QUERY_FILTER = 'span.op:queue.process';
 export const PRODUCER_QUERY_FILTER = 'span.op:queue.publish';
 
 export const FIELD_ALIASES = {
-  'epm() span.op:queue.publish': 'Published',
-  'epm() span.op:queue.process': 'Processed',
+  'epm() span.op:queue.publish': t('Published'),
+  'epm() span.op:queue.process': t('Processed'),
   'avg(messaging.message.receive.latency)': t('Average Time in Queue'),
   'avg(span.duration)': t('Average Processing Time'),
 };

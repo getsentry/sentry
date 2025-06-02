@@ -38,8 +38,6 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
-    "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -337,7 +335,9 @@ def configure_sdk():
         sentry_saas_transport = None
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
-        sdk_options["profile_session_sample_rate"] = settings.SENTRY_PROFILE_SESSION_SAMPLE_RATE
+        sdk_options["profile_session_sample_rate"] = float(
+            settings.SENTRY_PROFILES_SAMPLE_RATE or 0
+        )
         sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler

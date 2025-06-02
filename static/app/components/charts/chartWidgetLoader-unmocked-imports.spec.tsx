@@ -94,6 +94,10 @@ jest.mock(
       isPending: false,
       error: null,
     })),
+    useResourceLandingSeriesSearch: jest.fn(() => ({
+      search: jest.fn(),
+      enabled: true,
+    })),
   })
 );
 jest.mock(
@@ -110,24 +114,12 @@ jest.mock(
       isPending: false,
       error: null,
     })),
+    useResourceSummarySeriesSearch: jest.fn(() => ({
+      search: jest.fn(),
+      enabled: true,
+    })),
   })
 );
-jest.mock('sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery', () => ({
-  usePublishQueuesTimeSeriesQuery: jest.fn(() => ({
-    data: {},
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery', () => ({
-  useProcessQueuesTimeSeriesQuery: jest.fn(() => ({
-    data: {
-      'avg(messaging.message.receive.latency)': {},
-    },
-    isPending: false,
-    error: null,
-  })),
-}));
 jest.mock(
   'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery',
   () => ({
@@ -153,6 +145,34 @@ jest.mock(
   })
 );
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
+  useMetrics: jest.fn(() => ({
+    data: [
+      {
+        'avg(span.duration)': 123,
+        'sum(span.duration)': 456,
+        'span.group': 'abc123',
+        'span.description': 'span1',
+        'sentry.normalized_description': 'span1',
+        transaction: 'transaction_a',
+      },
+    ],
+    isPending: false,
+    error: null,
+  })),
+  useSpanMetrics: jest.fn(() => ({
+    data: [
+      {
+        'avg(span.duration)': 123,
+        'sum(span.duration)': 456,
+        'span.group': 'abc123',
+        'span.description': 'span1',
+        'sentry.normalized_description': 'span1',
+        transaction: 'transaction_a',
+      },
+    ],
+    isPending: false,
+    error: null,
+  })),
   useEAPSpans: jest.fn(() => ({
     data: [
       {
@@ -170,6 +190,11 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
 }));
 jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
   useTopNSpanEAPSeries: jest.fn(() => ({
+    data: [mockDiscoverSeries('transaction_a,abc123')],
+    isPending: false,
+    error: null,
+  })),
+  useTopNSpanMetricsSeries: jest.fn(() => ({
     data: [mockDiscoverSeries('transaction_a,abc123')],
     isPending: false,
     error: null,
@@ -223,6 +248,7 @@ jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
       'avg(http.response_content_length)': {},
       'avg(http.response_transfer_size)': {},
       'avg(http.decoded_response_content_length)': {},
+      'avg(messaging.message.receive.latency)': {},
     },
     isPending: false,
     error: null,

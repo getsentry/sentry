@@ -63,7 +63,6 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
       '+ up to $300/mo based on PAYG usage'
     );
-    expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
     expect(screen.getByText('Total Monthly Charges')).toBeInTheDocument();
   });
 
@@ -99,8 +98,7 @@ describe('CheckoutOverviewV2', function () {
       />
     );
 
-    expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
-    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer$216/yr');
+    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer AI Agent$216/yr');
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
@@ -167,7 +165,7 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getAllByText('Product not available')[0]).toBeInTheDocument();
   });
 
-  it('does not show seer when not enabled', function () {
+  it('does not show product when not selected', function () {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -202,7 +200,7 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
   });
 
-  it('does not show seer when not included in formData', function () {
+  it('does not show selectable product when not included in formData', function () {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {

@@ -834,6 +834,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPM,
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
@@ -2580,11 +2581,11 @@ export const getFieldDefinition = (
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
-      if (key in REPLAY_FIELD_DEFINITIONS) {
+      if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_FIELD_DEFINITIONS[key];
       }
-      if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+      if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
@@ -2594,7 +2595,7 @@ export const getFieldDefinition = (
       }
       return null;
     case 'feedback':
-      if (key in FEEDBACK_FIELD_DEFINITIONS) {
+      if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return FEEDBACK_FIELD_DEFINITIONS[key];
       }
@@ -2624,7 +2625,7 @@ export const getFieldDefinition = (
       return null;
 
     case 'log':
-      if (key in LOG_FIELD_DEFINITIONS) {
+      if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
       }
@@ -2643,8 +2644,11 @@ export const getFieldDefinition = (
 
     case 'event':
     default:
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return EVENT_FIELD_DEFINITIONS[key] ?? null;
+      if (EVENT_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
   }
 };
 
