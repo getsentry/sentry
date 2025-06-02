@@ -657,11 +657,11 @@ class Fixtures:
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
 
-    def create_data_condition_group(self, *args, organization=None, **kwargs):
+    def create_data_condition_group(self, organization=None, **kwargs):
         if organization is None:
             organization = self.organization
 
-        return Factories.create_data_condition_group(*args, organization=organization, **kwargs)
+        return Factories.create_data_condition_group(organization=organization, **kwargs)
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
