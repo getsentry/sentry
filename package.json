@@ -176,6 +176,7 @@
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "typescript": "^5.8.3",
+    "webpack": "^5.99.9",
     "zrender": "5.4.0",
     "zxcvbn": "^4.4.2"
   },
