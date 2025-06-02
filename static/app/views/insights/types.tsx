@@ -91,6 +91,7 @@ export enum SpanFields {
   SPAN_OP = 'span.op',
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
+  RESPONSE_CODE = 'span.status_code',
 }
 
 type WebVitalsMeasurements =
