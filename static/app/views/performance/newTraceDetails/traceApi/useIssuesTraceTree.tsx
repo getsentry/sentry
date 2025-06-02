@@ -93,6 +93,8 @@ export function useIssuesTraceTree({
       newTree.build();
       return;
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,
@@ -103,7 +105,6 @@ export function useIssuesTraceTree({
     trace.data,
     meta.data,
     traceSlug,
-    traceState.preferences,
   ]);
 
   return tree;
