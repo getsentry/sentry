@@ -269,7 +269,7 @@ const config: Config.InitialOptions = {
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
-      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      ? `/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`
       : '/node_modules/',
   ],
 
