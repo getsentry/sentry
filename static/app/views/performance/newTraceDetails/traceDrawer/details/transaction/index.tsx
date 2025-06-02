@@ -98,7 +98,8 @@ export function TransactionNodeDetails({
     isError,
     isPending,
   } = useTransaction({
-    node,
+    event_id: node.value.event_id,
+    project_slug: node.value.project_slug,
     organization,
   });
   const {data: cacheMetrics} = useSpanMetrics(
