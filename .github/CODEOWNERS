@@ -146,12 +146,6 @@ yarn.lock                                                @getsentry/owners-js-de
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
 
-# Demo Mode - moved upwards because it wraps other parts of the codebase
-# and was assigned many issues to telemetry-experience that should not have been
-/src/sentry/demo_mode/                                   @getsentry/telemetry-experience
-/tests/sentry/demo_mode/                                 @getsentry/telemetry-experience
-/static/app/utils/demoMode/                              @getsentry/telemetry-experience
-
 ## Crons
 /static/app/views/monitors                               @getsentry/crons
 /src/sentry/monitors                                     @getsentry/crons
