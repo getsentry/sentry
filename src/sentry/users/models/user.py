@@ -232,6 +232,7 @@ class User(Model, AbstractBaseUser):
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             if not self.username:
                 self.username = self.email
+            self.email_unique = self.email
             result = super().save(*args, **kwargs)
             for outbox in self.outboxes_for_update():
                 outbox.save()
