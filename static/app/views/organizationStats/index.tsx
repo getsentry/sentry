@@ -276,7 +276,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
         return organization.features.includes('seer-billing');
       }
-      if ([DataCategory.LOG_BYTE, DataCategory.LOG_ITEM].includes(opt.value)) {
+      if ([DataCategory.LOG_BYTE].includes(opt.value)) {
+        return organization.features.includes('ourlogs-enabled');
+      }
+      if ([DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
       if (

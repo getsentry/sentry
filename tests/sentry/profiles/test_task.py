@@ -7,7 +7,6 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
-import msgpack
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -32,7 +31,7 @@ from sentry.profiles.task import (
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
-from sentry.receivers.onboarding import first_profile_received
+from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
@@ -1035,19 +1034,11 @@ def test_unknown_sdk(
 @patch("sentry.profiles.task._push_profile_to_vroom")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.models.projectsdk.get_sdk_index")
-@pytest.mark.parametrize(
-    ["should_encode"],
-    [
-        (True,),
-        (False,),
-    ],
-)
 @django_db_all
 def test_track_latest_sdk_with_payload(
     get_sdk_index: Any,
     _symbolicate_profile: Any,
     _push_profile_to_vroom: Any,
-    should_encode: bool,
     organization: Organization,
     project: Project,
     request: Any,
@@ -1067,11 +1058,7 @@ def test_track_latest_sdk_with_payload(
         "received": "2024-01-02T03:04:05",
         "payload": json.dumps(profile),
     }
-    payload: str | bytes
-    if should_encode:
-        payload = encode_payload(kafka_payload)
-    else:
-        payload = msgpack.packb(kafka_payload)
+    payload = encode_payload(kafka_payload)
 
     with Feature("organizations:profiling-sdks"):
         process_profile_task(payload=payload)

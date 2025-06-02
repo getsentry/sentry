@@ -67,7 +67,11 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-from sentry.signals import first_insight_span_received, first_transaction_received
+from sentry.signals import (
+    first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
+    first_transaction_received,
+)
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -1490,6 +1494,54 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period[0].project_id == self.project.id
         assert open_period[0].date_started == group.first_seen
         assert open_period[0].date_ended is None
+
+    @with_feature("organizations:issue-open-periods")
+    def test_error_event_with_minified_stacktrace(self) -> None:
+        with patch(
+            "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
+        ) as mock_record_event_with_first_minified_stack_trace_for_project:
+
+            first_event_with_minified_stack_trace_received.connect(
+                mock_record_event_with_first_minified_stack_trace_for_project, weak=False
+            )
+
+        manager = EventManager(
+            make_event(
+                **{
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "Foo",
+                                "value": "bar",
+                                "stacktrace": {
+                                    "frames": [
+                                        {"filename": "minified.js", "function": "minifiedFunction"}
+                                    ]
+                                },
+                                "raw_stacktrace": {
+                                    "frames": [
+                                        {
+                                            "filename": "minified.js",
+                                            "function": "minifiedFunction",
+                                            "in_app": True,
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        manager.normalize()
+        data = manager.get_data()
+        assert data["type"] == "error"
+
+        manager.save(self.project.id)
+
+        assert mock_record_event_with_first_minified_stack_trace_for_project.call_count == 1
+        self.project.refresh_from_db()
+        assert self.project.flags.has_minified_stack_trace
 
     def test_csp_event_type(self) -> None:
         manager = EventManager(

@@ -15,6 +15,7 @@ from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -1121,7 +1122,11 @@ def process_commits(job: PostProcessJob) -> None:
 
                     org_integrations = integration_service.get_organization_integrations(
                         organization_id=event.project.organization_id,
-                        providers=["github", "gitlab", "github_enterprise"],
+                        providers=[
+                            IntegrationProviderSlug.GITHUB.value,
+                            IntegrationProviderSlug.GITLAB.value,
+                            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                        ],
                     )
                     has_integrations = len(org_integrations) > 0
                     # Cache the integrations check for 4 hours
@@ -1562,6 +1567,20 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
+    # check currently supported issue categories for Seer
+    if group.issue_category not in [
+        GroupCategory.ERROR,
+        GroupCategory.PERFORMANCE,
+        GroupCategory.MOBILE,
+        GroupCategory.FRONTEND,
+        GroupCategory.DB_QUERY,
+        GroupCategory.HTTP_CLIENT,
+    ] or group.issue_category in [
+        GroupCategory.REPLAY,
+        GroupCategory.FEEDBACK,
+    ]:
+        return
+
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
         "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
@@ -1613,5 +1632,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
 GENERIC_POST_PROCESS_PIPELINE = [
     process_snoozes,
     process_inbox_adds,
+    kick_off_seer_automation,
     process_rules,
 ]

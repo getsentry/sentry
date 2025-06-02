@@ -14,6 +14,7 @@ from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimenta
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -22,6 +23,7 @@ from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import (
+    compute_breakdowns,
     match_schemas,
     set_exclusive_time,
     set_shared_tags,
@@ -45,10 +47,15 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     try:
         with metrics.timer("spans.consumers.process_segments.get_project"):
             project = Project.objects.get_from_cache(id=segment_span["project_id"])
-    except Project.DoesNotExist:
+
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+    except (Project.DoesNotExist, Organization.DoesNotExist):
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
+    compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -246,9 +253,6 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    # TODO: Make transaction name clustering work again
-    # record_transaction_name_for_clustering(project, event.data)
-
     sentry_tags = segment_span.get("sentry_tags", {})
 
     record_generic_event_processed(

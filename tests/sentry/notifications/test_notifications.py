@@ -187,13 +187,12 @@ class ActivityNotificationTest(APITestCase):
         assert f"{self.user.username}</strong> unassigned" in msg.alternatives[0][0]
 
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        block = blocks[1]["text"]["text"]
         footer = blocks[3]["elements"][0]["text"]
         text = mock_post.call_args.kwargs["text"]
 
         assert text == f"Issue unassigned by {self.name}"
-        assert self.group.title in block
-        title_link = block[13:][1:-1]  # removes emoji and <>
+        assert self.group.title in blocks[1]["elements"][0]["elements"][-1]["text"]
+        title_link = blocks[1]["elements"][0]["elements"][-1]["url"]
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
@@ -248,12 +247,11 @@ class ActivityNotificationTest(APITestCase):
         assert f"{self.short_id}</a> as resolved</p>" in msg.alternatives[0][0]
 
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        block = blocks[1]["text"]["text"]
         footer = blocks[3]["elements"][0]["text"]
         text = mock_post.call_args.kwargs["text"]
 
-        assert self.group.title in block
-        title_link = block[13:][1:-1]  # removes emoji and <>
+        assert self.group.title in blocks[1]["elements"][0]["elements"][-1]["text"]
+        title_link = blocks[1]["elements"][0]["elements"][-1]["url"]
         notification_uuid = get_notification_uuid(title_link)
         assert (
             text
@@ -385,12 +383,11 @@ class ActivityNotificationTest(APITestCase):
         assert f"{group.qualified_short_id}</a> as a regression</p>" in msg.alternatives[0][0]
 
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        block = blocks[1]["text"]["text"]
         footer = blocks[3]["elements"][0]["text"]
         text = mock_post.call_args.kwargs["text"]
 
         assert text == "Issue marked as regression"
-        title_link = block[13:][1:-1]  # removes emoji and <>
+        title_link = blocks[1]["elements"][0]["elements"][-1]["url"]
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
@@ -446,13 +443,12 @@ class ActivityNotificationTest(APITestCase):
         )
 
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        block = blocks[1]["text"]["text"]
         footer = blocks[3]["elements"][0]["text"]
         text = mock_post.call_args.kwargs["text"]
 
         assert text == f"Issue marked as resolved in {parsed_version} by {self.name}"
-        assert self.group.title in block
-        title_link = block[13:][1:-1]  # removes emoji and <>
+        assert self.group.title in blocks[1]["elements"][0]["elements"][-1]["text"]
+        title_link = blocks[1]["elements"][0]["elements"][-1]["url"]
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
@@ -520,7 +516,7 @@ class ActivityNotificationTest(APITestCase):
                     group_id=event.group_id,
                     cache_key=cache_key,
                     project_id=self.project.id,
-                    eventstream_type=EventStreamEventType.Error,
+                    eventstream_type=EventStreamEventType.Error.value,
                 )
 
         msg = mail.outbox[0]
@@ -532,11 +528,10 @@ class ActivityNotificationTest(APITestCase):
         assert "Hello world</pre>" in msg.alternatives[0][0]
 
         blocks = orjson.loads(mock_post.call_args_list[0].kwargs["blocks"])
-        block = blocks[1]["text"]["text"]
         footer = blocks[4]["elements"][0]["text"]
 
-        assert "Hello world" in block
-        title_link = block[13:][1:-1]  # removes emoji and <>
+        assert "Hello world" in blocks[1]["elements"][0]["elements"][-1]["text"]
+        title_link = blocks[1]["elements"][0]["elements"][-1]["url"]
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer

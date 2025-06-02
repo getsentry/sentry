@@ -105,7 +105,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                 )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings[0]["detection_enabled"]
+        return self.settings["detection_enabled"]
 
 
 class FileIOMainThreadDetector(BaseIOMainThreadDetector):
