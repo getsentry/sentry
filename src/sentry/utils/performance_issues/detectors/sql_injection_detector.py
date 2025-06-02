@@ -85,7 +85,6 @@ class SQLInjectionDetector(PerformanceDetector):
 
             if not isinstance(query_value, str):
                 continue
-
             if query_key == query_value:
                 continue
             if query_value.upper() in SQL_KEYWORDS:
