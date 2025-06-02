@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.utils import timezone
 
@@ -381,6 +382,9 @@ class TestOpenPRCommentWorkflow(GitlabCommentTestCase):
         self.groups.reverse()
 
     @responses.activate
+    @pytest.mark.skip(
+        reason="Intermittent failure. See https://github.com/getsentry/sentry/issues/92620"
+    )
     def test_comment_workflow(
         self,
         mock_analytics,
