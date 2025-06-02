@@ -177,6 +177,7 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    assert 1 == 2, "you found a test that uses the traces_sampler"
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
     if wsgi_path and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
