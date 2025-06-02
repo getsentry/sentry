@@ -81,7 +81,7 @@ export type AddToDashboardModalProps = {
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
-const DEFAULT_WIDGET_NAME = 'Custom Widget';
+const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
 const DEFAULT_ACTIONS: AddToDashboardModalActions[] = [
   'add-and-stay-on-current-page',
@@ -291,11 +291,11 @@ function AddToDashboardModal({
           />
         </Wrapper>
         <Wrapper>
-          <SectionHeader title={t('Widget Name')} />
+          <SectionHeader title={t('Widget Name')} optional />
           <Input
             type="text"
             aria-label={t('Optional Widget Name')}
-            placeholder={t('Name to override default name (optional)')}
+            placeholder={t('Name')}
             onChange={e => updateWidgetTitle(e.target.value)}
           />
         </Wrapper>

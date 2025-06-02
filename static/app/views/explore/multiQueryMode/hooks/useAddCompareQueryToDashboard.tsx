@@ -21,6 +21,8 @@ import {
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 
+const DEFAULT_WIDGET_NAME = t('Custom Widget');
+
 export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -46,7 +48,7 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
     const search = new MutableSearch(qs);
 
     const discoverQuery: NewQuery = {
-      name: t('Custom Widget'),
+      name: DEFAULT_WIDGET_NAME,
       fields,
       orderby: sortBys.map(formatSort),
       query: search.formatString(),

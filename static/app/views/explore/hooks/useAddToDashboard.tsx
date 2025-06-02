@@ -33,6 +33,8 @@ export const CHART_TYPE_TO_DISPLAY_TYPE = {
   [ChartType.AREA]: DisplayType.AREA,
 };
 
+const DEFAULT_WIDGET_NAME = t('Custom Widget');
+
 export function useAddToDashboard() {
   const location = useLocation();
   const router = useRouter();
@@ -62,7 +64,7 @@ export function useAddToDashboard() {
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Widget'),
+        name: DEFAULT_WIDGET_NAME,
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),
