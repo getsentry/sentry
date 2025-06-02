@@ -1,6 +1,9 @@
 import {Flex} from 'sentry/components/container/flex';
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
-import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
+import {
+  OptionalRowLine,
+  RowLine,
+} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {BannerLink, InfoBanner} from 'sentry/components/workflowEngine/ui/infoBanner';
 import {t, tct} from 'sentry/locale';
@@ -10,7 +13,6 @@ import {useActionNodeContext} from 'sentry/views/automations/components/actionNo
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
 import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';
-import {OptionalRowLine} from 'sentry/views/automations/components/automationBuilderRow';
 
 export function SlackNode() {
   return (
@@ -53,7 +55,7 @@ function NotesField() {
       value={action.data.tags}
       onChange={(value: string) => {
         onUpdate({
-          tags: value,
+          data: {tags: value},
         });
       }}
     />

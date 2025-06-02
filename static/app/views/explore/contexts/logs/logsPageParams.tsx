@@ -7,7 +7,8 @@ import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalytics
 import type {Sort} from 'sentry/utils/discover/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import {decodeBoolean, decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,19 +24,30 @@ import {
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 
 const LOGS_PARAMS_VERSION = 1;
 export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 export const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 
+const LOGS_AUTO_REFRESH_KEY = 'live';
+const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
+const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
+
 interface LogsPageParams {
   readonly analyticsPageSource: LogsAnalyticsPageSource;
+  readonly autoRefresh: boolean;
   readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
+  readonly refreshInterval: number;
   readonly search: MutableSearch;
+  /**
+   * See setSearchForFrozenPages
+   */
+  readonly setCursorForFrozenPages: (cursor: string) => void;
   /**
    * On frozen pages (like the issues page), we don't want to store the search in the URL
    * Instead, use a useState in the context, so that it's dropped if you navigate away or refresh.
@@ -46,6 +58,11 @@ interface LogsPageParams {
    * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc.
    */
   readonly baseSearch?: MutableSearch;
+  /**
+   * If provided, add a 'trace:{trace id}' to all queries.
+   * Used in embedded views like error page and trace page
+   */
+  readonly limitToTraceId?: string;
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
@@ -82,8 +99,15 @@ export function LogsPageParamsProvider({
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
 
+  const autoRefresh = decodeBoolean(location.query[LOGS_AUTO_REFRESH_KEY]) ?? false;
+  const refreshInterval = decodeInteger(
+    location.query[LOGS_REFRESH_INTERVAL_KEY],
+    LOGS_REFRESH_INTERVAL_DEFAULT
+  );
+
   // on embedded pages with search bars, use a useState instead of a URL parameter
   const [searchForFrozenPages, setSearchForFrozenPages] = useState(new MutableSearch(''));
+  const [cursorForFrozenPages, setCursorForFrozenPages] = useState('');
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
@@ -105,7 +129,9 @@ export function LogsPageParamsProvider({
     : pageFilters.selection.projects;
   // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
 
-  const cursor = getLogCursorFromLocation(location);
+  const cursor = isTableFrozen
+    ? cursorForFrozenPages
+    : getLogCursorFromLocation(location);
 
   return (
     <LogsPageParamsContext
@@ -115,11 +141,15 @@ export function LogsPageParamsProvider({
         setSearchForFrozenPages,
         sortBys,
         cursor,
+        setCursorForFrozenPages,
         isTableFrozen,
+        autoRefresh,
+        refreshInterval,
         blockRowExpanding,
         baseSearch,
         projectIds,
         analyticsPageSource,
+        limitToTraceId,
       }}
     >
       {children}
@@ -144,8 +174,13 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
+  updateNullableLocation(target, LOGS_AUTO_REFRESH_KEY, pageParams.autoRefresh);
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
+    if (pageParams.sortBys || pageParams.search) {
+      delete target.query[LOGS_CURSOR_KEY];
+      delete target.query[LOGS_AUTO_REFRESH_KEY];
+    }
   }
   return target;
 }
@@ -158,8 +193,17 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
 function updateNullableLocation(
   location: Location,
   key: string,
-  value: string | string[] | null | undefined
+  value: boolean | string | string[] | null | undefined
 ): boolean {
+  if (typeof value === 'boolean') {
+    if (value) {
+      location.query[key] = 'true';
+    } else {
+      // Delete boolean keys to minimize the number of query params.
+      delete location.query[key];
+    }
+    return true;
+  }
   if (defined(value) && location.query[key] !== value) {
     location.query[key] = value;
     return true;
@@ -207,6 +251,36 @@ export function useSetLogsSearch() {
     return setSearchForFrozenPages;
   }
   return setPageParamsCallback;
+}
+
+export function useLogsCursor() {
+  const {cursor} = useLogsPageParams();
+  return cursor;
+}
+
+export function useLogsIsFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return !!isTableFrozen;
+}
+
+export function useLogsLimitToTraceId() {
+  const {limitToTraceId} = useLogsPageParams();
+  return limitToTraceId;
+}
+
+export function useSetLogsCursor() {
+  const setPageParams = useSetLogsPageParams();
+  const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();
+  return useCallback<CursorHandler>(
+    cursor => {
+      if (isTableFrozen) {
+        setCursorForFrozenPages(cursor ?? '');
+      } else {
+        setPageParams({cursor});
+      }
+    },
+    [isTableFrozen, setCursorForFrozenPages, setPageParams]
+  );
 }
 
 export function useLogsIsTableFrozen() {
@@ -261,21 +335,6 @@ export function useSetLogsFields() {
       setPersistentParams(prev => ({...prev, fields}));
     },
     [setPageParams, setPersistentParams]
-  );
-}
-
-export function useLogsCursor() {
-  const {cursor} = useLogsPageParams();
-  return cursor;
-}
-
-export function useSetLogsCursor() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback<CursorHandler>(
-    cursor => {
-      setPageParams({cursor});
-    },
-    [setPageParams]
   );
 }
 
@@ -336,6 +395,32 @@ function getLogsParamsStorageKey(version: number) {
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
 }
+
+export function useLogsAutoRefresh() {
+  const {autoRefresh, isTableFrozen} = useLogsPageParams();
+  return isTableFrozen ? false : autoRefresh;
+}
+
+export function useSetLogsAutoRefresh() {
+  const setPageParams = useSetLogsPageParams();
+  const {queryKey} = useLogsQueryKeyWithInfinite({referrer: 'api.explore.logs-table'});
+  const queryClient = useQueryClient();
+  return useCallback(
+    (autoRefresh: boolean) => {
+      setPageParams({autoRefresh});
+      if (autoRefresh) {
+        queryClient.removeQueries({queryKey});
+      }
+    },
+    [setPageParams, queryClient, queryKey]
+  );
+}
+
+export function useLogsRefreshInterval() {
+  const {refreshInterval} = useLogsPageParams();
+  return refreshInterval;
+}
+
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.

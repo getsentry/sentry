@@ -81,7 +81,7 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
             """
             Create and link Sentry issue groups directly to a GitHub issue or pull
             request in any of your repositories, providing a quick way to jump from
-            Sentry bug to tracked issue or PR!
+            Sentry bug to tracked issue or PR.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),

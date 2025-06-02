@@ -1,15 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
+import {
+  getAutofixRunExists,
+  isIssueQuickFixable,
+} from 'sentry/components/events/autofix/utils';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
+import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -78,10 +80,12 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
+  const autofixRunExists = getAutofixRunExists(data as Group);
+  const seerFixable = isIssueQuickFixable(data as Group);
   const showSeer =
     organization.features.includes('gen-ai-features') &&
     !organization.hideAiFeatures &&
-    getAutofixRunExists(data as Group);
+    (autofixRunExists || seerFixable);
 
   const {subtitle} = getTitle(data);
 
@@ -115,13 +119,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       </CommentsLink>
     ) : null,
     showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
-    showSeer ? (
-      <Tooltip title="Seer has a potential fix for this issue" skipWrapper>
-        <CommentsLink to={{pathname: `${issuesPath}${id}`, query: {seerDrawer: true}}}>
-          <SeerIcon size="sm" />
-        </CommentsLink>
-      </Tooltip>
-    ) : null,
+    showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
     logger ? (
       <LoggerAnnotation>
         <GlobalSelectionLink
@@ -174,6 +172,7 @@ const GroupExtra = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   line-height: 1.2;
+  min-height: ${space(2)};
 
   & > a {
     color: ${p => p.theme.subText};

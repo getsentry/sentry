@@ -115,7 +115,11 @@ function countPreviousItemsOfType({
   type: Token;
 }) {
   const itemKeys = [...state.collection.getKeys()];
-  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey);
+  const focusedKey = state.selectionManager.focusedKey;
+  if (!focusedKey) {
+    return 0;
+  }
+  const currentIndex = itemKeys.indexOf(focusedKey);
 
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
@@ -254,6 +258,7 @@ function SearchQueryBuilderInputInternal({
     filterKeys,
     dispatch,
     getFieldDefinition,
+    getSuggestedFilterKey,
     handleSearch,
     placeholder,
     searchSource,
@@ -516,7 +521,7 @@ function SearchQueryBuilderInputInternal({
                 textToken.type === Token.FILTER && textToken.key.text === filterValue
             )
           ) {
-            const filterKey = filterValue;
+            const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT',
@@ -645,12 +650,6 @@ const Row = styled('div')`
       right: ${space(0.5)};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
-    }
-  }
-
-  input {
-    &::selection {
       background-color: ${p => p.theme.gray100};
     }
   }

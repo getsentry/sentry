@@ -56,7 +56,6 @@ class WorkflowRuleSerializerTest(TestCase):
         WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
-            has_fired_actions=True,
             event_id="fc6d8c0c43fc4630ad850ee518f1b9d0",
         )
 
@@ -213,15 +212,13 @@ class WorkflowRuleSerializerTest(TestCase):
         workflow_2 = self.create_workflow()
 
         WorkflowFireHistory.objects.create(workflow=workflow, group=self.group, event_id="asdf")
-        WorkflowFireHistory.objects.create(
-            workflow=workflow, group=self.group, event_id="jklm", has_fired_actions=True
-        )
+        WorkflowFireHistory.objects.create(workflow=workflow, group=self.group, event_id="jklm")
         wfh = WorkflowFireHistory.objects.create(
-            workflow=workflow_2, group=self.group, event_id="qwer", has_fired_actions=True
+            workflow=workflow_2, group=self.group, event_id="qwer"
         )
         wfh.update(date_added=before_now(days=1))
         wfh_2 = WorkflowFireHistory.objects.create(
-            workflow=workflow_2, group=self.group, event_id="fdsa", has_fired_actions=True
+            workflow=workflow_2, group=self.group, event_id="fdsa"
         )
         wfh_2.update(date_added=before_now(hours=1))
 

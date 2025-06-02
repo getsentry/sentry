@@ -132,6 +132,16 @@ describe('SeerDrawer', () => {
         preference: null,
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
+    });
   });
 
   it('renders consent state if not consented', async () => {
@@ -162,8 +172,6 @@ describe('SeerDrawer', () => {
     );
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
-
-    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
@@ -217,7 +225,7 @@ describe('SeerDrawer', () => {
     );
 
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Now')).toBeInTheDocument();
+    expect(screen.getByText('Set Up Integration')).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start Seer'});
     expect(startButton).toBeInTheDocument();
@@ -486,7 +494,7 @@ describe('SeerDrawer', () => {
     // Since "Install the GitHub Integration" text isn't found, let's check for
     // the "Set Up the GitHub Integration" text which is what the component is actually showing
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Now')).toBeInTheDocument();
+    expect(screen.getByText('Set Up Integration')).toBeInTheDocument();
   });
 
   it('does not render SeerNotices when all repositories are readable', async () => {

@@ -1,12 +1,12 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RspackPluginInstance,
+  SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
@@ -18,6 +18,7 @@ import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
+import packageJson from './package.json';
 
 const {env} = process;
 
@@ -70,9 +71,6 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
-
-// Storybook related flag configuration
-const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -170,6 +168,43 @@ for (const locale of supportedLocales) {
   };
 }
 
+const swcReactLoaderConfig: SwcLoaderOptions = {
+  env: {
+    mode: 'usage',
+    // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+    coreJs: '3.41.0',
+    targets: packageJson.browserslist.production,
+    shippedProposals: true,
+  },
+  jsc: {
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: true,
+            // The "dev-only" option does not seem to apply correctly
+            autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        development: DEV_MODE,
+        refresh: SHOULD_HOT_MODULE_RELOAD,
+        importSource: '@emotion/react',
+      },
+    },
+  },
+  isModule: 'unknown',
+};
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -177,6 +212,9 @@ for (const locale of supportedLocales) {
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   target: 'browserslist',
+  // Fail on first error instead of continuing to build
+  // https://rspack.rs/config/other-options#bail
+  bail: IS_PRODUCTION,
   entry: {
     /**
      * Main Sentry SPA
@@ -205,7 +243,11 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentsincremental
     incremental: DEV_MODE,
     futureDefaults: true,
-    css: true,
+    // Native css parsing not working in production
+    // Build production bundle and open the entrypoints/sentry.css file
+    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
+    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
+    css: false,
   },
   module: {
     /**
@@ -215,36 +257,22 @@ const appConfig: Configuration = {
     rules: [
       {
         test: /\.(js|jsx|ts|tsx)$/,
-        exclude: /\/node_modules\//,
+        // Avoids recompiling core-js based on usage imports
+        exclude: /node_modules[\\/]core-js/,
         loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            experimental: {
-              plugins: [
-                [
-                  '@swc/plugin-emotion',
-                  {
-                    sourceMap: true,
-                    // The "dev-only" option does not seem to apply correctly
-                    autoLabel: DEV_MODE ? 'always' : 'never',
-                  },
-                ],
-              ],
-            },
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
-            transform: {
-              react: {
-                runtime: 'automatic',
-                development: DEV_MODE,
-                refresh: DEV_MODE,
-                importSource: '@emotion/react',
-              },
-            },
+        options: swcReactLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig,
           },
-        },
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -262,13 +290,21 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css/,
-        type: 'css',
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: ['less-loader'],
-        type: 'css',
+        use: [
+          {
+            loader: rspack.CssExtractRspackPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -278,10 +314,32 @@ const appConfig: Configuration = {
   },
   plugins: [
     /**
-     * Adds build time measurement instrumentation, which will be reported back
-     * to sentry
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
      */
-    // new SentryInstrumentation(),
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Restrict translation files that are pulled in through app/translations.jsx
+     * and through moment/locale/* to only those which we create bundles for via
+     * locale/catalogs.json.
+     *
+     * Without this, webpack will still output all of the unused locale files despite
+     * the application never loading any of them.
+     */
+    new rspack.ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new rspack.ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
@@ -289,6 +347,16 @@ const appConfig: Configuration = {
     new rspack.ProvidePlugin({
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
+    }),
+
+    /**
+     * Extract CSS into separate files.
+     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
+     */
+    new rspack.CssExtractRspackPlugin({
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: 'entrypoints/[name].css',
     }),
 
     /**
@@ -315,26 +383,7 @@ const appConfig: Configuration = {
         ]
       : []),
 
-    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
-
-    /**
-     * Restrict translation files that are pulled in through app/translations.jsx
-     * and through moment/locale/* to only those which we create bundles for via
-     * locale/catalogs.json.
-     *
-     * Without this, webpack will still output all of the unused locale files despite
-     * the application never loading any of them.
-     */
-    new rspack.ContextReplacementPlugin(
-      /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-      true,
-      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-    ),
-    new rspack.ContextReplacementPlugin(
-      /moment\/locale/,
-      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-    ),
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
@@ -364,9 +413,7 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
+      'type-loader': path.resolve(__dirname, 'static/app/stories/type-loader.ts'),
     },
   },
 
@@ -452,15 +499,7 @@ if (IS_TEST) {
     'js-stubs'
   );
 }
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['integration-docs-platforms'] =
-    path.join(__dirname, 'fixtures/integration-docs/_platforms.json');
-} else {
-  // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  // appConfig.plugins?.push(plugin);
-  // appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
-}
-//
+
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
@@ -711,18 +750,40 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   );
 }
 
-const minificationPlugins: RspackPluginInstance[] = [
+if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  new CompressionPlugin({
-    algorithm: 'gzip',
-    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as unknown as RspackPluginInstance,
-];
+  appConfig.plugins?.push(
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+    })
+  );
 
-if (IS_PRODUCTION) {
-  appConfig.plugins?.push(...minificationPlugins);
+  // Enable sentry-webpack-plugin for production builds
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Only enable in production, annotating is slow in development
+        enabled: true,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -753,31 +814,9 @@ if (env.WEBPACK_CACHE_PATH) {
     // https://rspack.dev/config/experiments#cachestorage
     storage: {
       type: 'filesystem',
-      directory: env.WEBPACK_CACHE_PATH,
+      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      enabled: true,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;

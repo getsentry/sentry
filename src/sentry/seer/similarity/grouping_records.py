@@ -40,10 +40,8 @@ class BulkCreateGroupingRecordsResponse(TypedDict):
     reason: NotRequired[str | None]
 
 
-seer_grouping_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_BACKFILL_URL,
-    timeout=settings.SEER_GROUPING_TIMEOUT,
-)
+seer_grouping_backfill_connection_pool = connection_from_url(settings.SEER_GROUPING_BACKFILL_URL)
+seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_URL)
 
 
 def post_bulk_grouping_records(
@@ -64,7 +62,7 @@ def post_bulk_grouping_records(
 
     try:
         response = make_signed_seer_api_request(
-            seer_grouping_connection_pool,
+            seer_grouping_backfill_connection_pool,
             SEER_GROUPING_RECORDS_URL,
             body=json.dumps(grouping_records_request).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,

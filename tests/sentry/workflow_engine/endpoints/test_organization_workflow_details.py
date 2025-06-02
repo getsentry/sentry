@@ -1,5 +1,6 @@
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.auditlogentry import AuditLogEntry
@@ -30,6 +31,12 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
 
     def test_does_not_exist(self):
         self.get_error_response(self.organization.slug, 3, status_code=404)
+
+    def test_pending_deletion(self):
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        workflow.status = ObjectStatus.PENDING_DELETION
+        workflow.save()
+        self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
 
 @region_silo_test
@@ -82,6 +89,8 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
 
     def test_audit_entry(self):
         with outbox_runner():
@@ -96,7 +105,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_does_not_exist(self):
         with outbox_runner():
-            response = self.get_error_response(self.organization.slug, -1)
+            response = self.get_error_response(self.organization.slug, 999999999)
             assert response.status_code == 404
 
         # Ensure it wasn't deleted

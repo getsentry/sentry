@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -15,8 +15,14 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.activity import Activity
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -24,6 +30,18 @@ from sentry.users.services.user.service import user_service
 if TYPE_CHECKING:
     from sentry.integrations.models.external_issue import ExternalIssue
     from sentry.models.group import Group
+
+# Specific substring to identify Azure Entra ID "identity deleted" errors
+# Example: According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this.
+VSTS_IDENTITY_DELETED_ERROR_SUBSTRING = [
+    "is currently Deleted within the following Microsoft Entra tenant"
+]
+
+VSTS_ISSUE_TITLE_MAX_LENGTH = 128
+
+# Represents error codes caused by misconfiguration when creating a ticket
+# Example: Error Communicating with Azure DevOps (HTTP 400): TF401320: Rule Error for field xxx. Error code: Required, HasValues, LimitedToValues, AllowsOldValue, InvalidEmpty.
+VSTS_INTEGRATION_FORM_ERROR_CODES_SUBSTRINGS = ["TF401320"]
 
 
 class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
@@ -45,6 +63,24 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         # default_repo should be the project_id
         project = self.get_client().get_project(default_repo)
         return (project["id"], project["name"])
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        # Reraise Azure Specific Errors correctly
+        if isinstance(exc, ApiError) and any(
+            substring in str(exc) for substring in VSTS_IDENTITY_DELETED_ERROR_SUBSTRING
+        ):
+            raise ApiUnauthorized(text=str(exc))
+        elif isinstance(exc, ApiError) and any(
+            substring in str(exc) for substring in VSTS_INTEGRATION_FORM_ERROR_CODES_SUBSTRINGS
+        ):
+            # Parse the field name from the error message
+            # Example: TF401320: Rule Error for field Empowered Team. Error code: Required, HasValues, LimitedToValues, AllowsOldValue, InvalidEmpty.
+            try:
+                field_name = str(exc).split("Error for field ")[1].split(".")[0]
+                raise IntegrationFormError(field_errors={field_name: f"{field_name} is required."})
+            except IndexError:
+                raise IntegrationFormError()
+        raise super().raise_error(exc, identity)
 
     def get_project_choices(
         self, group: Group | None = None, **kwargs: Any
@@ -178,13 +214,16 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         """
         project_id = data.get("project")
         if project_id is None:
-            raise ValueError("Azure DevOps expects project")
+            raise IntegrationFormError({"project": "Project is required."})
 
         client = self.get_client()
 
         title = data["title"]
         description = data["description"]
         item_type = data["work_item_type"]
+
+        if len(title) > VSTS_ISSUE_TITLE_MAX_LENGTH:
+            title = title[: VSTS_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
 
         try:
             created_item = client.create_work_item(
@@ -268,12 +307,18 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "issue_key": external_issue.key,
                 },
             )
+        except Exception as e:
+            self.raise_error(e)
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
     ) -> None:
         client = self.get_client()
-        work_item = client.get_work_item(external_issue.key)
+        try:
+            work_item = client.get_work_item(external_issue.key)
+        except Exception as e:
+            self.raise_error(e)
+
         # For some reason, vsts doesn't include the project id
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
@@ -311,7 +356,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
 
         try:
             client.update_work_item(external_issue.key, state=status)
-        except (ApiUnauthorized, ApiError) as error:
+        except ApiUnauthorized as error:
             self.logger.info(
                 "vsts.failed-to-change-status",
                 extra={
@@ -321,6 +366,9 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                     "exception": error,
                 },
             )
+            raise
+        except Exception as e:
+            self.raise_error(e)
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         done_states = self._get_done_statuses(data["project"])

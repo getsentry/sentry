@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:32:03.705182+00:00'
+created: '2025-05-12T23:51:31.432361+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,7 +30,7 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame* (marked in-app by stack trace rule (function:playFetch +app +group))
+            frame* (marked in-app by stack trace rule (function:playFetch +app))
               filename*
                 "dogpark.js"
               function*

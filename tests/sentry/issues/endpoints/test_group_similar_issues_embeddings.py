@@ -183,6 +183,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(expected_seer_request_params),
             headers={"content-type": "application/json;charset=utf-8"},
         )
@@ -611,6 +612,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -637,6 +639,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -666,6 +669,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,

@@ -1,35 +1,14 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
-import {OrganizationAuthTokensNewAuthToken} from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
+import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
 
 describe('OrganizationAuthTokensNewAuthToken', function () {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
-  const {organization, router} = initializeOrg();
-
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
-    route: {},
-    routeParams: router.params,
-  };
-
-  beforeEach(function () {
-    OrganizationsStore.addOrReplace(organization);
-  });
-
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-  });
 
   it('can create token', async function () {
-    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+    render(<OrganizationAuthTokensNewAuthToken />);
 
     const generatedToken: OrgAuthToken & {token: string} = {
       id: '1',
@@ -65,7 +44,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   it('handles API errors when creating token', async function () {
     jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+    render(<OrganizationAuthTokensNewAuthToken />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -98,7 +77,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   it('handles missing_system_url_prefix API error when creating token', async function () {
     jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+    render(<OrganizationAuthTokensNewAuthToken />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,

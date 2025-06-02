@@ -3,7 +3,6 @@ import {useFocus, usePress} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
-import type {SelectionManager} from '@react-stately/selection';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
@@ -105,18 +104,16 @@ export function getDisabledOptions<Value extends SelectKey>(
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit = Infinity,
-  filterOption?: (opt: SelectOption<Value>, search: string) => boolean
+  limit = Infinity
 ): Set<SelectKey> {
   //
   // First, filter options using `search` value
   //
-  const _filterOption =
-    filterOption ??
-    ((opt: SelectOption<Value>) =>
-      `${opt.label ?? ''}${opt.textValue ?? ''}`
-        .toLowerCase()
-        .includes(search.toLowerCase()));
+  const filterOption = (opt: SelectOption<Value>) =>
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    `${opt.label ?? ''}${opt.textValue ?? ''}`
+      .toLowerCase()
+      .includes(search.toLowerCase());
 
   const hiddenOptionsSet = new Set<SelectKey>();
   const remainingItems = items
@@ -124,7 +121,7 @@ export function getHiddenOptions<Value extends SelectKey>(
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
-            if (_filterOption(opt, search)) {
+            if (filterOption(opt)) {
               return opt;
             }
 
@@ -136,7 +133,7 @@ export function getHiddenOptions<Value extends SelectKey>(
         return filteredOptions.length > 0 ? {...item, options: filteredOptions} : null;
       }
 
-      if (_filterOption(item, search)) {
+      if (filterOption(item)) {
         return item;
       }
 
@@ -188,7 +185,7 @@ export function getHiddenOptions<Value extends SelectKey>(
  */
 function toggleOptions<Value extends SelectKey>(
   optionKeys: Value[],
-  selectionManager: SelectionManager
+  selectionManager: ListState<any>['selectionManager']
 ) {
   const {selectedKeys} = selectionManager;
   const newSelectedKeys = new Set(selectedKeys);
@@ -319,7 +316,7 @@ export function HiddenSectionToggle({
         id={`${listId}-section-toggle-${item.key}`}
       >
         {allOptionsSelected ? t('Unselect All in ') : t('Select All in ')}
-        {item.textValue ?? item.rendered}
+        {item.textValue || item.rendered}
       </button>
     </VisuallyHidden>
   );

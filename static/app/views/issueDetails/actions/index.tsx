@@ -3,7 +3,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -43,6 +47,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -52,7 +57,11 @@ import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIss
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -77,6 +86,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const navigate = useNavigate();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const queryClient = useQueryClient();
+  const environments = useEnvironmentsFromUrl();
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -170,6 +181,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         complete: () => {
           clearIndicators();
 
+          addSuccessMessage(t('Issue deleted'));
           navigate({
             pathname: `/organizations/${organization.slug}/issues/`,
             query: {project: project.id},
@@ -182,9 +194,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     IssueListCacheStore.reset();
   };
 
-  const onUpdate = (data: UpdateData) => {
-    addLoadingMessage(t('Saving changes\u2026'));
-
+  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
     bulkUpdate(
       api,
       {
@@ -194,7 +204,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: clearIndicators,
+        complete: () => {
+          clearIndicators();
+          onComplete?.();
+          queryClient.invalidateQueries({
+            queryKey: makeFetchGroupQueryKey({
+              organizationSlug: organization.slug,
+              groupId: group.id,
+              environments,
+            }),
+          });
+        },
       }
     );
 
@@ -226,13 +246,21 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onToggleBookmark = () => {
-    onUpdate({isBookmarked: !group.isBookmarked});
-    trackIssueAction('bookmarked');
+    onUpdate({isBookmarked: !group.isBookmarked}, () => {
+      trackIssueAction('bookmarked');
+      addSuccessMessage(
+        group.isBookmarked ? t('Issue bookmark removed') : t('Issue bookmarked')
+      );
+    });
   };
 
   const onToggleSubscribe = () => {
-    onUpdate({isSubscribed: !group.isSubscribed});
-    trackIssueAction('subscribed');
+    onUpdate({isSubscribed: !group.isSubscribed}, () => {
+      trackIssueAction('subscribed');
+      addSuccessMessage(
+        group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
+      );
+    });
   };
 
   const onDiscard = () => {
@@ -430,28 +458,41 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            <SubscribeAction
-              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
-              disabled={disabled}
-              disablePriority
-              group={group}
-              onClick={handleClick(onToggleSubscribe)}
-              icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-              size="sm"
-            />
+            {!hasStreamlinedUI && (
+              <SubscribeAction
+                className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+                disabled={disabled}
+                disablePriority
+                group={group}
+                onClick={handleClick(onToggleSubscribe)}
+                icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+                size="sm"
+              />
+            )}
           </Fragment>
         ))}
       {hasStreamlinedUI && (
-        <Button
-          size="sm"
-          onClick={openShareModal}
-          icon={<IconUpload />}
-          aria-label={t('Share')}
-          title={t('Share Issue')}
-          disabled={disabled}
-          analyticsEventKey="issue_details.share_action_clicked"
-          analyticsEventName="Issue Details: Share Action Clicked"
-        />
+        <Fragment>
+          <SubscribeAction
+            className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+            disabled={disabled}
+            disablePriority
+            group={group}
+            onClick={handleClick(onToggleSubscribe)}
+            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+            size="sm"
+          />
+          <Button
+            size="sm"
+            onClick={openShareModal}
+            icon={<IconUpload />}
+            aria-label={t('Share')}
+            title={t('Share Issue')}
+            disabled={disabled}
+            analyticsEventKey="issue_details.share_action_clicked"
+            analyticsEventName="Issue Details: Share Action Clicked"
+          />
+        </Fragment>
       )}
       <DropdownMenu
         triggerProps={{

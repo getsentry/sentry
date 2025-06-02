@@ -10,18 +10,12 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
-from sentry.utils.validators import is_event_id, is_span_id
+from sentry.utils.validators import is_event_id_or_list
 
 OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
     for column in COMMON_COLUMNS
     + [
-        ResolvedAttribute(
-            public_alias="span_id",
-            internal_name="sentry.span_id",
-            search_type="string",
-            validator=is_span_id,
-        ),
         ResolvedAttribute(
             public_alias="severity_number",
             internal_name="sentry.severity_number",
@@ -41,7 +35,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=is_event_id,
+            validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="timestamp",
@@ -50,6 +44,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             processor=datetime_processor,
         ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
         simple_sentry_field("message.template"),
         simple_sentry_field("release"),
@@ -117,4 +112,16 @@ LOGS_PRIVATE_ATTRIBUTES: set[str] = {
     definition.internal_name
     for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
     if definition.private
+}
+
+LOGS_REPLACEMENT_ATTRIBUTES: set[str] = {
+    definition.replacement
+    for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+LOGS_REPLACEMENT_MAP: dict[str, str] = {
+    definition.public_alias: definition.replacement
+    for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
 }
