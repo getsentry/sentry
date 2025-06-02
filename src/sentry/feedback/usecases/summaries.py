@@ -7,8 +7,9 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def make_input_prompt(feedbacks):
-    # if you decide not to lower-case the message, remember to add capitals to the examples
+def make_input_prompt(
+    feedbacks,
+):  # feedbacks would probably be a list, so make it a string somehow then .lower()?
     return f"""**Task**
 **Instructions: You are an AI assistant that analyzes customer feedback.
 Create a summary based on the user feedbacks that is at most three sentences, and complete the sentence "Users say...". Be concise, but specific in the summary.
@@ -27,7 +28,6 @@ Key sentiments:
 
 
 SUMMARY_REGEX = re.compile(r"Summary:(.*?)Key sentiments:", re.DOTALL)
-
 SENTIMENT_REGEX = re.compile(r"- (.*?):\s*(positive|negative|neutral)", re.IGNORECASE)
 
 
@@ -49,17 +49,19 @@ def generate_summary(
 
 def parse_response(
     text,
-):  # Boolean (for if parsing was successful or not), maybe change the return type
+):  # Boolean (for if parsing was successful or not), string, list - maybe change the return type
     summary_match = SUMMARY_REGEX.search(text)
     if summary_match:
         summary_text = summary_match.group(1).strip()
     else:
+        logger.error("Error parsing AI feedback summary")
         return False, ("", [])
 
     sentiments = SENTIMENT_REGEX.findall(text)
     if sentiments:
         return True, (summary_text, sentiments)
     else:
+        logger.error("Error parsing AI feedback key sentiments")
         return False, ("", [])
 
 
