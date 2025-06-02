@@ -58,6 +58,7 @@ import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParam
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {
   ModuleName,
+  SpanFields,
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
@@ -211,7 +212,7 @@ export function HTTPSamplesPanel() {
   } = useTopNSpanMetricsSeries(
     {
       search,
-      fields: ['span.status_code', 'count()'],
+      fields: [SpanFields.RESPONSE_CODE, 'count()'],
       yAxis: ['count()'],
       topN: 5,
       sort: {
@@ -418,6 +419,7 @@ export function HTTPSamplesPanel() {
                 <ModuleLayout.Full>
                   <InsightsLineChartWidget
                     showLegend="never"
+                    search={search}
                     title={getDurationChartTitle('http')}
                     isLoading={isDurationDataFetching}
                     error={durationError}
@@ -432,6 +434,8 @@ export function HTTPSamplesPanel() {
               <Fragment>
                 <ModuleLayout.Full>
                   <ResponseCodeCountChart
+                    search={search}
+                    groupBy={[SpanFields.RESPONSE_CODE]}
                     series={Object.values(responseCodeData).filter(Boolean)}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}
