@@ -185,6 +185,14 @@ class SentryPermission(ScopedPermission):
                     extra=extra,
                 )
                 raise TwoFactorRequired()
+
+            if self.is_member_disabled_from_limit(request, org_context):
+                logger.info(
+                    "access.member-disabled-from-limit",
+                    extra=extra,
+                )
+                raise MemberDisabledOverLimit(organization)
+
             return
 
         request.access = access.from_request_org_and_scopes(

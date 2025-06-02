@@ -30,16 +30,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import type {SpanType} from './types';
-
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
 
-interface SpanProfileDetailsProps {
+export interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
-  span: Readonly<SpanType>;
+  span: Readonly<{
+    end_timestamp: number;
+    span_id: string;
+    start_timestamp: number;
+  }>;
   onNoProfileFound?: () => void;
 }
 
@@ -47,7 +49,7 @@ export function useSpanProfileDetails(
   organization: Organization,
   project: Project | undefined,
   event: Readonly<EventTransaction>,
-  span: Readonly<SpanType>
+  span: SpanProfileDetailsProps['span']
 ) {
   const profileGroup = useProfileGroup();
 
@@ -97,7 +99,7 @@ export function useSpanProfileDetails(
       profile.unit
     );
     const relativeStopTimestamp = formatTo(
-      span.timestamp - startTimestamp,
+      span.end_timestamp - startTimestamp,
       'second',
       profile.unit
     );

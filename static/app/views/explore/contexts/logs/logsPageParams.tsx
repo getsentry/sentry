@@ -59,6 +59,11 @@ interface LogsPageParams {
    */
   readonly baseSearch?: MutableSearch;
   /**
+   * If provided, add a 'trace:{trace id}' to all queries.
+   * Used in embedded views like error page and trace page
+   */
+  readonly limitToTraceId?: string;
+  /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
    */
@@ -144,6 +149,7 @@ export function LogsPageParamsProvider({
         baseSearch,
         projectIds,
         analyticsPageSource,
+        limitToTraceId,
       }}
     >
       {children}
@@ -250,6 +256,16 @@ export function useSetLogsSearch() {
 export function useLogsCursor() {
   const {cursor} = useLogsPageParams();
   return cursor;
+}
+
+export function useLogsIsFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return !!isTableFrozen;
+}
+
+export function useLogsLimitToTraceId() {
+  const {limitToTraceId} = useLogsPageParams();
+  return limitToTraceId;
 }
 
 export function useSetLogsCursor() {
@@ -381,8 +397,8 @@ function getPastLogsParamsStorageKey(version: number) {
 }
 
 export function useLogsAutoRefresh() {
-  const {autoRefresh} = useLogsPageParams();
-  return autoRefresh;
+  const {autoRefresh, isTableFrozen} = useLogsPageParams();
+  return isTableFrozen ? false : autoRefresh;
 }
 
 export function useSetLogsAutoRefresh() {

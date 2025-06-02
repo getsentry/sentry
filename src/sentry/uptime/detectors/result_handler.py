@@ -9,6 +9,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
+from sentry import audit_log
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import set_failed_url
 from sentry.uptime.models import UptimeSubscription, get_project_subscription
@@ -18,6 +19,7 @@ from sentry.uptime.subscriptions.subscriptions import (
 )
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
@@ -90,6 +92,13 @@ def handle_onboarding_result(
                 interval_seconds=int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                 mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             )
+            create_system_audit_entry(
+                organization=detector.project.organization,
+                target_object=project_subscription.id,
+                event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
+                data=project_subscription.get_audit_log_data(),
+            )
+
             metrics.incr(
                 "uptime.result_processor.autodetection.graduated_onboarding",
                 sample_rate=1.0,

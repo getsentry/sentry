@@ -586,7 +586,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
-        querystring = urlencode({"q": "org:Test Organization ex"})
+        querystring = urlencode({"q": "fork:true org:Test Organization ex"})
         responses.add(
             responses.GET,
             f"{self.base_url}/search/repositories?{querystring}",
@@ -1316,7 +1316,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
-            props={"installation_info": installations, "has_scm_multi_org": True},
+            props={
+                "installation_info": installations,
+                "has_scm_multi_org": True,
+                "organization_slug": self.organization.slug,
+            },
         )
 
         # SLO assertions
@@ -1524,7 +1528,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
-            props={"installation_info": installations, "has_scm_multi_org": False},
+            props={
+                "installation_info": installations,
+                "has_scm_multi_org": False,
+                "organization_slug": self.organization.slug,
+            },
         )
 
         # SLO assertions
@@ -1575,7 +1583,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
-            props={"installation_info": installations, "has_scm_multi_org": False},
+            props={
+                "installation_info": installations,
+                "has_scm_multi_org": False,
+                "organization_slug": self.organization.slug,
+            },
         )
 
         # We rendered the GithubOrganizationSelection UI and the user chose to skip

@@ -11,19 +11,14 @@ import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionHandlerGroupType} from 'sentry/types/workflowEngine/dataConditions';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  FILTER_DATA_CONDITION_TYPES,
-  FILTER_MATCH_OPTIONS,
-} from 'sentry/views/automations/components/actionFilters/constants';
+import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
 import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
-import {
-  TRIGGER_DATA_CONDITION_TYPES,
-  TRIGGER_MATCH_OPTIONS,
-} from 'sentry/views/automations/components/triggers/constants';
+import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
@@ -69,8 +64,7 @@ export default function AutomationBuilder() {
         </StepLead>
       </Step>
       <DataConditionNodeList
-        // TODO: replace constant dataConditionTypes with DataConditions API response
-        dataConditionTypes={TRIGGER_DATA_CONDITION_TYPES}
+        handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
         placeholder={t('Select a trigger...')}
         conditions={state.triggers.conditions}
         group="triggers"
@@ -154,8 +148,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
             />
           </Flex>
           <DataConditionNodeList
-            // TODO: replace constant dataConditionTypes with DataConditions API response
-            dataConditionTypes={FILTER_DATA_CONDITION_TYPES}
+            handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
             placeholder={t('Filter by...')}
             group={`actionFilters.${actionFilter.id}`}
             conditions={actionFilter?.conditions || []}
@@ -178,12 +171,10 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         </StepLead>
         {/* TODO: add actions dropdown here */}
         <ActionNodeList
-          // TODO: replace constant availableActions with API response
-          availableActions={[]}
           placeholder={t('Select an action')}
           group={`actionFilters.${actionFilter.id}`}
           actions={actionFilter?.actions || []}
-          onAddRow={type => actions.addIfAction(actionFilter.id, type)}
+          onAddRow={(id, type) => actions.addIfAction(actionFilter.id, id, type)}
           onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
           updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
         />

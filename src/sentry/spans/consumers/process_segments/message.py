@@ -1,4 +1,5 @@
 import logging
+import types
 import uuid
 from copy import deepcopy
 from typing import Any, cast
@@ -8,21 +9,19 @@ from django.core.exceptions import ValidationError
 from sentry import options
 from sentry.constants import INSIGHT_MODULE_FILTERS
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
-from sentry.event_manager import get_project_insight_flag
+from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.receivers.features import record_generic_event_processed
-from sentry.receivers.onboarding import (
-    record_first_insight_span,
-    record_first_transaction,
-    record_release_received,
-)
+from sentry.receivers.onboarding import record_release_received
+from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import (
     compute_breakdowns,
     match_schemas,
@@ -34,6 +33,7 @@ from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,11 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     try:
         with metrics.timer("spans.consumers.process_segments.get_project"):
             project = Project.objects.get_from_cache(id=segment_span["project_id"])
-    except Project.DoesNotExist:
+
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+    except (Project.DoesNotExist, Organization.DoesNotExist):
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
@@ -258,8 +262,21 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
         environment=sentry_tags.get("environment"),
     )
 
-    record_first_transaction(project, to_datetime(segment_span["end_timestamp_precise"]))
+    # signal expects an event like object with a datetime attribute
+    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp_precise"]))
+
+    set_project_flag_and_signal(
+        project,
+        "has_transactions",
+        first_transaction_received,
+        event=event_like,
+    )
 
     for module, is_module in INSIGHT_MODULE_FILTERS.items():
-        if not get_project_insight_flag(project, module) and is_module(spans):
-            record_first_insight_span(project, module)
+        if is_module(spans):
+            set_project_flag_and_signal(
+                project,
+                INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                first_insight_span_received,
+                module=module,
+            )
