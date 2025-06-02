@@ -375,7 +375,7 @@ function SchemaHintsList({
       const newQuery = newSearchQuery.formatString();
 
       dispatch({
-        type: 'UPDATE_QUERY',
+        type: 'UPDATE_QUERY_WITHOUT_COMMIT',
         query: newQuery,
         focusOverride: {
           itemKey: `filter:${newSearchQuery

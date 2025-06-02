@@ -123,7 +123,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
 
       handleQueryChange(filterQuery);
       searchBarDispatch({
-        type: 'UPDATE_QUERY',
+        type: 'UPDATE_QUERY_WITHOUT_COMMIT',
         query: filterQuery.formatString(),
         focusOverride: {
           itemKey: `filter:${filterQuery

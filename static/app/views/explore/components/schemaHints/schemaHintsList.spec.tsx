@@ -122,7 +122,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Hint);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'stringTag1:""',
       focusOverride: {
         itemKey: 'filter:0',
@@ -184,7 +184,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'stringTag1:""',
       focusOverride: {
         itemKey: 'filter:0',
@@ -205,7 +205,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(countUniquePill);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'count_unique(user):>0',
       focusOverride: {
         itemKey: 'filter:0',
@@ -221,7 +221,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(countUniqueCheckbox);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'count_unique(user):>0',
       focusOverride: {
         itemKey: 'filter:0',
@@ -259,7 +259,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'numberTag1:>0',
       focusOverride: {
         itemKey: 'filter:-1',
@@ -299,7 +299,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(countUniqueCheckbox);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'stringTag1:"" numberTag1:>0',
       focusOverride: {
         itemKey: 'filter:-1',
@@ -389,7 +389,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Hint);
 
     expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
+      type: 'UPDATE_QUERY_WITHOUT_COMMIT',
       query: 'stringTag1:something stringTag1:""',
       focusOverride: {
         itemKey: 'filter:1',
