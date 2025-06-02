@@ -18,6 +18,9 @@ class OnboardingTaskBackend(Service, Generic[T]):
         "get_skippable_tasks",
         "fetch_onboarding_tasks",
         "create_or_update_onboarding_task",
+        "complete_onboarding_task",
+        "has_completed_onboarding_task",
+        "transfer_onboarding_tasks",
         "try_mark_onboarding_complete",
     )
     Model: type[T]

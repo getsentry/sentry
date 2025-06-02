@@ -46,7 +46,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
     ) -> OrganizationOnboardingTask | None:
         # Mark the task as complete
         task_model = self.Model.objects.record(
-            organization=organization,
+            organization_id=organization.id,
             task=task,
             status=OnboardingTaskStatus.COMPLETE,
             date_completed=date_completed or timezone.now(),
