@@ -42,7 +42,7 @@ class TestGrantExchanger(TestCase):
         # SLO assertions
         assert_success_metric(mock_record)
 
-        # AUTHORIZATIONS (success)
+        # GRANT_EXCHANGER (success)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -58,7 +58,7 @@ class TestGrantExchanger(TestCase):
         # SLO assertions
         assert_success_metric(mock_record)
 
-        # AUTHORIZATIONS (success)
+        # GRANT_EXCHANGER (success)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -82,7 +82,7 @@ class TestGrantExchanger(TestCase):
             mock_record=mock_record, error_msg=SentryAppIntegratorError(message="Forbidden grant")
         )
 
-        # AUTHORIZATIONS (halt)
+        # GRANT_EXCHANGER (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -108,7 +108,7 @@ class TestGrantExchanger(TestCase):
             ),
         )
 
-        # AUTHORIZATIONS (halt)
+        # GRANT_EXCHANGER (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -132,7 +132,7 @@ class TestGrantExchanger(TestCase):
             error_msg=SentryAppIntegratorError(message="Grant has already expired"),
         )
 
-        # AUTHORIZATIONS (halt)
+        # GRANT_EXCHANGER (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -159,7 +159,7 @@ class TestGrantExchanger(TestCase):
             error_msg=SentryAppIntegratorError(message="Could not find grant for given code"),
         )
 
-        # AUTHORIZATIONS (halt)
+        # GRANT_EXCHANGER (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -191,7 +191,7 @@ class TestGrantExchanger(TestCase):
             error_msg=SentryAppSentryError(message="Could not find application from grant"),
         )
 
-        # AUTHORIZATIONS (failure)
+        # GRANT_EXCHANGER (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -216,7 +216,7 @@ class TestGrantExchanger(TestCase):
             error_msg=SentryAppSentryError(message="Integration does not exist"),
         )
 
-        # AUTHORIZATIONS (failure)
+        # GRANT_EXCHANGER (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -233,7 +233,7 @@ class TestGrantExchanger(TestCase):
         # SLO assertions
         assert_success_metric(mock_record)
 
-        # AUTHORIZATIONS (success)
+        # GRANT_EXCHANGER (success)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -258,7 +258,7 @@ class TestGrantExchanger(TestCase):
         with pytest.raises(UnableToAcquireLock):
             self.grant_exchanger.run()
 
-        # AUTHORIZATIONS (failure)
+        # GRANT_EXCHANGER (failure)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
@@ -282,7 +282,7 @@ class TestGrantExchanger(TestCase):
         # SLO assertions
         assert_success_metric(mock_record)
 
-        # AUTHORIZATIONS (success)
+        # GRANT_EXCHANGER (success)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
