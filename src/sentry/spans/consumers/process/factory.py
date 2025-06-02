@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 
 import rapidjson
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
@@ -59,6 +60,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        sentry_sdk.set_tag("sentry_spans_buffer_component", "consumer")
+
         committer = CommitOffsets(commit)
 
         buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])

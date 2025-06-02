@@ -1434,15 +1434,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  // XXX(epurkhiser): This is legacy until we remove crons from the sidebar
-  const cronsRoutes = (
-    <Route
-      path="/crons/"
-      component={make(() => import('sentry/views/monitors'))}
-      withOrgPath
-    />
-  );
-
   const replayChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
@@ -1728,11 +1719,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
-        />
-      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1746,11 +1732,6 @@ function buildRoutes() {
             () =>
               import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
           )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.CRONS]}/`}>
-        <IndexRoute
-          component={make(() => import('sentry/views/insights/crons/views/overview'))}
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.SESSIONS]}/`}>
@@ -1810,6 +1791,19 @@ function buildRoutes() {
       </Route>
       <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
         {projectsChildRoutes}
+      </Route>
+      <Redirect from={`${FRONTEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
+      <Redirect from={`${BACKEND_LANDING_SUB_PATH}/uptime/`} to="/insights/uptime/" />
+      <Redirect from={`${BACKEND_LANDING_SUB_PATH}/crons/`} to="/insights/crons/" />
+      <Route path="uptime/">
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
+        />
+      </Route>
+      <Route path="crons/">
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/crons/views/overview'))}
+        />
       </Route>
     </Route>
   );
@@ -2454,7 +2448,6 @@ function buildRoutes() {
       {issueRoutes}
       {alertRoutes}
       {codecovRoutes}
-      {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
       {statsRoutes}

@@ -7,7 +7,13 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase, OurLogTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    BaseSpansTestCase,
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -291,7 +297,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"key": "span.duration", "name": "span.duration"},
         ]
 
-    @override_options({"performance.spans-tags-key.max": 3})
+    @override_options({"explore.trace-items.keys.max": 3})
     def test_pagination(self):
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -523,7 +529,7 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
 
 
 class OrganizationTraceItemAttributeValuesEndpointSpansTest(
-    OrganizationTraceItemAttributeValuesEndpointBaseTest, BaseSpansTestCase
+    OrganizationTraceItemAttributeValuesEndpointBaseTest, BaseSpansTestCase, SpanTestCase
 ):
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
@@ -1170,7 +1176,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         response = self.do_request(key="tag")
         assert response.status_code == 400, response.data
 
-    @override_options({"performance.spans-tags-values.max": 2})
+    @override_options({"explore.trace-items.values.max": 2})
     def test_pagination(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz", "qux"]:
@@ -1270,4 +1276,146 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "firstSeen": mock.ANY,
                 "lastSeen": mock.ANY,
             },
+        ]
+
+    def test_autocomplete_release_semver_attributes(self):
+        release_1 = self.create_release(version="foo@1.2.3+121")
+        release_2 = self.create_release(version="qux@2.2.4+122")
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"release": release_1.version}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"release": release_2.version}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(key="release")
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release",
+                "value": release,
+                "name": release,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for release in ["foo@1.2.3+121", "qux@2.2.4+122"]
+        ]
+
+        response = self.do_request(key="release", query={"substringMatch": "121"})
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release",
+                "value": "foo@1.2.3+121",
+                "name": "foo@1.2.3+121",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+        ]
+
+        response = self.do_request(key="release.stage")
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.stage",
+                "value": stage,
+                "name": stage,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for stage in ["adopted", "low_adoption", "replaced"]
+        ]
+
+        response = self.do_request(key="release.stage", query={"substringMatch": "adopt"})
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.stage",
+                "value": stage,
+                "name": stage,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for stage in ["adopted", "low_adoption"]
+        ]
+
+        response = self.do_request(key="release.version")
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.version",
+                "value": version,
+                "name": version,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for version in ["1.2.3", "2.2.4"]
+        ]
+
+        response = self.do_request(key="release.version", query={"substringMatch": "2"})
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.version",
+                "value": version,
+                "name": version,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for version in ["2.2.4"]
+        ]
+
+        response = self.do_request(key="release.package")
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.package",
+                "value": version,
+                "name": version,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for version in ["foo", "qux"]
+        ]
+
+        response = self.do_request(key="release.package", query={"substringMatch": "q"})
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.package",
+                "value": version,
+                "name": version,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for version in ["qux"]
+        ]
+
+        response = self.do_request(key="release.build")
+        assert response.status_code == 200
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "release.build",
+                "value": version,
+                "name": version,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for version in ["121", "122"]
         ]

@@ -765,6 +765,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
             "githubPRBot": False,
+            "gitlabPRBot": False,
+            "gitlabOpenPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -857,6 +859,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
+        assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
+        assert "to {}".format(data["gitlabOpenPRBot"]) in log.data["gitlabOpenPRBot"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
