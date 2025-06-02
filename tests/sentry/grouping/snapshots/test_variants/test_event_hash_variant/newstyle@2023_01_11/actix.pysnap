@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:47.453623+00:00'
+created: '2025-05-12T23:40:57.034736+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame* (marked in-app by the client)
@@ -291,7 +291,7 @@ app:
               "either.rs"
             function*
               "futures::future::either::Either<T>::poll"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "either.rs"
             function*

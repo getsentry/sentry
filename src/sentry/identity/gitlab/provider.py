@@ -11,6 +11,7 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
@@ -63,7 +64,7 @@ def get_user_info(access_token, installation_data):
 
 
 class GitlabIdentityProvider(OAuth2Provider):
-    key = "gitlab"
+    key = IntegrationProviderSlug.GITLAB.value
     name = "Gitlab"
 
     oauth_scopes = ("api",)
@@ -72,7 +73,7 @@ class GitlabIdentityProvider(OAuth2Provider):
         data = data["data"]
 
         return {
-            "type": "gitlab",
+            "type": IntegrationProviderSlug.GITLAB.value,
             "id": data["user"]["id"],
             "email": data["user"]["email"],
             "scopes": sorted(data["scope"].split(",")),

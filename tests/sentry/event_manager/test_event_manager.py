@@ -67,6 +67,11 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.signals import (
+    first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
+    first_transaction_received,
+)
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -1490,6 +1495,54 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period[0].date_started == group.first_seen
         assert open_period[0].date_ended is None
 
+    @with_feature("organizations:issue-open-periods")
+    def test_error_event_with_minified_stacktrace(self) -> None:
+        with patch(
+            "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
+        ) as mock_record_event_with_first_minified_stack_trace_for_project:
+
+            first_event_with_minified_stack_trace_received.connect(
+                mock_record_event_with_first_minified_stack_trace_for_project, weak=False
+            )
+
+        manager = EventManager(
+            make_event(
+                **{
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "Foo",
+                                "value": "bar",
+                                "stacktrace": {
+                                    "frames": [
+                                        {"filename": "minified.js", "function": "minifiedFunction"}
+                                    ]
+                                },
+                                "raw_stacktrace": {
+                                    "frames": [
+                                        {
+                                            "filename": "minified.js",
+                                            "function": "minifiedFunction",
+                                            "in_app": True,
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        manager.normalize()
+        data = manager.get_data()
+        assert data["type"] == "error"
+
+        manager.save(self.project.id)
+
+        assert mock_record_event_with_first_minified_stack_trace_for_project.call_count == 1
+        self.project.refresh_from_db()
+        assert self.project.flags.has_minified_stack_trace
+
     def test_csp_event_type(self) -> None:
         manager = EventManager(
             make_event(
@@ -1660,19 +1713,25 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @patch("sentry.event_manager.record_first_transaction")
-    @patch("sentry.event_manager.record_first_insight_span")
     @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
         self,
         mock_record_sample: mock.MagicMock,
         mock_record_release: mock.MagicMock,
-        mock_record_insight: mock.MagicMock,
-        mock_record_transaction: mock.MagicMock,
     ) -> None:
         self.project.update(flags=F("flags").bitand(~Project.flags.has_transactions))
 
+        with (
+            patch(
+                "sentry.receivers.onboarding.record_first_transaction",  # autospec=True
+            ) as mock_record_transaction,
+            patch(
+                "sentry.receivers.onboarding.record_first_insight_span",  # autospec=True
+            ) as mock_record_insight,
+        ):
+            first_transaction_received.connect(mock_record_transaction, weak=False)
+            first_insight_span_received.connect(mock_record_insight, weak=False)
         manager = EventManager(
             make_event(
                 **{
@@ -1737,8 +1796,18 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         mock_record_release.assert_called_once_with(self.project, "foo@1.0.0")
-        mock_record_insight.assert_called_once_with(self.project, InsightModules.DB)
-        mock_record_transaction.assert_called_once_with(self.project, event.datetime)
+        mock_record_insight.assert_called_once_with(
+            signal=first_insight_span_received,
+            sender=Project,
+            project=self.project,
+            module=InsightModules.DB,
+        )
+        mock_record_transaction.assert_called_once_with(
+            signal=first_transaction_received,
+            sender=Project,
+            project=self.project,
+            event=event,
+        )
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]

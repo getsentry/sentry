@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -134,7 +135,7 @@ export function MultiQueryModeChart({
     isTopN
   );
 
-  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
+  const chartType = queryParts.chartType ?? determineDefaultChartType(yAxes);
 
   const visualizationType =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
@@ -308,11 +309,13 @@ export function MultiQueryModeChart({
       Visualization={
         <TimeSeriesWidgetVisualization
           plottables={chartInfo.data.map(timeSeries => {
-            return new DataPlottableConstructor(timeSeries, {
-              delay: INGESTION_DELAY,
-              color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-              stack: 'all',
-            });
+            return new DataPlottableConstructor(
+              markDelayedData(timeSeries, INGESTION_DELAY),
+              {
+                color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                stack: 'all',
+              }
+            );
           })}
         />
       }

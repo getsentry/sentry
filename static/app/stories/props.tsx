@@ -10,7 +10,7 @@ export type PropMatrix<P> = Partial<{
   [Prop in keyof P]: Array<P[Prop]>;
 }>;
 
-export interface PropMatrixProps<P> {
+interface PropMatrixProps<P> {
   propMatrix: PropMatrix<P>;
   render: React.ElementType<P>;
   selectedProps: [keyof P] | [keyof P, keyof P];
