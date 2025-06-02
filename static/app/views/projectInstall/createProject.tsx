@@ -19,6 +19,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -140,6 +141,7 @@ export function CreateProject() {
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
   const createProject = useCreateProject();
+  const createProjectRules = useCreateProjectRules();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -157,19 +159,14 @@ export function CreateProject() {
       const ruleIds = [];
 
       if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
-          `/projects/${organization.slug}/${project.slug}/rules/`,
-          {
-            method: 'POST',
-            data: {
-              name: project.name,
-              conditions: alertRuleConfig?.conditions,
-              actions: alertRuleConfig?.actions,
-              actionMatch: alertRuleConfig?.actionMatch,
-              frequency: alertRuleConfig?.frequency,
-            },
-          }
-        );
+        const ruleData = await createProjectRules.mutateAsync({
+          projectSlug: project.slug,
+          name: project.name,
+          conditions: alertRuleConfig?.conditions,
+          actions: alertRuleConfig?.actions,
+          actionMatch: alertRuleConfig?.actionMatch,
+          frequency: alertRuleConfig?.frequency,
+        });
 
         ruleIds.push(ruleData.id);
       }
@@ -189,7 +186,7 @@ export function CreateProject() {
 
       return ruleIds;
     },
-    [organization, api, createNotificationAction]
+    [createNotificationAction, createProjectRules]
   );
 
   const autoFill = useMemo(() => {
