@@ -15,7 +15,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
-import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
@@ -287,9 +287,13 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
           // XXX using this.props here as this function does not get re-run
           // unless projects are changed. Using a closure variable would result
           // in stale values.
-          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-            local: !this.props.utc,
-          });
+          const time = getFormattedDate(
+            data.value,
+            getFormat({timeZone: true, year: true}),
+            {
+              local: !this.props.utc,
+            }
+          );
           const version = escape(formatVersion(data.name, true));
           return [
             '<div class="tooltip-series">',

@@ -167,6 +167,6 @@ describe('SpikeProtectionHistoryTable', () => {
     await screen.findByTestId('spike-protection-history-table');
     screen.getByText('Ongoing');
     screen.getByText('200K');
-    screen.getByText('Jan 2nd 2022 - present');
+    screen.getByText('Jan 2, 2022 - present');
   });
 });

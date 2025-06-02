@@ -96,7 +96,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
     ).toBeInTheDocument();
     expect(screen.getByText(/Dec 31, 2024/)).toBeInTheDocument();
     expect(screen.getByText(/or adjust your date range prior to/)).toBeInTheDocument();
-    expect(screen.getByText(/Dec 07, 2024/)).toBeInTheDocument();
+    expect(screen.getByText(/Dec 7, 2024/)).toBeInTheDocument();
 
     expect(
       screen.getByRole('link', {name: /increase your on-demand budget/})
