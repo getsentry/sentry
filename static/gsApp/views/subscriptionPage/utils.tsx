@@ -81,12 +81,14 @@ export function calculateCategorySpend(
 
 export function calculateTotalSpend(subscription: Subscription): {
   onDemandTotalSpent: number;
+  prepaidReservedBudgetPrice: number;
   prepaidTotalPrice: number;
   prepaidTotalSpent: number;
 } {
   let prepaidTotalSpent = 0;
+  let prepaidReservedBudgetPrice = 0;
   let onDemandTotalSpent = 0;
-  let prepaidTotalPrice = 0;
+  let prepaidTotalPrice = 0; // Total price of the subscription (includes upgraded reserved volumes and reserved budgets)
   for (const category of subscription.planDetails.categories) {
     const {prepaidSpent, onDemandSpent, prepaidPrice} = calculateCategorySpend(
       subscription,
@@ -95,9 +97,17 @@ export function calculateTotalSpend(subscription: Subscription): {
     prepaidTotalSpent += prepaidSpent;
     onDemandTotalSpent += onDemandSpent;
     prepaidTotalPrice += prepaidPrice;
+    if (subscription.reservedBudgetCategories?.includes(category)) {
+      prepaidReservedBudgetPrice += prepaidPrice;
+    }
   }
 
-  return {prepaidTotalSpent, onDemandTotalSpent, prepaidTotalPrice};
+  return {
+    prepaidTotalSpent,
+    prepaidReservedBudgetPrice,
+    onDemandTotalSpent,
+    prepaidTotalPrice,
+  };
 }
 
 /**
