@@ -4,21 +4,15 @@ from unittest import mock
 
 import pytest
 
-from sentry.seer.anomaly_detection.types import (
-    AnomalyDetectionSeasonality,
-    AnomalyDetectionSensitivity,
-    AnomalyDetectionThresholdType,
-)
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
-from tests.sentry.workflow_engine.test_base import DataConditionHandlerMixin
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import (
     DataConditionHandler,
     DetectorPriorityLevel,
     WorkflowEventData,
 )
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
 
 
 class MockDataConditionEnum(IntEnum):

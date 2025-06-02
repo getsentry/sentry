@@ -1,42 +1,16 @@
-from sentry.seer.anomaly_detection.types import (
-    AnomalyDetectionSeasonality,
-    AnomalyDetectionSensitivity,
-    AnomalyDetectionThresholdType,
-)
+from typing import Any
+
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import (
-    DataConditionHandler,
-    DetectorPriorityLevel,
-    WorkflowEventData,
-)
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
 class AnomalyDetectionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.DETECTOR_TRIGGER
-    comparison_json_schema = {
-        "type": "object",
-        "properties": {
-            "sensitivity": {
-                "type": "string",
-                "enum": [*AnomalyDetectionSensitivity],
-            },
-            "seasonality": {
-                "type": "string",
-                "enum": [*AnomalyDetectionSeasonality],
-            },
-            "threshold_type": {
-                "type": "integer",
-                "enum": [*AnomalyDetectionThresholdType],
-            },
-        },
-        "required": ["sensitivity", "seasonality", "threshold_type"],
-        "additionalProperties": False,
-    }
+    comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
-    def evaluate_value(event_data: WorkflowEventData, comparison: int) -> DetectorPriorityLevel:
-        # this is a placeholder, type does not matter for now
-        value: int = event_data  # type: ignore[assignment]
-        return DetectorPriorityLevel.HIGH if value > 1 else DetectorPriorityLevel.OK
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        # this is a placeholder
+        return False
