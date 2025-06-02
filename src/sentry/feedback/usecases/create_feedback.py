@@ -493,9 +493,6 @@ def shim_to_feedback(
         if get_path(event.data, "contexts", "trace", "trace_id"):
             feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
 
-        if "user" in event.data:
-            feedback_event["user"] = event.data["user"]
-
         feedback_event["timestamp"] = event.datetime.timestamp()
         feedback_event["platform"] = event.platform
         feedback_event["level"] = event.data["level"]
