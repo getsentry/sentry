@@ -1,3 +1,5 @@
+from enum import IntEnum
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -10,12 +12,12 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
 from tests.sentry.workflow_engine.test_base import DataConditionHandlerMixin
-from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel, WorkflowEventData
-from tests.sentry.workflow_engine.endpoints.validators.test_base_data_condition import (
-    MockDataConditionEnum,
-    MockDataConditionHandlerDictComparison,
-)
 from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import (
+    DataConditionHandler,
+    DetectorPriorityLevel,
+    WorkflowEventData,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -75,18 +77,11 @@ class GetConditionResultTest(TestCase):
 
 
 class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.workflow_triggers = self.create_data_condition_group()
-        self.dict_comparison_dc = self.create_data_condition(
-            type="test",
-            comparison={
-                "baz": MockDataConditionEnum.FOO,
-            }
+        condition_handler_registry.registrations[Condition.REAPPEARED_EVENT] = cast(
+            DataConditionHandler[Any], MockDataConditionHandlerDictComparison
         )
-        condition_handler_registry.registrations[Condition.REAPPEARED_EVENT] = (
-            MockDataConditionHandlerDictComparison
-        )  # type:ignore[assignment]
         self.workflow_triggers = self.create_data_condition_group()
         self.dict_comparison_dc = self.create_data_condition(
             type=Condition.REAPPEARED_EVENT,
