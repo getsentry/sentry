@@ -140,7 +140,7 @@ SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, 
 }
 
 
-INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, str]] = {
+INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
     SupportedTraceItemType.SPANS: SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
 }
@@ -155,7 +155,9 @@ def translate_internal_to_public_alias(
     return mapping.get(internal_alias)
 
 
-def get_secondary_aliases(internal_alias: str, item_type: SupportedTraceItemType) -> set[str]:
+def get_secondary_aliases(
+    internal_alias: str, item_type: SupportedTraceItemType
+) -> set[str] | None:
     mapping = INTERNAL_TO_SECONDARY_ALIASES.get(item_type, {})
     return mapping.get(internal_alias)
 

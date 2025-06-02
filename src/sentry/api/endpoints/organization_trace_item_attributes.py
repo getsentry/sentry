@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -55,6 +55,12 @@ from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
+
+
+class TraceItemAttribute(TypedDict):
+    key: str
+    name: str
+    secondary_aliases: NotRequired[list[dict[str, str]]]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -151,7 +157,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
-):
+) -> TraceItemAttribute:
     key = translate_internal_to_public_alias(name, type, item_type)
     secondary_aliases = get_secondary_aliases(name, item_type)
 
@@ -162,7 +168,7 @@ def as_attribute_key(
     else:
         key = name
 
-    attribute_key = {
+    attribute_key: TraceItemAttribute = {
         # key is what will be used to query the API
         "key": key,
         # name is what will be used to display the tag nicely in the UI
@@ -170,7 +176,7 @@ def as_attribute_key(
     }
 
     if secondary_aliases:
-        attribute_key["secondaryAliases"] = [
+        attribute_key["secondary_aliases"] = [
             {"key": key, "name": secondary} for secondary in secondary_aliases
         ]
 
