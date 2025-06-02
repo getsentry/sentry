@@ -19,13 +19,3 @@ export function usePrefersStackedNav() {
 
   return userStackedNavOption ?? false;
 }
-
-export function usePrefersOldNavWithEnforcedStackedNav() {
-  const organization = useOrganization({allowNull: true});
-  const user = useUser();
-
-  return (
-    !!organization?.features.includes('enforce-stacked-navigation') &&
-    user?.options?.prefersStackedNavigation === false
-  );
-}
