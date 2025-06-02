@@ -58,7 +58,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
             self.try_mark_onboarding_complete(organization.id)
         return task_model
 
-    def has_completed_onboarding_task(organization: Organization, task: int) -> bool:
+    def has_completed_onboarding_task(self, organization: Organization, task: int) -> bool:
         return OrganizationOnboardingTask.objects.filter(
             organization_id=organization.id, task=task
         ).exists()

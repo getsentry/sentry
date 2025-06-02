@@ -49,7 +49,7 @@ class OnboardingTaskBackend(Service, Generic[T]):
     ) -> T | None:
         raise NotImplementedError
 
-    def has_completed_onboarding_task(organization: Organization, task: int) -> bool:
+    def has_completed_onboarding_task(self, organization: Organization, task: int) -> bool:
         raise NotImplementedError
 
     def try_mark_onboarding_complete(self, organization_id: int):
