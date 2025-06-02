@@ -381,7 +381,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     @mock.patch(
         "sentry.integrations.vsts.client.VstsApiClient.check_file",
         side_effect=ApiError(
-            text="According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
+            text='{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
         ),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -418,7 +418,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert halt.args[0] == EventLifecycleOutcome.HALTED
         assert (
             halt.args[1].text
-            == "According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
+            == '{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
         )
 
 

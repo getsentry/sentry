@@ -24,7 +24,7 @@ export enum SpanMetricsField {
   SPAN_OP = 'span.op',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   SPAN_DESCRIPTION = 'span.description',
-  SPAN_MODULE = 'span.module',
+  SPAN_CATEGORY = 'span.category',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
   SPAN_GROUP = 'span.group',
@@ -140,7 +140,6 @@ type SpanStringFields =
   | 'span.op'
   | 'span.description'
   | 'sentry.normalized_description'
-  | 'span.module'
   | 'span.action'
   | 'span.group'
   | 'span.category'
@@ -320,7 +319,6 @@ export enum SpanIndexedField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
-  SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
@@ -405,7 +403,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
-  [SpanIndexedField.SPAN_MODULE]: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
