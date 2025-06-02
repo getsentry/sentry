@@ -1023,8 +1023,12 @@ shim_to_feedback tests. There are more integration tests in test_project_user_re
 """
 
 
+@pytest.mark.parametrize("use_username", (False, True))
 @django_db_all
-def test_shim_to_feedback_uses_event_user(default_project, mock_produce_occurrence_to_kafka):
+def test_shim_to_feedback_event_user_used_if_missing(
+    default_project, mock_produce_occurrence_to_kafka, use_username
+):
+    """Uses the error event's user context if user info is missing from the report."""
     report_dict = {
         "comments": "Shim this",
         "event_id": "a" * 32,
@@ -1032,7 +1036,11 @@ def test_shim_to_feedback_uses_event_user(default_project, mock_produce_occurren
     }
 
     event_id = "a" * 32
-    user_context = {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    user_context = (
+        {"username": "Josh", "email": "josh.ferge@sentry.io"}
+        if use_username
+        else {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    )
     event = Factories.store_event(
         data={"event_id": event_id, "user": user_context},
         project_id=default_project.id,
@@ -1046,7 +1054,66 @@ def test_shim_to_feedback_uses_event_user(default_project, mock_produce_occurren
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     assert produced_event["contexts"]["feedback"]["name"] == "Josh"
     assert produced_event["contexts"]["feedback"]["contact_email"] == "josh.ferge@sentry.io"
-    assert produced_event["user"] == event.data["user"]
+
+
+@pytest.mark.parametrize("use_username", (False, True))
+@django_db_all
+def test_shim_to_feedback_event_user_does_not_override_report(
+    default_project, mock_produce_occurrence_to_kafka, use_username
+):
+    """The report's user info should take precedence over the event."""
+    report_dict = {
+        "name": "Andrew",
+        "email": "andrew@example.com",
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    user_context = (
+        {"username": "Josh", "email": "josh.ferge@sentry.io"}
+        if use_username
+        else {"name": "Josh", "email": "josh.ferge@sentry.io"}
+    )
+    event = Factories.store_event(
+        data={"event_id": event_id, "user": user_context},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == "Andrew"
+    assert produced_event["contexts"]["feedback"]["contact_email"] == "andrew@example.com"
+
+
+@django_db_all
+def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_to_kafka):
+    """User fields default to "" if not present."""
+    report_dict = {
+        "comments": "Shim this",
+        "event_id": "a" * 32,
+        "level": "error",
+    }
+
+    event_id = "a" * 32
+    event = Factories.store_event(
+        data={"event_id": event_id},
+        project_id=default_project.id,
+    )
+
+    shim_to_feedback(
+        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["contexts"]["feedback"]["name"] == ""
+    assert produced_event["contexts"]["feedback"]["contact_email"] == ""
 
 
 # ERROR CASES #
