@@ -2195,36 +2195,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
     def test_top_events_with_timestamp(self):
         """Users shouldn't groupby timestamp for top events"""
-        self.store_spans(
-            [
-                self.create_span(
-                    {
-                        "sentry_tags": {"transaction": "foo", "status": "success"},
-                        "measurements": {"client_sample_rate": {"value": 0.1}},
-                    },
-                    start_ts=self.day_ago + timedelta(minutes=1),
-                    duration=2000,
-                ),
-                self.create_span(
-                    {
-                        "sentry_tags": {"transaction": "bar", "status": "success"},
-                        "measurements": {"client_sample_rate": {"value": 0.1}},
-                    },
-                    start_ts=self.day_ago + timedelta(minutes=1),
-                    duration=2000,
-                ),
-                self.create_span(
-                    {
-                        "segment_name": "baz",
-                        "sentry_tags": {"status": "success"},
-                        "measurements": {"client_sample_rate": {"value": 0.1}},
-                    },
-                    start_ts=self.day_ago + timedelta(minutes=1),
-                ),
-            ],
-            is_eap=self.is_eap,
-        )
-
         response = self._do_request(
             data={
                 "start": self.day_ago,

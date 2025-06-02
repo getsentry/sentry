@@ -1785,17 +1785,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
     def test_top_events_with_timestamp(self):
         """Users shouldn't groupby timestamp for top events"""
-        self.store_spans(
-            [
-                self.create_span(
-                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
-                    start_ts=self.day_ago + timedelta(minutes=1),
-                    duration=2000,
-                ),
-            ],
-            is_eap=True,
-        )
-
         response = self._do_request(
             data={
                 "start": self.start,
