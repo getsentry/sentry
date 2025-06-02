@@ -10,7 +10,10 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getValidOpsForFilter,
+  getWildcardLabelAndOperator,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -20,9 +23,8 @@ import {
   FilterType,
   type ParseResultToken,
   type TermOperator,
-  Token,
+  type Token,
   type TokenResult,
-  WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
@@ -148,7 +150,7 @@ export function getOperatorInfo(
     };
   }
 
-  const operator = getTermOperatorFromToken(token);
+  let operator = getTermOperatorFromToken(token);
 
   if (token.filter === FilterType.IS) {
     return {
@@ -230,7 +232,13 @@ export function getOperatorInfo(
 
   const keyLabel = token.key.text;
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const opLabel = OP_LABELS[operator] ?? operator;
+  let opLabel = OP_LABELS[operator] ?? operator;
+
+  const wildcardOperator = getWildcardLabelAndOperator(token);
+  if (wildcardOperator && hasWildcardOperators) {
+    opLabel = wildcardOperator.label;
+    operator = wildcardOperator.operator;
+  }
 
   return {
     operator,
@@ -266,59 +274,6 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
-  let isContains = false;
-  let isDoesNotContain = false;
-  let isStartsWith = false;
-  let isEndsWith = false;
-
-  if (token.value.type === Token.VALUE_TEXT && hasWildcardOperators) {
-    if (token.negated) {
-      isDoesNotContain = token.value.wildcard === WildcardOperators.SURROUNDED;
-    } else {
-      isContains = token.value.wildcard === WildcardOperators.SURROUNDED;
-      isStartsWith = token.value.wildcard === WildcardOperators.LEADING;
-      isEndsWith = token.value.wildcard === WildcardOperators.TRAILING;
-    }
-  } else if (token.value.type === Token.VALUE_TEXT_LIST && hasWildcardOperators) {
-    if (token.negated) {
-      isDoesNotContain = token.value.items.every(
-        entry => entry.value?.wildcard === WildcardOperators.SURROUNDED
-      );
-    } else {
-      isContains = token.value.items.every(
-        entry => entry.value?.wildcard === WildcardOperators.SURROUNDED
-      );
-      isStartsWith = token.value.items.every(
-        entry => entry.value?.wildcard === WildcardOperators.LEADING
-      );
-      isEndsWith = token.value.items.every(
-        entry => entry.value?.wildcard === WildcardOperators.TRAILING
-      );
-    }
-  }
-
-  let opLabel = label;
-  if (isContains && hasWildcardOperators) {
-    opLabel = <OpLabel>contains</OpLabel>;
-  } else if (isDoesNotContain && hasWildcardOperators) {
-    opLabel = <OpLabel>does not contain</OpLabel>;
-  } else if (isStartsWith && hasWildcardOperators) {
-    opLabel = <OpLabel>starts with</OpLabel>;
-  } else if (isEndsWith && hasWildcardOperators) {
-    opLabel = <OpLabel>ends with</OpLabel>;
-  }
-
-  let value = operator;
-  if (isContains && hasWildcardOperators) {
-    value = ExtendedTermOperators.CONTAINS;
-  } else if (isDoesNotContain && hasWildcardOperators) {
-    value = ExtendedTermOperators.DOES_NOT_CONTAIN;
-  } else if (isStartsWith && hasWildcardOperators) {
-    value = ExtendedTermOperators.STARTS_WITH;
-  } else if (isEndsWith && hasWildcardOperators) {
-    value = ExtendedTermOperators.ENDS_WITH;
-  }
-
   return (
     <CompactSelect
       disabled={disabled}
@@ -330,12 +285,12 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
-          {opLabel}
+          {label}
         </OpButton>
       )}
       size="sm"
       options={options}
-      value={value}
+      value={operator}
       onOpenChange={onOpenChange}
       onChange={option => {
         trackAnalytics('search.operator_autocompleted', {
