@@ -236,6 +236,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
 
+        # Don't create a problem if the repeating span is Prisma engine connection
+        if get_span_evidence_value(db_span, include_op=False) == "prisma:engine:connection":
+            return None
+
         db_span_ids = [span["span_id"] for span in offender_db_spans]
         offender_span_ids = [span["span_id"] for span in offender_spans]
 
