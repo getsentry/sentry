@@ -18,7 +18,6 @@ export const FIELD_ALIASES = {
 };
 
 export const BASE_FILTERS = {
-  'span.category': 'http',
   'span.op': 'http.client',
 };
 
