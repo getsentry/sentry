@@ -3167,6 +3167,25 @@ describe('SearchQueryBuilder', function () {
           ).toHaveTextContent('operator: string');
         });
       });
+
+      it('focuses on the filter value when user selects an aggregate filter with no arguments', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('count');
+        await userEvent.click(screen.getByRole('option', {name: 'count()'}));
+        expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
+
+      it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('count(');
+        expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
     });
   });
 
