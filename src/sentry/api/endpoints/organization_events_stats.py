@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -294,6 +294,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
+                raw_groupby = self.get_field_list(organization, request)
+                if "timestamp" in raw_groupby:
+                    raise ParseError("Cannot group by timestamp")
                 if use_rpc:
                     if scoped_dataset == ourlogs:
                         raise NotImplementedError("You can not use top_events with logs for now.")
@@ -301,7 +304,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         params=snuba_params,
                         query_string=query,
                         y_axes=query_columns,
-                        raw_groupby=self.get_field_list(organization, request),
+                        raw_groupby=raw_groupby,
                         orderby=self.get_orderby(request),
                         limit=top_events,
                         referrer=referrer,
@@ -313,7 +316,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
-                    selected_columns=self.get_field_list(organization, request),
+                    selected_columns=raw_groupby,
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
                     snuba_params=snuba_params,
