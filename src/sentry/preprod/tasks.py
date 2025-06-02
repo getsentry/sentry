@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import uuid
+
+from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -16,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.assemble.assemble_preprod_artifact",
+    name="sentry.preprod.tasks.assemble_preprod_artifact",
     queue="assemble",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
@@ -37,6 +40,15 @@ def assemble_preprod_artifact(
     Creates a preprod artifact from uploaded chunks.
     """
     from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+
+    logger.info(
+        "Starting preprod artifact assembly",
+        extra={
+            "timestamp": datetime.datetime.now().isoformat(),
+            "project_id": project_id,
+            "organization_id": org_id,
+        },
+    )
 
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
@@ -59,26 +71,35 @@ def assemble_preprod_artifact(
         if assemble_result is None:
             return
 
-        # Handle build configuration
-        build_config = None
-        if build_configuration:
-            build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-                project=project,
-                name=build_configuration,
-            )
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            build_config = None
+            if build_configuration:
+                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                    project=project,
+                    name=build_configuration,
+                )
 
-        # Create PreprodArtifact record
-        preprod_artifact = PreprodArtifact.objects.create(
-            project=project,
-            file_id=assemble_result.bundle.id,
-            build_configuration=build_config,
-            state=PreprodArtifact.ArtifactState.UPLOADED,
-        )
+            # Create PreprodArtifact record
+            preprod_artifact = PreprodArtifact.objects.create(
+                project=project,
+                file_id=assemble_result.bundle.id,
+                build_configuration=build_config,
+                state=PreprodArtifact.ArtifactState.UPLOADED,
+            )
 
         logger.info(
             "Created preprod artifact",
             extra={
                 "preprod_artifact_id": preprod_artifact.id,
+                "project_id": project_id,
+                "organization_id": org_id,
+            },
+        )
+
+        logger.info(
+            "Finished preprod artifact assembly",
+            extra={
+                "timestamp": datetime.datetime.now().isoformat(),
                 "project_id": project_id,
                 "organization_id": org_id,
             },

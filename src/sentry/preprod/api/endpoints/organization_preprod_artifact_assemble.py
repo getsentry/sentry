@@ -10,13 +10,58 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.preprod.tasks import assemble_preprod_artifact
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
-    assemble_preprod_artifact,
     get_assemble_status,
     set_assemble_status,
 )
+
+
+def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
+    """
+    Validate the JSON schema for preprod artifact assembly requests.
+
+    Returns:
+        tuple: (parsed_data, error_message) where error_message is None if validation succeeds
+    """
+    schema = {
+        "type": "object",
+        "properties": {
+            "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "chunks": {
+                "type": "array",
+                "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            },
+            # Optional metadata
+            "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "build_configuration": {"type": "string"},
+        },
+        "required": ["checksum", "chunks"],
+        "additionalProperties": False,
+    }
+
+    error_messages = {
+        "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
+        "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
+        "git_sha": "The git_sha field must be a 40-character hexadecimal string.",
+        "build_configuration": "The build_configuration field must be a string.",
+    }
+
+    try:
+        data = orjson.loads(request_body)
+        jsonschema.validate(data, schema)
+        return data, None
+    except jsonschema.ValidationError as e:
+        error_message = e.message
+        # Get the field from the path if available
+        if e.path:
+            if field := e.path[0]:
+                error_message = error_messages.get(str(field), error_message)
+        return {}, error_message
+    except (orjson.JSONDecodeError, TypeError):
+        return {}, "Invalid json body"
 
 
 @region_silo_endpoint
@@ -32,42 +77,9 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
         with sentry_sdk.start_span(op="preprod_artifact.assemble"):
-            schema = {
-                "type": "object",
-                "properties": {
-                    "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                    "chunks": {
-                        "type": "array",
-                        "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                    },
-                    # Optional metadata
-                    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                    "build_configuration": {"type": "string"},
-                },
-                "required": ["checksum", "chunks"],
-                "additionalProperties": False,
-            }
-
-            error_messages = {
-                "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
-                "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
-                "git_sha": "The git_sha field must be a string.",
-                "build_configuration": "The build_configuration field must be a string.",
-            }
-
-            try:
-                data = orjson.loads(request.body)
-                jsonschema.validate(data, schema)
-            except jsonschema.ValidationError as e:
-                error_message = e.message
-                # Get the field from the path if available
-                if e.path:
-                    if field := e.path[0]:
-                        error_message = error_messages.get(str(field), error_message)
-
+            data, error_message = validate_preprod_artifact_schema(request.body)
+            if error_message:
                 return Response({"error": error_message}, status=400)
-            except (orjson.JSONDecodeError, TypeError):
-                return Response({"error": "Invalid json body"}, status=400)
 
             checksum = data.get("checksum")
             chunks = data.get("chunks", [])

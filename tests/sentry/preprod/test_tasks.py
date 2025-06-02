@@ -1,15 +1,13 @@
 from hashlib import sha1
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.tasks.assemble import (
-    AssembleTask,
-    ChunkFileState,
-    assemble_preprod_artifact,
-    get_assemble_status,
-)
+from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.preprod.tasks import assemble_preprod_artifact
+from sentry.tasks.assemble import AssembleTask, ChunkFileState, get_assemble_status
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
@@ -43,9 +41,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         # Name should start with "preprod-artifact-" and be a UUID since file_name is no longer passed
         assert files[0].name.startswith("preprod-artifact-")
 
-        # Import models here to match the pattern in the source code
-        from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
-
         # Check that PreprodBuildConfiguration was created
         build_configs = PreprodBuildConfiguration.objects.filter(
             project=self.project, name="release"
@@ -78,8 +73,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.OK
-
-        from sentry.preprod.models import PreprodArtifact
 
         # Check that PreprodArtifact was created without build configuration
         artifacts = PreprodArtifact.objects.filter(project=self.project)
@@ -193,8 +186,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert details is not None
 
     def test_assemble_preprod_artifact_reuses_build_configuration(self):
-        from sentry.preprod.models import PreprodBuildConfiguration
-
         # Create an existing build configuration using get_or_create to match the source code pattern
         existing_config, _ = PreprodBuildConfiguration.objects.get_or_create(
             project=self.project, name="debug"
@@ -224,9 +215,58 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert len(build_configs) == 1
         assert build_configs[0].id == existing_config.id
 
-        from sentry.preprod.models import PreprodArtifact
-
         # Check that the artifact uses the existing configuration
         artifacts = PreprodArtifact.objects.filter(project=self.project)
         assert len(artifacts) == 1
         assert artifacts[0].build_configuration == existing_config
+
+    def test_assemble_preprod_artifact_transaction_rollback(self):
+        """Test that if PreprodArtifact creation fails, PreprodBuildConfiguration is also rolled back"""
+        content = b"test transaction rollback"
+        fileobj = ContentFile(content)
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+
+        # Ensure no build configurations exist initially
+        initial_config_count = PreprodBuildConfiguration.objects.filter(
+            project=self.project, name="transaction_test"
+        ).count()
+        assert initial_config_count == 0
+
+        # Mock assemble_file to return a mock result but raise exception in the transaction block
+        class MockAssembleResult:
+            def __init__(self):
+                self.bundle = type("MockBundle", (), {"id": 12345})()
+
+        with (
+            patch("sentry.preprod.tasks.assemble_file", return_value=MockAssembleResult()),
+            patch.object(
+                PreprodArtifact.objects, "create", side_effect=Exception("Simulated failure")
+            ),
+        ):
+
+            assemble_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=total_checksum,
+                chunks=[blob.checksum],
+                build_configuration="transaction_test",
+            )
+
+        # Check that the task failed
+        status, details = get_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+        )
+        assert status == ChunkFileState.ERROR
+        assert "Simulated failure" in details
+
+        # Verify that no PreprodBuildConfiguration was created due to transaction rollback
+        final_config_count = PreprodBuildConfiguration.objects.filter(
+            project=self.project, name="transaction_test"
+        ).count()
+        assert final_config_count == 0, "PreprodBuildConfiguration should have been rolled back"
+
+        # Verify that no PreprodArtifact was created either
+        artifacts = PreprodArtifact.objects.filter(project=self.project)
+        assert len(artifacts) == 0
