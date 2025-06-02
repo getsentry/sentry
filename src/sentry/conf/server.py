@@ -947,6 +947,7 @@ CELERY_QUEUES_REGION = [
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
+    Queue("shortid.counters.refill", routing_key="shortid.counters.refill"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),

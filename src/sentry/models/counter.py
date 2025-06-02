@@ -181,7 +181,7 @@ post_migrate.connect(create_counter_function, dispatch_uid="create_counter_funct
 
 @instrumented_task(
     name="sentry.models.counter.refill_cached_short_ids",
-    queue="counters.refill",
+    queue="shortid.counters.refill",
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=ingest_errors_tasks,
