@@ -1,16 +1,23 @@
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 
+from sentry.incidents.grouptype import MetricIssueDetectorHandler
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
@@ -18,6 +25,8 @@ from tests.sentry.workflow_engine.handlers.detector.test_base import (
     MockDetectorStateHandler,
     build_mock_occurrence_and_event,
 )
+from sentry.issues.issue_occurrence import IssueOccurrence
+
 
 
 @freeze_time()
@@ -44,7 +53,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results(self, mock_produce_occurrence_to_kafka):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
@@ -84,7 +93,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
 
@@ -200,7 +209,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_metrics_and_logs_fire(
         self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
     ):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
@@ -254,7 +263,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_metrics_and_logs_resolve(
         self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
     ):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         process_detectors(data_packet, [detector])
 
@@ -527,6 +536,87 @@ class TestEvaluate(BaseDetectorHandlerTest):
             True,
             DetectorPriorityLevel.HIGH,
         )
+
+    def test_metric_issue(self):
+        detector, critical_detector_trigger = self.create_detector_and_condition(
+            "handler_with_state"
+        )
+        warning_detector_trigger = self.create_data_condition(
+            comparison=3,
+            type=Condition.GREATER,
+            condition_result=DetectorPriorityLevel.MEDIUM,
+            condition_group=detector.workflow_condition_group,
+        )
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            query_subscription = create_snuba_subscription(
+                project=detector.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+        alert_rule = self.create_alert_rule()
+        self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
+
+        handler = MetricIssueDetectorHandler(detector)
+        value = critical_detector_trigger.comparison + 1
+        packet = QuerySubscriptionUpdate(
+            entity="entity",
+            subscription_id=str(query_subscription.id),
+            values={"value": value},
+            timestamp=datetime.now(UTC),
+        )
+        data_packet = DataPacket[QuerySubscriptionUpdate](
+            source_id=str(query_subscription.id), packet=packet
+        )
+        result = handler.evaluate(data_packet)
+
+        detector_group_key = None
+        evidence_data = {
+            "detector_id": detector.id,
+            "value": critical_detector_trigger.condition_result,
+            "data_condition_ids": [critical_detector_trigger.id],
+            "data_condition_type": critical_detector_trigger.type.value,
+            "data_condition_comparison_value": value,
+            "alert_id": alert_rule.id,
+            "conditions": [
+                {
+                    "id": critical_detector_trigger.id,
+                    "type": critical_detector_trigger.type,
+                    "comparison": critical_detector_trigger.comparison,
+                    "condition_result": critical_detector_trigger.condition_result.value,
+                },
+                {
+                    "id": warning_detector_trigger.id,
+                    "type": warning_detector_trigger.type,
+                    "comparison": warning_detector_trigger.comparison,
+                    "condition_result": warning_detector_trigger.condition_result.value,
+                },
+            ],
+        }
+
+        evaluation_result: DetectorEvaluationResult = result[detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
+        assert occurrence.project_id == detector.project_id
+        assert occurrence.issue_title == detector.name
+        assert occurrence.subtitle == handler.construct_title(
+            snuba_query=snuba_query,
+            detector_trigger=critical_detector_trigger,
+            priority=critical_detector_trigger.condition_result,
+        )
+        assert occurrence.evidence_data == evidence_data
+        assert occurrence.level == "error"
+        assert occurrence.priority == critical_detector_trigger.condition_result
 
     def test_above_below_threshold(self):
         handler = self.build_handler()
