@@ -358,7 +358,7 @@ const DropdownContent = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
-  min-height: 300px;
+  min-height: 200px;
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
@@ -469,15 +469,13 @@ const LoadingSkeleton = styled('div')`
 const SkeletonCellsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
 `;
 
 const SkeletonCell = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
 
   &:last-child {
     border-bottom: none;
