@@ -568,7 +568,7 @@ class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/sentry/p/kanga.php"]},
             frames=[self.frame("/sentry/p/kanga.php", True)],
             platform=self.platform,
-            expected_new_code_mappings=[self.code_mapping("/", "src/")],
+            expected_new_code_mappings=[self.code_mapping("/sentry/", "src/sentry/")],
         )
 
 
@@ -588,7 +588,7 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/sentry/p/kanga.cs"]},
             frames=[self.frame("/sentry/p/kanga.cs", True)],
             platform=self.platform,
-            expected_new_code_mappings=[self.code_mapping("/", "src/")],
+            expected_new_code_mappings=[self.code_mapping("/sentry/", "src/sentry/")],
         )
 
     def test_auto_source_code_config_non_in_app_frame(self) -> None:

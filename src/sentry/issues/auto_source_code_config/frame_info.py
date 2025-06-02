@@ -44,7 +44,7 @@ class FrameInfo:
             raise NeedsExtension("It needs an extension.")
 
         if frame_file_path.startswith("/"):
-            self.stack_root = ""
+            self.stack_root = f"/{self.normalized_path.split('/')[0]}/"
         else:
             self.stack_root = removed_prefix + self.normalized_path.split("/")[0]
 
