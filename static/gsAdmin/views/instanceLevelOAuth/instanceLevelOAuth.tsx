@@ -1,7 +1,7 @@
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
@@ -17,7 +17,7 @@ const getRow = (row: any) => [
     {row.clientID}
   </td>,
   <td key="created" style={{textAlign: 'right'}}>
-    {getFormattedDate(row.dateAdded, 'MMM Do YYYY')}
+    {getFormattedDate(row.dateAdded, getFormat({dateOnly: true, year: true}))}
   </td>,
 ];
 
