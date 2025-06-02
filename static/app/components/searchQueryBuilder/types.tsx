@@ -26,6 +26,12 @@ export type CallbackSearchState = {
   queryIsValid: boolean;
 };
 
+/**
+ * This is a list of operators that are used in the search query builder. That are only
+ * present on the frontend. This is because of the wildcard operators, and the fact that
+ * we utilize the underlying '*' character rather than introducing new operators on the
+ * backend.
+ */
 export enum ExtendedTermOperators {
   DEFAULT = '',
   GREATER_THAN_EQUAL = '>=',
