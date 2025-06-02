@@ -214,6 +214,7 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
+
 def is_slow_condition(condition: DataCondition) -> bool:
     return Condition(condition.type) in SLOW_CONDITIONS
 
