@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import useSubscription from 'getsentry/hooks/useSubscription';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -30,7 +31,10 @@ function ProductSelect({
   onUpdate,
   organization,
 }: Pick<StepProps, 'activePlan' | 'organization' | 'onUpdate' | 'formData'>) {
-  const availableProducts = Object.values(activePlan.availableReservedBudgetTypes)
+  const subscription = useSubscription();
+  const availableProducts = Object.values(
+    subscription?.planDetails?.availableReservedBudgetTypes ?? {}
+  )
     .filter(
       productInfo =>
         productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
@@ -71,7 +75,7 @@ function ProductSelect({
 
         const cost = formatCurrency(
           utils.getReservedPriceForReservedBudgetCategory({
-            plan: activePlan,
+            plan: subscription?.planDetails || activePlan,
             reservedBudgetCategory: productInfo.apiName,
           })
         );
@@ -167,9 +171,9 @@ function ProductSelect({
                     {
                       includedBudget,
                       budgetTerm:
-                        activePlan.budgetTerm === 'pay-as-you-go'
+                        subscription?.planDetails?.budgetTerm === 'pay-as-you-go'
                           ? 'PAYG'
-                          : activePlan.budgetTerm,
+                          : subscription?.planDetails?.budgetTerm,
                       productName: toTitleCase(productInfo.productName),
                     }
                   )}

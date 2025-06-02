@@ -58,8 +58,8 @@ function SetPayAsYouGo({
   }, [activePlan]);
 
   const availableReservedBudgetTypes = useMemo(() => {
-    return activePlan.availableReservedBudgetTypes;
-  }, [activePlan]);
+    return subscription?.planDetails?.availableReservedBudgetTypes;
+  }, [subscription?.planDetails]);
 
   const paygOnlyCategories = useMemo(() => {
     return activePlan.categories.filter(

@@ -34,7 +34,12 @@ type Props = {
   discountInfo?: Promotion['discountInfo'];
 };
 
-function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) {
+function CheckoutOverviewV2({
+  activePlan,
+  formData,
+  onUpdate: _onUpdate,
+  subscription,
+}: Props) {
   const shortInterval = useMemo(() => {
     return utils.getShortInterval(activePlan.billingInterval);
   }, [activePlan.billingInterval]);
@@ -115,7 +120,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
 
   const renderProductBreakdown = () => {
     const hasAtLeastOneSelectedProduct = Object.values(
-      activePlan.availableReservedBudgetTypes
+      subscription?.planDetails?.availableReservedBudgetTypes
     ).some(budgetTypeInfo => {
       return formData.selectedProducts?.[
         budgetTypeInfo.apiName as string as SelectableProduct
@@ -131,7 +136,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
         <Separator />
         <Section>
           <ReservedVolumes>
-            {Object.values(activePlan.availableReservedBudgetTypes).map(
+            {Object.values(subscription?.planDetails?.availableReservedBudgetTypes).map(
               budgetTypeInfo => {
                 const formDataForProduct =
                   formData.selectedProducts?.[
@@ -172,7 +177,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                       <Title>
                         {utils.displayPrice({
                           cents: utils.getReservedPriceForReservedBudgetCategory({
-                            plan: activePlan,
+                            plan: subscription?.planDetails || activePlan,
                             reservedBudgetCategory: budgetTypeInfo.apiName,
                           }),
                         })}
@@ -199,7 +204,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
     ];
 
     const budgetCategories = Object.values(
-      activePlan.availableReservedBudgetTypes
+      subscription?.planDetails?.availableReservedBudgetTypes
     ).reduce((acc, type) => {
       acc.push(...type.dataCategories);
       return acc;

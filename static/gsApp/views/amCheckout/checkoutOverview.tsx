@@ -72,11 +72,13 @@ class CheckoutOverview extends Component<Props> {
   };
 
   renderProducts = () => {
-    const {formData, activePlan} = this.props;
+    const {formData, activePlan, subscription} = this.props;
 
     return Object.entries(formData.selectedProducts ?? {}).map(([apiName, product]) => {
       const productInfo =
-        activePlan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
+        subscription?.planDetails?.availableReservedBudgetTypes[
+          apiName as ReservedBudgetCategoryType
+        ];
       if (!productInfo || !product.enabled) {
         return null;
       }
