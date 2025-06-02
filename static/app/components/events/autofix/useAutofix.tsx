@@ -185,7 +185,7 @@ export const useAiAutofix = (
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
 
-  const {data: apiData} = useApiQuery<AutofixResponse>(
+  const {data: apiData, isPending} = useApiQuery<AutofixResponse>(
     makeAutofixQueryKey(orgSlug, group.id),
     {
       staleTime: 0,
@@ -267,6 +267,7 @@ export const useAiAutofix = (
   return {
     autofixData,
     isPolling: isPolling(autofixData, !!currentRunId || waitingForNextRun),
+    isPending,
     triggerAutofix,
     reset,
   };

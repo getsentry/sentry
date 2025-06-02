@@ -63,10 +63,10 @@ export default function TestsPage() {
           <DatePicker />
           <RepoPicker />
         </PageFilterBar>
+        {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+        <Summaries />
+        <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
       </CodecovQueryParamsProvider>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
     </LayoutGap>
   );
 }

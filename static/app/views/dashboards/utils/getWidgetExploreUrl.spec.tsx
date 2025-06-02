@@ -156,4 +156,52 @@ describe('getWidgetExploreUrl', () => {
       '&query=%28span.description%3Atest%29%20release%3A%5B%221.0.0%22%2C%222.0.0%22%5D%20'
     );
   });
+
+  it('returns the correct url for multiple queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['count(span.duration)', 'avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'is_transaction:true',
+          orderby: '',
+          name: '',
+        },
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'is_transaction:false',
+          orderby: '',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    // Provide a fake base URL to allow parsing the relative URL
+    const urlObject = new URL(url, 'https://www.example.com');
+    expect(urlObject.pathname).toBe('/organizations/org-slug/explore/traces/compare/');
+
+    expect(urlObject.searchParams.get('interval')).toBe('30m');
+    expect(urlObject.searchParams.get('title')).toBe('Widget');
+
+    const queries = urlObject.searchParams.getAll('queries');
+    expect(queries).toHaveLength(2);
+
+    const query1 = JSON.parse(queries[0]!);
+    expect(query1.chartType).toBe(1);
+    expect(query1.fields).toEqual([]);
+    expect(query1.groupBys).toEqual(['span.description']);
+    expect(query1.query).toBe('is_transaction:true');
+
+    const query2 = JSON.parse(queries[1]!);
+    expect(query2.chartType).toBe(1);
+    expect(query2.fields).toEqual([]);
+    expect(query2.groupBys).toEqual(['span.description']);
+    expect(query2.query).toBe('is_transaction:false');
+  });
 });

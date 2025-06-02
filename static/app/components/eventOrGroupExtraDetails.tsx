@@ -172,6 +172,7 @@ const GroupExtra = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   line-height: 1.2;
+  min-height: ${space(2)};
 
   & > a {
     color: ${p => p.theme.subText};

@@ -1,3 +1,4 @@
+import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const productionEntryPoints = [
@@ -32,8 +33,6 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storyBook.tsx',
-  // custom webpack loaders for stories
-  'static/app/stories/*loader.ts',
 ];
 
 const config: KnipConfig = {
@@ -46,16 +45,17 @@ const config: KnipConfig = {
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
     'tests/js/**/*.{js,mjs,ts,tsx}',
-    // exclude this directory because it's how you set up mocks in jest (https://jestjs.io/docs/manual-mocks)
-    '!static/{app,gsApp}/**/__mocks__/**',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
     // helper files for tests - it's fine that they are only used in tests
     '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
-    '!static/app/{components,views}/stories/*.{js,mjs,ts,tsx}!',
+    '!static/app/stories/*.{js,mjs,ts,tsx}!',
   ],
+  compilers: {
+    mdx: async text => String(await compile(text)),
+  },
   rules: {
     binaries: 'off',
     dependencies: 'off',

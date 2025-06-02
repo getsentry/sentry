@@ -1638,6 +1638,16 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'is:unresolved'})
         ).toBeInTheDocument();
       });
+
+      it('shows tooltip with field description when hovering over operator label', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+
+        await userEvent.hover(screen.getByText('assigned'));
+
+        expect(
+          await screen.findByText('Assignee of the issue as a user ID')
+        ).toBeInTheDocument();
+      });
     });
 
     describe('has', function () {
@@ -3481,8 +3491,7 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('foo:');
-      await userEvent.keyboard('{Escape}');
+      await userEvent.keyboard('foo:{Escape}');
 
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
@@ -3498,8 +3507,7 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('bar:');
-      await userEvent.keyboard('{Escape}');
+      await userEvent.keyboard('bar:{Escape}');
 
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
@@ -3542,6 +3550,76 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
       ).toHaveTextContent('bar');
+    });
+
+    it('replaces string key in has with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
+      expect(screen.getByLabelText('has:tags[foo,string]')).toBeInTheDocument();
+    });
+
+    it('replaces number key in has with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:bar{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
+      expect(screen.getByLabelText('has:tags[bar,number]')).toBeInTheDocument();
+    });
+
+    it('replaces string key in has with suggestion on blur', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:foo{Enter}');
+      await userEvent.click(document.body);
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
+      expect(screen.getByLabelText('has:tags[foo,string]')).toBeInTheDocument();
+    });
+
+    it('replaces number key in has with suggestion on blur', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('has:bar{Enter}');
+      await userEvent.click(document.body);
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
+      expect(screen.getByLabelText('has:tags[bar,number]')).toBeInTheDocument();
     });
   });
 });

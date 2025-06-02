@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
