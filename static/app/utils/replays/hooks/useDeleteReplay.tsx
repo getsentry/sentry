@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,10 +21,14 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
   const navigate = useNavigate();
   const organization = useOrganization();
 
-  const queryParams = new URLSearchParams(location.search);
-  const referrer = queryParams.get('referrer');
-  const groupId = queryParams.get('groupId');
-  const issueReferrer = !!referrer?.includes('issues');
+  const {referrer, groupId} = useLocationQuery({
+    fields: {
+      referrer: decodeScalar,
+      groupId: decodeScalar,
+    },
+  });
+
+  const issueReferrer = Boolean(referrer?.includes('issues') && groupId);
 
   const handleDelete = useCallback(async () => {
     if (!projectSlug || !replayId) {
