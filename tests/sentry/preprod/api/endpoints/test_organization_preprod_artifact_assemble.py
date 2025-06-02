@@ -281,7 +281,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 200, response.content
 
-    @patch("sentry.preprod.tasks.assemble_preprod_artifact")
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
+    )
     def test_assemble_basic(self, mock_assemble_preprod_artifact):
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
@@ -312,7 +314,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             }
         )
 
-    @patch("sentry.preprod.tasks.assemble_preprod_artifact")
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
+    )
     def test_assemble_with_metadata(self, mock_assemble_preprod_artifact):
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
