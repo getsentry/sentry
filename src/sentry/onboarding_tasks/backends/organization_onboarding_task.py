@@ -113,8 +113,8 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
 
     def transfer_onboarding_tasks(
         self,
-        from_organization_id: Organization,
-        to_organization_id: Organization,
+        from_organization_id: int,
+        to_organization_id: int,
         project: Project | None = None,
     ):
         # get a list of task IDs that already exist in the new organization

@@ -57,8 +57,8 @@ class OnboardingTaskBackend(Service, Generic[T]):
 
     def transfer_onboarding_tasks(
         self,
-        from_organization: Organization,
-        to_organization: Organization,
+        from_organization_id: int,
+        to_organization_id: int,
         project: Project | None = None,
     ):
         raise NotImplementedError
