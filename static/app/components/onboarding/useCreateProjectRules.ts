@@ -15,7 +15,7 @@ interface Variables
 }
 
 export function useCreateProjectRules() {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   // TODO(priscila): Introduce better response types
   return useMutation<{id: string}, RequestError, Variables>({
