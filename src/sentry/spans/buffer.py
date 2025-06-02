@@ -33,8 +33,8 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 Now how does that look like in Redis? For each incoming span, we:
 
 1. Try to figure out what the name of the respective span buffer is (`set_key` in `add-buffer.lua`)
-  a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "sb:sr:{project_id:trace_id}") to another key.
-  b. Otherwise we use "sb:s:{project_id:trace_id}:span_id"
+  a. We look up any "redirects" from the span buffer's parent_span_id (hashmap at "span-buf:sr:{project_id:trace_id}") to another key.
+  b. Otherwise we use "span-buf:s:{project_id:trace_id}:span_id"
 2. Rename any span buffers keyed under the span's own span ID to `set_key`, merging their contents.
 3. Add the ingested span's payload to the set under `set_key`.
 4. To a "global queue", we write the set's key, sorted by timeout.
@@ -55,10 +55,10 @@ than the original topic.
 
 Glossary for types of keys:
 
-    * sb:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
-    * sb:q:* -- the priority queue, used to determine which segments are ready to be flushed.
-    * sb:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
-    * sb:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right sb:s: set.
+    * span-buf:s:* -- the actual set keys, containing span payloads. Each key contains all data for a segment. The most memory-intensive kind of key.
+    * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
+    * span-buf:hrs:* -- simple bool key to flag a segment as "has root span" (HRS)
+    * span-buf:sr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:s: set.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
-# "sb:s:{project_id:trace_id}:span_id", and the type is bytes because our
+# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
 # redis client is bytes.
 #
 # The segment ID in the Kafka protocol is only the span ID.
@@ -116,7 +116,6 @@ class Span(NamedTuple):
     parent_span_id: str | None
     project_id: int
     payload: bytes
-    end_timestamp_precise: float
     is_segment_span: bool = False
 
     def effective_parent_id(self):
@@ -193,10 +192,8 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = f"sb:s:{{{project_and_trace}}}:{parent_span_id}"
-                    p.zadd(
-                        set_key, {span.payload: span.end_timestamp_precise for span in subsegment}
-                    )
+                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
+                    p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
 
@@ -287,7 +284,7 @@ class SpansBuffer:
         return self.add_buffer_sha
 
     def _get_queue_key(self, shard: int) -> bytes:
-        return f"sb:q:{shard}".encode("ascii")
+        return f"span-buf:q:{shard}".encode("ascii")
 
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
@@ -431,13 +428,13 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.zscan(key, cursor=cursor, count=self.segment_page_size)
+                    p.sscan(key, cursor=cursor, count=self.segment_page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
-            for key, (cursor, zscan_values) in zip(current_keys, results):
-                sizes[key] += sum(len(span) for span, _ in zscan_values)
+            for key, (cursor, spans) in zip(current_keys, results):
+                sizes[key] += sum(len(span) for span in spans)
                 if sizes[key] > self.max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.error("Skipping too large segment, byte size %s", sizes[key])
@@ -446,7 +443,15 @@ class SpansBuffer:
                     del cursors[key]
                     continue
 
-                payloads[key].extend(span for span, _ in zscan_values)
+                payloads[key].extend(spans)
+                if len(payloads[key]) > self.max_segment_spans:
+                    metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
+                    logger.error("Skipping too large segment, span count %s", len(payloads[key]))
+
+                    del payloads[key]
+                    del cursors[key]
+                    continue
+
                 if cursor == 0:
                     del cursors[key]
                 else:
@@ -467,12 +472,12 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    hrs_key = b"sb:hrs:" + segment_key
+                    hrs_key = b"span-buf:hrs:" + segment_key
                     p.delete(hrs_key)
                     p.unlink(segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"sb:sr:{%s:%s}" % (project_id, trace_id)
+                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     p.zrem(flushed_segment.queue_key, segment_key)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):

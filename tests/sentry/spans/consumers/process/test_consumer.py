@@ -41,7 +41,6 @@ def test_basic(monkeypatch):
                             "project_id": 12,
                             "span_id": "a" * 16,
                             "trace_id": "b" * 32,
-                            "end_timestamp_precise": 1700000000.0,
                         }
                     ).encode("ascii"),
                     [],
@@ -70,7 +69,6 @@ def test_basic(monkeypatch):
                 "segment_id": "aaaaaaaaaaaaaaaa",
                 "span_id": "aaaaaaaaaaaaaaaa",
                 "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                "end_timestamp_precise": 1700000000.0,
             },
         ],
     }
