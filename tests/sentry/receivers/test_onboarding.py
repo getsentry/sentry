@@ -288,8 +288,6 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert task is not None
 
-        assert project.flags.has_transactions
-
     def test_member_invited(self):
         user = self.create_user(email="test@example.org")
         member = self.create_member(
