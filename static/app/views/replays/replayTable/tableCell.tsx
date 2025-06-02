@@ -413,9 +413,7 @@ export function ReplayCell({
                     ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
                       {
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                        },
+                        query: location.query,
                       }
                     : detailsTab()
                 }
