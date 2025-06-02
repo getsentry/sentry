@@ -156,12 +156,15 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
             ? subscription.onDemandBudgets.budgets[category]
             : subscription?.onDemandMaxSpend;
+
+        const reservedTiers = subscription?.planDetails.planCategories?.[category];
         if (
           !designatedBudget &&
-          (!currentHistory.reserved || currentHistory.reserved <= 1)
+          reservedTiers?.length === 1 &&
+          reservedTiers[0]?.events === 1
         ) {
-          // don't show any categories without additional reserved volumes
-          // if there is no PAYG
+          // if there isn't any PAYG and the category has a single reserved tier which is 1 (ie. crons, uptime, etc),
+          // then we don't need to show the alert
           return acc;
         }
         acc.push(category);
