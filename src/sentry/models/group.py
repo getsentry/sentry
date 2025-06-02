@@ -461,10 +461,13 @@ class GroupManager(BaseManager["Group"]):
         should_reopen_open_period = {
             group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
         }
+        resolved_at = timezone.now()
         updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            if status == GroupStatus.RESOLVED:
+                group.resolved_at = resolved_at
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
                 if priority and group.priority != priority:
@@ -473,7 +476,9 @@ class GroupManager(BaseManager["Group"]):
 
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
+        Group.objects.bulk_update(
+            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
+        )
 
         for group in modified_groups_list:
             activity = Activity.objects.create_group_activity(
