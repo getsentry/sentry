@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {
   LogsPageDataProvider,
-  useLogsPageData,
+  useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
@@ -61,7 +61,7 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useLogsPageData().logsQueryResult;
+  const tableData = useLogsPageDataQueryResult();
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
@@ -106,10 +106,7 @@ function OurlogsSectionContent({
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
-  if (
-    !tableData ||
-    (tableData.data && tableData.data.length === 0 && logsSearch.isEmpty())
-  ) {
+  if (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty())) {
     // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }

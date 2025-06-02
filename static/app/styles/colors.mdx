@@ -8,7 +8,6 @@ import DontAccentColors from 'sentry-images/stories/color/dont-accent-colors.svg
 import DontContrast from 'sentry-images/stories/color/dont-contrast.svg';
 import DontDifferentiation from 'sentry-images/stories/color/dont-differentiation.svg';
 
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose} from 'sentry/icons';
@@ -144,17 +143,19 @@ export const ExampleCardGrid = styled('figcaption')`
   padding: ${space(1)} ${space(1)} 0;
 `;
 
-export const ExampleCard = ({imgSrc, text, isPositive}) => (
-  <figure>
-    <ExampleImg src={imgSrc} />
-    <ExampleCardGrid>
-      {isPositive ? <PositiveLabel /> : <NegativeLabel />}
-      <span>{text}</span>
-    </ExampleCardGrid>
-  </figure>
-);
+export function ExampleCard({imgSrc, text, isPositive}) {
+  return (
+    <figure>
+      <ExampleImg src={imgSrc} />
+      <ExampleCardGrid>
+        {isPositive ? <PositiveLabel /> : <NegativeLabel />}
+        <span>{text}</span>
+      </ExampleCardGrid>
+    </figure>
+  );
+}
 
-export const ColorPalette = ({name, palette}) => {
+export function ColorPalette({name, palette}) {
   const theme = useTheme();
 
 return (

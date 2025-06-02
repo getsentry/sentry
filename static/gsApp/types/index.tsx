@@ -117,7 +117,11 @@ export type ReservedBudgetCategory = {
    */
   name: string;
   /**
-   * the product associated with the budget
+   * The name of the product to display in the checkout flow
+   */
+  productCheckoutName: string;
+  /**
+   * The name of the product associated with the budget
    */
   productName: string;
 };
@@ -966,6 +970,7 @@ export type ReservedBudgetMetricHistory = {
 };
 
 export type ReservedBudgetForCategory = {
+  apiName: string;
   freeBudget: number;
   prepaidBudget: number;
   reservedCpe: number; // in cents

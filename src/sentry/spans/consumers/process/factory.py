@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from functools import partial
+from typing import cast
 
 import rapidjson
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -10,6 +11,7 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, FilteredPayload, Message, Partition
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
@@ -129,13 +131,14 @@ def process_batch(
         if min_timestamp is None or timestamp < min_timestamp:
             min_timestamp = timestamp
 
-        val = rapidjson.loads(payload.value)
+        val = cast(SpanEvent, rapidjson.loads(payload.value))
         span = Span(
             trace_id=val["trace_id"],
             span_id=val["span_id"],
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
             payload=payload.value,
+            end_timestamp_precise=val["end_timestamp_precise"],
             is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
         )
         spans.append(span)

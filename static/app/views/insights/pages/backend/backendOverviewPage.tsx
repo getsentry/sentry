@@ -233,7 +233,9 @@ function EAPBackendOverviewPage() {
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            {!showOnboarding && (
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
               <Fragment>
                 <ModuleLayout.Third>
                   <StackedWidgetWrapper>
@@ -261,9 +263,6 @@ function EAPBackendOverviewPage() {
                   <BackendOverviewTable response={response} sort={sorts[1]} />
                 </ModuleLayout.Full>
               </Fragment>
-            )}
-            {showOnboarding && (
-              <LegacyOnboarding project={onboardingProject} organization={organization} />
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
