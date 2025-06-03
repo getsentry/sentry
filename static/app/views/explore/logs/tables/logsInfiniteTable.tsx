@@ -65,6 +65,7 @@ export function LogsInfiniteTable({
 }: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
+  const isTableFrozen = useLogsIsTableFrozen();
   const autoRefresh = useLogsAutoRefresh();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {
@@ -189,7 +190,12 @@ export function LogsInfiniteTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} data-test-id="logs-table">
+      <Table
+        ref={tableRef}
+        style={initialTableStyles}
+        hideBorder={isTableFrozen}
+        data-test-id="logs-table"
+      >
         {showHeader ? (
           <LogsTableHeader
             numberAttributes={numberAttributes}
