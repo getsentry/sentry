@@ -70,7 +70,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disableTooltip?: boolean;
 }
 
-export function SidebarItem({
+function SidebarItem({
   children,
   label,
   showLabel,
