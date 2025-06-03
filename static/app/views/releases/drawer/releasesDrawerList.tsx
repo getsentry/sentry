@@ -1,7 +1,6 @@
 import {useCallback, useRef} from 'react';
-import type {SeriesOption} from 'echarts';
+import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
-import type {EChartsInstance} from 'echarts-for-react';
 
 import {
   type ChartId,
@@ -17,10 +16,18 @@ import {
 } from 'sentry/components/events/eventDrawer';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import type {
+  EChartDataZoomHandler,
+  ReactEchartsRef,
+  SeriesDataUnit,
+} from 'sentry/types/echarts';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
+import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
@@ -33,7 +40,7 @@ type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
 
 function createMarkLineUpdater(lineStyle: Partial<MarkLineOption['lineStyle']>) {
   return (
-    echartsInstance: EChartsInstance,
+    echartsInstance: ECharts,
     seriesId: string,
     callbackFn: MarkLineDataCallbackFn
   ) => {
@@ -83,9 +90,11 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Allows users to view releases of a specific timebucket.
  */
 export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps) {
+  const navigate = useNavigate();
   const {releases} = useReleaseStats(pageFilters);
+  const location = useLocation();
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? 'auto' : '220px';
+  const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? '160px' : '220px';
 
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {
@@ -118,6 +127,34 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
     },
   ];
 
+  const handleDataZoom = useCallback<EChartDataZoomHandler>(
+    evt => {
+      let {startValue, endValue} = (evt as any).batch[0] as {
+        endValue: number | null;
+        startValue: number | null;
+      };
+
+      // if `rangeStart` and `rangeEnd` are null, then we are going back
+      if (startValue && endValue) {
+        // round off the bounds to the minute
+        startValue = Math.floor(startValue / 60_000) * 60_000;
+        endValue = Math.ceil(endValue / 60_000) * 60_000;
+
+        // ensure the bounds has 1 minute resolution
+        startValue = Math.min(startValue, endValue - 60_000);
+
+        navigate({
+          query: {
+            ...location.query,
+            [ReleasesDrawerFields.START]: getUtcDateString(startValue),
+            [ReleasesDrawerFields.END]: getUtcDateString(endValue),
+          },
+        });
+      }
+    },
+    [navigate, location.query]
+  );
+
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
@@ -130,11 +167,13 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
         {chart ? (
           <div style={{height: chartHeight}}>
             <ChartWidgetLoader
+              ref={chartRef}
               id={chart}
               height={chartHeight}
               pageFilters={pageFilters}
               showReleaseAs="line"
               loaderSource="releases-drawer"
+              onZoom={handleDataZoom}
             />
           </div>
         ) : null}

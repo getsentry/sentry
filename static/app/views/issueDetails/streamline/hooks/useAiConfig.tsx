@@ -8,16 +8,22 @@ import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 interface AiConfigResult {
   areAiFeaturesAllowed: boolean;
   hasAutofix: boolean;
+  hasAutofixQuota: boolean;
   hasGithubIntegration: boolean;
   hasResources: boolean;
   hasSummary: boolean;
   isAutofixSetupLoading: boolean;
   needsGenAiAcknowledgement: boolean;
+  orgNeedsGenAiAcknowledgement: boolean;
 }
 
 export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const organization = useOrganization();
-  const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
+  const {
+    data: autofixSetupData,
+    isPending: isAutofixSetupLoading,
+    hasAutofixQuota,
+  } = useAutofixSetup({
     groupId: group.id,
   });
 
@@ -41,13 +47,20 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     (isSummaryEnabled || isAutofixEnabled) &&
     areAiFeaturesAllowed;
 
+  const orgNeedsGenAiAcknowledgement =
+    !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged &&
+    (isSummaryEnabled || isAutofixEnabled) &&
+    areAiFeaturesAllowed;
+
   return {
     hasSummary,
     hasAutofix,
     needsGenAiAcknowledgement,
+    orgNeedsGenAiAcknowledgement,
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,
     hasGithubIntegration,
+    hasAutofixQuota,
   };
 };

@@ -52,6 +52,7 @@ class SentryAppContext(TypedDict):
     installationId: str
     status: int
     settings: NotRequired[dict[str, Any]]
+    title: NotRequired[str]
 
 
 class ActionHandlerSerializerResponse(TypedDict):
@@ -91,22 +92,28 @@ class ActionHandlerSerializer(Serializer):
 
         integrations = kwargs.get("integrations")
         if integrations:
-            result["integrations"] = [
-                {"id": str(integration.id), "name": integration.name}
-                for integration in integrations
-            ]
+            integrations_result = []
+            for i in integrations:
+                i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
+                if i["services"]:
+                    i_result["services"] = [{"id": id, "name": name} for id, name in i["services"]]
+                integrations_result.append(i_result)
+            result["integrations"] = integrations_result
 
         sentry_app_context = kwargs.get("sentry_app_context")
         if sentry_app_context:
             installation = sentry_app_context.installation
+            component = sentry_app_context.component
             sentry_app: SentryAppContext = {
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
                 "status": installation.sentry_app.status,
             }
-            if sentry_app_context.component:
-                sentry_app["settings"] = sentry_app_context.component.app_schema.get("settings", {})
+            if component:
+                sentry_app["settings"] = component.app_schema.get("settings", {})
+                if component.app_schema.get("title"):
+                    sentry_app["title"] = component.app_schema.get("title")
             result["sentryApp"] = sentry_app
 
         services = kwargs.get("services")
@@ -275,9 +282,12 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
-        workflows_map = defaultdict[int, list[str]](list)
-        for dw in DetectorWorkflow.objects.filter(detector__in=item_list):
-            workflows_map[dw.detector_id].append(str(dw.workflow_id))
+        workflows_map = defaultdict(list)
+        detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
+            "detector_id", "workflow_id"
+        )
+        for detector_id, workflow_id in detector_workflows:
+            workflows_map[detector_id].append(str(workflow_id))
 
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
@@ -299,11 +309,14 @@ class DetectorSerializer(Serializer):
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
-            attrs[item]["connected_workflows"] = workflows_map[item.id]
+            attrs[item]["workflow_ids"] = workflows_map[item.id]
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
                 attrs[item]["config"] = item.config
+            actor = item.owner
+            if actor:
+                attrs[item]["owner"] = actor.identifier
 
         return attrs
 
@@ -313,7 +326,9 @@ class DetectorSerializer(Serializer):
             "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
-            "connectedWorkflows": attrs.get("connected_workflows"),
+            "workflowIds": attrs.get("workflow_ids"),
+            "owner": attrs.get("owner"),
+            "createdBy": str(obj.created_by_id) if obj.created_by_id else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
@@ -349,6 +364,13 @@ class WorkflowSerializer(Serializer):
         for wdcg in wdcg_list:
             dcg_map[wdcg.workflow_id].append(serialized_condition_groups[wdcg.condition_group_id])
 
+        detectors_map = defaultdict(list)
+        detector_workflows = DetectorWorkflow.objects.filter(workflow__in=item_list).values_list(
+            "detector_id", "workflow_id"
+        )
+        for detector_id, workflow_id in detector_workflows:
+            detectors_map[workflow_id].append(str(detector_id))
+
         for item in item_list:
             attrs[item]["triggers"] = trigger_condition_map.get(
                 item.when_condition_group_id
@@ -356,6 +378,7 @@ class WorkflowSerializer(Serializer):
             attrs[item]["actionFilters"] = dcg_map.get(
                 item.id, []
             )  # The data condition groups for filtering actions
+            attrs[item]["detectorIds"] = detectors_map[item.id]
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
@@ -363,12 +386,14 @@ class WorkflowSerializer(Serializer):
             "id": str(obj.id),
             "name": str(obj.name),
             "organizationId": str(obj.organization_id),
+            "createdBy": str(obj.created_by_id) if obj.created_by_id else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "triggers": attrs.get("triggers"),
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
+            "detectorIds": attrs.get("detectorIds"),
         }
 
 

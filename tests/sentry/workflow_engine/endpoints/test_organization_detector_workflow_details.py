@@ -54,7 +54,7 @@ class OrganizationDetectorWorkflowDetailsGetTest(OrganizationDetectorWorkflowAPI
         assert response.data == serialize(self.detector_workflow)
 
     def test_does_not_exist(self):
-        self.get_error_response(self.organization.slug, 3, status_code=404)
+        self.get_error_response(self.organization.slug, 500009, status_code=404)
 
 
 @region_silo_test

@@ -2,13 +2,14 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -97,13 +98,13 @@ export function SeerSectionCtaButton({
       );
       if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
         if (currentSteps.some(step => step.type === AutofixStepType.CHANGES)) {
-          addSuccessMessage(t('Autofix has finished coding.'));
+          addSuccessMessage(t('Seer has finished coding.'));
         } else if (currentSteps.some(step => step.type === AutofixStepType.SOLUTION)) {
-          addSuccessMessage(t('Autofix has found a solution.'));
+          addSuccessMessage(t('Seer has found a solution.'));
         } else if (
           currentSteps.some(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
         ) {
-          addSuccessMessage(t('Autofix has found the root cause.'));
+          addSuccessMessage(t('Seer has found the root cause.'));
         }
       }
     }
@@ -135,7 +136,8 @@ export function SeerSectionCtaButton({
     aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
-  const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
+  const isButtonLoading =
+    aiConfig.isAutofixSetupLoading || (isAutofixPending && getAutofixRunExists(group));
 
   const lastStep = autofixData?.steps?.[autofixData.steps.length - 1];
   const isAutofixInProgress = lastStep?.status === AutofixStatus.PROCESSING;
@@ -147,10 +149,6 @@ export function SeerSectionCtaButton({
     autofixData?.steps?.some(step => step.type === type);
 
   const getButtonText = () => {
-    if (aiConfig.needsGenAiAcknowledgement) {
-      return t('Set Up Seer');
-    }
-
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
     }

@@ -49,7 +49,10 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -68,6 +71,7 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -116,6 +120,7 @@ type Props = RouteComponentProps<RouteParams> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
@@ -134,6 +139,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
 
@@ -251,15 +257,20 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: this.props.dashboard,
       organization: this.props.organization,
       location: this.props.location,
-      router: this.props.router,
+      navigate: this.props.navigate,
     }),
     isSavingDashboardFilters: false,
-    isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
+    isWidgetBuilderOpen: false,
     openWidgetTemplates: undefined,
+    newlyAddedWidget: undefined,
   };
 
   componentDidMount() {
     this.checkIfShouldMountWidgetViewerModal();
+    if (this.isWidgetBuilder()) {
+      this.setState({isWidgetBuilderOpen: true});
+    }
+    window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -280,11 +291,15 @@ class DashboardDetail extends Component<Props, State> {
         widgetLegendState: new WidgetLegendSelectionState({
           organization: this.props.organization,
           location: this.props.location,
-          router: this.props.router,
+          navigate: this.props.navigate,
           dashboard: this.props.dashboard,
         }),
       });
     }
+  }
+
+  componentWillUnmount(): void {
+    window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
   checkIfShouldMountWidgetViewerModal() {
@@ -294,6 +309,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
       router,
+      navigate,
     } = this.props;
     const {
       seriesData,
@@ -334,10 +350,13 @@ class DashboardDetail extends Component<Props, State> {
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            router.push({
-              pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
-              query,
-            });
+            navigate(
+              {
+                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                query,
+              },
+              {preventScrollReset: true}
+            );
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
@@ -405,40 +424,33 @@ class DashboardDetail extends Component<Props, State> {
     ].includes(dashboardState);
   }
 
-  get isWidgetBuilderRouter() {
-    const {location, params, organization} = this.props;
-    const {dashboardId, widgetIndex} = params;
-
-    const widgetBuilderRoutes = [
-      `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-      `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-    ];
-
-    if (USING_CUSTOMER_DOMAIN) {
-      // TODO: replace with url generation later on.
-      widgetBuilderRoutes.push(
-        ...[
-          `/dashboards/new/widget/new/`,
-          `/dashboard/${dashboardId}/widget/new/`,
-          `/dashboards/new/widget/${widgetIndex}/edit/`,
-          `/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-        ]
-      );
-    }
-
-    return widgetBuilderRoutes.includes(location.pathname);
+  get dashboardTitle() {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
   }
 
-  get isRedesignedWidgetBuilder() {
+  handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    if (
+      defined(modifiedDashboard) &&
+      !isEqual(modifiedDashboard, dashboard) &&
+      this.isEditingDashboard
+    ) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  };
+
+  isWidgetBuilder = (path?: string) => {
     const {organization, location, params} = this.props;
     const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
-      `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`,
-      `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
     ];
 
@@ -446,21 +458,15 @@ class DashboardDetail extends Component<Props, State> {
       widgetBuilderRoutes.push(
         ...[
           `/dashboards/new/widget-builder/widget/new/`,
-          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
+          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
         ]
       );
     }
 
-    return widgetBuilderRoutes.includes(location.pathname);
-  }
-
-  get dashboardTitle() {
-    const {dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
-    return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
-  }
+    return widgetBuilderRoutes.includes(path ?? location.pathname);
+  };
 
   onEdit = () => {
     const {dashboard, organization} = this.props;
@@ -638,11 +644,17 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
+  handleScrollToNewWidgetComplete = () => {
+    this.setState({
+      newlyAddedWidget: undefined,
+    });
+  };
+
   onAddWidget = (dataset: DataSet, openWidgetTemplates?: boolean) => {
     const {
       organization,
       dashboard,
-      router,
+      navigate,
       location,
       params: {dashboardId},
     } = this.props;
@@ -660,19 +672,24 @@ class DashboardDetail extends Component<Props, State> {
         if (!defined(dashboardId)) {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
-        router.push(
+
+        const defaultLibraryWidget = getTopNConvertedDefaultWidgets(organization)[0];
+        navigate(
           normalizeUrl({
             // TODO: Replace with the old widget builder path when swapping over
             pathname,
             query: {
               ...location.query,
               ...(openWidgetTemplates
-                ? {}
+                ? defaultLibraryWidget
+                  ? convertWidgetToBuilderStateParams(defaultLibraryWidget)
+                  : {}
                 : convertWidgetToBuilderStateParams(
                     getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
                   )),
             },
-          })
+          }),
+          {preventScrollReset: true}
         );
       }
     );
@@ -681,7 +698,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onEditWidget = (widget: Widget) => {
-    const {router, organization, params, location, dashboard} = this.props;
+    const {navigate, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
@@ -709,14 +726,15 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
-    router.push(
+    navigate(
       normalizeUrl({
         pathname: path,
         query: {
           ...location.query,
           ...convertWidgetToBuilderStateParams(widget),
         },
-      })
+      }),
+      {preventScrollReset: true}
     );
   };
 
@@ -744,6 +762,9 @@ class DashboardDetail extends Component<Props, State> {
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
       }
+      this.setState({
+        newlyAddedWidget: mergedWidget,
+      });
 
       this.handleCloseWidgetBuilder();
     } catch (error) {
@@ -771,18 +792,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleCloseWidgetBuilder = () => {
-    const {organization, router, location, params} = this.props;
+    const {organization, navigate, location, params} = this.props;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
-    router.push(
+    navigate(
       getDashboardLocation({
         organization,
         dashboardId: params.dashboardId,
         location,
-      })
+      }),
+      {preventScrollReset: true}
     );
   };
 
@@ -1069,8 +1091,14 @@ class DashboardDetail extends Component<Props, State> {
       onDashboardUpdate,
       projects,
     } = this.props;
-    const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
-      this.state;
+    const {
+      modifiedDashboard,
+      dashboardState,
+      widgetLimitReached,
+      seriesData,
+      setData,
+      newlyAddedWidget,
+    } = this.state;
     const {dashboardId} = params;
 
     const hasUnsavedFilters =
@@ -1086,6 +1114,40 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
+        <OnRouteLeave
+          message={UNSAVED_MESSAGE}
+          when={locationChange => {
+            // The widget builder uses its own pathname at the moment, so check if we're navigating
+            // between the dashboard and the widget builder
+            const checkDashboardRoute = (path: string) => {
+              const dashboardRoutes = [
+                // Legacy routes
+                new RegExp('^\/organizations\/.+\/dashboards\/new\/'),
+                new RegExp(`^\/organizations\/.+\/dashboard\/${dashboard.id}\/`),
+
+                // Customer domain routes
+                new RegExp('^\/dashboards\/new\/'),
+                new RegExp(`^\/dashboard\/${dashboard.id}\/`),
+              ];
+
+              return dashboardRoutes.some(route => route.test(path ?? location.pathname));
+            };
+            const navigatingWithinDashboards =
+              checkDashboardRoute(locationChange.nextLocation.pathname) ||
+              (checkDashboardRoute(locationChange.currentLocation.pathname) &&
+                checkDashboardRoute(locationChange.nextLocation.pathname));
+            const hasUnsavedChanges =
+              defined(modifiedDashboard) &&
+              !isEqual(modifiedDashboard, dashboard) &&
+              this.isEditingDashboard;
+            return (
+              locationChange.currentLocation.pathname !==
+                locationChange.nextLocation.pathname &&
+              !navigatingWithinDashboards &&
+              hasUnsavedChanges
+            );
+          }}
+        />
         <PageFiltersContainer
           disablePersistence
           skipLoadLastUsed
@@ -1270,6 +1332,10 @@ class DashboardDetail extends Component<Props, State> {
                                     isPreview={this.isPreview}
                                     widgetLegendState={this.state.widgetLegendState}
                                     onEditWidget={this.onEditWidget}
+                                    newlyAddedWidget={newlyAddedWidget}
+                                    onNewWidgetScrollComplete={
+                                      this.handleScrollToNewWidgetComplete
+                                    }
                                   />
 
                                   <WidgetBuilderV2
@@ -1308,10 +1374,6 @@ class DashboardDetail extends Component<Props, State> {
   render() {
     const {organization} = this.props;
 
-    if (this.isWidgetBuilderRouter) {
-      return this.renderWidgetBuilder();
-    }
-
     if (organization.features.includes('dashboards-edit')) {
       return this.renderDashboardDetail();
     }
@@ -1334,10 +1396,12 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-function DashboardDetailWithTheme(props: Props) {
+function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navigate'>) {
   const theme = useTheme();
-  return <DashboardDetail {...props} theme={theme} />;
+  const navigate = useNavigate();
+  return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
 }
+
 export default withPageFilters(
-  withProjects(withApi(withOrganization(DashboardDetailWithTheme)))
+  withProjects(withApi(withOrganization(DashboardDetailWithThemeAndNavigate)))
 );

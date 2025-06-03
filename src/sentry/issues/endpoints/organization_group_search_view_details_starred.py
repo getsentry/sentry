@@ -2,7 +2,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -40,10 +39,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
         """
         Update the starred status of a group search view for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = StarViewSerializer(data=request.data)
         if not serializer.is_valid():

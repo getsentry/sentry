@@ -14,7 +14,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.api.utils import (
+    handle_query_errors,
+    reformat_timestamp_ms_to_isoformat,
+    update_snuba_params_with_timestamp,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -59,6 +63,7 @@ class SerializedSpan(SerializedEvent):
     profiler_id: str
     sdk_name: str
     is_transaction: bool
+    transaction_id: str
 
 
 @region_silo_endpoint
@@ -108,11 +113,17 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_type="occurrence",
             )
         elif event.get("event_type") == "error":
+            timestamp = (
+                reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
+                if "timestamp_ms" in event and event["timestamp_ms"] is not None
+                else event["timestamp"]
+            )
+
             return SerializedIssue(
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.name"],
-                start_timestamp=event["timestamp"],
+                start_timestamp=timestamp,
                 transaction=event["transaction"],
                 description=event["message"],
                 level=event["tags[level]"],
@@ -129,6 +140,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 errors=[self.serialize_rpc_issue(error) for error in event["errors"]],
                 occurrences=[self.serialize_rpc_issue(error) for error in event["occurrences"]],
                 event_id=event["id"],
+                transaction_id=event["transaction.event_id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
                 profile_id=event["profile.id"],
@@ -167,6 +179,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 "project.name",
                 "project.id",
                 "timestamp",
+                "timestamp_ms",
                 "trace.span",
                 "transaction",
                 "issue",

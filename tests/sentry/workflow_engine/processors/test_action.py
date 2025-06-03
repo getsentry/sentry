@@ -1,13 +1,16 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.integrations.base import IntegrationFeatures
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
+    create_workflow_fire_histories,
     filter_recently_fired_workflow_actions,
-    update_workflow_fire_histories,
+    is_action_permitted,
 )
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -69,24 +72,70 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
 
-    def test_update_workflow_fire_histories(self):
-        WorkflowFireHistory.objects.create(
-            workflow=self.workflow,
-            group=self.group,
-            event_id=self.group_event.event_id,
-            has_fired_actions=False,
+
+class TestWorkflowFireHistory(BaseWorkflowTest):
+    def setUp(self):
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
+        self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
+
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
+        self.event_data = WorkflowEventData(event=self.group_event)
 
-        actions = Action.objects.all()
-        assert actions.count() == 1
-
-        update_workflow_fire_histories(actions, self.event_data)
+    def test_create_workflow_fire_histories(self):
+        create_workflow_fire_histories(Action.objects.filter(id=self.action.id), self.event_data)
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_fired_actions=True,
             ).count()
             == 1
         )
+
+
+class TestIsActionPermitted(BaseWorkflowTest):
+    @patch("sentry.workflow_engine.processors.action._get_integration_features")
+    def test_basic(self, mock_get_features):
+        org = self.create_organization()
+
+        # Test non-integration actions (should always be permitted)
+        assert is_action_permitted(Action.Type.EMAIL, org)
+        assert is_action_permitted(Action.Type.SENTRY_APP, org)
+
+        # Single rule.
+        mock_get_features.return_value = {IntegrationFeatures.ALERT_RULE}
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            assert not is_action_permitted(Action.Type.SLACK, org)
+
+        with self.feature("organizations:integrations-alert-rule"):
+            assert is_action_permitted(Action.Type.SLACK, org)
+
+        # Multiple required features.
+        mock_get_features.return_value = {
+            IntegrationFeatures.ALERT_RULE,
+            IntegrationFeatures.ISSUE_BASIC,
+        }
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": True,
+                "organizations:integrations-issue-basic": False,
+            }
+        ):
+            assert not is_action_permitted(Action.Type.JIRA, org)
+
+        # Both need to be enabled for permission.
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": True,
+                "organizations:integrations-issue-basic": True,
+            }
+        ):
+            assert is_action_permitted(Action.Type.JIRA, org)

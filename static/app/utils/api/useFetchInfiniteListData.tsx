@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import type {Index, IndexRange} from 'react-virtualized';
 
-import {type ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import type {InfiniteApiQueryKey} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 function uniqueItems<Data extends Record<string, unknown>>(
   items: Data[],
@@ -18,7 +19,7 @@ function uniqueItems<Data extends Record<string, unknown>>(
 }
 
 interface Props {
-  queryKey: NonNullable<ApiQueryKey | undefined>;
+  queryKey: NonNullable<InfiniteApiQueryKey | undefined>;
   uniqueField: string;
   enabled?: boolean;
 }

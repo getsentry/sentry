@@ -618,7 +618,9 @@ describe('Sentry Application Details', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(
-        screen.getByText('This will be the only time your client secret is visible!')
+        await screen.findByText(
+          'This will be the only time your client secret is visible!'
+        )
       ).toBeInTheDocument();
       expect(screen.getByText('Your new Client Secret')).toBeInTheDocument();
       expect(screen.getByLabelText<HTMLInputElement>('new-client-secret')).toHaveValue(

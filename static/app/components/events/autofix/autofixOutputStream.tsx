@@ -4,13 +4,19 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
+import {SeerLoadingIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
+import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
-import {IconChevron} from 'sentry/icons';
+import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
+import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -95,8 +101,107 @@ interface Props {
   runId: string;
   stream: string;
   activeLog?: string;
+  autofixData?: AutofixData;
   isProcessing?: boolean;
   responseRequired?: boolean;
+}
+
+interface ActiveLogDisplayProps {
+  groupId: string;
+  runId: string;
+  activeLog?: string;
+  autofixData?: AutofixData;
+  isInitializingRun?: boolean;
+  seerIconRef?: React.RefObject<HTMLDivElement | null>;
+}
+
+function ActiveLogDisplay({
+  activeLog = '',
+  isInitializingRun = false,
+  seerIconRef,
+  autofixData,
+  groupId,
+  runId,
+}: ActiveLogDisplayProps) {
+  const displayedActiveLog =
+    useTypingAnimation({
+      text: activeLog,
+      speed: 200,
+      enabled: !!activeLog,
+    }) || '';
+
+  // special case for errored step
+  const errorMessage = getAutofixRunErrorMessage(autofixData);
+  const erroredStep = autofixData?.steps?.find(step => step.status === 'ERROR');
+  const erroredStepIndex = erroredStep?.index ?? 0;
+  let retainInsightCardIndex: number | null = null;
+  if (
+    erroredStep &&
+    erroredStep.type === AutofixStepType.DEFAULT &&
+    Array.isArray((erroredStep as any).insights)
+  ) {
+    const insights = (erroredStep as any).insights;
+    if (insights.length > 0) {
+      retainInsightCardIndex = insights.length;
+    }
+  }
+
+  const {mutate: refreshStep, isPending: isRefreshing} = useUpdateInsightCard({
+    groupId,
+    runId,
+  });
+
+  if (errorMessage) {
+    return (
+      <ActiveLogWrapper>
+        <SeerIconContainer>
+          <SeerWaitingIcon size="lg" />
+        </SeerIconContainer>
+        <ActiveLog>{errorMessage}</ActiveLog>
+        <Button
+          size="xs"
+          borderless
+          aria-label={t('Retry step')}
+          title={t('Retry step')}
+          onClick={() =>
+            refreshStep({
+              message: '',
+              step_index: erroredStepIndex,
+              retain_insight_card_index: retainInsightCardIndex,
+            })
+          }
+          disabled={isRefreshing}
+          style={{marginLeft: 'auto'}}
+        >
+          <IconRefresh size="sm" />
+        </Button>
+      </ActiveLogWrapper>
+    );
+  }
+  if (activeLog) {
+    return (
+      <ActiveLogWrapper>
+        <Tooltip
+          title={t(
+            "Seer is hard at work. Feel free to leave - it'll keep running in the background."
+          )}
+        >
+          <SeerIconContainer ref={seerIconRef}>
+            <StyledAnimatedSeerIcon size="lg" />
+            {seerIconRef?.current && isInitializingRun && (
+              <FlyingLinesEffect targetElement={seerIconRef.current} />
+            )}
+          </SeerIconContainer>
+        </Tooltip>
+        <ActiveLog
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(displayedActiveLog),
+          }}
+        />
+      </ActiveLogWrapper>
+    );
+  }
+  return null;
 }
 
 export function AutofixOutputStream({
@@ -104,6 +209,7 @@ export function AutofixOutputStream({
   activeLog = '',
   groupId,
   runId,
+  autofixData,
   responseRequired = false,
 }: Props) {
   const api = useApi({persistInFlight: true});
@@ -113,12 +219,6 @@ export function AutofixOutputStream({
   const seerIconRef = useRef<HTMLDivElement>(null);
 
   const isInitializingRun = activeLog === 'Ingesting Sentry data...';
-
-  const displayedActiveLog = useTypingAnimation({
-    text: activeLog,
-    speed: 200,
-    enabled: !!activeLog,
-  });
 
   const orgSlug = useOrganization().slug;
 
@@ -143,7 +243,7 @@ export function AutofixOutputStream({
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 
@@ -188,20 +288,20 @@ export function AutofixOutputStream({
         >
           <VerticalLine />
           <Container required={responseRequired}>
-            {activeLog && (
-              <ActiveLogWrapper>
-                <SeerIconContainer ref={seerIconRef}>
-                  <StyledAnimatedSeerIcon size="lg" />
-                  {seerIconRef.current && isInitializingRun && (
-                    <FlyingLinesEffect targetElement={seerIconRef.current} />
-                  )}
-                </SeerIconContainer>
-                <ActiveLog
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(displayedActiveLog),
-                  }}
-                />
-              </ActiveLogWrapper>
+            {getAutofixRunErrorMessage(autofixData) || activeLog ? (
+              <ActiveLogDisplay
+                activeLog={activeLog}
+                isInitializingRun={isInitializingRun}
+                seerIconRef={seerIconRef}
+                autofixData={autofixData}
+                groupId={groupId}
+                runId={runId}
+              />
+            ) : null}
+            {autofixData && (
+              <ProgressBarWrapper>
+                <AutofixProgressBar autofixData={autofixData} />
+              </ProgressBarWrapper>
             )}
             {!responseRequired && stream && <StreamContentText stream={stream} />}
             <InputWrapper onSubmit={handleSend}>
@@ -228,7 +328,7 @@ export function AutofixOutputStream({
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
-                <IconChevron direction="right" />
+                {'\u23CE'}
               </StyledButton>
             </InputWrapper>
           </Container>
@@ -311,7 +411,7 @@ const ActiveLogWrapper = styled('div')`
 const ActiveLog = styled('div')`
   flex-grow: 1;
   word-break: break-word;
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
 
 const VerticalLine = styled('div')`
@@ -349,6 +449,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
+  color: ${p => p.theme.subText};
 `;
 
 const SeerIconContainer = styled('div')`
@@ -363,4 +464,8 @@ const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
   flex-shrink: 0;
   color: ${p => p.theme.textColor};
   z-index: 10000;
+`;
+
+const ProgressBarWrapper = styled('div')`
+  position: relative;
 `;

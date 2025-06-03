@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -21,7 +22,6 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -117,6 +117,7 @@ export default function ExternalIssueForm({
     {
       staleTime: Infinity,
       retry: false,
+      refetchOnMount: 'always',
     }
   );
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({

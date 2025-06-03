@@ -1,5 +1,5 @@
 import type {PropsWithChildren, ReactNode} from 'react';
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,13 +12,12 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import ProgressRing from 'sentry/components/progressRing';
-import {TabPanels, Tabs} from 'sentry/components/tabs';
-import {TabList} from 'sentry/components/tabs/tabList';
 import {
   IconCheckmark,
   IconCircle,
@@ -158,7 +157,7 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   orgSlug?: string;
 }
 
-const projectPlatformToDocsMap: Record<string, string> = {
+export const projectPlatformToDocsMap: Record<string, string> = {
   'node-azurefunctions': 'azure-functions',
   'node-cloudflare-pages': 'cloudflare',
   'node-cloudflare-workers': 'cloudflare',
@@ -171,6 +170,20 @@ const projectPlatformToDocsMap: Record<string, string> = {
   'node-nestjs': 'nestjs',
   'node-restify': 'restify',
   'node-awslambda': 'aws-lambda',
+  'javascript-react': 'react',
+  'javascript-angular': 'angular',
+  'javascript-ember': 'ember',
+  'javascript-gatsby': 'gatsby',
+  'javascript-vue': 'vue',
+  'javascript-nextjs': 'nextjs',
+  'javascript-nuxt': 'nuxt',
+  'javascript-remix': 'remix',
+  'javascript-solid': 'solid',
+  'javascript-solidstart': 'solidstart',
+  'javascript-svelte': 'svelte',
+  'javascript-sveltekit': 'sveltekit',
+  'javascript-astro': 'astro',
+  'javascript-tanstackstart-react': 'tanstackstart-react',
 };
 
 function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
@@ -191,7 +204,7 @@ function getPlatform({
   );
 }
 
-function getSourceMapsDocLinks(platform: string) {
+export function getSourceMapsDocLinks(platform: string) {
   if (platform === 'react-native') {
     return {
       sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
@@ -260,7 +273,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {t(
-          'Firstly, have you already run the Sentry Wizard with `sourcemaps` in your project’s terminal? It’s the easiest way to get source maps set up:'
+          "Firstly, have you already run the Sentry Wizard with `sourcemaps` in your project's terminal? It's the easiest way to get source maps set up:"
         )}
       </WizardInstructionParagraph>
       <InstructionCodeSnippet
@@ -480,23 +493,55 @@ export function SourceMapsDebuggerModal({
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
 
+  const hideDebugIdsTab = sourceResolutionResults.sdkDebugIdSupport === 'not-supported';
+  const hideReleasesTab = sourceResolutionResults.sdkDebugIdSupport === 'full';
+  const hideHostingPubliclyTab =
+    !sourceResolutionResults.hasScrapingData ||
+    isReactNativeSDK({sdkName: sourceResolutionResults.sdkName});
+
+  const tabOptions = useMemo(
+    () => [
+      {
+        key: 'debug-ids' as const,
+        hidden: hideDebugIdsTab,
+        progress: sourceResolutionResults.debugIdProgressPercent,
+      },
+      {
+        key: 'release' as const,
+        hidden: hideReleasesTab,
+        progress: sourceResolutionResults.releaseProgressPercent,
+      },
+      {
+        key: 'fetching' as const,
+        hidden: hideHostingPubliclyTab,
+        progress: sourceResolutionResults.scrapingProgressPercent,
+      },
+    ],
+    [
+      hideDebugIdsTab,
+      hideReleasesTab,
+      hideHostingPubliclyTab,
+      sourceResolutionResults.debugIdProgressPercent,
+      sourceResolutionResults.releaseProgressPercent,
+      sourceResolutionResults.scrapingProgressPercent,
+    ]
+  );
+
+  const visibleTabs = tabOptions.filter(tab => !tab.hidden);
+  const hideAllTabs = visibleTabs.length === 1;
+
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
-    // If the SDK supports Debug IDs, the Debug IDs tab should be shown by default
-    if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
-      return 'debug-ids';
+    if (hideAllTabs) {
+      const onlyVisible = visibleTabs[0];
+      if (onlyVisible) {
+        return onlyVisible.key;
+      }
     }
 
-    const possibleTabs = [
-      {tab: 'debug-ids', progress: sourceResolutionResults.debugIdProgressPercent},
-      {tab: 'release', progress: sourceResolutionResults.releaseProgressPercent},
-      {tab: 'fetching', progress: sourceResolutionResults.scrapingProgressPercent},
-    ] as const;
-
     // Get the tab with the most progress
-    return possibleTabs.reduce(
-      (prev, curr) => (curr.progress > prev.progress ? curr : prev),
-      possibleTabs[sourceResolutionResults.sdkDebugIdSupport === 'not-supported' ? 1 : 0]
-    ).tab;
+    return visibleTabs.reduce((prev, curr) =>
+      curr.progress > prev.progress ? curr : prev
+    ).key;
   });
 
   return (
@@ -507,13 +552,13 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
+            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be uploaded."
           )}
         </p>
         <DebuggerSection title={t('Why Configure Source Maps?')}>
           <p>
             {t(
-              "With properly configured source maps, you'll see the code that was writting instead of minified, obfuscated code. This makes debugging significantly easier and faster."
+              "With properly configured source maps, you'll see the code that was written instead of minified, obfuscated code. This makes debugging significantly easier and faster."
             )}
           </p>
           <p>
@@ -538,7 +583,20 @@ export function SourceMapsDebuggerModal({
           </div>
         </DebuggerSection>
         <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
-          {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+          {isReactNativeSDK({
+            sdkName: sourceResolutionResults.sdkName,
+          }) ? (
+            <WizardInstructionParagraph>
+              {tct(
+                "For React Native projects, source maps should be generated and uploaded automatically during the build process. If they're not showing up, chances are something's off in your setup. [link:Our docs] can help you double-check.",
+                {
+                  link: (
+                    <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
+                  ),
+                }
+              )}
+            </WizardInstructionParagraph>
+          ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
             <MetaFrameworkConfigInfo
               framework={platform}
               orgSlug={orgSlug}
@@ -551,22 +609,30 @@ export function SourceMapsDebuggerModal({
               projectSlug={project?.slug}
             />
           )}
-          <p>
-            {t(
-              "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-            )}
-          </p>
+          {!hideAllTabs && (
+            <p>
+              {isReactNativeSDK({
+                sdkName: sourceResolutionResults.sdkName,
+              })
+                ? t(
+                    "After confirming your setup is correct, let's go through a quick checklist to help you troubleshoot your source maps further. There are a few ways to configure them:"
+                  )
+                : t(
+                    "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+                  )}
+            </p>
+          )}
           <Tabs<'debug-ids' | 'release' | 'fetching'>
             value={activeTab}
             onChange={setActiveTab}
           >
-            <TabList>
+            <TabList hideBorder={hideAllTabs}>
               <TabList.Item
                 key="debug-ids"
                 textValue={`${t('Debug IDs')} (${
                   sourceResolutionResults.debugIdProgress
                 }/4)`}
-                hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
+                hidden={hideDebugIdsTab || hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -588,6 +654,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Releases')} (${
                   sourceResolutionResults.releaseProgress
                 }/4)`}
+                hidden={hideReleasesTab || hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -605,10 +672,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Hosting Publicly')} (${
                   sourceResolutionResults.scrapingProgress
                 }/4)`}
-                hidden={
-                  !sourceResolutionResults.hasScrapingData ||
-                  isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-                }
+                hidden={hideHostingPubliclyTab || hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -622,20 +686,42 @@ export function SourceMapsDebuggerModal({
                 {t('Hosting Publicly')}
               </TabList.Item>
             </TabList>
-            <StyledTabPanels>
+            <StyledTabPanels hideAllTabs={hideAllTabs}>
               <TabPanels.Item key="debug-ids">
-                <p>
-                  {tct(
-                    '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
-                    {
-                      link: defined(sourceMapsDocLinks.debugIds) ? (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
-                      ) : (
-                        <Fragment />
-                      ),
-                    }
-                  )}
-                </p>
+                {hideAllTabs ? (
+                  <p>
+                    {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+                      ? tct(
+                          "After confirming your setup is correct, the next step is verifying your Debug IDs, which link your source files to the source maps. Let's make sure they're set up properly by running through this quick checklist:",
+                          {
+                            link: sourceMapsDocLinks.debugIds ? (
+                              <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                            ) : undefined,
+                          }
+                        )
+                      : tct(
+                          "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
+                          {
+                            link: sourceMapsDocLinks.debugIds ? (
+                              <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                            ) : undefined,
+                          }
+                        )}
+                  </p>
+                ) : (
+                  <p>
+                    {tct(
+                      '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                      {
+                        link: defined(sourceMapsDocLinks.debugIds) ? (
+                          <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+                        ) : (
+                          <Fragment />
+                        ),
+                      }
+                    )}
+                  </p>
+                )}
                 <CheckList>
                   <InstalledSdkChecklistItem
                     setActiveTab={setActiveTab}
@@ -667,16 +753,40 @@ export function SourceMapsDebuggerModal({
                 )}
               </TabPanels.Item>
               <TabPanels.Item key="release">
-                <p>
-                  {tct(
-                    'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
-                    {
-                      link: (
-                        <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                      ),
-                    }
-                  )}
-                </p>
+                {hideAllTabs ? (
+                  <p>
+                    {isReactNativeSDK({
+                      sdkName: sourceResolutionResults.sdkName,
+                    })
+                      ? tct(
+                          "After confirming your setup is correct, the next step is to check whether your source maps are properly linked to your stack traces. This happens through [link:Releases] and artifact names, so let's make sure those are configured correctly:",
+                          {
+                            link: (
+                              <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                            ),
+                          }
+                        )
+                      : t(
+                          "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
+                          {
+                            link: (
+                              <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                            ),
+                          }
+                        )}
+                  </p>
+                ) : (
+                  <p>
+                    {tct(
+                      'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                      {
+                        link: (
+                          <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                        ),
+                      }
+                    )}
+                  </p>
+                )}
                 <CheckList>
                   <EventHasReleaseNameChecklistItem
                     sourceResolutionResults={sourceResolutionResults}
@@ -950,7 +1060,7 @@ function SentryPluginMessage({
     return (
       <p>
         {tct(
-          'For your Sentry [pluginNameAndLink] Plugin, check your [configFile] and ensure the plugin is active when building your production app. You cannot do two separate builds—one for uploading to Sentry with the plugin active, and one for deploying without it. The plugin needs to be active for every build.',
+          'For your Sentry [pluginNameAndLink] Plugin, check your [configFile] and ensure the plugin is active when building your production app. You cannot do two separate builds—one for uploading to Sentry with the plugin active, and one for deploying without it.',
           {
             pluginNameAndLink: (
               <ExternalLinkWithIcon href={plugin.link}>
@@ -967,7 +1077,7 @@ function SentryPluginMessage({
   return (
     <p>
       {tct(
-        'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+        'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin.',
         {
           bundlerPluginRepoLink: (
             <ExternalLinkWithIcon href={sourceMapsDocLinks.bundlerPluginRepoLink} />
@@ -1089,7 +1199,7 @@ function HasDebugIdChecklistItem({
               </p>
               <p>
                 {tct(
-                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin.',
                   {
                     bundlerPluginRepoLink: (
                       <ExternalLinkWithIcon
@@ -1123,14 +1233,6 @@ function HasDebugIdChecklistItem({
               toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
             />
           )}
-          <p>
-            {tct(
-              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
-              {
-                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-              }
-            )}
-          </p>
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -1793,9 +1895,8 @@ function ChecklistDoneNote() {
           'You completed all of the steps above. Capture a new event to verify your setup!'
         )}
         {isSelfHosted
-          ? ' ' +
-            tct(
-              'If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
+          ? tct(
+              ' If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
               {
                 symbolicator: <MonoBlock>symbolicator</MonoBlock>,
               }
@@ -1816,8 +1917,8 @@ function SourceMapStepNotRequiredNote() {
   );
 }
 
-const StyledTabPanels = styled(TabPanels)`
-  padding-top: ${space(2)};
+const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
+  ${p => !p.hideAllTabs && `padding-top: ${space(2)};`}
 `;
 
 const CheckList = styled('ul')`

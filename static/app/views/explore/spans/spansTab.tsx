@@ -2,7 +2,6 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,11 +9,15 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -24,20 +27,22 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {isAggregateField} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
 import {
   useExploreFields,
   useExploreId,
@@ -55,43 +60,38 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {combineConfidenceForSeries, type PickableDays} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  findSuggestedColumns,
+  type PickableDays,
+} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-interface SpansTabOnboardingProps extends PickableDays {
+interface SpansTabOnboardingProps {
+  datePageFilterProps: PickableDays;
   organization: Organization;
   project: Project;
 }
 
 export function SpansTabOnboarding({
-  defaultPeriod,
-  maxPickableDays,
+  datePageFilterProps,
   organization,
   project,
-  relativeOptions,
 }: SpansTabOnboardingProps) {
   return (
     <Layout.Body>
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={({arbitraryOptions}) => ({
-            ...arbitraryOptions,
-            ...relativeOptions,
-          })}
-        />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
         <Onboarding project={project} organization={organization} />
@@ -100,13 +100,11 @@ export function SpansTabOnboarding({
   );
 }
 
-interface SpanTabProps extends PickableDays {}
+interface SpanTabProps {
+  datePageFilterProps: PickableDays;
+}
 
-export function SpansTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabProps) {
+export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
@@ -115,11 +113,7 @@ export function SpansTabContent({
   return (
     <Fragment>
       <BodySearch>
-        <SpanTabSearchSection
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={relativeOptions}
-        />
+        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
       </BodySearch>
       <BodyContent>
         <SpanTabControlSection
@@ -127,8 +121,7 @@ export function SpansTabContent({
           controlSectionExpanded={controlSectionExpanded}
         />
         <SpanTabContentSection
-          maxPickableDays={maxPickableDays}
-          organization={organization}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
         />
@@ -147,13 +140,25 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
-interface SpanTabSearchSectionProps extends PickableDays {}
+interface SpanTabSearchSectionProps {
+  datePageFilterProps: PickableDays;
+}
 
-function SpanTabSearchSection({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabSearchSectionProps) {
+function SpansSearchBar({
+  eapSpanSearchQueryBuilderProps,
+}: {
+  eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
+}) {
+  const {displaySeerResults} = useSearchQueryBuilder();
+
+  return displaySeerResults ? (
+    <SeerSearch />
+  ) : (
+    <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+  );
+}
+
+function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
@@ -162,18 +167,25 @@ function SpanTabSearchSection({
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
+  const search = useMemo(() => new MutableSearch(query), [query]);
+  const oldSearch = usePrevious(search);
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
-        const newFields = new MutableSearch(newQuery)
-          .getFilterKeys()
-          .map(key => (key.startsWith('!') ? key.slice(1) : key))
-          // don't add aggregate functions to table fields
-          .filter(key => !isAggregateField(key));
+        const newSearch = new MutableSearch(newQuery);
+        const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          numberAttributes: numberTags,
+          stringAttributes: stringTags,
+        });
+
+        const existingFields = new Set(fields);
+        const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
+
         setExplorePageParams({
           query: newQuery,
-          fields: [...new Set([...fields, ...newFields])],
+          fields: newColumns.length ? [...fields, ...newColumns] : undefined,
         });
       },
       searchSource: 'explore',
@@ -193,7 +205,7 @@ function SpanTabSearchSection({
       numberTags,
       stringTags,
     }),
-    [mode, fields, query, setExplorePageParams, numberTags, stringTags]
+    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -217,31 +229,24 @@ function SpanTabSearchSection({
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
-              />
+              <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+            <SpansSearchBar
+              eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
+            />
           </FilterSection>
-          <Feature features="organizations:traces-schema-hints">
-            <StyledSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={
-                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                }
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading}
-                exploreQuery={query}
-                source={SchemaHintsSources.EXPLORE}
-              />
-            </StyledSchemaHintsSection>
-          </Feature>
+          <StyledSchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={
+                mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+              }
+              numberTags={numberTags}
+              stringTags={stringTags}
+              isLoading={numberTagsLoading || stringTagsLoading}
+              exploreQuery={query}
+              source={SchemaHintsSources.EXPLORE}
+            />
+          </StyledSchemaHintsSection>
         </TourElement>
       </SearchQueryBuilderProvider>
     </Layout.Main>
@@ -284,13 +289,11 @@ function SpanTabControlSection({
 interface SpanTabContentSectionProps {
   controlSectionExpanded: boolean;
   maxPickableDays: PickableDays['maxPickableDays'];
-  organization: Organization;
   setControlSectionExpanded: (expanded: boolean) => void;
 }
 
 function SpanTabContentSection({
   maxPickableDays,
-  organization,
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
@@ -309,7 +312,7 @@ function SpanTabContentSection({
         ? 'traces'
         : 'samples';
 
-  const limit = 25;
+  const limit = 50;
 
   const isAllowedSelection = useMemo(
     () => checkIsAllowedSelection(selection, maxPickableDays),
@@ -380,23 +383,19 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
-  const tableIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    (queryType === 'samples'
-      ? false // Samples mode won't show the progressive loading spinner
-      : queryType === 'aggregate'
-        ? // Only show the progressive spinner after the preflight query has been run
-          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
-          aggregatesTableResult.result.isFetched
-        : false);
-
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
         aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
         expanded={controlSectionExpanded}
         size="xs"
-        icon={<IconDoubleChevron direction={controlSectionExpanded ? 'left' : 'right'} />}
+        icon={
+          <IconChevron
+            isDouble
+            direction={controlSectionExpanded ? 'left' : 'right'}
+            size="xs"
+          />
+        }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
@@ -418,7 +417,6 @@ function SpanTabContentSection({
           visualizes={visualizes}
           setVisualizes={setVisualizes}
           samplingMode={timeseriesSamplingMode}
-          dataset={DiscoverDatasets.SPANS_EAP}
         />
         <ExploreTables
           aggregatesTableResult={aggregatesTableResult}
@@ -427,19 +425,9 @@ function SpanTabContentSection({
           confidences={confidences}
           samplesTab={samplesTab}
           setSamplesTab={setSamplesTab}
-          isProgressivelyLoading={tableIsProgressivelyLoading}
         />
       </TourElement>
     </ContentSection>
-  );
-}
-
-function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
-  return (
-    <DoubleChevronWrapper>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
-    </DoubleChevronWrapper>
   );
 }
 
@@ -455,7 +443,7 @@ function checkIsAllowedSelection(
 const BodySearch = styled(Layout.Body)`
   flex-grow: 0;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding-bottom: ${space(2)};
@@ -487,8 +475,8 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            width: 338px; /* 300px for the toolbar + padding */
-            padding: ${space(2)} ${space(1)} ${space(1)} ${space(4)};
+            width: 343px; /* 300px for the toolbar + padding */
+            padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(4)};
             border-right: 1px solid ${p.theme.border};
           `
         : css`
@@ -511,7 +499,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1)};
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
           `
         : css`
             padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
@@ -536,31 +524,44 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-const ChevronButton = styled(Button)<{expanded: boolean}>`
-  width: 28px;
-  border-left-color: ${p => p.theme.background};
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  margin-bottom: ${space(1)};
-  display: none;
+const ChevronButton = withChonk(
+  styled(Button)<{expanded: boolean}>`
+    width: 28px;
+    border-left-color: ${p => p.theme.background};
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    margin-bottom: ${space(1)};
+    display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    display: block;
-  }
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: block;
+    }
 
-  ${p =>
-    p.expanded
-      ? css`
-          margin-left: -9px;
-        `
-      : css`
-          margin-left: -31px;
-        `}
-`;
+    ${p =>
+      p.expanded
+        ? css`
+            margin-left: -13px;
+          `
+        : css`
+            margin-left: -31px;
+          `}
+  `,
+  chonkStyled(Button)<{expanded: boolean}>`
+    margin-bottom: ${space(1)};
+    display: none;
+    margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
-const DoubleChevronWrapper = styled('div')`
-  display: flex;
-`;
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: inline-flex;
+    }
+
+    &::after {
+      border-left-color: ${p => p.theme.background};
+      border-top-left-radius: 0px;
+      border-bottom-left-radius: 0px;
+    }
+  `
+);
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};

@@ -19,6 +19,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import withApi from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
@@ -300,6 +301,15 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       .filter(([key, _]) => key.startsWith('softCapType'))
       .some(([_, value]) => value !== null);
 
+  isReservedBudgetCategory = (isAm3Ds: boolean, category: DataCategory): boolean => {
+    const seerCategories = [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER];
+    const spansCategories = [DataCategory.SPANS, DataCategory.SPANS_INDEXED];
+
+    return (
+      seerCategories.includes(category) || (isAm3Ds && spansCategories.includes(category))
+    );
+  };
+
   /**
    * If the user has set reserved CPEs for both span categories, assume we're setting the spans budget
    * NOTE: this and probably the way we let users set reserved budgets in this form will need to
@@ -313,6 +323,27 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
       .length >= 2;
 
+  // Same as above, but for Seer budgets
+  isSettingSeerBudget = () =>
+    Object.entries(this.state.data)
+      .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
+      .every(([_, value]) => !!value) &&
+    Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
+      .length >= 2;
+
+  isSettingReservedBudget = (category: DataCategory) => {
+    if (category === DataCategory.SPANS || category === DataCategory.SPANS_INDEXED) {
+      return this.isSettingSpansBudget();
+    }
+    if (
+      category === DataCategory.SEER_AUTOFIX ||
+      category === DataCategory.SEER_SCANNER
+    ) {
+      return this.isSettingSeerBudget();
+    }
+    return false;
+  };
+
   /**
    * Whether the user has set all the required fields to provision a spans budget.
    * These include the reserved CPEs and reserved volumes for each span category,
@@ -324,6 +355,14 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       .filter(([key, _]) => key.startsWith('reservedSpans'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
     this.state.data.customPriceSpans;
+
+  // Same as above, but for Seer budgets
+  hasCompleteSeerBudget = () =>
+    this.isSettingSeerBudget() &&
+    Object.entries(this.state.data)
+      .filter(([key, _]) => key.startsWith('reservedSeer'))
+      .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
+    this.state.data.customPriceSeerAutofix;
 
   /**
    * If the user is changing the on-demand max spend mode or disabling it,
@@ -376,7 +415,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const allCategories = Object.values(DATA_CATEGORY_INFO).map(
       c => c.plural as DataCategory
     );
-    const planCategories = this.state.provisionablePlans[postData.plan]?.categories ?? [];
+    const planCategories = allCategories.filter(c =>
+      this.state.provisionablePlans[postData.plan]?.categories.includes(c)
+    );
 
     // remove fields for any categories that are not in the selected plan
     allCategories.forEach(category => {
@@ -505,18 +546,17 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       };
     }
 
+    postData.reservedBudgets = [];
     if (isAm3DsPlan(postData.plan)) {
       // Validate DS plan and reserved spans budget
       if (this.hasCompleteSpansBudget()) {
-        postData.reservedBudgets = [
-          {
-            categories: [
-              DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural,
-              DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED].plural,
-            ],
-            budget: postData.customPriceSpans,
-          },
-        ];
+        postData.reservedBudgets.push({
+          categories: [
+            DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural,
+            DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED].plural,
+          ],
+          budget: postData.customPriceSpans,
+        });
       } else {
         onSubmitError({
           responseJSON: {
@@ -527,6 +567,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         });
         return;
       }
+    }
+    if (this.hasCompleteSeerBudget()) {
+      postData.reservedBudgets.push({
+        categories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+        budget: postData.customPriceSeerAutofix,
+      });
     }
     this.props.api.request(this.endpoint, {
       method: 'POST',
@@ -819,47 +865,42 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                                   }))
                                 }
                               />
-                              {isAm3Ds &&
-                                [DataCategory.SPANS, DataCategory.SPANS_INDEXED].includes(
-                                  category
-                                ) && (
-                                  <StyledDollarsAndCentsField
-                                    label={`Reserved Cost-Per-Event ${titleName}`}
-                                    name={`reservedCpe${capitalizedApiName}`}
-                                    value={data[`reservedCpe${capitalizedApiName}`]}
-                                    step={0.00000001}
-                                    min={0.00000001}
-                                    max={1}
-                                    onChange={v =>
+                              {this.isReservedBudgetCategory(isAm3Ds, category) && (
+                                <StyledDollarsAndCentsField
+                                  label={`Reserved Cost-Per-Event ${titleName}`}
+                                  name={`reservedCpe${capitalizedApiName}`}
+                                  value={data[`reservedCpe${capitalizedApiName}`]}
+                                  step={0.00000001}
+                                  min={0.00000001}
+                                  max={1}
+                                  onChange={v =>
+                                    this.setState(state => ({
+                                      ...state,
+                                      data: {
+                                        ...state.data,
+                                        [`reservedCpe${capitalizedApiName}`]: v,
+                                        [`reserved${capitalizedApiName}`]:
+                                          RESERVED_BUDGET_QUOTA,
+                                      },
+                                    }))
+                                  }
+                                  onBlur={() => {
+                                    const currentValue = parseFloat(
+                                      this.state.data[`reservedCpe${capitalizedApiName}`]
+                                    );
+                                    if (!isNaN(currentValue)) {
                                       this.setState(state => ({
                                         ...state,
                                         data: {
                                           ...state.data,
-                                          [`reservedCpe${capitalizedApiName}`]: v,
-                                          [`reserved${capitalizedApiName}`]:
-                                            RESERVED_BUDGET_QUOTA,
+                                          [`reservedCpe${capitalizedApiName}`]:
+                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
                                         },
-                                      }))
+                                      }));
                                     }
-                                    onBlur={() => {
-                                      const currentValue = parseFloat(
-                                        this.state.data[
-                                          `reservedCpe${capitalizedApiName}`
-                                        ]
-                                      );
-                                      if (!isNaN(currentValue)) {
-                                        this.setState(state => ({
-                                          ...state,
-                                          data: {
-                                            ...state.data,
-                                            [`reservedCpe${capitalizedApiName}`]:
-                                              currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                                          },
-                                        }));
-                                      }
-                                    }}
-                                  />
-                                )}
+                                  }}
+                                />
+                              )}
                               {this.isEnablingOnDemandMaxSpend() && (
                                 <StyledDollarsAndCentsField
                                   label={`On-Demand Cost-Per-Event ${titleName}`}
@@ -919,11 +960,24 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         title: true,
                         hadCustomDynamicSampling: isAm3Ds,
                       });
+                      const settingReservedBudget =
+                        this.isSettingReservedBudget(category);
+                      const isDisabled =
+                        settingReservedBudget &&
+                        (category === DataCategory.SPANS_INDEXED ||
+                          category === DataCategory.SEER_SCANNER);
                       const suffix =
-                        category === DataCategory.SPANS &&
-                        isAm3Ds &&
-                        this.isSettingSpansBudget()
-                          ? ' (Reserved Spans Budget)'
+                        settingReservedBudget &&
+                        (category === DataCategory.SPANS ||
+                          category === DataCategory.SEER_AUTOFIX)
+                          ? ` (Reserved ${toTitleCase(
+                              Object.values(
+                                this.state.provisionablePlans[this.state.data.plan]
+                                  ?.availableReservedBudgetTypes ?? {}
+                              ).find(budgetInfo =>
+                                budgetInfo.dataCategories.includes(category)
+                              )?.name ?? ''
+                            )})`
                           : '';
                       const capitalizedApiName = this.capitalizeForApiName(
                         categoryInfo.plural
@@ -933,17 +987,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                           key={`customPrice${capitalizedApiName}`}
                           label={`Price for ${titleName}${suffix}`}
                           name={`customPrice${capitalizedApiName}`}
-                          disabled={
-                            !hasCustomSkuPrices ||
-                            (this.isSettingSpansBudget() &&
-                              category === DataCategory.SPANS_INDEXED)
-                          }
+                          disabled={!hasCustomSkuPrices || isDisabled}
                           required={hasCustomSkuPrices}
                           value={
-                            this.isSettingSpansBudget() &&
-                            category === DataCategory.SPANS_INDEXED
-                              ? 0
-                              : data[`customPrice${capitalizedApiName}`]
+                            isDisabled ? 0 : data[`customPrice${capitalizedApiName}`]
                           }
                           onChange={v =>
                             this.setState(state => ({

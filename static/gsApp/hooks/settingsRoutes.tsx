@@ -71,6 +71,11 @@ const settingsRoutes = () =>
         name="Spike Protection"
         component={make(() => import('../views/spikeProtection'))}
       />
+      <Route
+        path="seer/"
+        name="Seer Automation"
+        component={make(() => import('../views/seerAutomation'))}
+      />
 
       <Route
         path="subscription/spend-allocations/"

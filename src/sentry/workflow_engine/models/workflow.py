@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import replace
-from typing import Any
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -7,13 +9,25 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
+
+
+class WorkflowManager(BaseManager["Workflow"]):
+    def get_queryset(self) -> BaseQuerySet[Workflow]:
+        return (
+            super()
+            .get_queryset()
+            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+        )
 
 
 @region_silo_model
@@ -24,13 +38,20 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
 
     __relocation_scope__ = RelocationScope.Organization
+
+    objects: ClassVar[WorkflowManager] = WorkflowManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
 
-    # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
+    # The workflow's status - used for tracking deletion state
+    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
+
+    # Required as the 'when' condition for the workflow, this evaluates states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup", null=True, blank=True
     )
@@ -73,6 +94,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
+        # TODO - investigate circular import issue
         from sentry.workflow_engine.processors.data_condition_group import (
             process_data_condition_group,
         )
@@ -81,10 +103,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return True, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
-        (evaluation, _), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.when_condition_group.id, workflow_event_data
         )
-        return evaluation, remaining_conditions
+        return group_evaluation.logic_result, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

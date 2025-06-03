@@ -5,7 +5,7 @@ import logging
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import Any, Generic, Protocol, Self, TypeVar, cast
+from typing import Any, Generic, Self, TypeVar, cast
 
 import pydantic
 from django.db import router, transaction
@@ -97,10 +97,6 @@ class RpcModel(pydantic.BaseModel):
             fields[rpc_field_name] = value
 
         return cls(**fields)
-
-
-class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore[misc]
-    """A unifying metaclass for RpcModel classes that also implement a Protocol."""
 
 
 ServiceInterface = TypeVar("ServiceInterface")

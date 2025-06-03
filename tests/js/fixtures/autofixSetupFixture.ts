@@ -1,6 +1,8 @@
-import { AutofixSetupResponse } from "sentry/components/events/autofix/useAutofixSetup";
+import type {AutofixSetupResponse} from 'sentry/components/events/autofix/useAutofixSetup';
 
-export function AutofixSetupFixture(params: Partial<AutofixSetupResponse>): AutofixSetupResponse {
+export function AutofixSetupFixture(
+  params: Partial<AutofixSetupResponse>
+): AutofixSetupResponse {
   return {
     integration: {
       ok: true,
@@ -14,6 +16,9 @@ export function AutofixSetupFixture(params: Partial<AutofixSetupResponse>): Auto
       ok: true,
       repos: [],
     },
+    billing: {
+      hasAutofixQuota: true,
+    },
     ...params,
-  }
+  };
 }

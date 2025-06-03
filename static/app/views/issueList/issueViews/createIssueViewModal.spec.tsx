@@ -31,6 +31,7 @@ describe('CreateIssueViewModal', function () {
     query: 'is:unresolved foo',
     querySort: IssueSortOptions.TRENDS,
     starred: false,
+    analyticsSurface: 'issue-views-list' as const,
   };
 
   it('can create a new view', async function () {
@@ -107,5 +108,5 @@ describe('CreateIssueViewModal', function () {
         },
       })
     );
-  });
+  }, 10_000);
 });

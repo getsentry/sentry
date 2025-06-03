@@ -318,13 +318,15 @@ export default function SentryApplicationDetails(props: Props) {
   };
 
   const rotateClientSecret = async () => {
-    try {
-      const rotateResponse = await api.requestPromise(
-        `/sentry-apps/${appSlug}/rotate-secret/`,
-        {
-          method: 'POST',
-        }
-      );
+    const rotateResponse = await api.requestPromise(
+      `/sentry-apps/${appSlug}/rotate-secret/`,
+      {
+        method: 'POST',
+      }
+    );
+
+    // Ensures that the modal is opened after the confirmation modal closes itself
+    requestAnimationFrame(() => {
       openModal(({Body, Header}) => (
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
@@ -340,9 +342,7 @@ export default function SentryApplicationDetails(props: Props) {
           </Body>
         </Fragment>
       ));
-    } catch {
-      addErrorMessage(t('Error rotating secret'));
-    }
+    });
   };
 
   const onFieldChange = (name: string, value: FieldValue): void => {
@@ -546,6 +546,7 @@ export default function SentryApplicationDetails(props: Props) {
                             message={t(
                               'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
                             )}
+                            errorMessage={t('Error rotating secret')}
                           >
                             <Button priority="danger">Rotate client secret</Button>
                           </Confirm>

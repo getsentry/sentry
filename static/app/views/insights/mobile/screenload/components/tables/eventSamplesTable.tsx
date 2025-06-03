@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
@@ -36,7 +36,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 type Props = {
   columnNameMap: Record<string, string>;
   cursorName: string;
-  eventIdKey: 'id' | 'transaction.id';
+  eventIdKey: 'id' | 'transaction.id' | 'transaction.span_id';
   eventView: EventView;
   isLoading: boolean;
   profileIdKey: 'profile.id' | 'profile_id';
@@ -81,7 +81,7 @@ export function EventSamplesTable({
         <Link
           to={generateLinkToEventInTraceView({
             eventId: row[eventIdKey],
-            projectSlug: row['project.name'],
+            projectSlug: row.project,
             traceSlug: row.trace,
             timestamp: row.timestamp,
             organization,
@@ -97,10 +97,10 @@ export function EventSamplesTable({
 
     if (column.key === profileIdKey) {
       const profileTarget =
-        defined(row['project.name']) && defined(row[profileIdKey])
+        defined(row.project) && defined(row[profileIdKey])
           ? generateProfileFlamechartRoute({
               organization,
-              projectSlug: row['project.name'],
+              projectSlug: row.project,
               profileId: String(row[profileIdKey]),
             })
           : null;

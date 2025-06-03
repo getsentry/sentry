@@ -1,6 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
@@ -73,7 +72,7 @@ describe('Dashboards > Dashboard', () => {
   const widgetLegendState = new WidgetLegendSelectionState({
     organization,
     dashboard: mockDashboard,
-    router: RouterFixture(),
+    navigate: jest.fn(),
     location: LocationFixture(),
   });
 

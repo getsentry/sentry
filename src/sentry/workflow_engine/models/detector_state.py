@@ -24,10 +24,10 @@ class DetectorState(DefaultFieldsModel):
     # allows us to link to a specific group from a single detector
     detector_group_key = models.CharField(max_length=200, blank=True, null=True)
 
-    # If the detector is currently active
-    active = models.BooleanField(default=False)
+    # If the detector has met the conditions to be in an triggered state
+    is_triggered = models.BooleanField(default=False, db_column="active")
 
-    # The current state of the detector
+    # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
     class Meta:

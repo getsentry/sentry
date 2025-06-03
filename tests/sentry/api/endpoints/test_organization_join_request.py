@@ -206,11 +206,13 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
                 "value": "link_clicked",
             },
         ]
-        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
+        context_params = orjson.loads(
+            orjson.loads(self.mock_post.call_args.kwargs["blocks"])[0]["block_id"]
+        )
 
         with outbox_runner():
             member = OrganizationMember.objects.get(email=self.email)
-        assert callback_id == {
+        assert context_params == {
             "member_id": member.id,
             "member_email": self.email,
         }

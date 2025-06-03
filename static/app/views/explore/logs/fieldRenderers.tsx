@@ -116,9 +116,15 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
 }
 
 function TimestampRenderer(props: LogFieldRendererProps) {
+  const preciseTimestamp =
+    props.extra.attributes?.['tags[sentry.timestamp_precise,number]'];
+  const timestampToUse = preciseTimestamp
+    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    : props.item.value;
+
   return (
     <LogDate align={props.extra.align}>
-      <DateTime seconds date={props.item.value} />
+      <DateTime seconds date={timestampToUse} format="MMM D, h:mm:ss.SSS A" />
     </LogDate>
   );
 }
@@ -205,7 +211,7 @@ function FilteredTooltip({
   );
 }
 
-export function TraceIDRenderer(props: LogFieldRendererProps) {
+function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = adjustLogTraceID(props.item.value as string);
   const location = stripLogParamsFromLocation(props.extra.location);
   const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP];

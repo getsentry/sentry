@@ -1,17 +1,37 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
+import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
+import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
+import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
+import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
+import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {FieldKey} from 'sentry/utils/fields';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -19,89 +39,10 @@ interface SeerNoticesProps {
   hasGithubIntegration?: boolean;
 }
 
-function GithubIntegrationSetupCard() {
-  const organization = useOrganization();
-
-  return (
-    <IntegrationCard key="no-readable-repos">
-      <CardContent>
-        <CardTitle>{t('Set Up the GitHub Integration')}</CardTitle>
-        <CardDescription>
-          <span>
-            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
-              bold: <b />,
-            })}
-          </span>
-          <span>
-            {tct(
-              'Set up the [integrationLink:GitHub Integration] to allow Autofix to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
-              {
-                integrationLink: (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/`}
-                  />
-                ),
-              }
-            )}
-          </span>
-        </CardDescription>
-        <LinkButton
-          href={`/settings/${organization.slug}/integrations/github/`}
-          size="sm"
-          priority="primary"
-        >
-          {t('Set Up Now')}
-        </LinkButton>
-      </CardContent>
-      <CardIllustration src={onboardingInstall} alt="Install" />
-    </IntegrationCard>
-  );
-}
-
-function SelectReposCard() {
-  const organization = useOrganization();
-
-  return (
-    <IntegrationCard key="no-selected-repos">
-      <CardContent>
-        <CardTitle>{t('Pick Repositories to Work In')}</CardTitle>
-        <CardDescription>
-          <span>
-            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
-              bold: <b />,
-            })}
-          </span>
-          <span>
-            {tct(
-              'Select the repos Autofix can explore in this project to allow it to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
-              {
-                integrationLink: (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/`}
-                  />
-                ),
-              }
-            )}
-          </span>
-          <span>
-            {t(
-              'You can also configure working branches and custom instructions so Autofix acts just how you like.'
-            )}
-          </span>
-          <span>
-            {tct(
-              '[bold:Open the Project Settings menu in the top right] to get started.',
-              {
-                bold: <b />,
-              }
-            )}
-          </span>
-        </CardDescription>
-      </CardContent>
-      <CardIllustration src={onboardingInstall} alt="Install" />
-    </IntegrationCard>
-  );
-}
+const SeerBetaClosingAlert = HookOrDefault({
+  hookName: 'component:seer-beta-closing-alert',
+  defaultComponent: () => <div data-test-id="seer-beta-closing-alert" />,
+});
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
@@ -111,117 +52,333 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     codeMappingRepos,
     isLoading: isLoadingPreferences,
   } = useProjectSeerPreferences(project);
+  const {starredViews: views} = useStarredIssueViews();
+  const {mutate: createIssueView} = useCreateGroupSearchView({
+    onMutate: () => {
+      addLoadingMessage(t('Creating view...'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('View starred successfully'));
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to create view'));
+    },
+  });
+  const detailedProject = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const isAutomationAllowed = organization.features.includes(
+    'trigger-autofix-on-issue-summary'
+  );
+  const prefersStackedNav = usePrefersStackedNav();
+  const isStarredViewAllowed = prefersStackedNav;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
-  const notices: React.JSX.Element[] = [];
+  const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
+  const nonGithubRepos = unreadableRepos.filter(
+    repo => !repo.provider.includes('github')
+  );
 
-  if (!hasGithubIntegration) {
-    notices.push(<GithubIntegrationSetupCard key="github-setup" />);
-  } else if (
+  // Onboarding conditions
+  const needsGithubIntegration = !hasGithubIntegration;
+  const needsRepoSelection =
+    hasGithubIntegration &&
     repos.length === 0 &&
     !preference?.repositories?.length &&
     !codeMappingRepos?.length &&
-    !isLoadingPreferences
-  ) {
-    notices.push(<SelectReposCard key="repo-selection" />);
-  }
+    !isLoadingPreferences;
+  const needsAutomation =
+    detailedProject?.data &&
+    (detailedProject?.data?.autofixAutomationTuning === 'off' ||
+      detailedProject?.data?.autofixAutomationTuning === undefined) &&
+    isAutomationAllowed;
+  const needsFixabilityView =
+    !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
+    isAutomationAllowed &&
+    isStarredViewAllowed;
 
-  if (unreadableRepos.length > 1) {
-    const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
-    const nonGithubRepos = unreadableRepos.filter(
-      repo => !repo.provider.includes('github')
-    );
+  // Warning conditions
+  const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
+  const hasSingleUnreadableRepo = unreadableRepos.length === 1;
 
-    notices.push(
-      <Alert type="warning" showIcon key="multiple-repos">
-        {tct("Autofix can't access these repositories: [repoList].", {
-          repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
-        })}
-        {githubRepos.length > 0 && (
-          <Fragment>
-            {' '}
-            {tct(
-              'For best performance, enable the [integrationLink:GitHub integration].',
-              {
-                integrationLink: (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/`}
-                  />
-                ),
-              }
+  // Use localStorage for collapsed state
+  const [stepsCollapsed, setStepsCollapsed] = useLocalStorageState(
+    `seer-onboarding-collapsed:${project.id}`,
+    false
+  );
+
+  // Calculate incomplete steps
+  const stepConditions = [
+    needsGithubIntegration,
+    needsRepoSelection,
+    needsAutomation,
+    needsFixabilityView,
+  ];
+  const incompleteSteps = stepConditions.filter(Boolean).length;
+  const anyStepIncomplete = incompleteSteps > 0;
+
+  const handleStarFixabilityView = () => {
+    let projects: number[] = [];
+    if (!organization.features.includes('global-views')) {
+      // org cannot have a view with multiple projects, so we'll just use the current project
+      projects = [Number(project.id)];
+    }
+    createIssueView({
+      name: 'Easy Fixes 🤖',
+      query: 'is:unresolved issue.seer_actionability:high',
+      querySort: IssueSortOptions.DATE,
+      projects,
+      environments: [],
+      timeFilters: {
+        start: null,
+        end: null,
+        period: '7d',
+        utc: null,
+      },
+      starred: true,
+    });
+  };
+
+  return (
+    <NoticesContainer>
+      <SeerBetaClosingAlert />
+      {/* Collapsed summary */}
+      {anyStepIncomplete && stepsCollapsed && (
+        <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
+          <SeerWaitingIcon size="lg" style={{marginRight: 8}} />
+          <span>
+            {t(
+              'Only %s step%s left to get the most out of Seer.',
+              incompleteSteps,
+              incompleteSteps === 1 ? '' : 's'
             )}
-          </Fragment>
-        )}
-        {nonGithubRepos.length > 0 && (
-          <Fragment>
-            {' '}
-            {t('Autofix currently only supports GitHub repositories.')}
-          </Fragment>
-        )}
-      </Alert>
-    );
-  } else if (unreadableRepos.length === 1) {
-    const unreadableRepo = unreadableRepos[0]!;
-    notices.push(
-      <Alert type="warning" showIcon key="single-repo">
-        {unreadableRepo.provider.includes('github')
-          ? tct(
-              "Autofix can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
-              {
-                repo: <b>{unreadableRepo.name}</b>,
-                integrationLink: (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/`}
-                  />
-                ),
-              }
-            )
-          : tct(
-              "Autofix can't access the [repo] repository. It currently only supports GitHub repositories.",
-              {repo: <b>{unreadableRepo.name}</b>}
+          </span>
+          <IconChevron direction="down" style={{marginLeft: 'auto'}} />
+        </CollapsedSummaryCard>
+      )}
+      {/* Full guided steps */}
+      {anyStepIncomplete && !stepsCollapsed && (
+        <Fragment>
+          <StepsHeader>
+            <SeerWaitingIcon size="xl" />
+            Debug Faster with Seer
+          </StepsHeader>
+          <GuidedSteps>
+            {/* Step 1: GitHub Integration */}
+            <GuidedSteps.Step
+              key="github-setup"
+              stepKey="github-setup"
+              title={t('Set Up the GitHub Integration')}
+              isCompleted={!needsGithubIntegration}
+            >
+              <StepContentRow>
+                <StepTextCol>
+                  <CardDescription>
+                    <span>
+                      {tct(
+                        'Seer is [bold:a lot better] when it has your codebase as context.',
+                        {
+                          bold: <b />,
+                        }
+                      )}
+                    </span>
+                    <span>
+                      {tct(
+                        'Set up the [integrationLink:GitHub Integration] to allow Seer to find the most accurate root causes, solutions, and code changes for your issues.',
+                        {
+                          integrationLink: (
+                            <ExternalLink
+                              href={`/settings/${organization.slug}/integrations/github/`}
+                            />
+                          ),
+                        }
+                      )}
+                    </span>
+                  </CardDescription>
+                </StepTextCol>
+                <StepImageCol>
+                  <CardIllustration src={addIntegrationProvider} alt="Add Integration" />
+                </StepImageCol>
+              </StepContentRow>
+              <GuidedSteps.StepButtons>
+                <LinkButton
+                  href={`/settings/${organization.slug}/integrations/github/`}
+                  size="sm"
+                  priority="primary"
+                >
+                  {t('Set Up Integration')}
+                </LinkButton>
+              </GuidedSteps.StepButtons>
+            </GuidedSteps.Step>
+
+            {/* Step 2: Repo Selection */}
+            <GuidedSteps.Step
+              key="repo-selection"
+              stepKey="repo-selection"
+              title={t('Pick Repositories to Work In')}
+              isCompleted={!needsRepoSelection}
+            >
+              <StepContentRow>
+                <StepTextCol>
+                  <CardDescription>
+                    <span>{t('Select the repos Seer can explore in this project.')}</span>
+                    <span>
+                      {t(
+                        'You can also configure working branches and custom instructions so Seer fits your unique workflow.'
+                      )}
+                    </span>
+                  </CardDescription>
+                </StepTextCol>
+                <StepImageCol>
+                  <CardIllustration src={onboardingCompass} alt="Compass" />
+                </StepImageCol>
+              </StepContentRow>
+              <GuidedSteps.StepButtons>
+                <LinkButton
+                  to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                  size="sm"
+                  priority="primary"
+                >
+                  {t('Configure Repos')}
+                </LinkButton>
+              </GuidedSteps.StepButtons>
+            </GuidedSteps.Step>
+
+            {/* Step 3: Unleash Automation */}
+            {isAutomationAllowed && (
+              <GuidedSteps.Step
+                key="unleash-automation"
+                stepKey="unleash-automation"
+                title={t('Unleash Automation')}
+                isCompleted={!needsAutomation}
+              >
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
+                      <span>
+                        {t(
+                          'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
+                        )}
+                      </span>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
+                    <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
+                  </StepImageCol>
+                </StepContentRow>
+                <GuidedSteps.StepButtons>
+                  <LinkButton
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    size="sm"
+                    priority="primary"
+                  >
+                    {t('Enable Automation')}
+                  </LinkButton>
+                </GuidedSteps.StepButtons>
+              </GuidedSteps.Step>
             )}
-      </Alert>
-    );
-  }
 
-  if (notices.length === 0) {
-    return null;
-  }
-
-  return <NoticesContainer>{notices}</NoticesContainer>;
+            {/* Step 4: Fixability View */}
+            {isAutomationAllowed && isStarredViewAllowed && (
+              <GuidedSteps.Step
+                key="fixability-view"
+                stepKey="fixability-view"
+                title={t('Get Some Quick Wins')}
+                isCompleted={!needsFixabilityView}
+              >
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
+                      <span>
+                        {t(
+                          'Seer scans all your issues and highlights the ones that are likely quick to fix.'
+                        )}
+                      </span>
+                      <span>
+                        {t(
+                          'Star the recommended issue view to keep an eye on quick debugging opportunities. You can customize the view later.'
+                        )}
+                      </span>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
+                    <CardIllustration src={feedbackOnboardingImg} alt="Feedback" />
+                  </StepImageCol>
+                </StepContentRow>
+                <GuidedSteps.StepButtons>
+                  <Button onClick={() => setStepsCollapsed(true)} size="sm">
+                    {t('Skip for Now')}
+                  </Button>
+                  <Button onClick={handleStarFixabilityView} size="sm" priority="primary">
+                    {t('Star Recommended View')}
+                  </Button>
+                </GuidedSteps.StepButtons>
+              </GuidedSteps.Step>
+            )}
+          </GuidedSteps>
+          <StepsDivider />
+        </Fragment>
+      )}
+      {/* Banners for unreadable repos */}
+      {hasMultipleUnreadableRepos && (
+        <StyledAlert type="warning" showIcon key="multiple-repos">
+          {tct("Seer can't access these repositories: [repoList].", {
+            repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
+          })}
+          {githubRepos.length > 0 && (
+            <Fragment>
+              {' '}
+              {tct(
+                'For best performance, enable the [integrationLink:GitHub integration].',
+                {
+                  integrationLink: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/integrations/github/`}
+                    />
+                  ),
+                }
+              )}
+            </Fragment>
+          )}
+          {nonGithubRepos.length > 0 && (
+            <Fragment> {t('Seer currently only supports GitHub repositories.')}</Fragment>
+          )}
+        </StyledAlert>
+      )}
+      {hasSingleUnreadableRepo && (
+        <StyledAlert type="warning" showIcon key="single-repo">
+          {unreadableRepos[0]?.provider.includes('github')
+            ? tct(
+                "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
+                {
+                  repo: <b>{unreadableRepos[0]?.name}</b>,
+                  integrationLink: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/integrations/github/`}
+                    />
+                  ),
+                }
+              )
+            : tct(
+                "Seer can't access the [repo] repository. It currently only supports GitHub repositories.",
+                {repo: <b>{unreadableRepos[0]?.name}</b>}
+              )}
+        </StyledAlert>
+      )}
+    </NoticesContainer>
+  );
 }
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(2)};
+`;
 
 const NoticesContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
   align-items: stretch;
-  margin-bottom: ${space(2)};
-`;
-
-const IntegrationCard = styled('div')`
-  position: relative;
-  overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: ${space(1)};
-  background: linear-gradient(
-    90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
-  );
-`;
-
-const CardContent = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  align-items: flex-start;
 `;
 
 const CardDescription = styled('div')`
@@ -230,16 +387,70 @@ const CardDescription = styled('div')`
   gap: ${space(1)};
 `;
 
-const CardTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 600;
-  margin-bottom: 0;
-`;
-
 const CardIllustration = styled('img')`
-  height: 100%;
+  width: 100%;
+  max-width: 200px;
+  min-width: 100px;
+  height: auto;
   object-fit: contain;
-  max-width: 30%;
   margin-bottom: -6px;
   margin-right: 10px;
+`;
+
+const StepContentRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: ${space(3)};
+`;
+
+const StepTextCol = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  flex: 0 0 75%;
+  min-width: 0;
+`;
+
+const StepImageCol = styled('div')`
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex-grow: 1;
+`;
+
+const StepsHeader = styled('h3')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(0.5)};
+`;
+
+const StepsDivider = styled('hr')`
+  border: none;
+  border-top: 1px solid ${p => p.theme.border};
+  margin: ${space(3)} 0;
+`;
+
+const CollapsedSummaryCard = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  background: ${p => p.theme.pink400}10;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 6px;
+  padding: ${space(1)};
+  margin-bottom: ${space(2)};
+  cursor: pointer;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 500;
+  color: ${p => p.theme.textColor};
+  transition: box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  &:hover {
+    background: ${p => p.theme.pink400}20;
+  }
 `;

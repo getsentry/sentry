@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
-import {TabPanels, Tabs} from 'sentry/components/tabs';
-import {TabList} from 'sentry/components/tabs/tabList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReleaseMeta} from 'sentry/types/release';
@@ -58,7 +57,7 @@ export function CommitsFilesSection({
   return (
     <Tabs disabled={isError}>
       <TabListWithSpace>
-        <TabList.Item key="commits">
+        <TabList.Item key="commits" textValue={t('Commits')}>
           <TitleWithBadge>
             <span>{t('Commits')}</span>
             <Badge type="default">
@@ -70,7 +69,7 @@ export function CommitsFilesSection({
             </Badge>
           </TitleWithBadge>
         </TabList.Item>
-        <TabList.Item key="files">
+        <TabList.Item key="files" textValue={t('File Changes')}>
           <TitleWithBadge>
             <span>{t('File Changes')}</span>
             <Badge type="default">

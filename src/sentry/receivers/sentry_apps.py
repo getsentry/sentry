@@ -115,6 +115,8 @@ def send_comment_deleted_webhook(project, user, group, data, **kwargs):
 
 def send_comment_webhooks(organization, issue, user, event, data=None):
     data = data or {}
+    if "timestamp" in data:
+        data["timestamp"] = data["timestamp"].isoformat()
 
     for install in installations_to_notify(organization, "comment"):
         build_comment_webhook.delay(

@@ -200,12 +200,7 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-// TODO - remove in favour of `getPerformanceBaseUrl`
-export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `${getPerformanceBaseUrl(organization.slug)}/`;
-}
-
-export function getPerformanceTrendsUrl(
+function getPerformanceTrendsUrl(
   organization: OrganizationSummary,
   view?: DomainView
 ): string {

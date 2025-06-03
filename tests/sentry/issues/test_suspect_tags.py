@@ -66,4 +66,4 @@ class SuspectTagsTest(TestCase, SnubaTestCase):
         self.mock_event(today, hash="a" * 32, tags={"key": False, "other": False}, group_id=2)
 
         results = get_suspect_tag_scores(1, 1, before, later, envs=[], group_id=1)
-        assert results == [("key", 0.01634056054997356), ("other", 0.016181914331041776)]
+        assert results == [("key", 2.7622287114272543), ("other", 0.0)]

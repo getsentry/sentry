@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -37,18 +38,32 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
-// lint rules that need type information need to go here
-export const typeAwareLintRules = {
-  name: 'plugin/typescript-eslint/type-aware-linting',
-  rules: {
-    '@typescript-eslint/await-thenable': 'error',
-    '@typescript-eslint/no-array-delete': 'error',
-    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-    '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/consistent-type-exports': 'error',
-    '@typescript-eslint/consistent-type-imports': 'error',
-  },
-};
+// Some rules can be enabled/disabled via env vars.
+// This is useful for CI, where we want to run the linter with the most strict
+// and slowest settings, and for pre-commit, where we want to run the linter
+// faster.
+// Some output is provided to help people toggle these settings locally.
+const enableTypeAwareLinting = (function () {
+  // If we ask for something specific, use that.
+  if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
+    return Boolean(JSON.parse(process.env.SENTRY_ESLINT_TYPEAWARE));
+  }
+
+  // If we're inside a pre-commit hook, defer to whether we're in CI.
+  if (
+    process.env.SENTRY_PRECOMMIT !== undefined &&
+    Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT))
+  ) {
+    return process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+  }
+
+  // By default, enable type-aware linting.
+  return true;
+})();
+
+// Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
+const globMDX = '**/*.mdx';
 
 const restrictedImportPaths = [
   {
@@ -109,6 +124,21 @@ const restrictedImportPaths = [
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
   },
+  {
+    name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsLineChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -144,21 +174,21 @@ export default typescript.config([
         experimentalDecorators: undefined,
 
         // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
-        jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
+        jsDocParsingMode: 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
-        project: process.env.SENTRY_DETECT_DEPRECATIONS ? './tsconfig.json' : false,
+        // `projectService` is recommended
+        project: false,
 
         // https://typescript-eslint.io/packages/parser/#projectservice
-        // `projectService` is recommended, but slower, with our current tsconfig files.
-        projectService: true,
-        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
+        // Specifies using TypeScript APIs to generate type information for rules.
+        projectService: enableTypeAwareLinting,
         tsconfigRootDir: import.meta.dirname,
       },
     },
     linterOptions: {
       noInlineConfig: false,
-      reportUnusedDisableDirectives: 'error',
+      reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
     },
     settings: {
       react: {
@@ -187,7 +217,8 @@ export default typescript.config([
     '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
-    '**/tests/**/fixtures/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
@@ -364,6 +395,7 @@ export default typescript.config([
       'import/no-amd': 'error',
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
+      'import/no-extraneous-dependencies': ['error', {includeTypes: true}],
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
@@ -441,7 +473,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/typescript-eslint/type-aware-linting',
+    ignores: [globMDX],
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
+    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
+    rules: enableTypeAwareLinting
+      ? {
+          '@typescript-eslint/await-thenable': 'error',
+          '@typescript-eslint/consistent-type-exports': 'error',
+          '@typescript-eslint/consistent-type-imports': 'error',
+          '@typescript-eslint/no-array-delete': 'error',
+          '@typescript-eslint/no-base-to-string': 'error',
+          '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/prefer-optional-chain': 'error',
+        }
+      : {},
+  },
+  {
     name: 'plugin/typescript-eslint/custom',
+    ignores: [globMDX],
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
@@ -478,14 +529,13 @@ export default typescript.config([
       '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/base.ts
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/recommended.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -537,14 +587,6 @@ export default typescript.config([
           destructuredArrayIgnorePattern: '^_',
         },
       ],
-    },
-  },
-  {
-    name: 'plugin/typescript-eslint/process.env.SENTRY_DETECT_DEPRECATIONS=1',
-    rules: {
-      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
-        ? 'error'
-        : 'off',
     },
   },
   {
@@ -804,6 +846,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/insights-chart-widgets',
+    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow these imports only in the above widgets directory in `files`
+          paths: restrictedImportPaths.filter(
+            ({name}) =>
+              ![
+                'sentry/views/insights/common/components/insightsLineChartWidget',
+                'sentry/views/insights/common/components/insightsAreaChartWidget',
+                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+              ].includes(name)
+          ),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -921,10 +983,29 @@ export default typescript.config([
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
           ],
           paths: restrictedImportPaths,
         },
       ],
     },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
+    },
+  },
+
+  // MDX Configuration
+  {
+    ...mdx.flat,
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
   },
 ]);

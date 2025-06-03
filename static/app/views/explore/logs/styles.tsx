@@ -4,8 +4,12 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
+import {Body} from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   TableBody,
@@ -15,13 +19,19 @@ import {
 } from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
+export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
+
+interface LogTableRowProps {
+  isClickable?: boolean;
+}
+
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-export const LogTableRow = styled(TableRow)`
+export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   &:not(thead > &) {
-    cursor: pointer;
+    cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
@@ -39,7 +49,7 @@ export const LogAttributeTreeWrapper = styled('div')`
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
-  min-height: ${GRID_BODY_ROW_HEIGHT - 16}px;
+  min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${space(2)};
 
@@ -103,13 +113,13 @@ export const LogFirstCellContent = styled('div')`
 export const DetailsBody = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(1)} 0;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 
   &:last-child {
     border-bottom: 0;
   }
-
-  padding: ${space(1)} 0;
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export const StyledChevronButton = styled(Button)`
@@ -169,6 +179,7 @@ export const AlignedCellContent = styled('div')<{
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`
@@ -179,6 +190,44 @@ export const FirstTableHeadCell = styled(TableHeadCell)`
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
   padding-left: ${space(1)};
+`;
+
+export const FilterBarContainer = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+  margin-bottom: ${space(1)};
+`;
+
+export const TableActionsContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+export const LogsItemContainer = styled('div')`
+  flex: 1 1 auto;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+export const LogsTableActionsContainer = styled(LogsItemContainer)`
+  margin-bottom: 0;
+`;
+
+export const LogsGraphContainer = styled(LogsItemContainer)`
+  height: 200px;
+`;
+
+export const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
+`;
+
+export const AutoRefreshLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-bottom: 0;
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {
@@ -253,3 +302,62 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       throw new Error(`Invalid log type, got ${level}`);
   }
 }
+
+export const TopSectionBody = styled(Body)`
+  padding-bottom: 0;
+  flex: 0 0 auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-bottom: ${space(2)};
+  }
+`;
+
+export const BottomSectionBody = styled('div')`
+  padding: ${space(2)} ${space(2)};
+  padding-top: ${space(1)};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)} ${space(4)};
+    padding-top: ${space(1)};
+  }
+`;
+
+export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    display: grid;
+    grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};
+  }
+`;
+
+export const LogsSidebarCollapseButton = withChonk(
+  styled(Button)<{sidebarOpen: boolean}>`
+    width: 28px;
+    border-left-color: ${p => p.theme.background};
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    margin-bottom: ${space(1)};
+    margin-left: -31px;
+    display: none;
+
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: block;
+    }
+  `,
+  chonkStyled(Button)<{sidebarOpen: boolean}>`
+    margin-bottom: ${space(1)};
+    display: none;
+    margin-left: -31px;
+
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: inline-flex;
+    }
+
+    &::after {
+      border-left-color: ${p => p.theme.background};
+      border-top-left-radius: 0px;
+      border-bottom-left-radius: 0px;
+    }
+  `
+);

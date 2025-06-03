@@ -78,7 +78,51 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "New Rule",
             "environment": None,
-            "project": self.project,
+            "project_id": self.project.id,
+            "action_match": "all",
+            "filter_match": "all",
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+            "actions": [
+                {
+                    "channel": "#my-channel",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "tags": "",
+                    "workspace": self.integration.id,
+                }
+            ],
+            "frequency": 5,
+            "uuid": self.uuid,
+            "user_id": self.user.id,
+        }
+
+        with self.tasks():
+            find_channel_id_for_rule(**data)
+
+        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL]).get(project_id=self.project.id)
+        mock_set_value.assert_called_with("success", rule.id)
+        assert rule.label == "New Rule"
+        # check that the channel_id got added
+        assert rule.data["actions"] == [
+            {
+                "channel": "#my-channel",
+                "channel_id": "chan-id",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "tags": "",
+                "workspace": self.integration.id,
+            }
+        ]
+        assert rule.created_by_id == self.user.id
+
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    def test_task_new_rule_project_id(self, mock_set_value):
+        # Task should work if project_id is passed instead of project
+        data = {
+            "name": "New Rule",
+            "environment": None,
+            "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [
@@ -127,7 +171,7 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "Test Rule",
             "environment": None,
-            "project": self.project,
+            "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [condition_data],

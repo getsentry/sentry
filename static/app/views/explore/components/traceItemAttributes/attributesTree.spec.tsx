@@ -2,27 +2,15 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   type AttributesFieldRendererProps,
   AttributesTree,
 } from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
-
-function ProviderWrapper({children}: {children?: React.ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
-  );
-}
 
 describe('attributesTree', () => {
   const organization = OrganizationFixture({
@@ -32,10 +20,6 @@ describe('attributesTree', () => {
   const location = LocationFixture();
 
   const theme = ThemeFixture();
-
-  beforeEach(function () {
-    mockedUsedLocation.mockReturnValue(LocationFixture());
-  });
 
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [
@@ -70,18 +54,16 @@ describe('attributesTree', () => {
     };
 
     render(
-      <ProviderWrapper>
-        <AttributesTree
-          attributes={attributes}
-          getAdjustedAttributeKey={getAdjustedAttributeKey}
-          renderers={renderers}
-          rendererExtra={{
-            theme,
-            location,
-            organization,
-          }}
-        />
-      </ProviderWrapper>
+      <AttributesTree
+        attributes={attributes}
+        getAdjustedAttributeKey={getAdjustedAttributeKey}
+        renderers={renderers}
+        rendererExtra={{
+          theme,
+          location,
+          organization,
+        }}
+      />
     );
 
     // check rendered values
@@ -124,43 +106,41 @@ describe('attributesTree', () => {
     ];
 
     render(
-      <ProviderWrapper>
-        <AttributesTree
-          attributes={attributes}
-          rendererExtra={{
-            theme,
-            location,
-            organization,
-          }}
-          getCustomActions={content => {
-            if (!content.originalAttribute) {
-              return [];
-            }
+      <AttributesTree
+        attributes={attributes}
+        rendererExtra={{
+          theme,
+          location,
+          organization,
+        }}
+        getCustomActions={content => {
+          if (!content.originalAttribute) {
+            return [];
+          }
 
-            const items: MenuItemProps[] = [
-              {
-                key: 'visible action',
-                label: 'Visible Action',
-                onAction: () => null,
-              },
-              {
-                key: 'hidden-action',
-                label: 'Hidden Action',
-                hidden: true,
-                onAction: () => null,
-              },
-              {
-                key: 'disabled-action',
-                label: 'Disabled Action',
-                disabled: true,
-                onAction: () => null,
-              },
-            ];
+          const items: MenuItemProps[] = [
+            {
+              key: 'visible action',
+              label: 'Visible Action',
+              onAction: () => null,
+            },
+            {
+              key: 'hidden-action',
+              label: 'Hidden Action',
+              hidden: true,
+              onAction: () => null,
+            },
+            {
+              key: 'disabled-action',
+              label: 'Disabled Action',
+              disabled: true,
+              onAction: () => null,
+            },
+          ];
 
-            return items;
-          }}
-        />
-      </ProviderWrapper>
+          return items;
+        }}
+      />
     );
 
     const allTreeRows = await screen.findAllByTestId('attribute-tree-row');

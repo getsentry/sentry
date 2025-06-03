@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import InputField from 'sentry/components/forms/fields/inputField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -9,6 +10,7 @@ import type FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
@@ -24,6 +26,7 @@ type Props = {
   onSubmit: OnSubmitCallback;
   onSubmitError: (error: any) => void;
   onSubmitSuccess: (data: Data) => void;
+  organization: Organization;
   subscription: Subscription;
   tierPlans: BillingConfig['planList'];
 };
@@ -31,6 +34,7 @@ type Props = {
 function PlanList({
   activePlan,
   subscription,
+  organization,
   onSubmit,
   onCancel,
   onSubmitSuccess,
@@ -73,6 +77,17 @@ function PlanList({
     500000: '500k',
     100000: '100K',
   };
+
+  const availableProducts = Object.values(activePlan?.availableReservedBudgetTypes || {})
+    .filter(
+      productInfo =>
+        productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
+        productInfo.billingFlag &&
+        organization.features.includes(productInfo.billingFlag)
+    )
+    .map(productInfo => {
+      return productInfo;
+    });
 
   return (
     <Form
@@ -148,6 +163,7 @@ function PlanList({
                     value={fieldValue}
                     options={(activePlan.planCategories[category] || []).map(
                       (level: {events: {toLocaleString: () => any}}) => ({
+                        // eslint-disable-next-line @typescript-eslint/no-base-to-string
                         label: level.events.toLocaleString(),
                         value: level.events,
                       })
@@ -160,6 +176,24 @@ function PlanList({
             })}
           </StyledFormSection>
         )}
+      {availableProducts.length > 0 && (
+        <StyledFormSection>
+          <h4>Available Products</h4>
+          {availableProducts.map(productInfo => {
+            return (
+              <CheckboxField
+                key={productInfo.productName}
+                data-test-id={`checkbox-${productInfo.productName}`}
+                label={toTitleCase(productInfo.productName)}
+                name={productInfo.productName}
+                onChange={(value: any) => {
+                  formModel.setValue(productInfo.productName, value.target.checked);
+                }}
+              />
+            );
+          })}
+        </StyledFormSection>
+      )}
       <AuditFields>
         <InputField
           data-test-id="url-field"

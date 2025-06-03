@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -217,7 +217,7 @@ def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
 
 
 class _CheckinUpdateKwargs(TypedDict):
-    status: NotRequired[CheckInStatus]
+    status: NotRequired[int]
     duration: int | None
     timeout_at: NotRequired[datetime | None]
     date_updated: NotRequired[datetime]
@@ -275,7 +275,7 @@ def update_existing_check_in(
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
     existing_check_in: MonitorCheckIn,
-    updated_status: CheckInStatus,
+    updated_status: int,
     updated_duration: int | None,
 ) -> None:
     monitor = monitor_environment.monitor
@@ -381,6 +381,7 @@ def update_existing_check_in(
     updated_checkin: _CheckinUpdateKwargs = {
         "status": updated_status,
         "duration": updated_duration,
+        "date_updated": start_time,
     }
 
     # XXX(epurkhiser): We currently allow a existing timed-out check-in to
@@ -394,7 +395,7 @@ def update_existing_check_in(
     if updated_duration_only:
         del updated_checkin["status"]
 
-    # IN_PROGRESS heartbeats bump the timeout
+    # IN_PROGRESS heartbeats bump the timeout, terminal staus's set None
     updated_checkin["timeout_at"] = get_new_timeout_at(
         existing_check_in,
         updated_status,
@@ -405,12 +406,10 @@ def update_existing_check_in(
         tags={**metric_kwargs, "status": "updated_existing_checkin"},
     )
 
-    # IN_PROGRESS heartbeats bump the date_updated
+    # XXX(epurkhiser): Tracking metrics on updating the date_updated since
+    # we may want to remove this 'heart-beat' feature at some point.
     if updated_status == CheckInStatus.IN_PROGRESS:
-        # XXX(epurkhiser): Tracking metrics on updating the date_updated since
-        # we may weant to remove this 'heart-beat' feature.
         metrics.incr("monitors.in_progress_heart_beat", tags=metric_kwargs)
-        updated_checkin["date_updated"] = start_time
 
     existing_check_in.update(**updated_checkin)
 
@@ -418,7 +417,7 @@ def update_existing_check_in(
 def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     params = item.payload
 
-    # XXX: The start_time is when relay recieved the original envelope store
+    # XXX: The start_time is when relay received the original envelope store
     # request sent by the SDK.
     start_time = to_datetime(float(item.message["start_time"]))
 
@@ -427,6 +426,17 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     monitor_slug = item.valid_monitor_slug
     environment = params.get("environment")
+
+    # XXX(epurkhiser): Adding VERY early logging specific to a sentry monitor
+    # that we're seeing have intermittent missed in-progress check-ins. We
+    # would like to verify that these check-ins truley are NOT being received
+    # at all (and not being drooped somewhere in this consumer)
+    if project_id == 1 and monitor_slug == "monitors-clock-pulse":
+        clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
+        logger.info(
+            "monitors.consumer.sentry_clock_pulse_debug_entry",
+            extra={"clock_time": clock_time, **params},
+        )
 
     project = Project.objects.get_from_cache(id=project_id)
 
@@ -737,9 +747,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     try:
         with transaction.atomic(router.db_for_write(Monitor)):
-            status = getattr(CheckInStatus, validated_params["status"].upper())
-            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-            duration = validated_params.get("duration")
+            status: int = getattr(CheckInStatus, validated_params["status"].upper())
+            trace_id: str = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
+            duration: int = validated_params.get("duration")
 
             # 03-A
             # Retrieve existing check-in for update
@@ -811,12 +821,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
             # 03-B
             # Create a brand new check-in object
             except MonitorCheckIn.DoesNotExist:
-                # Infer the original start time of the check-in from the duration.
-                # Note that the clock of this worker may be off from what Relay is reporting.
-                date_added = start_time
-                if duration is not None:
-                    date_added -= timedelta(milliseconds=duration)
-
                 # When was this check-in expected to have happened?
                 expected_time = monitor_environment.next_checkin
 
@@ -824,7 +828,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # Useful to show details about the configuration of the
                 # monitor at the time of the check-in
                 monitor_config = monitor.get_validated_config()
-                timeout_at = get_timeout_at(monitor_config, status, date_added)
+                timeout_at = get_timeout_at(monitor_config, status, start_time)
 
                 # The "date_clock" is recorded as the "clock time" of when the
                 # check-in was processed. The clock time is derived from the
@@ -833,15 +837,19 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 #
                 # XXX: They are NOT timezone aware date times, set the timezone
                 # to UTC
-                clock_time = item.ts.replace(tzinfo=UTC)
+                clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
+
+                # Record the reported in_progress time when the check is in progress
+                date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
 
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
                         "duration": duration,
                         "status": status,
-                        "date_added": date_added,
-                        "date_clock": clock_time,
+                        "date_added": start_time,
                         "date_updated": start_time,
+                        "date_clock": clock_time,
+                        "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
                         "monitor_config": monitor_config,

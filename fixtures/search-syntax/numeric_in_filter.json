@@ -293,15 +293,30 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "500", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "500",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ",",
-              "value": {"type": "valueText", "value": "501", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "501",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ",",
-              "value": {"type": "valueText", "value": "502", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "502",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }

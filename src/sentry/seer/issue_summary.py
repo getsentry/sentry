@@ -10,17 +10,19 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.autofix.utils import get_autofix_state
-from sentry.constants import ObjectStatus
+from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -232,11 +234,27 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
     return connected_issues
 
 
+def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
+    project = group.project
+    option = project.get_option("sentry:autofix_automation_tuning")
+    if option == "off":
+        return False
+    elif option == "low":
+        return fixability_score >= FixabilityScoreThresholds.HIGH.value
+    elif option == "medium":
+        return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
+    elif option == "high":
+        return fixability_score >= FixabilityScoreThresholds.LOW.value
+    elif option == "always":
+        return True
+    return False
+
+
 def _run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
-    source: str,
+    source: SeerAutomationSource,
 ):
     if features.has(
         "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
@@ -251,10 +269,12 @@ def _run_automation(
         if not issue_summary.scores:
             return
 
-        if issue_summary.scores.fixability_score is not None:
-            group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+        if issue_summary.scores.fixability_score is None:
+            return
 
-        if issue_summary.scores.is_fixable:
+        group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+
+        if _is_issue_fixable(group, issue_summary.scores.fixability_score):
             with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
                 autofix_state = get_autofix_state(group_id=group.id)
 
@@ -262,8 +282,9 @@ def _run_automation(
                 not autofix_state
             ):  # Only trigger autofix if we don't have an autofix on this issue already.
                 auto_run_source_map = {
-                    "issue_details": "issue_summary_fixability",
-                    "alert": "issue_summary_on_alert_fixability",
+                    SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
+                    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
+                    SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
                 }
                 _trigger_autofix_task.delay(
                     group_id=group.id,
@@ -277,7 +298,7 @@ def _generate_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     force_event_id: str | None,
-    source: str,
+    source: SeerAutomationSource,
     cache_key: str,
 ) -> tuple[dict[str, Any], int]:
     """Core logic to generate and cache the issue summary."""
@@ -315,11 +336,29 @@ def _generate_summary(
     return summary_dict, 200
 
 
+def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
+    if source == SeerAutomationSource.ISSUE_DETAILS:
+        return
+
+    quotas.backend.record_seer_run(
+        group.organization.id, group.project.id, DataCategory.SEER_SCANNER
+    )
+
+
+def _has_seer_scanner_budget(group: Group, source: SeerAutomationSource) -> bool:
+    if source == SeerAutomationSource.ISSUE_DETAILS:
+        return True
+
+    return quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    )
+
+
 def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
-    source: str = "issue_details",
+    source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for an issue.
@@ -338,6 +377,12 @@ def get_issue_summary(
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return {"detail": "Feature flag not enabled"}, 400
 
+    if not get_seer_org_acknowledgement(group.organization.id):
+        return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
+
+    if not _has_seer_scanner_budget(group, source):
+        return {"detail": "No budget for Seer Scanner."}, 402
+
     cache_key = f"ai-group-summary-v2:{group.id}"
     lock_key = f"ai-group-summary-v2-lock:{group.id}"
     lock_duration = 10  # How long the lock is held if acquired (seconds)
@@ -348,6 +393,7 @@ def get_issue_summary(
         summary_dict, status_code = _generate_summary(
             group, user, force_event_id, source, cache_key
         )
+        _log_seer_scanner_billing_event(group, source)
         return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
 
     # 1. Check cache first
@@ -369,6 +415,7 @@ def get_issue_summary(
             summary_dict, status_code = _generate_summary(
                 group, user, force_event_id, source, cache_key
             )
+            _log_seer_scanner_billing_event(group, source)
             return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
 
     except UnableToAcquireLock:

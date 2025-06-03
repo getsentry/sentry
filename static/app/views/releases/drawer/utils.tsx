@@ -17,6 +17,7 @@ export enum ReleasesDrawerFields {
   RELEASE = 'rdRelease',
   RELEASE_PROJECT_ID = 'rdReleaseProjectId',
   START = 'rdStart',
+  SOURCE = 'rdSource',
 }
 
 /**
@@ -34,6 +35,7 @@ export const RELEASES_DRAWER_FIELD_MAP = {
   [ReleasesDrawerFields.RELEASE]: decodeScalar,
   [ReleasesDrawerFields.RELEASE_PROJECT_ID]: decodeScalar,
   [ReleasesDrawerFields.START]: decodeScalar,
+  [ReleasesDrawerFields.SOURCE]: decodeScalar,
 };
 
 const RELEASES_DRAWER_FIELD_KEYS = Object.keys(RELEASES_DRAWER_FIELD_MAP);

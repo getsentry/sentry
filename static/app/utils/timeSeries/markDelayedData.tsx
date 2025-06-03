@@ -9,7 +9,7 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
     return timeSeries;
   }
 
-  const bucketSize = getTimeSeriesBucketSize(timeSeries);
+  const bucketSize = timeSeries.meta.interval;
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
@@ -22,24 +22,14 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
       const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
       const delayed = bucketEndTimestamp >= ingestionDelayTimestamp;
 
+      if (!delayed) {
+        return datum;
+      }
+
       return {
         ...datum,
-        delayed,
+        incomplete: true,
       };
     }),
   };
-}
-
-function getTimeSeriesBucketSize(timeSeries: TimeSeries): number {
-  const penultimateDatum = timeSeries.values.at(-2);
-  const finalDatum = timeSeries.values.at(-1);
-
-  let bucketSize = 0;
-  if (penultimateDatum && finalDatum) {
-    bucketSize =
-      new Date(finalDatum.timestamp).getTime() -
-      new Date(penultimateDatum.timestamp).getTime();
-  }
-
-  return bucketSize;
 }

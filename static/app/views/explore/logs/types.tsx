@@ -1,3 +1,4 @@
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {
   ColumnValueType,
   CountUnit,
@@ -6,11 +7,13 @@ import type {
   PercentageUnit,
   PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
+import type {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
 // This enum is used to represent known fields or attributes in the logs response.
 // Should always map to the public alias from the backend (.../search/eap/ourlogs/attributes.py)
+// This is not an exhaustive list, it's only the fields which have special handling in the frontend
 export enum OurLogKnownFieldKey {
   TRACE_ID = 'trace',
   MESSAGE = 'message',
@@ -21,17 +24,19 @@ export enum OurLogKnownFieldKey {
   PROJECT = 'project',
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
+  TIMESTAMP_PRECISE = 'tags[sentry.timestamp_precise,number]',
   CODE_FILE_PATH = 'code.file.path',
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
 
+  RELEASE = 'release',
+  TEMPLATE = 'message.template',
+  PARENT_SPAN_ID = 'trace.parent_span_id',
+  SDK_NAME = 'sdk.name',
+  SDK_VERSION = 'sdk.version',
+
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',
-  RELEASE = 'sentry.release',
-  TEMPLATE = 'sentry.message.template',
-  PARENT_SPAN_ID = 'sentry.trace.parent_span_id',
-  SDK_NAME = 'sentry.sdk.name',
-  SDK_VERSION = 'sentry.sdk.version',
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
@@ -39,13 +44,18 @@ export enum OurLogKnownFieldKey {
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 
-type OurLogsKnownFieldResponseMap = {
+type OurLogsKnownFieldResponseMap = Record<
+  (typeof AlwaysPresentLogFields)[number],
+  string | number
+> & {
   [OurLogKnownFieldKey.MESSAGE]: string;
-  [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+  [OurLogKnownFieldKey.ID]: string;
   [OurLogKnownFieldKey.SEVERITY]: string;
   [OurLogKnownFieldKey.ORGANIZATION_ID]: number;
   [OurLogKnownFieldKey.PROJECT_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: string | number;
 };
 
 type OurLogsCustomFieldResponseMap = Record<OurLogCustomFieldKey, string | number>;
@@ -71,4 +81,9 @@ export interface LogRowItem {
 export interface LogAttributeItem {
   fieldKey: OurLogFieldKey;
   value: OurLogsResponseItem[OurLogFieldKey] | null;
+}
+
+export interface EventsLogsResult {
+  data: OurLogsResponseItem[];
+  meta?: EventsMetaType;
 }

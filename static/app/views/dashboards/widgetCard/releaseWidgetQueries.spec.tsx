@@ -180,7 +180,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           includeSeries: 1,
           includeTotals: 1,
           interval: '1h',
-          per_page: 100,
+          per_page: 28,
           project: [1],
           query: ' release:be1ddfb18126dd2cbde26bfe75488503280e716e',
           statsPeriod: '14d',

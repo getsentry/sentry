@@ -31,6 +31,8 @@ class DetectorType(Enum):
     HTTP_OVERHEAD = "http_overhead"
     EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
     EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
+    SQL_INJECTION = "sql_injection"
+    EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES = "experimental_m_n_plus_one_db_queries"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -45,8 +47,10 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
+    DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
     DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
+    DetectorType.SQL_INJECTION: "performance.issues.sql_injection.problem-creation",
 }
 
 
@@ -75,10 +79,9 @@ class PerformanceDetector(ABC):
             return None
 
         span_duration = get_span_duration(span)
-        for setting in self.settings:
-            op_prefix = self.find_span_prefix(setting, op)
-            if op_prefix:
-                return op, span_id, op_prefix, span_duration, setting
+        op_prefix = self.find_span_prefix(self.settings, op)
+        if op_prefix:
+            return op, span_id, op_prefix, span_duration, self.settings
         return None
 
     def event(self) -> dict[str, Any]:
@@ -275,6 +278,8 @@ PARAMETERIZED_URL_REGEX = re.compile(
 """
 )  # Adapted from message.py
 
+FILE_EXTENSION_REGEX = re.compile(r"\.[a-z0-9]{2,6}$", re.I)
+
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
 UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
@@ -330,13 +335,18 @@ def parameterize_url_with_result(url: str) -> ParameterizedUrl:
 
     path_fragments = []
     path_params = []
-    for fragment in parsed_url.path.split("/"):
-        path_param = PARAMETERIZED_URL_REGEX.search(fragment)
-        if path_param:
-            path_fragments.append("*")
-            path_params.append(path_param.group())
-        else:
-            path_fragments.append(str(fragment))
+
+    # If the path ends with a file extension, do not parameterize it.
+    if FILE_EXTENSION_REGEX.search(parsed_url.path):
+        path_fragments.append(parsed_url.path)
+    else:
+        for fragment in parsed_url.path.split("/"):
+            path_param = PARAMETERIZED_URL_REGEX.search(fragment)
+            if path_param:
+                path_fragments.append("*")
+                path_params.append(path_param.group())
+            else:
+                path_fragments.append(str(fragment))
 
     query = parse_qs(parsed_url.query)
 

@@ -73,6 +73,8 @@ export enum FieldKey {
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
   ISSUE_PRIORITY = 'issue.priority',
+  ISSUE_SEER_ACTIONABILITY = 'issue.seer_actionability',
+  ISSUE_SEER_LAST_RUN = 'issue.seer_last_run',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -832,6 +834,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPM,
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
@@ -1174,7 +1177,7 @@ type TraceFields =
   | SpanIndexedField.SPAN_DOMAIN
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.SPAN_GROUP
-  | SpanIndexedField.SPAN_MODULE
+  | SpanIndexedField.SPAN_CATEGORY
   | SpanIndexedField.SPAN_OP
   | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
@@ -1221,9 +1224,9 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_MODULE]: {
+  [SpanIndexedField.SPAN_CATEGORY]: {
     desc: t(
-      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+      'The prefix of the span operation, e.g if `span.op` is `http.client`, then `span.category` is `http`'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -1520,6 +1523,18 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The priority of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+    desc: t('How actionable the issue is, determined by Seer'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_SEER_LAST_RUN]: {
+    desc: t('The last time Seer attempted to auto-fix the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
     allowWildcard: false,
   },
   [FieldKey.ISSUE_TYPE]: {
@@ -1894,6 +1909,8 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_SEER_ACTIONABILITY,
+  FieldKey.ISSUE_SEER_LAST_RUN,
   FieldKey.ISSUE_TYPE,
   FieldKey.ISSUE,
   FieldKey.LAST_SEEN,
@@ -2168,6 +2185,7 @@ export enum ReplayFieldKey {
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
+  IS_ARCHIVED = 'is_archived',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   REPLAY_TYPE = 'replay_type',
@@ -2176,6 +2194,10 @@ export enum ReplayFieldKey {
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
+  USER_GEO_CITY = 'user.geo.city',
+  USER_GEO_COUNTRY_CODE = 'user.geo.country_code',
+  USER_GEO_REGION = 'user.geo.region',
+  USER_GEO_SUBDIVISION = 'user.geo.subdivision',
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
@@ -2222,6 +2244,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
+  ReplayFieldKey.IS_ARCHIVED,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2239,7 +2262,14 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.USER_GEO_CITY,
+  ReplayFieldKey.USER_GEO_COUNTRY_CODE,
+  ReplayFieldKey.USER_GEO_REGION,
+  ReplayFieldKey.USER_GEO_SUBDIVISION,
   ReplayFieldKey.VIEWED_BY_ME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -2303,6 +2333,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.IS_ARCHIVED]: {
+    desc: t('Whether the replay has been archived'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
     kind: FieldKind.FIELD,
@@ -2345,6 +2380,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
+  [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
+  [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
+  [ReplayFieldKey.USER_GEO_SUBDIVISION]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
   [ReplayFieldKey.VIEWED_BY_ME]: {
     desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
     kind: FieldKind.FIELD,
@@ -2464,6 +2505,10 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
+  FieldKey.GEO_CITY,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.GEO_REGION,
+  FieldKey.GEO_SUBDIVISION,
   FieldKey.HAS,
   FieldKey.ID,
   FieldKey.IS,
@@ -2536,34 +2581,29 @@ export const getFieldDefinition = (
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
-      if (key in REPLAY_FIELD_DEFINITIONS) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return REPLAY_FIELD_DEFINITIONS[key];
+      if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
-      if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
+      if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return REPLAY_CLICK_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
+        ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
     case 'feedback':
-      if (key in FEEDBACK_FIELD_DEFINITIONS) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return FEEDBACK_FIELD_DEFINITIONS[key];
+      if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
     case 'span':
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      if (SPAN_FIELD_DEFINITIONS[key]) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return SPAN_FIELD_DEFINITIONS[key];
+      if (SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS]) {
+        return SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -2580,7 +2620,7 @@ export const getFieldDefinition = (
       return null;
 
     case 'log':
-      if (key in LOG_FIELD_DEFINITIONS) {
+      if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
       }
@@ -2599,8 +2639,11 @@ export const getFieldDefinition = (
 
     case 'event':
     default:
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return EVENT_FIELD_DEFINITIONS[key] ?? null;
+      if (EVENT_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
   }
 };
 
@@ -2618,3 +2661,15 @@ export function isDeviceClass(key: any): boolean {
 }
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
+
+const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
+
+export function prettifyTagKey(key: string): string {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[1] ?? key;
+}

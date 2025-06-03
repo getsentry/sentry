@@ -25,6 +25,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 import clamp from 'sentry/utils/number/clamp';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -35,7 +37,7 @@ const MAX_OPTIONS_WITH_SEARCH = 8;
 function makeRecentFilterItems({
   recentFilters,
 }: {
-  recentFilters: string[];
+  recentFilters: Array<TokenResult<Token.FILTER>>;
 }): FilterKeyItem[] {
   if (!recentFilters.length) {
     return [];
@@ -223,7 +225,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       {state}: {state: ComboBoxState<FilterKeyItem>}
     ) => {
       const focusedKey = state.selectionManager.focusedKey;
-      const focusedItem = state.collection.getItem(focusedKey);
+      const focusedItem = focusedKey ? state.collection.getItem(focusedKey) : null;
 
       const direction = e.key === 'ArrowDown' ? 'after' : 'before';
       const nextItem = findNextMatchingItem(
@@ -261,9 +263,12 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       }
 
       // If we are at a non-recent filter key and going up, skip to the first recent filter key
-      e.preventDefault();
-      e.stopPropagation();
-      state.selectionManager.setFocusedKey(createRecentFilterOptionKey(recentFilters[0]));
+      if (recentFilters[0]) {
+        e.preventDefault();
+        e.stopPropagation();
+        const key = createRecentFilterOptionKey(getKeyName(recentFilters[0].key));
+        state.selectionManager.setFocusedKey(key);
+      }
 
       return;
     },

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from sentry.api.endpoints.organization_trace import SerializedSpan
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.seer.models import SummarizeTraceResponse
+from sentry.seer.models import SpanInsight, SummarizeTraceResponse
 from sentry.seer.trace_summary import get_trace_summary
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
@@ -42,6 +42,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
                 profiler_id="",
                 sdk_name="test_sdk",
                 is_transaction=True,
+                transaction_id="1" * 32,
             ),
             SerializedSpan(
                 description="db.query",
@@ -63,6 +64,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
                 profiler_id="",
                 sdk_name="test_sdk",
                 is_transaction=False,
+                transaction_id="1" * 32,
             ),
         ]
 
@@ -71,7 +73,13 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
             summary="Test summary of the trace",
             key_observations="There are two spans in this trace",
             performance_characteristics="This trace has performance issues",
-            suggested_investigations="check out the db.query span",
+            suggested_investigations=[
+                SpanInsight(
+                    explanation="check out the db.query span",
+                    span_id="span2",
+                    span_op="db.query",
+                )
+            ],
         )
 
         cache.clear()

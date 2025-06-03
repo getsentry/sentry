@@ -146,11 +146,7 @@ class QueryList extends Component<Props> {
     const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
-      const newQuery = organization.features.includes(
-        'performance-discover-dataset-selector'
-      )
-        ? (getSavedQueryWithDataset(view) as NewQuery)
-        : view;
+      const newQuery = getSavedQueryWithDataset(view) as NewQuery;
       const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
       // if a search is performed on the list of queries, we filter
@@ -254,11 +250,7 @@ class QueryList extends Component<Props> {
     }
 
     return savedQueries.map((query, index) => {
-      const savedQuery = organization.features.includes(
-        'performance-discover-dataset-selector'
-      )
-        ? (getSavedQueryWithDataset(query) as SavedQuery)
-        : query;
+      const savedQuery = getSavedQueryWithDataset(query) as SavedQuery;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =

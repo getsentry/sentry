@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, TypedDict
 from urllib.parse import urlencode
@@ -60,13 +60,13 @@ class MismatchType(Enum):
 
 
 def get_time_window_for_interval(interval: int):
-    if interval in [60, 300, 600]:
+    if interval == 60:
         return timedelta(days=1)
 
     if interval == 24 * 60 * 60:
         return timedelta(days=14)
 
-    return timedelta(days=3)
+    return timedelta(days=7)
 
 
 class TSResultForComparison(TypedDict):
@@ -371,20 +371,38 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         organization,
     )
 
-    # Align time to the nearest hour because RPCs roll up on exact timestamps.
-    now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+    time_window = get_time_window_for_interval(snuba_query.time_window)
+
+    # EAP timeseries don't round time buckets to the nearest time window snql does,
+    # So for example, if start was 7:01 with a 15 min interval, EAP would
+    # bucket it as 7:01, 7:16 etc. Force rounding the start and end times so we
+    # get the buckets snql returns so we can match time buckets.
+    rounded_end = (
+        int(datetime.now(tz=timezone.utc).timestamp() / snuba_query.time_window)
+        * snuba_query.time_window
+    )
+    rounded_end_datetime = datetime.fromtimestamp(rounded_end, UTC)
+
+    rounded_start = (
+        int(
+            (datetime.fromtimestamp(rounded_end, UTC) - time_window).timestamp()
+            / snuba_query.time_window
+        )
+        * snuba_query.time_window
+    )
+
+    rounded_start_datetime = datetime.fromtimestamp(rounded_start, UTC)
 
     environments = []
     if snuba_query.environment:
         environments = [snuba_query.environment]
 
-    time_window = get_time_window_for_interval(snuba_query.time_window)
     snuba_params = SnubaParams(
         environments=environments,
         projects=[project],
         organization=organization,
-        start=now - time_window,
-        end=now,
+        start=rounded_start_datetime,
+        end=rounded_end_datetime,
         granularity_secs=snuba_query.time_window,
     )
 
@@ -413,6 +431,8 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
 
     aligned_timeseries = align_timeseries(snql_result=snql_result, rpc_result=rpc_result)
     is_close, mismatches, all_zeros = assert_timeseries_close(aligned_timeseries, alert_rule)
+
+    sentry_sdk.set_tag("aggregate", snuba_query.aggregate)
 
     if all_zeros:
         with sentry_sdk.isolation_scope() as scope:

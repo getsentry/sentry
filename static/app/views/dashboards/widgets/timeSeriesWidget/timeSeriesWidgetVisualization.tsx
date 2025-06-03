@@ -8,7 +8,6 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
@@ -69,13 +68,27 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   plottables: Plottable[];
   /**
+   * Sets the range of the Y axis.
+   *
+   * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
+   * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
+   * Default: `auto`
+   */
+  axisRange?: 'auto' | 'dataMin';
+  /**
+   * Reference to the chart instance
+   */
+  chartRef?: React.Ref<ReactEchartsRef>;
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
+
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -96,7 +109,7 @@ export interface TimeSeriesWidgetVisualizationProps
    *
    * Default: `auto`
    */
-  showLegend?: 'auto' | 'never';
+  showLegend?: 'auto' | 'never' | 'always';
 
   /**
    * Defines the X axis visibility. Note that hiding the X axis also hides release bubbles.
@@ -118,7 +131,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const chartRef = useRef<EChartsReactCore | null>(null);
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
@@ -130,78 +143,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
+    props.showReleaseAs !== 'none' &&
     organization.features.includes('release-bubbles-ui') &&
     props.showReleaseAs === 'bubble';
-
-  // find min/max timestamp of *all* timeSeries
-  const allBoundaries = props.plottables
-    .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
-  const earliestTimeStamp = allBoundaries.at(0);
-  const latestTimeStamp = allBoundaries.at(-1);
-
-  const {
-    connectReleaseBubbleChartRef,
-    releaseBubbleSeries,
-    releaseBubbleXAxis,
-    releaseBubbleGrid,
-  } = useReleaseBubbles({
-    chartId: props.id,
-    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
-    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
-      : [],
-  });
-
-  const releaseSeries = props.releases
-    ? hasReleaseBubbles
-      ? releaseBubbleSeries
-      : ReleaseSeries(
-          theme,
-          props.releases,
-          function onReleaseClick(release: Release) {
-            if (organization.features.includes('release-bubbles-ui')) {
-              navigate(makeReleaseDrawerPathname({location, release: release.version}));
-              return;
-            }
-            navigate(
-              makeReleasesPathname({
-                organization,
-                path: `/${encodeURIComponent(release.version)}/`,
-              })
-            );
-          },
-          utc ?? false
-        )
-    : null;
-
-  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
-
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      if (!e?.getEchartsInstance) {
-        return;
-      }
-
-      for (const plottable of props.plottables) {
-        plottable.handleChartRef?.(e);
-      }
-
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
-      if (hasReleaseBubblesSeries) {
-        connectReleaseBubbleChartRef(e);
-      }
-    },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
-  );
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
@@ -293,6 +237,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
+  const axisRangeProp = props.axisRange ?? 'auto';
+
   const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
@@ -301,7 +247,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       },
       position: 'left',
     },
-    leftYAxisType
+    leftYAxisType,
+    axisRangeProp
   );
 
   const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
@@ -317,7 +264,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
           position: 'right',
         },
-        rightYAxisType
+        rightYAxisType,
+        axisRangeProp
       )
     : undefined;
 
@@ -425,6 +373,89 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
+
+  const {
+    connectReleaseBubbleChartRef,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+    releaseBubbleYAxis,
+  } = useReleaseBubbles({
+    chartId: props.id,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
+    yAxisIndex: yAxes.length,
+  });
+
+  if (releaseBubbleYAxis) {
+    yAxes.push(releaseBubbleYAxis);
+  }
+
+  const releaseSeries =
+    props.releases && props.showReleaseAs !== 'none'
+      ? hasReleaseBubbles
+        ? releaseBubbleSeries
+        : ReleaseSeries(
+            theme,
+            props.releases,
+            function onReleaseClick(release: Release) {
+              if (organization.features.includes('release-bubbles-ui')) {
+                navigate(
+                  makeReleaseDrawerPathname({
+                    location,
+                    release: release.version,
+                    source: 'time-series-widget',
+                  })
+                );
+                return;
+              }
+              navigate(
+                makeReleasesPathname({
+                  organization,
+                  path: `/${encodeURIComponent(release.version)}/`,
+                })
+              );
+            },
+            utc ?? false
+          )
+      : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      for (const plottable of props.plottables) {
+        plottable.handleChartRef?.(e);
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        connectReleaseBubbleChartRef(e);
+      }
+    },
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      props.plottables,
+    ]
+  );
+
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';
 
@@ -459,7 +490,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   const showLegendProp = props.showLegend ?? 'auto';
-  const showLegend = showLegendProp !== 'never' && visibleSeriesCount > 1;
+  const showLegend =
+    (showLegendProp !== 'never' && visibleSeriesCount > 1) || showLegendProp === 'always';
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
@@ -532,9 +564,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
-    batch: {dataIndex: number; seriesIndex: number},
+    batch: {dataIndex: number; seriesIndex?: number},
     handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
   ): void => {
+    if (batch.seriesIndex === undefined) {
+      return;
+    }
+
     const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
@@ -578,7 +614,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
       autoHeightResize
       series={allSeries}
       grid={{
@@ -676,7 +712,7 @@ function getPlottableEventDataIndex(
   series: SeriesOption[],
   event: {
     dataIndex: number;
-    seriesIndex: number;
+    seriesIndex?: number;
   },
   affectedRange: Range<Plottable>
 ): number {

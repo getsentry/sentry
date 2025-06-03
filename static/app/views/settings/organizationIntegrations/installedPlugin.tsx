@@ -9,7 +9,8 @@ import {
 import type {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Switch} from 'sentry/components/core/switch';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconDelete, IconSettings} from 'sentry/icons';
@@ -143,7 +144,9 @@ class InstalledPlugin extends Component<Props> {
               onConfirming={this.handleUninstallClick}
               disabled={!hasAccess}
               confirmText="Delete Installation"
-              onConfirm={() => this.handleReset()}
+              onConfirm={() => {
+                this.handleReset();
+              }}
               message={this.getConfirmMessage()}
             >
               <StyledButton

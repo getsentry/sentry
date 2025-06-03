@@ -23,6 +23,7 @@ from sentry.signals import (
 from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -30,18 +31,20 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         # Backfill users that already have cron monitors
         check_and_signal_first_monitor_created(project, None, False)
         transaction.on_commit(
-            lambda: first_cron_checkin_received.send_robust(
-                project=project, monitor_id=str(monitor.guid), sender=Project
+            lambda: set_project_flag_and_signal(
+                project,
+                "has_cron_checkins",
+                first_cron_checkin_received,
+                monitor_id=str(monitor.guid),
             ),
             router.db_for_write(Project),
         )
 
 
 def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
-    if not project.flags.has_cron_monitors:
-        first_cron_monitor_created.send_robust(
-            project=project, user=user, from_upsert=from_upsert, sender=Project
-        )
+    set_project_flag_and_signal(
+        project, "has_cron_monitors", first_cron_monitor_created, user=user, from_upsert=from_upsert
+    )
 
 
 def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: Monitor, request):
@@ -73,7 +76,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
-    monitor_config: dict | None, status: CheckInStatus, date_added: datetime | None
+    monitor_config: dict | None, status: int, date_added: datetime | None
 ) -> datetime | None:
     if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
@@ -85,7 +88,7 @@ def get_timeout_at(
 
 # Generates a timeout_at value for existing check-ins that are being updated
 def get_new_timeout_at(
-    checkin: MonitorCheckIn, new_status: CheckInStatus, date_updated: datetime
+    checkin: MonitorCheckIn, new_status: int, date_updated: datetime
 ) -> datetime | None:
     return get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
 

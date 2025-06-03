@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Literal
 from uuid import uuid4
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -53,12 +54,28 @@ def delete_group_list(
         if g.issue_category == GroupCategory.ERROR:
             error_ids.append(g.id)
 
+    transaction_id = uuid4().hex
+    delete_logger.info(
+        "object.delete.api",
+        extra={
+            "objects": group_ids,
+            "project_id": project.id,
+            "transaction_id": transaction_id,
+        },
+    )
+    # The tags can be used if we want to find errors for when a task fails
+    sentry_sdk.set_tags(
+        {
+            "project_id": project.id,
+            "transaction_id": transaction_id,
+        },
+    )
+
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
-    transaction_id = uuid4().hex
 
     # The moment groups are marked as pending deletion, we create audit entries
     # so that we can see who requested the deletion. Even if anything after this point
@@ -110,7 +127,7 @@ def create_audit_entries(
             "object.delete.queued",
             extra={
                 "object_id": group.id,
-                "organization_id": project.organization_id,
+                "project_id": group.project_id,
                 "transaction_id": transaction_id,
                 "model": type(group).__name__,
             },

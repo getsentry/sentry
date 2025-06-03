@@ -391,7 +391,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
 
 
 @dataclass(frozen=True)
-class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
+class PerformanceNPlusOneAPICallsExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1910
     slug = "performance_n_plus_one_api_calls_experimental"
     description = "N+1 API Call (Experimental)"
@@ -403,6 +403,12 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
 
 @dataclass(frozen=True)
 class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
+    """
+    This group type is only used for fingerprinting MN+1 DB Performance Issues.
+    No field other than `type_id` are referenced, so changes will not have an affect.
+    The MN+1 detector uses the PerformanceNPlusOneGroupType, so reference that GroupType instead.
+    """
+
     type_id = 1011
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
@@ -410,6 +416,17 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
     category_v2 = GroupCategory.DB_QUERY.value
     default_priority = PriorityLevel.LOW
     released = True
+
+
+@dataclass(frozen=True)
+class PerformanceMNPlusOneDBQueriesExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1911
+    slug = "performance_m_n_plus_one_db_queries_experimental"
+    description = "MN+1 Query (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    default_priority = PriorityLevel.LOW
+    released = False
 
 
 @dataclass(frozen=True)
@@ -483,6 +500,18 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
+
+
+@dataclass(frozen=True)
+class DBQueryInjectionVulnerabilityGroupType(GroupType):
+    type_id = 1020
+    slug = "db_query_injection_vulnerability"
+    description = "Potential Database Query Injection Vulnerability"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.MEDIUM
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

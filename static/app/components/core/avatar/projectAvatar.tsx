@@ -6,6 +6,7 @@ import type {AvatarProject} from 'sentry/types/project';
 export interface ProjectAvatarProps extends BaseAvatarProps {
   project: AvatarProject;
   direction?: 'left' | 'right';
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 export function ProjectAvatar({
@@ -14,9 +15,7 @@ export function ProjectAvatar({
   hasTooltip,
   tooltip,
   ...props
-}: ProjectAvatarProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: ProjectAvatarProps) {
   return (
     <Tooltip disabled={!hasTooltip} title={tooltip}>
       <PlatformList

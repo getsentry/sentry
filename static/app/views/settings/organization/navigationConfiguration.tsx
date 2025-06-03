@@ -22,6 +22,7 @@ export function getOrganizationNavigationConfiguration({
 
   return [
     {
+      id: 'settings-user',
       name: t('User Settings'),
       items: [
         {
@@ -33,6 +34,7 @@ export function getOrganizationNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-organization',
       name: t('Organization'),
       items: [
         {
@@ -155,6 +157,7 @@ export function getOrganizationNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
         {

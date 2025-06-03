@@ -83,12 +83,14 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == len(logs)
 
         for log, source in zip(data, logs):
-            assert log["log.body"] == source["body"]
+            assert log["log.body"] == source.attributes["sentry.body"].string_value
             assert "tags[sentry.timestamp_precise,number]" in log
             assert "timestamp" in log
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
-            timestamp_from_nanos = source["timestamp_nanos"] / 1_000_000_000
+            timestamp_from_nanos = (
+                source.attributes["sentry.timestamp_nanos"].int_value / 1_000_000_000
+            )
             assert ts.timestamp() == pytest.approx(timestamp_from_nanos, abs=5), "timestamp"
 
         assert meta["dataset"] == self.dataset
@@ -180,4 +182,38 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["project"] == self.project.slug
 
+        assert meta["dataset"] == self.dataset
+
+    def test_trace_id_list_filter(self):
+        trace_id_1 = "1" * 32
+        trace_id_2 = "2" * 32
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "trace_id": trace_id_1},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "bar", "trace_id": trace_id_2},
+                timestamp=self.ten_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        response = self.do_request(
+            {
+                "field": ["message", "trace"],
+                "query": f"trace:[{trace_id_1},{trace_id_2}]",
+                "orderby": "message",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {"message": "bar", "trace": trace_id_2},
+            {"message": "foo", "trace": trace_id_1},
+        ]
         assert meta["dataset"] == self.dataset

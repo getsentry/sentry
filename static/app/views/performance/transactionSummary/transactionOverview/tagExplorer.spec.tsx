@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,14 +7,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
 
 function WrapperComponent(props: React.ComponentProps<typeof TagExplorer>) {
   return (
@@ -60,9 +54,6 @@ describe('WrapperComponent', function () {
   const facetUrl = '/organizations/org-slug/events-facets-performance/';
   let facetApiMock: jest.Mock;
   beforeEach(function () {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
-    );
     facetApiMock = MockApiClient.addMockResponse({
       url: facetUrl,
       body: {

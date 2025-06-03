@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
@@ -129,17 +129,11 @@ interface MemoryChartSeriesProps {
   durationMs: number;
   memoryFrames: MemoryFrame[];
   startTimestampMs: number;
+  ref?: React.Ref<ReactEchartsRef>;
 }
 
 const MemoryChartSeries = memo(
-  ({
-    ref,
-    durationMs,
-    memoryFrames,
-    startTimestampMs,
-  }: MemoryChartSeriesProps & {
-    ref?: React.Ref<ReactEchartsRef>;
-  }) => {
+  ({ref, durationMs, memoryFrames, startTimestampMs}: MemoryChartSeriesProps) => {
     const theme = useTheme();
     const chartId = useId();
     const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
@@ -169,7 +163,7 @@ const MemoryChartSeries = memo(
               return `
           <div class="tooltip-series">${seriesTooltips.join('')}</div>
             <div class="tooltip-footer">
-              ${t('Date: %s', getFormattedDate(startTimestampMs + (firstValue as any).axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
+              ${t('Date: %s', getFormattedDate(startTimestampMs + (firstValue as any).axisValue, getFormat({year: true, seconds: true, timeZone: true}), {local: false}))}
             </div>
             <div class="tooltip-footer" style="border: none;">
               ${t(

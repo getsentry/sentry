@@ -10,13 +10,6 @@ class QuerySubscriptionUpdate(TypedDict):
     timestamp: datetime
 
 
-class MetricDetectorUpdate(TypedDict):
-    entity: str
-    subscription_id: str
-    values: Any
-    timestamp: datetime
-
-
 class AlertRuleActivationConditionType(Enum):
     RELEASE_CREATION = 0
     DEPLOY_CREATION = 1

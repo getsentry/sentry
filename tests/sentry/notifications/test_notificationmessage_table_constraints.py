@@ -10,7 +10,6 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.cases import TestCase
 
 
-@pytest.mark.migrations
 class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase):
 
     def setUp(self):

@@ -1,14 +1,11 @@
-import { Secret } from "sentry/views/settings/featureFlags/changeTracking";
+import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 
-
-export function SecretFixture(
-  params: Partial<Secret> = {}
-): Secret {
+export function SecretFixture(params: Partial<Secret> = {}): Secret {
   return {
     id: 1,
     provider: 'launchdarkly',
     secret: '123abc**************************',
-    createdAt: "2024-12-12T00:00:00+00:00",
+    createdAt: '2024-12-12T00:00:00+00:00',
     createdBy: 1234,
     ...params,
   };

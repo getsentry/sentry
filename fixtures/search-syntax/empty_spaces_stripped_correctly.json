@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "event.type", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "transaction", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "transaction",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": "   "},
       {
@@ -21,7 +26,8 @@
         "value": {
           "type": "valueText",
           "value": "/organizations/:orgId/discover/results/",
-          "quoted": false
+          "quoted": false,
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

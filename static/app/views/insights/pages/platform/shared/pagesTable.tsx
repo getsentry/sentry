@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -27,6 +27,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type SortableField =
@@ -35,11 +36,13 @@ type SortableField =
   | 'failure_rate()'
   | 'sum(span.duration)'
   | 'avg(span.duration)'
+  | 'p95(span.duration)'
   | 'performance_score(measurements.score.total)';
 
 interface TableData {
   avgDuration: number;
   errorRate: number;
+  p95: number;
   page: string;
   pageViews: number;
   projectID: number;
@@ -53,6 +56,13 @@ const errorRateColorThreshold = {
   warning: 0.05,
 } as const;
 
+const getP95Threshold = (_avg: number) => {
+  return {
+    error: 4000,
+    warning: 2500,
+  };
+};
+
 const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0] as
     | 'errorText'
@@ -64,20 +74,31 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
   return order === 'asc' ? field : `-${field}`;
 };
 
-const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
+const pageloadColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Pageloads'), width: 122},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {
     key: 'performance_score(measurements.score.total)',
     name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
-  {key: 'count()', name: t('Page Views'), width: 122},
-  {key: 'failure_rate()', name: t('Error Rate'), width: 122},
-  {key: 'sum(span.duration)', name: t('Total'), width: 110},
 ];
 
+const navigationColumnOrder: Array<GridColumnOrder<SortableField>> = [
+  {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Navigations'), width: 132},
+  {key: 'avg(span.duration)', name: t('Avg'), width: 90},
+  {key: 'p95(span.duration)', name: t('P95'), width: 90},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
+];
+
+const pageloadKeys: SortableField[] = pageloadColumnOrder.map(col => col.key);
+const navigationKeys: SortableField[] = navigationColumnOrder.map(col => col.key);
+const allSortableKeys = new Set<SortableField>([...pageloadKeys, ...navigationKeys]);
+
 function isSortField(value: string): value is SortableField {
-  return defaultColumnOrder.some(column => column.key === value);
+  return allSortableKeys.has(value as SortableField);
 }
 
 function decodeSortField(value: QueryValue): SortableField {
@@ -109,9 +130,7 @@ function useTableSortParams() {
 }
 
 interface PagesTableProps {
-  handleAddTransactionFilter: (value: string) => void;
   spanOperationFilter: 'pageload' | 'navigation';
-  query?: string;
 }
 
 const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string> = {
@@ -119,22 +138,29 @@ const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string>
   navigation: 'navigationCursor',
 };
 
-export function PagesTable({
-  spanOperationFilter,
-  query,
-  handleAddTransactionFilter,
-}: PagesTableProps) {
+export function PagesTable({spanOperationFilter}: PagesTableProps) {
   const location = useLocation();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
   const navigate = useNavigate();
 
+  const [columnOrder, setColumnOrder] = useState(() => {
+    if (spanOperationFilter === 'pageload') {
+      return pageloadColumnOrder;
+    }
+    return navigationColumnOrder;
+  });
+
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
-    navigate({
-      pathname,
-      search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
-    });
+    navigate(
+      {
+        pathname,
+        search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
+      },
+      {replace: true, preventScrollReset: true}
+    );
   };
 
   const spansRequest = useEAPSpans(
@@ -153,6 +179,7 @@ export function PagesTable({
         'count()',
         'sum(span.duration)',
         'avg(span.duration)',
+        'p95(span.duration)',
         'performance_score(measurements.score.total)',
         'project.id',
       ],
@@ -163,6 +190,7 @@ export function PagesTable({
         typeof location.query[currentCursorParamName] === 'string'
           ? location.query[currentCursorParamName]
           : undefined,
+      keepPreviousData: true,
     },
     Referrer.PAGES_TABLE
   );
@@ -178,12 +206,27 @@ export function PagesTable({
       errorRate: span['failure_rate()'],
       totalTime: span['sum(span.duration)'],
       avgDuration: span['avg(span.duration)'],
+      p95: span['p95(span.duration)'],
       spanOp: span['span.op'],
       projectID: span['project.id'],
       'performance_score(measurements.score.total)':
         span['performance_score(measurements.score.total)'],
     }));
   }, [spansRequest.data]);
+
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnHeader<string>) => {
+      setColumnOrder(prev => {
+        const newColumnOrder = [...prev];
+        newColumnOrder[columnIndex] = {
+          ...newColumnOrder[columnIndex]!,
+          width: nextColumn.width,
+        };
+        return newColumnOrder;
+      });
+    },
+    []
+  );
 
   const renderHeadCell = useCallback(
     (column: GridColumnHeader<SortableField>) => {
@@ -210,11 +253,11 @@ export function PagesTable({
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
 
   const pagesTablePageLinks = spansRequest.pageLinks;
@@ -223,17 +266,19 @@ export function PagesTable({
     <Fragment>
       <GridEditableContainer>
         <GridEditable<TableData, SortableField>
-          isLoading={spansRequest.isLoading}
+          isLoading={spansRequest.isPending}
           error={spansRequest.error}
           data={tableData}
-          columnOrder={defaultColumnOrder}
+          columnOrder={columnOrder}
           columnSortBy={[{key: sortField, order: sortOrder}]}
           stickyHeader
           grid={{
             renderHeadCell,
             renderBodyCell,
+            onResizeColumn: handleResizeColumn,
           }}
         />
+        {spansRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
       <Pagination pageLinks={pagesTablePageLinks} onCursor={handleCursor} />
     </Fragment>
@@ -262,6 +307,7 @@ const HeadCell = memo(function PagesTableHeadCell({
         }
         direction={sortField === column.key ? sortOrder : undefined}
         canSort
+        preventScrollReset
         generateSortLink={() => {
           const newQuery = {
             ...location.query,
@@ -329,18 +375,44 @@ const BodyCell = memo(function PagesBodyCell({
       const thresholds = errorRateColorThreshold;
       const color = getCellColor(dataRow.errorRate, thresholds);
       return (
-        <ColoredValue color={color}>{formatPercentage(dataRow.errorRate)}</ColoredValue>
+        <ColoredValue color={color}>
+          {formatPercentage(dataRow.errorRate ?? 0)}
+        </ColoredValue>
       );
     }
     case 'sum(span.duration)':
       return <Duration>{getDuration(dataRow.totalTime / 1000, 2, true)}</Duration>;
+    case 'avg(span.duration)': {
+      return <Duration>{getDuration(dataRow.avgDuration / 1000, 2, true)}</Duration>;
+    }
+    case 'p95(span.duration)': {
+      const thresholds = getP95Threshold(dataRow.avgDuration);
+      const color = getCellColor(dataRow.p95, thresholds);
+      return (
+        <ColoredValue color={color}>
+          {getDuration(dataRow.p95 / 1000, 2, true)}
+        </ColoredValue>
+      );
+    }
     default:
       return <div />;
   }
 });
 
 const GridEditableContainer = styled('div')`
+  position: relative;
   margin-bottom: ${space(1)};
+`;
+
+const LoadingOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: ${p => p.theme.background};
+  opacity: 0.5;
+  z-index: 1;
 `;
 
 const CellLink = styled(Link)`

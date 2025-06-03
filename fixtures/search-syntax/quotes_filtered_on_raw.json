@@ -10,7 +10,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "thinger", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "unknown", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "unknown",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {"type": "freeText", "value": "what is this?", "quoted": true, "invalid": null},

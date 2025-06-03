@@ -38,12 +38,13 @@ from sentry.uptime.detectors.result_handler import (
     build_onboarding_failure_key,
 )
 from sentry.uptime.detectors.tasks import is_failed_url
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_detector,
 )
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import json
@@ -68,6 +69,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             uptime_subscription=self.subscription,
             owner=self.user,
         )
+        detector = get_detector(self.subscription)
+        assert detector
+        self.detector = detector
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
@@ -90,13 +94,18 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             consumer.submit(message)
 
     def test(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
                 return_value=2,
@@ -150,7 +159,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
         assignee = group.get_assignee()
@@ -158,15 +168,118 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
+    def test_detector_handler(self):
+        """
+        Simple test that the detector handler works as expected end-to-end.
+        """
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+            "organizations:uptime-detector-create-issues",
+        ]
+
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
+
+        with (
+            self.feature(features),
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
+            # Only needed to make sure we don't inadvertently also create an
+            # issue using the legacy issue creation.
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
+                return_value=2,
+            ),
+        ):
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
+                )
+            )
+            assert not Group.objects.filter(grouphash__hash=hashed_fingerprint).exists()
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
+                )
+            )
+            # Issue is created
+            assert Group.objects.filter(grouphash__hash=hashed_fingerprint).exists()
+
+            # Be sure we did NOT create this issue using the legacy metrics
+            legacy_sent_occurrence_calls = [
+                c
+                for c in metrics.incr.mock_calls
+                if c[1][0] == "uptime.result_processor.active.sent_occurrence"
+            ]
+            assert len(legacy_sent_occurrence_calls) == 0
+
+        group = Group.objects.get(grouphash__hash=hashed_fingerprint)
+        assert group.issue_type == UptimeDomainCheckFailure
+        assignee = group.get_assignee()
+        assert assignee and (assignee.id == self.user.id)
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+
+        # Issue is resolved
+        with (
+            self.feature(features),
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.grouptype.get_active_recovery_threshold", return_value=2),
+            # Only needed to make sure we don't inadvertently also attempt to
+            # resolve the issue using the legacy system.
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.get_active_recovery_threshold",
+                return_value=2,
+            ),
+        ):
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    status=CHECKSTATUS_SUCCESS,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
+                )
+            )
+            assert not Group.objects.filter(
+                grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
+            ).exists()
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    status=CHECKSTATUS_SUCCESS,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=2),
+                )
+            )
+            # Issue is resolved
+            assert Group.objects.filter(
+                grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
+            ).exists()
+
+            # Be sure we did NOT create this issue using the legacy metrics
+            legacy_resolve_calls = [
+                c
+                for c in metrics.incr.mock_calls
+                if c[1][0] == "uptime.result_processor.active.resolved"
+            ]
+            assert len(legacy_resolve_calls) == 0
+
     def test_does_nothing_when_missing_project_subscription(self):
-        self.project_subscription.delete()
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
+        self.detector.delete()
 
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         with (
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
             mock.patch("sentry.remote_subscriptions.consumers.result_consumer.logger") as logger,
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.remove_uptime_subscription_if_unused"
@@ -183,13 +296,18 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         has been restricted using the
         `restrict-issue-creation-by-hosting-provider-id` option.
         """
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
                 return_value=1,
@@ -214,7 +332,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
         # Issue is not created
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -223,9 +342,14 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_reset_fail_count(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(
                 self.create_uptime_result(
@@ -312,7 +436,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
@@ -344,16 +469,22 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
                 return_value=2,
@@ -403,7 +534,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
         assert group.status == GroupStatus.UNRESOLVED
@@ -441,11 +573,16 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_subscription(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         subscription_id = uuid.uuid4().hex
         result = self.create_uptime_result(subscription_id, uptime_region="default")
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -486,14 +623,19 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
     def test_skip_already_processed(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         result = self.create_uptime_result(self.subscription.subscription_id)
         _get_cluster().set(
-            build_last_update_key(self.project_subscription),
+            build_last_update_key(self.detector),
             int(result["scheduled_check_time_ms"]),
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -522,11 +664,17 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
     def test_skip_shadow_region(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         region_name = "shadow"
         self.create_uptime_subscription_region(
             self.subscription, region_name, UptimeSubscriptionRegion.RegionMode.SHADOW
@@ -538,7 +686,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -554,18 +702,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     ),
                 ]
             )
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
     def test_missed(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         result = self.create_uptime_result(
             self.subscription.subscription_id, status=CHECKSTATUS_MISSED_WINDOW
         )
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             metrics.incr.assert_called_once_with(
@@ -583,25 +737,38 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "handle_result_for_project.missed",
                 extra={"project_id": self.project.id, **result},
             )
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
     def test_onboarding_failure(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         self.project_subscription.update(
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
         )
+        self.detector.update(
+            config={
+                **self.detector.config,
+                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+            }
+        )
+
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_FAILURE,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         redis = _get_cluster()
-        key = build_onboarding_failure_key(self.project_subscription)
+        key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -621,7 +788,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert redis.get(key) == "1"
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -638,7 +806,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "sentry.uptime.detectors.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             remove_call_vals = []
 
@@ -684,7 +852,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # the values we want to check.
         assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         with pytest.raises(UptimeSubscription.DoesNotExist):
@@ -693,9 +862,22 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.project_subscription.refresh_from_db()
 
     def test_onboarding_success_ongoing(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         self.project_subscription.update(
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc) - timedelta(minutes=5),
+        )
+        self.detector.update(
+            config={
+                **self.detector.config,
+                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+            },
+            date_added=datetime.now(timezone.utc)
+            - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
         result = self.create_uptime_result(
             self.subscription.subscription_id,
@@ -703,11 +885,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         redis = _get_cluster()
-        key = build_onboarding_failure_key(self.project_subscription)
+        key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -727,16 +909,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert not redis.exists(key)
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
     def test_onboarding_success_graduate(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         self.project_subscription.update(
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
+        self.detector.update(
+            config={
+                **self.detector.config,
+                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+            },
+            date_added=datetime.now(timezone.utc)
+            - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
+        )
+
         uptime_subscription = self.project_subscription.uptime_subscription
         result = self.create_uptime_result(
             self.subscription.subscription_id,
@@ -744,13 +941,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=2),
         )
         redis = _get_cluster()
-        key = build_onboarding_failure_key(self.project_subscription)
+        key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
             mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
             self.tasks(),
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
         ):
             self.send_result(result)
             consumer_metrics.incr.assert_has_calls(
@@ -783,7 +980,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert not redis.exists(key)
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -892,6 +1090,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_2 == [result_3]
 
     def test_provider_stats(self):
+        features = [
+            "organizations:uptime",
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-handler",
+        ]
         subscription = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex,
             host_provider_name="test_provider",
@@ -912,7 +1115,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            self.feature(features),
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.get_active_failure_threshold",
                 return_value=2,

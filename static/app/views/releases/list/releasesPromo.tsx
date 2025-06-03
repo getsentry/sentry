@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
@@ -9,7 +10,7 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -407,7 +408,7 @@ const MenuItemWrapper = styled('div')<{
   font-size: 13px;
   ${p =>
     typeof p.py !== 'undefined' &&
-    `
+    css`
       padding-top: ${p.py};
       padding-bottom: ${p.py};
     `};

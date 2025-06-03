@@ -23,6 +23,7 @@ import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {
@@ -39,6 +40,7 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  useEap?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -151,10 +153,21 @@ function useSpanSearchQueryBuilderProps({
     disallowUnsupportedFilters: true,
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
+    searchOnChange: organization.features.includes('ui-search-on-change'),
   };
 }
 
-export function SpanSearchQueryBuilder({
+export function SpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
+  const {useEap} = props;
+
+  if (useEap) {
+    return <EapSpanSearchQueryBuilder {...props} />;
+  }
+
+  return <IndexedSpanSearchQueryBuilder {...props} />;
+}
+
+function IndexedSpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
@@ -176,9 +189,23 @@ export function SpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
+function EapSpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
+
+  const eapSearchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
+    ...props,
+    numberTags,
+    stringTags,
+  });
+
+  return <SearchQueryBuilder {...eapSearchQueryBuilderProps} />;
+}
+
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;

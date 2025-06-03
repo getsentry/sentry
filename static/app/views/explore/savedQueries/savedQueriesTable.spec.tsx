@@ -1,5 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SavedQueriesTable} from 'sentry/views/explore/savedQueries/savedQueriesTable';
 
@@ -106,9 +113,17 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
+    renderGlobalModal();
     await screen.findByText('Query Name');
     await userEvent.click(screen.getByLabelText('More options'));
     await userEvent.click(screen.getByText('Delete'));
+    await screen.findByText('Are you sure you want to delete the query "Query Name"?');
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Delete Query',
+      })
+    );
+
     await waitFor(() =>
       expect(deleteQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/1/`,

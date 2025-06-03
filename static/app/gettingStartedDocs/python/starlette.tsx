@@ -73,7 +73,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[starlette]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[starlette]'}),
     },
   ],
   configure: (params: Params) => [

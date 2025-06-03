@@ -9,13 +9,14 @@ from sentry.issues.producer import PayloadType
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
 from sentry.uptime.issue_platform import (
     build_event_data_for_occurrence,
     build_occurrence_from_result,
     create_issue_platform_occurrence,
     resolve_uptime_issue,
 )
+from sentry.uptime.models import get_detector
 
 
 @freeze_time()
@@ -26,15 +27,17 @@ class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
         mock_uuid.uuid4.side_effect = cycle([uuid.uuid4(), uuid.uuid4()])
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
-        create_issue_platform_occurrence(result, project_subscription)
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
+        create_issue_platform_occurrence(result, detector)
         assert mock_produce_occurrence_to_kafka.call_count == 1
         assert mock_produce_occurrence_to_kafka.call_args_list[0][0] == ()
         call_kwargs = mock_produce_occurrence_to_kafka.call_args_list[0][1]
-        occurrence = build_occurrence_from_result(result, project_subscription)
+        occurrence = build_occurrence_from_result(result, detector)
         assert call_kwargs == {
             "payload_type": PayloadType.OCCURRENCE,
             "occurrence": occurrence,
-            "event_data": build_event_data_for_occurrence(result, project_subscription, occurrence),
+            "event_data": build_event_data_for_occurrence(result, detector, occurrence),
         }
 
 
@@ -47,11 +50,14 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
         mock_uuid.uuid4.side_effect = cycle([occurrence_id, event_id])
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
-        assert build_occurrence_from_result(result, project_subscription) == IssueOccurrence(
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
+
+        assert build_occurrence_from_result(result, detector) == IssueOccurrence(
             id=occurrence_id.hex,
             project_id=1,
             event_id=event_id.hex,
-            fingerprint=[result["subscription_id"]],
+            fingerprint=[build_detector_fingerprint_component(detector)],
             issue_title="Downtime detected for https://sentry.io",
             subtitle="Your monitored domain is down",
             resource_id=None,
@@ -77,13 +83,16 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
 class BuildEventDataForOccurrenceTest(UptimeTestCase):
     def test(self):
         result = self.create_uptime_result()
+        project_subscription = self.create_project_uptime_subscription()
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
+
         event_id = uuid.uuid4()
-        fingerprint = [result["subscription_id"]]
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,
             event_id=event_id.hex,
-            fingerprint=fingerprint,
+            fingerprint=[build_detector_fingerprint_component(detector)],
             issue_title="Downtime detected for https://sentry.io",
             subtitle="Your monitored domain is down",
             resource_id=None,
@@ -94,14 +103,16 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             level="error",
             culprit="",
         )
-        project_subscription = self.create_project_uptime_subscription()
-        event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
+
+        event_data = build_event_data_for_occurrence(result, detector, occurrence)
         assert event_data == {
             "environment": "development",
             "event_id": event_id.hex,
-            "fingerprint": fingerprint,
+            "fingerprint": [
+                build_detector_fingerprint_component(detector),
+            ],
             "platform": "other",
-            "project_id": 1,
+            "project_id": detector.project_id,
             "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
             "tags": {"uptime_rule": str(project_subscription.id)},
@@ -118,12 +129,15 @@ class ResolveUptimeIssueTest(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription(
             uptime_subscription=subscription
         )
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
         result = self.create_uptime_result(subscription.subscription_id)
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
-            create_issue_platform_occurrence(result, project_subscription)
-        hashed_fingerprint = md5(str(project_subscription.id).encode("utf-8")).hexdigest()
-        group = Group.objects.get(grouphash__hash=hashed_fingerprint)
-        assert group.status == GroupStatus.UNRESOLVED
-        resolve_uptime_issue(project_subscription)
-        group.refresh_from_db()
-        assert group.status == GroupStatus.RESOLVED
+            create_issue_platform_occurrence(result, detector)
+        fingerprint = build_detector_fingerprint_component(detector).encode("utf-8")
+        hashed_detector_fingerprint = md5(fingerprint).hexdigest()
+        group_detector = Group.objects.get(grouphash__hash=hashed_detector_fingerprint)
+        assert group_detector.status == GroupStatus.UNRESOLVED
+        resolve_uptime_issue(detector)
+        group_detector.refresh_from_db()
+        assert group_detector.status == GroupStatus.RESOLVED

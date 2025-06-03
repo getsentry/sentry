@@ -8,7 +8,7 @@ import {
   decodeList,
   decodeScalar,
 } from 'sentry/utils/queryString';
-import type {IssueViewParams} from 'sentry/views/issueList/issueViews/issueViews';
+import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export function createIssueViewFromUrl({query}: {query: Query}): IssueViewParams {
@@ -25,7 +25,7 @@ export function createIssueViewFromUrl({query}: {query: Query}): IssueViewParams
     timeFilters: {
       start: decodeScalar(normalizedTimeFilters.start) ?? null,
       end: decodeScalar(normalizedTimeFilters.end) ?? null,
-      period: decodeScalar(normalizedTimeFilters.period) ?? null,
+      period: decodeScalar(normalizedTimeFilters.statsPeriod) ?? null,
       utc: decodeBoolean(normalizedTimeFilters.utc) ?? null,
     },
   };

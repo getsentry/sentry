@@ -198,14 +198,17 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         assert problem.fingerprint == f"1-{self.type_id}-bf7ad6b20bb345ae327362c849427956862bf839"
 
     def test_does_detect_problem_with_parameterized_urls(self):
-        event = self.create_event(lambda i: f"GET /clients/{i}/info/{i*100}/")
+        event = self.create_event(lambda i: f"GET /clients/{i}/info/{i*100}/?id={i}")
         [problem] = self.find_problems(event)
-        assert problem.desc == "/clients/*/info/*/"
+        assert problem.desc == "/clients/*/info/*/?id=*"
         assert problem.evidence_data is not None
+        assert problem.evidence_data["common_url"] == "/clients/*/info/*/?id=*"
         path_params = problem.evidence_data.get("path_parameters", [])
         # It should sequentially store sets of path parameters on the evidence data
         for i in range(len(path_params)):
             assert path_params[i] == f"{i}, {i*100}"
+        query_params = problem.evidence_data.get("parameters", [])
+        assert query_params == ["id: 0, 1, 2, 3, 4, 5"]
         assert problem.fingerprint == f"1-{self.type_id}-8bf177290e2d78550fef5a1f6e9ddf115e4b0614"
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
@@ -281,6 +284,13 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
 
         assert problem1.fingerprint != problem2.fingerprint
 
+    def test_does_not_fingerprint_file_urls(self):
+        event = self.create_event(lambda i: f"GET /clients/info/{i}.json")
+        assert self.find_problems(event) == []
+
+        event = self.create_event(lambda i: f"GET /clients/{i}/info/file.json")
+        assert self.find_problems(event) == []
+
     def test_ignores_hostname_for_fingerprinting(self):
         event1 = self.create_event(lambda i: f"GET http://service.io/clients/{i}/info?id={i}")
         [problem1] = self.find_problems(event1)
@@ -324,6 +334,10 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         ),
         (
             "/clients/11/project/1343",
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/1.2/project/3.4.5",
             "/clients/*/project/*",
         ),
         (

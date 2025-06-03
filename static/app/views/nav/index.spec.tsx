@@ -7,6 +7,8 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+
 import {
   render,
   renderGlobalModal,
@@ -34,6 +36,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
+  'enforce-stacked-navigation',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -66,6 +69,21 @@ describe('Nav', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/group-search-views/starred/`,
+      body: [GroupSearchViewFixture({name: 'Starred View 1'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues-count/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/explore/saved/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/`,
       body: [],
     });
 
@@ -134,13 +152,6 @@ describe('Nav', function () {
   });
 
   describe('secondary navigation', function () {
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-    });
-
     it('includes expected secondary nav items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
@@ -154,6 +165,43 @@ describe('Nav', function () {
       const link = screen.getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('can collapse sections with titles', async function () {
+      renderNav();
+      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+
+      expect(
+        await within(container).findByRole('link', {name: /Starred View 1/})
+      ).toBeInTheDocument();
+
+      // Click "Starred Views" button to collapse the section
+      await userEvent.click(
+        within(container).getByRole('button', {name: 'Starred Views'})
+      );
+
+      // Section should be collapsed and no longer show starred view
+      expect(
+        within(container).queryByRole('link', {name: /Starred View 1/})
+      ).not.toBeInTheDocument();
+
+      // Can expand to show again
+      await userEvent.click(
+        within(container).getByRole('button', {name: 'Starred Views'})
+      );
+      expect(
+        within(container).getByRole('link', {name: /Starred View 1/})
+      ).toBeInTheDocument();
+    });
+
+    it('previews secondary nav when hovering over other primary items', async function () {
+      renderNav();
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+      await screen.findByRole('link', {name: 'Traces'});
+
+      await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
+      await screen.findByRole('link', {name: 'All Dashboards'});
     });
 
     describe('sections', function () {
@@ -252,10 +300,12 @@ describe('Nav', function () {
         await userEvent.hover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'true'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
 
         // Moving pointer away should hide the sidebar
         await userEvent.unhover(

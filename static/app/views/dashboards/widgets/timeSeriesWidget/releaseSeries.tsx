@@ -4,7 +4,7 @@ import type {CustomSeriesOption} from 'echarts';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -45,9 +45,13 @@ export function ReleaseSeries(
       tooltip: {
         trigger: 'item',
         formatter: function (params: any) {
-          const time = getFormattedDate(params.value, 'MMM D, YYYY LT', {
-            local: utc,
-          });
+          const time = getFormattedDate(
+            params.value,
+            getFormat({timeZone: true, year: true}),
+            {
+              local: utc,
+            }
+          );
 
           const version = escape(formatVersion(params.name, true));
 
