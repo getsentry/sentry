@@ -40,6 +40,7 @@ class CompareTableResultDict(TypedDict):
     fields: list[str] | None
     widget_query: DashboardWidgetQuery
     mismatches: list[str] | None
+    query: str | None
 
 
 def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
