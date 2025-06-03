@@ -84,7 +84,11 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
             CompareTableResult.FIELD_NOT_FOUND,
         )
 
-    return (len(mismatches) == 0, mismatches, CompareTableResult.FIELD_NOT_FOUND)
+    return (
+        len(mismatches) == 0,
+        mismatches,
+        CompareTableResult.FIELD_NOT_FOUND if len(mismatches) > 0 else CompareTableResult.PASSED,
+    )
 
 
 def compare_tables_for_dashboard_widget_queries(
