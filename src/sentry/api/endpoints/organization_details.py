@@ -678,6 +678,7 @@ def post_org_pending_deletion(
         "apdexThreshold",
         "genAIConsent",
         "defaultAutofixAutomationTuning",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
