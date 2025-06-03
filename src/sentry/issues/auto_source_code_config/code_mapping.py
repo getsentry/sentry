@@ -284,6 +284,9 @@ class CodeMappingTreesHelper:
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
 
+    def __repr__(self) -> str:
+        return f"CodeMappingTreesHelper(trees={self.trees}, code_mappings={self.code_mappings})"
+
 
 def convert_stacktrace_frame_path_to_source_path(
     frame: EventFrame,

@@ -36,7 +36,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
-  'issue-stream-custom-views',
   'enforce-stacked-navigation',
 ];
 
