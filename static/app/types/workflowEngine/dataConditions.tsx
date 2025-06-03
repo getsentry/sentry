@@ -57,8 +57,8 @@ export enum DataConditionGroupLogicType {
  */
 export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
   id: string;
+  type: DataConditionType;
   conditionResult?: any;
 }
 
