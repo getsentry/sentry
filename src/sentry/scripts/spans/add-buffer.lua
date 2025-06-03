@@ -8,6 +8,7 @@ KEYS:
 ARGS:
 - num_spans -- int
 - parent_span_id -- str
+- has_root_span -- "true" or "false"
 - set_timeout -- int
 - *span_id -- str[]
 
@@ -17,7 +18,8 @@ local project_and_trace = KEYS[1]
 
 local num_spans = ARGV[1]
 local parent_span_id = ARGV[2]
-local set_timeout = tonumber(ARGV[3])
+local has_root_span = ARGV[3] == "true"
+local set_timeout = tonumber(ARGV[4])
 
 local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 
@@ -38,23 +40,14 @@ local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_
 local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
 
 local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
-local has_root_span = redis.call("get", has_root_span_key) == "1"
-
-for i = 4, num_spans + 3 do
-    local span_id = ARGV[i]
-    if span_id == parent_span_id then
-        has_root_span = true
-        break
-    end
-end
-
+has_root_span = has_root_span or redis.call("get", has_root_span_key) == "1"
 if has_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
 end
 
 local return_value = {redirect_depth, set_key, has_root_span}
 
-for i = 4, num_spans + 3 do
+for i = 5, num_spans + 4 do
     local span_id = ARGV[i]
     local is_root_span = span_id == parent_span_id
 
@@ -68,12 +61,12 @@ for i = 4, num_spans + 3 do
         redis.call("unlink", span_key)
     end
 
-    if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
-        redis.call("sunionstore", set_key, set_key, parent_key)
-        redis.call("unlink", parent_key)
-    end
-
     table.insert(return_value, span_key)
+end
+
+if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
+    redis.call("sunionstore", set_key, set_key, parent_key)
+    redis.call("unlink", parent_key)
 end
 
 redis.call("expire", set_key, set_timeout)

@@ -212,6 +212,7 @@ class SpansBuffer:
                         project_and_trace,
                         len(subsegment),
                         parent_span_id,
+                        "true" if any(span.is_segment_span for span in subsegment) else "false",
                         self.redis_ttl,
                         *[span.span_id for span in subsegment],
                     )
