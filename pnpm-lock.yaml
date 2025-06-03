@@ -279,6 +279,9 @@ importers:
       '@types/react-select':
         specifier: 4.0.18
         version: 4.0.18
+      '@types/react-sparklines':
+        specifier: ^1.7.5
+        version: 1.7.5
       '@types/react-virtualized':
         specifier: ^9.22.0
         version: 9.22.0
@@ -465,6 +468,9 @@ importers:
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react-sparklines:
+        specifier: ^1.7.0
+        version: 1.7.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react-textarea-autosize:
         specifier: 8.5.7
         version: 8.5.7(@types/react@19.1.0)(react@19.1.0)
@@ -3729,6 +3735,9 @@ packages:
 
   '@types/react-select@4.0.18':
     resolution: {integrity: sha512-uCPRMPshd96BwHuT7oCrFduiv5d6km3VwmtW7rVl9g4XetS3VoJ9nZo540LiwtQgaFcW96POwaxQDZDAyYaepg==}
+
+  '@types/react-sparklines@1.7.5':
+    resolution: {integrity: sha512-rIAmNyRKUqWWnaQMjNrxMNkgEFi5f9PrdczSNxj5DscAa48y4i9P0fRKZ72FmNcFsdg6Jx4o6CXWZtIaC0OJOg==}
 
   '@types/react-transition-group@4.2.4':
     resolution: {integrity: sha512-8DMUaDqh0S70TjkqU0DxOu80tFUiiaS9rxkWip/nb7gtvAsbqOXm02UCmR8zdcjWujgeYPiPNTVpVpKzUDotwA==}
@@ -7610,6 +7619,12 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0
       react-dom: ^16.8.0 || ^17.0.0
+
+  react-sparklines@1.7.0:
+    resolution: {integrity: sha512-bJFt9K4c5Z0k44G8KtxIhbG+iyxrKjBZhdW6afP+R7EnIq+iKjbWbEFISrf3WKNFsda+C46XAfnX0StS5fbDcg==}
+    peerDependencies:
+      react: '*'
+      react-dom: '*'
 
   react-textarea-autosize@8.5.7:
     resolution: {integrity: sha512-2MqJ3p0Jh69yt9ktFIaZmORHXw4c4bxSIhCeWiFwmJ9EYKgLmuNII3e9c9b2UO+ijl4StnpZdqpxNIhTdHvqtQ==}
@@ -12964,6 +12979,10 @@ snapshots:
       '@types/react-dom': 19.1.1(@types/react@19.1.0)
       '@types/react-transition-group': 4.2.4
 
+  '@types/react-sparklines@1.7.5':
+    dependencies:
+      '@types/react': 19.1.0
+
   '@types/react-transition-group@4.2.4':
     dependencies:
       '@types/react': 19.1.0
@@ -17789,6 +17808,12 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
       - supports-color
+
+  react-sparklines@1.7.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      prop-types: 15.8.1
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   react-textarea-autosize@8.5.7(@types/react@19.1.0)(react@19.1.0):
     dependencies:
