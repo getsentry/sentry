@@ -1359,9 +1359,10 @@ describe('provisionSubscriptionAction', function () {
     await typeNumForField('Reserved Cost-Per-Event Issue Fixes', '1');
     await typeNumForField('Reserved Cost-Per-Event Issue Scans', '0.5');
     await typeNumForMatchingFields('Price for', '0', false);
-    await typeNumForField('Price for Issue Fixes (Reserved Seer Budget)', '12000');
+    await typeNumForField('Price for Issue Fixes (Seer ARR)', '12000');
     await typeNumForField('Price for PCSS', '500');
     await typeNumForField('Annual Contract Value', '12500');
+    await typeNumForField('Seer Budget', '24000');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1395,7 +1396,7 @@ describe('provisionSubscriptionAction', function () {
           plan: 'am3_business_ent',
           reservedAttachments: 1,
           reservedBudgets: [
-            {budget: 1200000, categories: ['seerAutofix', 'seerScanner']},
+            {budget: 2400000, categories: ['seerAutofix', 'seerScanner']},
           ],
           reservedCpeSeerAutofix: 100000000,
           reservedCpeSeerScanner: 50000000,
@@ -1409,6 +1410,7 @@ describe('provisionSubscriptionAction', function () {
           reservedSpans: 10000000,
           reservedUptime: 250,
           retainOnDemandBudget: false,
+          seerBudget: 2400000,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
           softCapTypeMonitorSeats: null,

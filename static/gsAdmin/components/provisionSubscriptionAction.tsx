@@ -24,11 +24,12 @@ import withApi from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {
-  BillingConfig,
-  Plan,
-  ReservedBudgetMetricHistory,
-  Subscription,
+import {
+  type BillingConfig,
+  type Plan,
+  ReservedBudgetCategoryType,
+  type ReservedBudgetMetricHistory,
+  type Subscription,
 } from 'getsentry/types';
 import {
   getAmPlanTier,
@@ -231,6 +232,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         reservedBudgetMetricHistories[category] = info;
       });
     });
+    const seerBudget = reservedBudgets?.find(
+      budget => budget.apiName === ReservedBudgetCategoryType.SEER
+    )?.reservedBudget;
 
     const infoFromMetricHistories: Record<string, any> = {};
     Object.entries(subscription.categories).forEach(([category, info]) => {
@@ -280,6 +284,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         ...state.data,
         ...enterpriseData,
         ...infoFromMetricHistories,
+        seerBudget: toDollars(seerBudget ?? 0), // reserved budget will always be in terms of dollars per month
       },
     }));
   }
@@ -492,6 +497,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
       } else if (key.startsWith('customPrice') && !isNaN(value as number)) {
         postData[key] = toCents(value as number); // price should be in cents
+      } else if (key === 'seerBudget' && !isNaN(value as number)) {
+        const reservedBudgetAmount =
+          postData.billingInterval === 'annual'
+            ? (value as number) * 12
+            : (value as number);
+        postData.seerBudget = toCents(reservedBudgetAmount);
       }
     });
 
@@ -571,7 +582,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     if (this.hasCompleteSeerBudget()) {
       postData.reservedBudgets.push({
         categories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-        budget: postData.customPriceSeerAutofix,
+        budget: postData.seerBudget,
       });
     }
     this.props.api.request(this.endpoint, {
@@ -970,14 +981,14 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         settingReservedBudget &&
                         (category === DataCategory.SPANS ||
                           category === DataCategory.SEER_AUTOFIX)
-                          ? ` (Reserved ${toTitleCase(
+                          ? ` (${toTitleCase(
                               Object.values(
                                 this.state.provisionablePlans[this.state.data.plan]
                                   ?.availableReservedBudgetTypes ?? {}
                               ).find(budgetInfo =>
                                 budgetInfo.dataCategories.includes(category)
-                              )?.name ?? ''
-                            )})`
+                              )?.productName ?? ''
+                            )} ARR)`
                           : '';
                       const capitalizedApiName = this.capitalizeForApiName(
                         categoryInfo.plural
@@ -1035,6 +1046,24 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       data: {
                         ...state.data,
                         customPrice: v,
+                      },
+                    }))
+                  }
+                />
+
+                <StyledDollarsField
+                  label="Seer Budget"
+                  name="seerBudget"
+                  help="Monthly reserved budget for Seer"
+                  required={this.hasCompleteSeerBudget()}
+                  disabled={!this.hasCompleteSeerBudget()}
+                  value={data.seerBudget}
+                  onChange={v =>
+                    this.setState(state => ({
+                      ...state,
+                      data: {
+                        ...state.data,
+                        seerBudget: v,
                       },
                     }))
                   }
