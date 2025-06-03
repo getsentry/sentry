@@ -514,6 +514,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
+    ingestThroughTrustedRelaysOnly: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -559,7 +560,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     rollbackEnabled: bool
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
-    ingestThroughTrustedRelaysOnly: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
