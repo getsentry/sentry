@@ -24,13 +24,14 @@ logger = logging.getLogger(__name__)
 
 class CompareTableResult(Enum):
     BOTH_FAILED = "both_requests_failed"
+    EAP_FAILED = "eap_failed"
     FIELD_NOT_FOUND = "field_not_found"
     METRICS_FAILED = "metrics_failed"
     NO_DATA = "no_data"
     NO_FIELDS = "no_fields"
     NO_PROJECT = "no_project"
     PASSED = "passed"
-    EAP_FAILED = "eap_failed"
+    QUERY_FAILED = "query_failed"
 
 
 class CompareTableResultDict(TypedDict):
@@ -50,11 +51,14 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
 
     mismatches = []
     no_metrics_data = len(metrics_data_row) == 0
+    no_eap_data = len(eap_data_row) == 0
 
     # if there's no metrics data we know there are mismatches,
     # we will check the EAP data for the names of the mismatched fields
     if no_metrics_data:
         return (False, [], CompareTableResult.NO_DATA)
+    if no_eap_data:
+        return (False, [], CompareTableResult.QUERY_FAILED)
 
     try:
         for field, data in metrics_data_row.items():
@@ -65,7 +69,7 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
                 logger.info("Field %s not found in EAP response", field)
                 mismatches.append(field)
 
-    except Exception:
+    except KeyError:
         # if there is an error trying to access fields in the EAP data,
         # return all queried fields as mismatches
         all_fields_mismatch = []

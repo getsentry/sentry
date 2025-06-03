@@ -297,8 +297,5 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             self.non_existent_eap_widget_query
         )
         assert comparison_result["passed"] is False
-        assert comparison_result["reason"] == CompareTableResult.FIELD_NOT_FOUND
-        assert (
-            comparison_result["mismatches"] is not None
-            and ["http.status_code", "count()"] == comparison_result["mismatches"]
-        )
+        assert comparison_result["reason"] == CompareTableResult.QUERY_FAILED
+        assert comparison_result["mismatches"] is not None and [] == comparison_result["mismatches"]
