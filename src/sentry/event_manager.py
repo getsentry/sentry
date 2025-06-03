@@ -739,8 +739,7 @@ def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
 
 def _derive_client_error_sampling_rate(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        project = projects[job["project_id"]]
-        if project.id in options.get("issues.client_error_sampling.project_allowlist"):
+        if job["project_id"] in options.get("issues.client_error_sampling.project_allowlist"):
             try:
                 client_sample_rate = (
                     job["data"]
@@ -753,10 +752,14 @@ def _derive_client_error_sampling_rate(jobs: Sequence[Job], projects: ProjectsMa
                     if 0 <= client_sample_rate <= 1:
                         job["data"]["sample_rate"] = client_sample_rate
                     else:
-                        metrics.incr(
-                            "events.client_sample_rate.invalid_range",
-                            tags={"project_id": project.id},
+                        logger.warning(
+                            "Client sent invalid error sample_rate outside valid range (0-1)",
+                            extra={
+                                "project_id": job["project_id"],
+                                "client_sample_rate": client_sample_rate,
+                            },
                         )
+                        metrics.incr("issues.client_error_sampling.invalid_range")
             except (KeyError, TypeError, AttributeError):
                 pass
 
