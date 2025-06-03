@@ -7,7 +7,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -209,6 +208,11 @@ export const LogRowContent = memo(function LogRowContent({
         isClickable: true,
       };
 
+  const buttonSize = 'xs';
+  const chevronIcon = (
+    <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
+  );
+
   return (
     <Fragment>
       <LogTableRow
@@ -231,16 +235,15 @@ export const LogRowContent = memo(function LogRowContent({
             ) : (
               <span
                 style={{
-                  marginRight: space(0.5),
+                  width: '18px',
+                  height: '18px',
+                  marginRight: '4px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  whiteSpace: 'nowrap',
-                  height: '24px',
-                  padding: `${space(0.5)} ${space(0.75)}`,
                 }}
               >
-                <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+                {chevronIcon}
               </span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
