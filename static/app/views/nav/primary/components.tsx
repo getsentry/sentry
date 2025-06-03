@@ -102,7 +102,8 @@ export function SidebarMenu({
   disableTooltip,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
-  const organization = useOrganization();
+  // This component can be rendered without an organization in some cases
+  const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
 
   const showLabel = layout === NavLayout.MOBILE;
@@ -123,7 +124,9 @@ export function SidebarMenu({
               {...props}
               aria-label={showLabel ? undefined : label}
               onClick={event => {
-                recordPrimaryItemClick(analyticsKey, organization);
+                if (organization) {
+                  recordPrimaryItemClick(analyticsKey, organization);
+                }
                 props.onClick?.(event);
                 onOpen?.(event);
               }}
