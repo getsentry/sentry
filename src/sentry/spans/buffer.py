@@ -218,7 +218,7 @@ class SpansBuffer:
 
                     is_root_span_count += sum(span.is_segment_span for span in subsegment)
                     shard = self.assigned_shards[
-                        int(project_and_trace.replace(":", ""), 16) % len(self.assigned_shards)
+                        int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
                     ]
                     queue_keys.append(self._get_queue_key(shard))
 
