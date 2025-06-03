@@ -92,7 +92,8 @@ class TestResultsEndpoint(CodecovEndpoint):
             "first": 10,
         }
 
-        graphql_response = CodecovApiClient.query(query, variables)
+        client = CodecovApiClient(git_provider_org="codecov")
+        graphql_response = client.query(query=query, variables=variables)
 
         test_results = TestResultSerializer().to_representation(graphql_response)
 

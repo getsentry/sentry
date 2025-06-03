@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.urls import reverse
 
@@ -25,8 +25,8 @@ class TestResultsEndpointTest(APITestCase):
             },
         )
 
-    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient.query")
-    def test_get_returns_mock_response(self, mock_query):
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_returns_mock_response(self, mock_codecov_client_class):
         """Test that GET request returns the expected mock GraphQL response structure"""
         # Mock GraphQL response structure
         mock_graphql_response = {
@@ -73,12 +73,18 @@ class TestResultsEndpointTest(APITestCase):
             }
         }
 
-        mock_query.return_value = mock_graphql_response
+        # Create a mock instance and configure its query method
+        mock_codecov_client_instance = Mock()
+        mock_codecov_client_instance.query.return_value = mock_graphql_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
         response = self.client.get(url)
 
-        assert mock_query.call_count == 1
+        # Verify the client was instantiated with the correct parameters
+        mock_codecov_client_class.assert_called_once_with(git_provider_org="codecov")
+        # Verify the query method was called
+        assert mock_codecov_client_instance.query.call_count == 1
         assert response.status_code == 200
         assert len(response.data) == 2
 
