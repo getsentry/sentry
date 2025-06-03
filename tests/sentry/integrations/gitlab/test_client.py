@@ -57,7 +57,7 @@ class GitLabClientTest(GitLabTestCase):
             "created_at": 1536798907,
             "scope": "api",
         }
-        self.repo = self.create_repo(name="Test-Org/foo", external_id=123)
+        self.repo = self.create_gitlab_repo(name="Test-Org/foo", external_id=123)
         self.original_identity_data = dict(self.gitlab_client.identity.data)
         self.gitlab_id = 123
 

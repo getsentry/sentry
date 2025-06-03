@@ -374,11 +374,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         group_event.occurrence = occurrence
 
         description = self.install.get_group_description(group_event.group, group_event)
-        assert group_event.occurrence.evidence_display[0].value in description
-        assert group_event.occurrence.evidence_display[1].value in description
-        assert group_event.occurrence.evidence_display[2].value in description
+        assert occurrence.evidence_display[0].value in description
+        assert occurrence.evidence_display[1].value in description
+        assert occurrence.evidence_display[2].value in description
         title = self.install.get_group_title(group_event.group, group_event)
-        assert title == group_event.occurrence.issue_title
+        assert title == occurrence.issue_title
 
     def test_error_issues_content(self):
         """Test that a GitHub issue created from an error issue has the expected title and descriptionn"""

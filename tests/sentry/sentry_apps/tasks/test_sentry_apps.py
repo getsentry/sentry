@@ -440,7 +440,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
         assert data["data"]["event"]["issue_id"] == str(group_event.group.id)
         assert data["data"]["event"]["occurrence"] == convert_dict_key_case(
-            group_event.occurrence.to_dict(), snake_to_camel_case
+            occurrence.to_dict(), snake_to_camel_case
         )
         assert kwargs["headers"].keys() >= {
             "Content-Type",
