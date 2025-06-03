@@ -85,9 +85,7 @@ export function GithubInstallationSelect({
             />
           )}
           <span>{`${installation.github_account}`}</span>
-          {doesntRequireUpgrade(installation.installation_id) ? (
-            ''
-          ) : (
+          {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}
         </OptionLabelWrapper>
