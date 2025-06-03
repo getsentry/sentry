@@ -35,7 +35,8 @@ export function useActionNodeContext(): ActionNodeProps {
 }
 
 type ActionNode = {
-  action?: React.ReactNode;
+  action: React.ReactNode;
+  details?: (action: Action) => React.ReactNode;
   label?: string;
 };
 

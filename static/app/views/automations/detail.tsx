@@ -23,6 +23,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
+import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useAutomationQuery} from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
@@ -91,6 +92,12 @@ export default function AutomationDetail() {
                 {tct('Every [frequency]', {
                   frequency: getDuration((automation.config.frequency || 0) * 60),
                 })}
+              </Section>
+              <Section title={t('Conditions')}>
+                <ConditionsPanel
+                  triggers={automation.triggers}
+                  actionFilters={automation.actionFilters}
+                />
               </Section>
               <Section title={t('Details')}>
                 <KeyValueTable>
