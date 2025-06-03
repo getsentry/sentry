@@ -41,7 +41,14 @@ export type AlertType =
   | 'custom_transactions'
   | 'uptime_monitor'
   | 'crons_monitor'
-  | 'eap_metrics';
+  | 'eap_metrics'
+  | 'trace_item_throughput'
+  | 'trace_item_duration'
+  | 'trace_item_apdex'
+  | 'trace_item_failure_rate'
+  | 'trace_item_lcp'
+  | 'trace_item_fid'
+  | 'trace_item_cls';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -80,6 +87,13 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
   uptime_monitor: t('Uptime Monitor'),
+  trace_item_throughput: t('Throughput'),
+  trace_item_duration: t('Transaction Duration'),
+  trace_item_apdex: t('Apdex'),
+  trace_item_failure_rate: t('Failure Rate'),
+  trace_item_lcp: t('Largest Contentful Paint'),
+  trace_item_fid: t('First Input Delay'),
+  trace_item_cls: t('Cumulative Layout Shift'),
   eap_metrics: t('Spans'),
   crons_monitor: t('Cron Monitor'),
 };
@@ -221,6 +235,34 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRANSACTION,
+  },
+  trace_item_throughput: {
+    aggregate: 'count(span.duration)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+  },
+  trace_item_duration: {
+    aggregate: 'p95(span.duration)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+  },
+  trace_item_apdex: {
+    aggregate: 'apdex(300)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+  },
+  trace_item_failure_rate: {
+    aggregate: 'failure_rate()',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+  },
+  trace_item_lcp: {
+    aggregate: 'p95(measurements.lcp)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+  },
+  trace_item_fid: {
+    aggregate: 'p95(measurements.fid)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+  },
+  trace_item_cls: {
+    aggregate: 'p95(measurements.cls)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
   },
 };
 
