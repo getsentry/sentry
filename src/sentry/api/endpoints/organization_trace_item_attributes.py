@@ -60,7 +60,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 class TraceItemAttribute(TypedDict):
     key: str
     name: str
-    secondary_aliases: NotRequired[list[dict[str, str]]]
+    secondaryAliases: NotRequired[list[str]]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -176,9 +176,7 @@ def as_attribute_key(
     }
 
     if secondary_aliases:
-        attribute_key["secondary_aliases"] = [
-            {"key": key, "name": secondary} for secondary in secondary_aliases
-        ]
+        attribute_key["secondaryAliases"] = sorted(secondary_aliases)
 
     return attribute_key
 

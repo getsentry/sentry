@@ -236,7 +236,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"key": "bar", "name": "bar"},
                 {"key": "baz", "name": "baz"},
                 {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
+                {
+                    "key": "span.description",
+                    "name": "span.description",
+                    "secondaryAliases": ["description", "message"],
+                },
                 {"key": "transaction", "name": "transaction"},
                 {"key": "project", "name": "project"},
             ],
@@ -329,7 +333,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"key": "bar", "name": "bar"},
                 {"key": "baz", "name": "baz"},
                 {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
+                {
+                    "key": "span.description",
+                    "name": "span.description",
+                    "secondaryAliases": ["description", "message"],
+                },
                 {"key": "project", "name": "project"},
             ],
             key=itemgetter("key"),
@@ -352,7 +360,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             key=itemgetter("key"),
         ) == sorted(
             [
-                {"key": "span.description", "name": "span.description"},
+                {
+                    "key": "span.description",
+                    "name": "span.description",
+                    "secondaryAliases": ["description", "message"],
+                },
                 {"key": "transaction", "name": "transaction"},
                 {"key": "project", "name": "project"},
             ],
@@ -379,7 +391,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"key": "bar", "name": "bar"},
                 {"key": "baz", "name": "baz"},
                 {"key": "foo", "name": "foo"},
-                {"key": "span.description", "name": "span.description"},
+                {
+                    "key": "span.description",
+                    "name": "span.description",
+                    "secondaryAliases": ["description", "message"],
+                },
                 {"key": "project", "name": "project"},
             ],
             key=itemgetter("key"),
