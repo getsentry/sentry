@@ -2,12 +2,12 @@ import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {ButtonIcon, ButtonLabel} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -43,6 +43,7 @@ import {
   LogAttributeTreeWrapper,
   LogDetailTableBodyCell,
   LogFirstCellContent,
+  LogRowChevronWrapper,
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
@@ -209,6 +210,11 @@ export const LogRowContent = memo(function LogRowContent({
         isClickable: true,
       };
 
+  const buttonSize = 'xs';
+  const chevronIcon = (
+    <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
+  );
+
   return (
     <Fragment>
       <LogTableRow
@@ -229,19 +235,13 @@ export const LogRowContent = memo(function LogRowContent({
                 onClick={() => toggleExpanded()}
               />
             ) : (
-              <span
-                style={{
-                  marginRight: space(0.5),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  whiteSpace: 'nowrap',
-                  height: '24px',
-                  padding: `${space(0.5)} ${space(0.75)}`,
-                }}
-              >
-                <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-              </span>
+              <LogRowChevronWrapper>
+                <ButtonLabel size={buttonSize} borderless={false}>
+                  <ButtonIcon size={buttonSize} hasChildren={false}>
+                    {chevronIcon}
+                  </ButtonIcon>
+                </ButtonLabel>
+              </LogRowChevronWrapper>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
