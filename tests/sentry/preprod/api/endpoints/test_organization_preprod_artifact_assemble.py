@@ -56,6 +56,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         """Test missing checksum field returns error."""
         body = orjson.dumps({"chunks": []})
         result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
         assert "checksum" in error
         assert result == {}
 
@@ -63,6 +64,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         """Test invalid checksum format returns error."""
         body = orjson.dumps({"checksum": "invalid", "chunks": []})
         result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
         assert "checksum" in error
         assert result == {}
 
@@ -77,6 +79,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         """Test missing chunks field returns error."""
         body = orjson.dumps({"checksum": "a" * 40})
         result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
         assert "chunks" in error
         assert result == {}
 
@@ -112,6 +115,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         """Test invalid git_sha format returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": "invalid"})
         result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
         assert "git_sha" in error
         assert result == {}
 
