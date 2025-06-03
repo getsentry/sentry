@@ -17,7 +17,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.client import HostTemporarilyUnavailable, ProcessingResult, TaskworkerClient
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -126,8 +126,9 @@ def test_get_task_ok():
         result = client.get_task()
 
         assert result
-        assert result.id
-        assert result.namespace == "testing"
+        assert result.host == "localhost-0:50051"
+        assert result.activation.id
+        assert result.activation.namespace == "testing"
 
 
 @django_db_all
@@ -159,8 +160,9 @@ def test_get_task_with_interceptor():
         result = client.get_task()
 
         assert result
-        assert result.id
-        assert result.namespace == "testing"
+        assert result.host == "localhost-0:50051"
+        assert result.activation.id
+        assert result.activation.namespace == "testing"
 
 
 @django_db_all
@@ -185,8 +187,9 @@ def test_get_task_with_namespace():
         result = client.get_task(namespace="testing")
 
         assert result
-        assert result.id
-        assert result.namespace == "testing"
+        assert result.host == "localhost-0:50051"
+        assert result.activation.id
+        assert result.activation.namespace == "testing"
 
 
 @django_db_all
@@ -237,13 +240,15 @@ def test_update_task_ok_with_next():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_host = {"abc123": "localhost-0:50051"}
         assert set(client._host_to_stubs.keys()) == {"localhost-0:50051"}
         result = client.update_task(
-            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+            ProcessingResult("abc123", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0),
+            FetchNextTask(namespace=None),
         )
+
         assert result
-        assert result.id == "abc123"
+        assert result.host == "localhost-0:50051"
+        assert result.activation.id == "abc123"
 
 
 @django_db_all
@@ -265,13 +270,18 @@ def test_update_task_ok_with_next_namespace():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_host = {"abc123": "localhost-0:50051"}
         result = client.update_task(
-            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace="testing")
+            ProcessingResult(
+                task_id="id",
+                status=TASK_ACTIVATION_STATUS_RETRY,
+                host="localhost-0:50051",
+                receive_timestamp=0,
+            ),
+            FetchNextTask(namespace="testing"),
         )
         assert result
-        assert result.id == "abc123"
-        assert result.namespace == "testing"
+        assert result.activation.id == "abc123"
+        assert result.activation.namespace == "testing"
 
 
 @django_db_all
@@ -284,7 +294,13 @@ def test_update_task_ok_no_next():
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
-            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+            ProcessingResult(
+                task_id="abc123",
+                status=TASK_ACTIVATION_STATUS_RETRY,
+                host="localhost-0:50051",
+                receive_timestamp=0,
+            ),
+            FetchNextTask(namespace=None),
         )
         assert result is None
 
@@ -299,9 +315,14 @@ def test_update_task_not_found():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_host = {"abc123": "localhost-0:50051"}
         result = client.update_task(
-            "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+            ProcessingResult(
+                task_id="abc123",
+                status=TASK_ACTIVATION_STATUS_RETRY,
+                host="localhost-0:50051",
+                receive_timestamp=0,
+            ),
+            FetchNextTask(namespace=None),
         )
         assert result is None
 
@@ -316,13 +337,17 @@ def test_update_task_unavailable_retain_task_to_host():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_host = {"abc123": "localhost-0:50051"}
         with pytest.raises(MockGrpcError) as err:
             client.update_task(
-                "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
+                ProcessingResult(
+                    task_id="abc123",
+                    status=TASK_ACTIVATION_STATUS_RETRY,
+                    host="localhost-0:50051",
+                    receive_timestamp=0,
+                ),
+                FetchNextTask(namespace=None),
             )
         assert "broker down" in str(err.value)
-        assert client._task_id_to_host == {"abc123": "localhost-0:50051"}
 
 
 @django_db_all
@@ -413,41 +438,38 @@ def test_client_loadbalance():
             )
 
             task_0 = client.get_task()
-            assert task_0 is not None and task_0.id == "0"
+            assert task_0 is not None and task_0.activation.id == "0"
             task_1 = client.get_task()
-            assert task_1 is not None and task_1.id == "1"
+            assert task_1 is not None and task_1.activation.id == "1"
             task_2 = client.get_task()
-            assert task_2 is not None and task_2.id == "2"
+            assert task_2 is not None and task_2.activation.id == "2"
             task_3 = client.get_task()
-            assert task_3 is not None and task_3.id == "3"
+            assert task_3 is not None and task_3.activation.id == "3"
 
-            assert client._task_id_to_host == {
-                "0": "localhost-0:50051",
-                "1": "localhost-1:50051",
-                "2": "localhost-2:50051",
-                "3": "localhost-3:50051",
-            }
-
-            client.update_task(task_0.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_host == {
-                "1": "localhost-1:50051",
-                "2": "localhost-2:50051",
-                "3": "localhost-3:50051",
-            }
-
-            client.update_task(task_1.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_host == {
-                "2": "localhost-2:50051",
-                "3": "localhost-3:50051",
-            }
-
-            client.update_task(task_2.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_host == {
-                "3": "localhost-3:50051",
-            }
-
-            client.update_task(task_3.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_host == {}
+            client.update_task(
+                ProcessingResult(
+                    task_0.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_0.host, 0
+                ),
+                None,
+            )
+            client.update_task(
+                ProcessingResult(
+                    task_1.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_1.host, 0
+                ),
+                None,
+            )
+            client.update_task(
+                ProcessingResult(
+                    task_2.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_2.host, 0
+                ),
+                None,
+            )
+            client.update_task(
+                ProcessingResult(
+                    task_3.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_3.host, 0
+                ),
+                None,
+            )
 
 
 @django_db_all
@@ -510,24 +532,20 @@ def test_client_loadbalance_on_notfound():
 
             # Fetch again, this time from channel_1
             task_1 = client.get_task()
-            assert task_1 and task_1.id == "1"
+            assert task_1 and task_1.activation.id == "1"
 
-            assert client._task_id_to_host == {
-                "1": "localhost-1:50051",
-            }
-
-            res = client.update_task(task_1.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
+            res = client.update_task(
+                ProcessingResult(
+                    task_1.activation.id, TASK_ACTIVATION_STATUS_COMPLETE, task_1.host, 0
+                ),
+                None,
+            )
             assert res is None
-            assert client._task_id_to_host == {}
 
             # Because SetStatus on channel_1 returned notfound the client
             # should switch brokers.
             task_2 = client.get_task()
-            assert task_2 and task_2.id == "2"
-
-            assert client._task_id_to_host == {
-                "2": "localhost-2:50051",
-            }
+            assert task_2 and task_2.activation.id == "2"
 
 
 @django_db_all
@@ -589,7 +607,7 @@ def test_client_loadbalance_on_unavailable():
 
             # Should rebalance to the second host and receive task
             task = client.get_task()
-            assert task and task.id == "1"
+            assert task and task.activation.id == "1"
             assert client._num_consecutive_unavailable_errors == 0
 
 
@@ -680,7 +698,7 @@ def test_client_reset_errors_after_success():
         assert client._num_consecutive_unavailable_errors == 1
 
         task = client.get_task()
-        assert task and task.id == "1"
+        assert task and task.activation.id == "1"
         assert client._num_consecutive_unavailable_errors == 0
 
         with pytest.raises(grpc.RpcError, match="host is unavailable"):
@@ -736,9 +754,8 @@ def test_client_update_task_host_unavailable():
 
         # Get a task to establish the host mapping
         task = client.get_task()
-        assert task and task.id == "1"
-        assert "1" in client._task_id_to_host
-        host = client._task_id_to_host["1"]
+        assert task and task.activation.id == "1"
+        host = task.host
 
         # Make the host temporarily unavailable
         for _ in range(3):
@@ -752,9 +769,11 @@ def test_client_update_task_host_unavailable():
             HostTemporarilyUnavailable, match=f"Host: {host} is temporarily unavailable"
         ):
             client.update_task(
-                task_id="1", status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
+                ProcessingResult(
+                    task_id="1",
+                    status=TASK_ACTIVATION_STATUS_COMPLETE,
+                    host=host,
+                    receive_timestamp=0,
+                ),
+                fetch_next_task=None,
             )
-
-        # Task get skipped, but still be in the mapping since we didn't process it
-        assert "1" in client._task_id_to_host
-        assert client._task_id_to_host["1"] == host
