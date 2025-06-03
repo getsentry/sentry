@@ -42,20 +42,20 @@ function NavContent() {
   );
 }
 
-function NoOrganizationNav() {
-  return (
-    <NoOrganizationSidebar>
-      <UserDropdown />
-    </NoOrganizationSidebar>
-  );
-}
-
 function Nav() {
   const organization = useOrganization({allowNull: true});
 
+  if (!organization) {
+    return (
+      <NoOrganizationSidebar data-test-id="no-organization-sidebar">
+        <UserDropdown />
+      </NoOrganizationSidebar>
+    );
+  }
+
   return (
     <NavigationTourProvider>
-      {organization ? <NavContent /> : <NoOrganizationNav />}
+      <NavContent />
     </NavigationTourProvider>
   );
 }
