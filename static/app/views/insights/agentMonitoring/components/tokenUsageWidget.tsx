@@ -10,6 +10,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
@@ -101,21 +102,26 @@ export default function TokenUsageWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {tokens?.map((item, index) => (
-        <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
-          <div>
-            <SeriesColorIndicator
-              style={{
-                backgroundColor: colorPalette[index],
-              }}
-            />
-          </div>
-          <div>
-            <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
-          </div>
-          <span>{formatAbbreviatedNumber(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)}</span>
-        </Fragment>
-      ))}
+      {tokens?.map((item, index) => {
+        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
+        return (
+          <Fragment key={modelId}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <ModelText>
+              <ModelName modelId={modelId} />
+            </ModelText>
+            <span>
+              {formatAbbreviatedNumber(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)}
+            </span>
+          </Fragment>
+        );
+      })}
     </WidgetFooterTable>
   );
 
@@ -161,7 +167,6 @@ export default function TokenUsageWidget() {
 }
 
 const ModelText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
