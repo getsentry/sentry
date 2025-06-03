@@ -169,19 +169,21 @@ def redis_mock():
 def test_increment_project_counter_in_cache(default_project, redis_mock):
     # Enable the feature flag
     with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # First increment should trigger a refill
-        redis_mock.lpop.return_value = None
-        redis_mock.llen.return_value = 0
+        # Patch the pipeline context manager
+        pipeline_mock = MagicMock()
+        pipeline_mock.__enter__.return_value = pipeline_mock
+        pipeline_mock.__exit__.return_value = None
+        with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+            # First increment should trigger a refill
+            pipeline_mock.execute.return_value = [None, 0]
+            with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+                result = increment_project_counter_in_cache(default_project, using="default")
+                mock_refill.assert_called_once_with(default_project.id, using="default")
 
-        # Mock the refill task
-        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+            # After refill, should get a value from Redis
+            pipeline_mock.execute.return_value = ["42", 100]
             result = increment_project_counter_in_cache(default_project, using="default")
-            mock_refill.assert_called_once_with(default_project.id, using="default")
-
-        # After refill, should get a value from Redis
-        redis_mock.lpop.return_value = "42"
-        result = increment_project_counter_in_cache(default_project, using="default")
-        assert result == 42
+            assert result == 42
 
 
 @django_db_all
@@ -227,32 +229,38 @@ def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
 def test_low_water_mark_trigger(default_project, redis_mock):
     # Enable the feature flag
     with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # Set remaining count below low water mark
-        redis_mock.llen.return_value = int(CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO) - 1
-        redis_mock.lpop.return_value = "42"
-
-        # Mock the refill task
-        with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
-            result = increment_project_counter_in_cache(default_project, using="default")
-            assert result == 42
-            mock_refill.assert_called_once_with(default_project.id, using="default")
+        # Patch the pipeline context manager
+        pipeline_mock = MagicMock()
+        pipeline_mock.__enter__.return_value = pipeline_mock
+        pipeline_mock.__exit__.return_value = None
+        with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+            pipeline_mock.execute.return_value = [
+                "42",
+                int(CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO) - 1,
+            ]
+            with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
+                result = increment_project_counter_in_cache(default_project, using="default")
+                assert result == 42
+                mock_refill.assert_called_once_with(default_project.id, using="default")
 
 
 @django_db_all
 def test_fallback_to_database(default_project, redis_mock):
     # Enable the feature flag
     with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
-        # Simulate Redis being empty and refill failing
-        redis_mock.lpop.return_value = None
-        redis_mock.llen.return_value = 0
-
-        with patch("sentry.models.counter.refill_cached_short_ids.delay"):
-            with patch(
-                "sentry.models.counter.increment_project_counter_in_database", return_value=42
-            ) as mock_db:
-                result = increment_project_counter_in_cache(default_project, using="default")
-                assert result == 42
-                mock_db.assert_called_once_with(default_project, using="default")
+        # Patch the pipeline context manager
+        pipeline_mock = MagicMock()
+        pipeline_mock.__enter__.return_value = pipeline_mock
+        pipeline_mock.__exit__.return_value = None
+        with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
+            pipeline_mock.execute.return_value = [None, 0]
+            with patch("sentry.models.counter.refill_cached_short_ids.delay"):
+                with patch(
+                    "sentry.models.counter.increment_project_counter_in_database", return_value=42
+                ) as mock_db:
+                    result = increment_project_counter_in_cache(default_project, using="default")
+                    assert result == 42
+                    mock_db.assert_called_once_with(default_project, using="default")
 
 
 @django_db_all

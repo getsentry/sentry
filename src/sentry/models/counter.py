@@ -67,7 +67,11 @@ class Counter(Model):
 def increment_project_counter_in_cache(project, using="default") -> int:
     redis_key = make_short_id_counter_key(project.id)
     redis = redis_clusters.get("default")
-    short_id = redis.lpop(redis_key)
+
+    with redis.pipeline() as pipe:
+        pipe.lpop(redis_key)
+        pipe.llen(redis_key)
+        short_id, remaining = pipe.execute()
 
     if short_id is None:  # fallback if not populated in Redis
         metrics.incr("counter.increment_project_counter_in_cache.fallback")
@@ -76,7 +80,6 @@ def increment_project_counter_in_cache(project, using="default") -> int:
         return next_id
     else:
         metrics.incr("counter.increment_project_counter_in_cache.found_in_redis")
-        remaining = redis.llen(redis_key)
         if remaining < CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
             metrics.incr("counter.increment_project_counter_in_cache.refill")
             refill_cached_short_ids.delay(project.id, using=using)
