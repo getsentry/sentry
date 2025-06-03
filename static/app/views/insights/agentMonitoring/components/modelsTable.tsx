@@ -1,4 +1,5 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import GridEditable, {
@@ -27,6 +28,7 @@ import {
   HeadSortCell,
   useTableSortParams,
 } from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
@@ -183,7 +185,11 @@ const BodyCell = memo(function BodyCell({
 
   switch (column.key) {
     case 'model':
-      return <CellLink to={exploreUrl}>{dataRow.model}</CellLink>;
+      return (
+        <ModelCell to={exploreUrl}>
+          <ModelName modelId={dataRow.model} provider={'openai'} />
+        </ModelCell>
+      );
     case 'count()':
       return dataRow.requests;
     case 'avg(span.duration)':
@@ -200,3 +206,7 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
+
+const ModelCell = styled(CellLink)`
+  line-height: 1.1;
+`;
