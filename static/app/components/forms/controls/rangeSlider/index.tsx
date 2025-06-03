@@ -196,7 +196,6 @@ function RangeSlider({
             step={step}
             disabled={disabled}
             onChange={(_, e) => handleInput(e)}
-            onInput={handleInput}
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}

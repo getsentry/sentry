@@ -368,7 +368,7 @@ export const FloatingBackToTopContainer = styled('div')<{
 }>`
   position: fixed;
   top: 20px;
-  z-index: 1000;
+  z-index: 1;
   opacity: 0.9;
   left: ${p => (p.tableLeft ? `${p.tableLeft}px` : '0')};
   width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};

@@ -71,6 +71,7 @@ export function LogsInfiniteTable({
   const theme = useTheme();
   const fields = useLogsFields();
   const search = useLogsSearch();
+  const isTableFrozen = useLogsIsTableFrozen();
   const autoRefresh = useLogsAutoRefresh();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {
@@ -223,6 +224,7 @@ export function LogsInfiniteTable({
         ref={tableRef}
         style={initialTableStyles}
         css={tableStaticCSS}
+        hideBorder={isTableFrozen}
         data-test-id="logs-table"
       >
         {showHeader ? (
