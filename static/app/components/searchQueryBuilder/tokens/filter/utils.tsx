@@ -19,6 +19,37 @@ import {
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
+export const OP_LABELS = {
+  [ExtendedTermOperators.DEFAULT]: 'is',
+  [ExtendedTermOperators.GREATER_THAN]: '>',
+  [ExtendedTermOperators.GREATER_THAN_EQUAL]: '>=',
+  [ExtendedTermOperators.LESS_THAN]: '<',
+  [ExtendedTermOperators.LESS_THAN_EQUAL]: '<=',
+  [ExtendedTermOperators.EQUAL]: 'is',
+  [ExtendedTermOperators.NOT_EQUAL]: 'is not',
+  [ExtendedTermOperators.CONTAINS]: 'contains',
+  [ExtendedTermOperators.DOES_NOT_CONTAIN]: 'does not contain',
+  [ExtendedTermOperators.STARTS_WITH]: 'starts with',
+  [ExtendedTermOperators.ENDS_WITH]: 'ends with',
+};
+
+export const DATE_OP_LABELS = {
+  [ExtendedTermOperators.GREATER_THAN]: 'is after',
+  [ExtendedTermOperators.GREATER_THAN_EQUAL]: 'is on or after',
+  [ExtendedTermOperators.LESS_THAN]: 'is before',
+  [ExtendedTermOperators.LESS_THAN_EQUAL]: 'is on or before',
+  [ExtendedTermOperators.EQUAL]: 'is',
+  [ExtendedTermOperators.DEFAULT]: 'is',
+};
+
+export const DATE_OPTIONS: FETermOperators[] = [
+  ExtendedTermOperators.GREATER_THAN,
+  ExtendedTermOperators.GREATER_THAN_EQUAL,
+  ExtendedTermOperators.LESS_THAN,
+  ExtendedTermOperators.LESS_THAN_EQUAL,
+  ExtendedTermOperators.EQUAL,
+];
+
 export function isAggregateFilterToken(
   token: TokenResult<Token.FILTER>
 ): token is AggregateFilter {
@@ -175,7 +206,7 @@ function getIsEndsWith(tokenValue: TokenValue) {
   return tokenValue === WildcardOperators.LEADING;
 }
 
-export function getWildcardLabelAndOperator(token: TokenResult<Token.FILTER>) {
+export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
   if (token.value.type === Token.VALUE_TEXT) {
     if (getIsContains(token.value.wildcard)) {
       return {
@@ -224,5 +255,11 @@ export function getWildcardLabelAndOperator(token: TokenResult<Token.FILTER>) {
     }
   }
 
-  return null;
+  const operator = token.negated ? ExtendedTermOperators.NOT_EQUAL : token.operator;
+  const label = OP_LABELS[operator] ?? operator;
+
+  return {
+    label,
+    operator,
+  };
 }

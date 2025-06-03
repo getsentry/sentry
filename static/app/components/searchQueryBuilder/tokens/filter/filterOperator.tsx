@@ -11,8 +11,11 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
+  DATE_OP_LABELS,
+  DATE_OPTIONS,
+  getLabelAndOperatorFromToken,
   getValidOpsForFilter,
-  getWildcardLabelAndOperator,
+  OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
@@ -41,41 +44,11 @@ interface FilterOperatorProps {
 
 const MENU_OFFSET: [number, number] = [0, 12];
 
-const OP_LABELS = {
-  [ExtendedTermOperators.DEFAULT]: 'is',
-  [ExtendedTermOperators.GREATER_THAN]: '>',
-  [ExtendedTermOperators.GREATER_THAN_EQUAL]: '>=',
-  [ExtendedTermOperators.LESS_THAN]: '<',
-  [ExtendedTermOperators.LESS_THAN_EQUAL]: '<=',
-  [ExtendedTermOperators.NOT_EQUAL]: 'is not',
-  [ExtendedTermOperators.CONTAINS]: 'contains',
-  [ExtendedTermOperators.DOES_NOT_CONTAIN]: 'does not contain',
-  [ExtendedTermOperators.STARTS_WITH]: 'starts with',
-  [ExtendedTermOperators.ENDS_WITH]: 'ends with',
-};
-
-const DATE_OP_LABELS = {
-  [ExtendedTermOperators.GREATER_THAN]: 'is after',
-  [ExtendedTermOperators.GREATER_THAN_EQUAL]: 'is on or after',
-  [ExtendedTermOperators.LESS_THAN]: 'is before',
-  [ExtendedTermOperators.LESS_THAN_EQUAL]: 'is on or before',
-  [ExtendedTermOperators.EQUAL]: 'is',
-  [ExtendedTermOperators.DEFAULT]: 'is',
-};
-
-const DATE_OPTIONS: ExtendedTermOperators[] = [
-  ExtendedTermOperators.GREATER_THAN,
-  ExtendedTermOperators.GREATER_THAN_EQUAL,
-  ExtendedTermOperators.LESS_THAN,
-  ExtendedTermOperators.LESS_THAN_EQUAL,
-  ExtendedTermOperators.EQUAL,
-];
-
 function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   switch (token.filter) {
     case FilterType.DATE:
     case FilterType.SPECIFIC_DATE:
-      return token.operator as unknown as ExtendedTermOperators;
+      return token.operator;
     case FilterType.RELATIVE_DATE:
       return token.value.sign === '+'
         ? ExtendedTermOperators.LESS_THAN
@@ -83,14 +56,6 @@ function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
     default:
       return ExtendedTermOperators.DEFAULT;
   }
-}
-
-function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
-  if (token.negated) {
-    return ExtendedTermOperators.NOT_EQUAL;
-  }
-
-  return token.operator as unknown as ExtendedTermOperators;
 }
 
 function FilterKeyOperatorLabel({
@@ -150,7 +115,7 @@ export function getOperatorInfo(
     };
   }
 
-  let operator = getTermOperatorFromToken(token);
+  const {operator, label} = getLabelAndOperatorFromToken(token);
 
   if (token.filter === FilterType.IS) {
     return {
@@ -231,18 +196,10 @@ export function getOperatorInfo(
   }
 
   const keyLabel = token.key.text;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  let opLabel = OP_LABELS[operator] ?? operator;
-
-  const wildcardOperator = getWildcardLabelAndOperator(token);
-  if (wildcardOperator && hasWildcardOperators) {
-    opLabel = wildcardOperator.label;
-    operator = wildcardOperator.operator;
-  }
 
   return {
     operator,
-    label: <OpLabel>{opLabel}</OpLabel>,
+    label: <OpLabel>{label}</OpLabel>,
     options: getValidOpsForFilter(token, hasWildcardOperators)
       .filter(op => op !== ExtendedTermOperators.EQUAL)
       .map((op): SelectOption<ExtendedTermOperators> => {
