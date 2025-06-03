@@ -219,9 +219,9 @@ class SearchResolver:
             if isinstance(terms[0], event_search.ParenExpression):
                 return self._resolve_boolean_conditions(terms[0].children)
             elif isinstance(terms[0], event_search.SearchFilter):
-                return self._resolve_terms([cast(event_search.SearchFilter, terms[0])])
+                return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
-                return self._resolve_terms([cast(event_search.AggregateFilter, terms[0])])
+                return self._resolve_terms([terms[0]])
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
 
@@ -318,9 +318,7 @@ class SearchResolver:
         resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
-                resolved_term, resolved_context = self.resolve_term(
-                    cast(event_search.SearchFilter, item)
-                )
+                resolved_term, resolved_context = self.resolve_term(item)
                 parsed_terms.append(resolved_term)
                 resolved_contexts.append(resolved_context)
 
@@ -340,9 +338,7 @@ class SearchResolver:
         resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.AggregateFilter):
-                resolved_term, resolved_context = self.resolve_aggregate_term(
-                    cast(event_search.AggregateFilter, item)
-                )
+                resolved_term, resolved_context = self.resolve_aggregate_term(item)
                 parsed_terms.append(resolved_term)
                 resolved_contexts.append(resolved_context)
 
