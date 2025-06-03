@@ -22,7 +22,7 @@ def _build_static_assets() -> None:
         if ret:
             raise SystemExit(ret)
 
-    _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only")
+    _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only", "--use-store=false")
     _cmd("pnpm", "run", "build-production")
     _cmd("pnpm", "run", "build-chartcuterie-config")
 
