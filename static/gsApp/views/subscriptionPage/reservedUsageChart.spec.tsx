@@ -13,13 +13,12 @@ import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
 import {type BillingStats, PlanTier} from 'getsentry/types';
 
-import {
+import ReservedUsageChart, {
   getCategoryOptions,
   mapCostStatsToChart,
   mapReservedBudgetStatsToChart,
   mapStatsToChart,
 } from './reservedUsageChart';
-import ReservedUsageChart from './reservedUsageChart';
 
 describe('mapStatsToChart', () => {
   it('should map stats to chart data', () => {
