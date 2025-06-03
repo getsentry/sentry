@@ -151,8 +151,8 @@ function ComparisonTypeField() {
   if (!type) {
     return (
       <AutomationBuilderSelectField
-        name={`${subfilter_id}.comparison_type`}
-        value={subfilter.comparison_type}
+        name={`${subfilter_id}.type`}
+        value={subfilter.type}
         placeholder={t('Select value type')}
         options={[
           {

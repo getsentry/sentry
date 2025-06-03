@@ -83,9 +83,9 @@ def test_buckets_logic() -> None:
     helper = CodeMappingTreesHelper({})
     buckets = helper._stacktrace_buckets(frames)
     assert buckets == {
+        "/cronscripts/": [FrameInfo({"filename": "/cronscripts/monitoringsync.php"})],
         "./app": [FrameInfo({"filename": "./app/utils/handleXhrErrorResponse.tsx"})],
         "app:": [FrameInfo({"filename": "app://foo.js"})],
-        "cronscripts": [FrameInfo({"filename": "/cronscripts/monitoringsync.php"})],
         "getsentry": [FrameInfo({"filename": "getsentry/billing/tax/manager.py"})],
     }
 

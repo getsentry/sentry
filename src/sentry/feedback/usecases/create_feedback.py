@@ -465,17 +465,24 @@ def shim_to_feedback(
         return
 
     try:
+        name = (
+            report.get("name")
+            or get_path(event.data, "user", "name")
+            or get_path(event.data, "user", "username")
+            or ""
+        )
+        contact_email = report.get("email") or get_path(event.data, "user", "email") or ""
+
         feedback_event: dict[str, Any] = {
             "contexts": {
                 "feedback": {
-                    "name": report.get("name", ""),
-                    "contact_email": report.get("email", ""),
+                    "name": name,
+                    "contact_email": contact_email,
                     "message": report["comments"],
+                    "associated_event_id": event.event_id,
                 },
             },
         }
-
-        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
         if get_path(event.data, "contexts", "replay", "replay_id"):
             feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
