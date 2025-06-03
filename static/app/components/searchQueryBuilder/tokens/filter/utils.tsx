@@ -42,7 +42,7 @@ export const DATE_OP_LABELS = {
   [ExtendedTermOperators.DEFAULT]: 'is',
 };
 
-export const DATE_OPTIONS: FETermOperators[] = [
+export const DATE_OPTIONS = [
   ExtendedTermOperators.GREATER_THAN,
   ExtendedTermOperators.GREATER_THAN_EQUAL,
   ExtendedTermOperators.LESS_THAN,

@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import type {ParseResult} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, TermOperator} from 'sentry/components/searchSyntax/parser';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
 export type FilterKeySection = {
@@ -45,3 +45,5 @@ export enum ExtendedTermOperators {
   STARTS_WITH = 'starts with',
   ENDS_WITH = 'ends with',
 }
+
+export type FETermOperators = ExtendedTermOperators | TermOperator;

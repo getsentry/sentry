@@ -17,6 +17,7 @@ import {
   getValidOpsForFilter,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import type {FETermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -91,8 +92,8 @@ export function getOperatorInfo(
   hasWildcardOperators: boolean
 ): {
   label: ReactNode;
-  operator: ExtendedTermOperators;
-  options: Array<SelectOption<ExtendedTermOperators>>;
+  operator: FETermOperators;
+  options: Array<SelectOption<FETermOperators>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
