@@ -13,6 +13,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDetectorQueriesByIds} from 'sentry/views/automations/hooks';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -59,7 +60,7 @@ export function ConnectedAutomationsList({
           : undefined,
       };
     })
-    .filter((x): x is ConnectedAutomationsData => x !== undefined);
+    .filter(defined);
 
   const isLoading = queries.some(query => query.isPending);
   const isError = queries.some(query => query.isError);
