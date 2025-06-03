@@ -1,38 +1,61 @@
 import {Button} from 'sentry/components/core/button';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDetectorQueriesByIds} from 'sentry/views/automations/hooks';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 type Props = {
-  automations: Automation[];
+  automationIds: Detector['workflowIds'];
   connectedAutomationIds?: Set<string>;
   toggleConnected?: (id: string) => void;
 };
 
 export function ConnectedAutomationsList({
-  automations,
+  automationIds,
   connectedAutomationIds,
   toggleConnected,
 }: Props) {
   const organization = useOrganization();
   const canEdit = connectedAutomationIds && !!toggleConnected;
+  const queries = useDetectorQueriesByIds(automationIds);
 
-  const data = automations.map(automation => ({
-    ...automation,
-    link: makeAutomationDetailsPathname(organization.slug, automation.id),
-    connected: canEdit
-      ? {
-          isConnected: connectedAutomationIds?.has(automation.id),
-          toggleConnected: () => toggleConnected?.(automation.id),
-        }
-      : undefined,
-  }));
+  const data = queries
+    .map((query): ConnectedAutomationsData | undefined => {
+      if (!query.data) {
+        return undefined;
+      }
+      return {
+        ...query.data,
+        link: makeAutomationDetailsPathname(organization.slug, query.data.id),
+        connected: canEdit
+          ? {
+              isConnected: connectedAutomationIds?.has(query.data.id),
+              toggleConnected: () => toggleConnected?.(query.data.id),
+            }
+          : undefined,
+      };
+    })
+    .filter((x): x is ConnectedAutomationsData => x !== undefined);
+
+  const isLoading = queries.some(query => query.isPending);
+  const isError = queries.some(query => query.isError);
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   if (canEdit) {
     return <SimpleTable columns={connectedColumns} data={data} />;
