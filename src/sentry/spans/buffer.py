@@ -174,6 +174,9 @@ class SpansBuffer:
             ),
         )
 
+    def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
     def process_spans(self, spans: Sequence[Span], now: int):
         """
         :param spans: List of to-be-ingested spans.
@@ -181,9 +184,8 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
-        queue_keys = []
+        result_meta = []
         is_root_span_count = 0
-        has_root_span_count = 0
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
 
@@ -192,7 +194,7 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
+                    set_key = self._get_span_key(project_and_trace, parent_span_id)
                     p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
@@ -205,23 +207,20 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    for span in subsegment:
-                        p.execute_command(
-                            "EVALSHA",
-                            add_buffer_sha,
-                            1,
-                            project_and_trace,
-                            "true" if span.is_segment_span else "false",
-                            span.span_id,
-                            parent_span_id,
-                            self.redis_ttl,
-                        )
+                    p.execute_command(
+                        "EVALSHA",
+                        add_buffer_sha,
+                        1,
+                        project_and_trace,
+                        len(subsegment),
+                        parent_span_id,
+                        "true" if any(span.is_segment_span for span in subsegment) else "false",
+                        self.redis_ttl,
+                        *[span.span_id for span in subsegment],
+                    )
 
-                        is_root_span_count += int(span.is_segment_span)
-                        shard = self.assigned_shards[
-                            int(span.trace_id, 16) % len(self.assigned_shards)
-                        ]
-                        queue_keys.append(self._get_queue_key(shard))
+                    is_root_span_count += sum(span.is_segment_span for span in subsegment)
+                    result_meta.append((project_and_trace, parent_span_id))
 
                 results = p.execute()
 
@@ -229,33 +228,36 @@ class SpansBuffer:
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
 
-            assert len(queue_keys) == len(results)
+            assert len(result_meta) == len(results)
 
-            for queue_key, (redirect_depth, delete_item, add_item, has_root_span) in zip(
-                queue_keys, results
-            ):
+            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+                redirect_depth, set_key, has_root_span = result
+
+                shard = self.assigned_shards[
+                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
+                ]
+                queue_key = self._get_queue_key(shard)
+
                 min_redirect_depth = min(min_redirect_depth, redirect_depth)
                 max_redirect_depth = max(max_redirect_depth, redirect_depth)
-
-                delete_set = queue_deletes.setdefault(queue_key, set())
-                delete_set.add(delete_item)
-                # if we are going to add this item, we should not need to
-                # delete it from redis
-                delete_set.discard(add_item)
 
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
                 # usual.
                 if has_root_span:
-                    has_root_span_count += 1
                     offset = self.span_buffer_root_timeout_secs
                 else:
                     offset = self.span_buffer_timeout_secs
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[add_item] = now + offset
-                if delete_item != add_item:
-                    zadd_items.pop(delete_item, None)
+                zadd_items[set_key] = now + offset
+
+                subsegment_spans = trees[project_and_trace, parent_span_id]
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                delete_set.update(
+                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
+                )
+                delete_set.discard(set_key)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
@@ -271,7 +273,7 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
-        metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
+        metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
         metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
 

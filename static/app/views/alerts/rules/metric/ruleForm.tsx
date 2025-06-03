@@ -52,11 +52,8 @@ import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerFor
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
-import {
-  determineIsSampled,
-  determineMultiSeriesConfidence,
-  determineSeriesConfidence,
-} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -69,6 +66,9 @@ import {
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -152,8 +152,8 @@ type State = {
   comparisonDelta?: number;
   confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
-  isSampled?: boolean | null;
   seasonality?: AlertRuleSeasonality;
+  seriesSamplingInfo?: SeriesSamplingInfo;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -167,8 +167,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     super(props);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
-    this.handleConfidenceTimeSeriesDataFetched =
-      this.handleConfidenceTimeSeriesDataFetched.bind(this);
   }
 
   get isDuplicateRule(): boolean {
@@ -981,6 +979,32 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
+  handleEAPMetricsAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
+    if (!data) {
+      return;
+    }
+
+    let timeseries: TimeSeries[];
+
+    if (isEventsStats(data)) {
+      const [, series] = convertEventsStatsToTimeSeriesData('', data);
+      timeseries = [series];
+    } else {
+      timeseries = Object.values(data).map(result => {
+        const [, series] = convertEventsStatsToTimeSeriesData('', result);
+        return series;
+      });
+    }
+
+    const seriesSamplingInfo = determineSeriesSampleCountAndIsSampled(
+      timeseries,
+      !isEventsStats(data)
+    );
+    const confidence = combineConfidenceForSeries(timeseries);
+
+    this.setState({confidence, seriesSamplingInfo});
+  };
+
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
     const currentData = formatStatsToHistoricalDataset(data);
@@ -994,20 +1018,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
-  };
-
-  handleConfidenceTimeSeriesDataFetched(
-    data: EventsStats | MultiSeriesEventsStats | null
-  ) {
-    if (!data) {
-      return;
+    if (this.state.alertType === 'eap_metrics') {
+      this.handleEAPMetricsAlertDataset(data);
     }
-    const confidence = isEventsStats(data)
-      ? determineSeriesConfidence(data)
-      : determineMultiSeriesConfidence(data);
-    const isSampled = determineIsSampled(data);
-    this.setState({confidence, isSampled});
-  }
+  };
 
   handleHistoricalTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
@@ -1162,6 +1176,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
+      seriesSamplingInfo,
     } = this.state;
 
     if (chartError) {
@@ -1204,12 +1219,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       isOnDemandMetricAlert: isOnDemand,
       showTotalCount: !['span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
-      onConfidenceDataLoaded: this.handleConfidenceTimeSeriesDataFetched,
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
-      includeConfidence: alertType === 'eap_metrics',
-      confidence,
       theme: this.props.theme,
+      confidence,
+      seriesSamplingInfo,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
