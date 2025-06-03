@@ -170,6 +170,7 @@ def run_top_events_timeseries_query(
         limit=limit,
         referrer=referrer,
         config=config,
+        sampling_mode=sampling_mode,
     )
 
 
