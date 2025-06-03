@@ -14,7 +14,7 @@ interface Variables {
 }
 
 export function useCreateProject() {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
   return useMutation<Project, RequestError, Variables>({
