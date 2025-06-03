@@ -15,7 +15,9 @@ import EventAttributeNode, {
 import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
 import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
-import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
+import IssuePriorityNode, {
+  IssuePriorityDetails,
+} from 'sentry/views/automations/components/actionFilters/issuePriority';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
 import LevelNode from 'sentry/views/automations/components/actionFilters/level';
 import PercentSessionsNode from 'sentry/views/automations/components/actionFilters/percentSessions';
@@ -108,6 +110,9 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue priority'),
       dataCondition: <IssuePriorityNode />,
+      details: (condition: DataCondition) => (
+        <IssuePriorityDetails condition={condition} />
+      ),
     },
   ],
   [
