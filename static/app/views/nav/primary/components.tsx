@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link, {linkStyles} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
@@ -93,6 +93,20 @@ export function SidebarItem({
   );
 }
 
+function SidebarItemIcon({
+  children,
+  layout,
+}: {
+  children: React.ReactNode;
+  layout: NavLayout;
+}) {
+  return (
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
+      {children}
+    </IconDefaultsProvider>
+  );
+}
+
 export function SidebarMenu({
   items,
   children,
@@ -128,12 +142,16 @@ export function SidebarMenu({
                 onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
+              icon={
+                showLabel ? (
+                  <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
+                ) : null
+              }
             >
               {theme.isChonk ? null : (
                 <InteractionStateLayer hasSelectedBackground={isOpen} />
               )}
-              {children}
-              {showLabel ? label : null}
+              {showLabel ? label : children}
             </NavButton>
           </SidebarItem>
         );
@@ -262,10 +280,12 @@ export function SidebarButton({
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
+        icon={
+          showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
+        }
       >
         {theme.isChonk ? null : <InteractionStateLayer />}
-        {children}
-        {showLabel ? label : null}
+        {showLabel ? label : children}
       </NavButton>
     </SidebarItem>
   );
@@ -542,7 +562,6 @@ const StyledNavButton = styled(Button, {
   position: relative;
   background: transparent;
 
-  ${linkStyles}
   ${baseNavItemStyles}
 `;
 
@@ -551,7 +570,7 @@ type NavButtonProps = ButtonProps & {
 };
 
 // Use a manual theme switch because the types of Button dont seem to play well with withChonk.
-export const NavButton = styled((p: NavButtonProps) => {
+const NavButton = styled((p: NavButtonProps) => {
   const theme = useTheme();
   if (theme.isChonk) {
     return (
@@ -568,7 +587,7 @@ export const NavButton = styled((p: NavButtonProps) => {
 export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   position: absolute;
   top: ${p => (p.isMobile ? `8px` : `calc(50% - 12px)`)};
-  left: ${p => (p.isMobile ? '32px' : `calc(50% + 14px)`)};
+  left: ${p => (p.isMobile ? '36px' : `calc(50% + 14px)`)};
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
@@ -579,6 +598,14 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   height: 10px;
   border-radius: 50%;
   border: 2px solid ${p => p.theme.background};
+
+  ${p =>
+    p.theme.isChonk &&
+    p.isMobile &&
+    css`
+      top: 5px;
+      left: 12px;
+    `}
 `;
 
 export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
