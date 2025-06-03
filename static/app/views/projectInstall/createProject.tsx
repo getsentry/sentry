@@ -59,8 +59,8 @@ type FormData = {
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
-  alertRule: Partial<RequestDataFragment> | undefined;
   platform: OnboardingSelectedSDK;
+  alertRule?: Partial<RequestDataFragment>;
   team?: string;
 };
 
