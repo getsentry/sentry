@@ -12,15 +12,15 @@ export function ServiceField() {
 
   return (
     <AutomationBuilderSelectField
-      name={`${actionId}.data.targetId`}
-      value={action.data.targetId}
+      name={`${actionId}.config.target_identifier`}
+      value={action.config.target_identifier}
       options={integration.services?.map(service => ({
         label: service.name,
         value: service.id,
       }))}
       onChange={(value: string) => {
         onUpdate({
-          targetId: value,
+          config: {target_identifier: value},
         });
       }}
     />

@@ -1,7 +1,11 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
 import {uuid4} from '@sentry/core';
 
-import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
+import {
+  type ActionHandler,
+  ActionTarget,
+  ActionType,
+} from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
   DataConditionGroupLogicType,
@@ -110,8 +114,15 @@ export function useAutomationBuilderReducer() {
       [dispatch]
     ),
     updateIfAction: useCallback(
-      (groupId: string, actionId: string, data: Record<string, any>) =>
-        dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, data}),
+      (
+        groupId: string,
+        actionId: string,
+        params: {
+          config?: Record<string, any>;
+          data?: Record<string, any>;
+          integrationId?: string;
+        }
+      ) => dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
@@ -142,7 +153,15 @@ interface AutomationActions {
   removeIfAction: (groupId: string, actionId: string) => void;
   removeIfCondition: (groupId: string, conditionId: string) => void;
   removeWhenCondition: (id: string) => void;
-  updateIfAction: (groupId: string, actionId: string, data: Record<string, any>) => void;
+  updateIfAction: (
+    groupId: string,
+    actionId: string,
+    params: {
+      config?: Record<string, any>;
+      data?: Record<string, any>;
+      integrationId?: string;
+    }
+  ) => void;
   updateIfCondition: (
     groupId: string,
     conditionId: string,
@@ -259,8 +278,12 @@ type RemoveIfActionAction = {
 
 type UpdateIfActionAction = {
   actionId: string;
-  data: Record<string, any>;
   groupId: string;
+  params: {
+    config?: Record<string, any>;
+    data?: Record<string, any>;
+    integrationId?: string;
+  };
   type: 'UPDATE_IF_ACTION';
 };
 
@@ -298,7 +321,7 @@ function addWhenCondition(
         ...state.triggers.conditions,
         {
           id: uuid4(),
-          comparison_type: action.conditionType,
+          type: action.conditionType,
           comparison: {},
         },
       ],
@@ -395,7 +418,7 @@ function addIfCondition(
           ...group.conditions,
           {
             id: uuid4(),
-            comparison_type: conditionType,
+            type: conditionType,
             comparison: {},
           },
         ],
@@ -437,7 +460,7 @@ function updateIfConditionType(
       return {
         ...group,
         conditions: group.conditions.map(c =>
-          c.id === conditionId ? {...c, comparison_type: conditionType} : c
+          c.id === conditionId ? {...c, type: conditionType} : c
         ),
       };
     }),
@@ -465,11 +488,25 @@ function updateIfCondition(
   };
 }
 
+function getActionTargetType(actionType: ActionType): ActionTarget {
+  switch (actionType) {
+    case ActionType.EMAIL:
+      return ActionTarget.ISSUE_OWNERS;
+    case ActionType.SENTRY_APP:
+      return ActionTarget.SENTRY_APP;
+    default:
+      return ActionTarget.SPECIFIC;
+  }
+}
+
 function addIfAction(
   state: AutomationBuilderState,
   action: AddIfActionAction
 ): AutomationBuilderState {
   const {groupId, actionId, actionHandler} = action;
+
+  const targetType = getActionTargetType(actionHandler.type);
+
   return {
     ...state,
     actionFilters: state.actionFilters.map(group => {
@@ -483,11 +520,13 @@ function addIfAction(
           {
             id: actionId,
             type: actionHandler.type,
-            data: {
+            config: {
+              target_type: targetType,
               ...(actionHandler.sentryApp
-                ? {targetIdentifier: actionHandler.sentryApp.id}
+                ? {target_identifier: actionHandler.sentryApp.id}
                 : {}),
             },
+            data: {},
           },
         ],
       };
@@ -518,24 +557,9 @@ function updateIfAction(
   state: AutomationBuilderState,
   action: UpdateIfActionAction
 ): AutomationBuilderState {
-  const {groupId, actionId, data} = action;
-  // special case for integrationId which is outside of data
-  if ('integrationId' in data) {
-    return {
-      ...state,
-      actionFilters: state.actionFilters.map(group => {
-        if (group.id !== groupId) {
-          return group;
-        }
-        return {
-          ...group,
-          actions: group.actions?.map(a =>
-            a.id === actionId ? {...a, integrationId: data.integrationId} : a
-          ),
-        };
-      }),
-    };
-  }
+  const {groupId, actionId, params} = action;
+  const {integrationId, config, data} = params;
+
   return {
     ...state,
     actionFilters: state.actionFilters.map(group => {
@@ -545,7 +569,14 @@ function updateIfAction(
       return {
         ...group,
         actions: group.actions?.map(a =>
-          a.id === actionId ? {...a, data: {...a.data, ...data}} : a
+          a.id === actionId
+            ? {
+                ...a,
+                ...(integrationId && {integrationId}),
+                ...(config && {config: {...a.config, ...config}}),
+                ...(data && {data: {...a.data, ...data}}),
+              }
+            : a
         ),
       };
     }),
