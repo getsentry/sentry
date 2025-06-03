@@ -47,6 +47,8 @@ end
 
 local return_value = {redirect_depth, set_key, has_root_span}
 local hset_args = {}
+local sunionstore_args = {}
+local unlink_args = {}
 
 for i = 5, num_spans + 4 do
     local span_id = ARGV[i]
@@ -57,9 +59,8 @@ for i = 5, num_spans + 4 do
     table.insert(hset_args, span_id)
     table.insert(hset_args, set_span_id)
 
-    if not is_root_span and redis.call("scard", span_key) > 0 then
-        redis.call("sunionstore", set_key, set_key, span_key)
-        redis.call("unlink", span_key)
+    if not is_root_span then
+        table.insert(sunionstore_args, span_key)
     end
 
     table.insert(return_value, span_key)
@@ -67,6 +68,11 @@ end
 
 redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
+
+if #sunionstore_args > 0 then
+    redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
+    redis.call("unlink", unpack(sunionstore_args))
+end
 
 if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
     redis.call("sunionstore", set_key, set_key, parent_key)
