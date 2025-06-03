@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +12,16 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.issues.suspect_tags import get_suspect_tag_scores
 from sentry.models.group import Group
+
+
+class ResponseDataItem(TypedDict):
+    flag: str
+    score: float
+    baseline_percent: float
+
+
+class ResponseData(TypedDict):
+    data: list[ResponseDataItem]
 
 
 @region_silo_endpoint
@@ -43,8 +54,8 @@ class OrganizationGroupSuspectTagsEndpoint(GroupEndpoint):
         return Response(
             {
                 "data": [
-                    {"tag": tag, "score": score}
-                    for tag, score in get_suspect_tag_scores(
+                    {"tag": tag, "score": score, "baseline_percent": baseline_percent}
+                    for tag, score, baseline_percent in get_suspect_tag_scores(
                         organization_id,
                         project_id,
                         start,
