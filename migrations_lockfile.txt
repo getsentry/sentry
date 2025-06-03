@@ -23,7 +23,7 @@ preprod: 0001_emerge_upload_models
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0914_increase_orgmember_user_email_max_length
+sentry: 0916_delete_open_period_rows
 
 social_auth: 0001_squashed_0002_default_auto_field
 
