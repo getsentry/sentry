@@ -10,7 +10,6 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT, token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -25,7 +24,7 @@ class Refresher:
     Exchanges a Refresh Token for a new Access Token
     """
 
-    install: RpcSentryAppInstallation
+    install: SentryAppInstallation
     refresh_token: str
     client_id: str
     user: User
