@@ -209,14 +209,13 @@ def find_adopted_but_missing_releases(
 A = TypeVar("A")
 B = TypeVar("B")
 C = TypeVar("C")
-D = TypeVar("D")
 
 
 def find_missing(
     superset: list[A],
-    superset_hasher: Callable[[A], B],
-    subset: list[C],
-    subset_hasher: Callable[[C], D],
+    superset_hasher: Callable[[A], C],
+    subset: list[B],
+    subset_hasher: Callable[[B], C],
 ) -> list[A]:
     """Return the difference of two sets.
 
