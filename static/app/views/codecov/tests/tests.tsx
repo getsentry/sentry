@@ -61,9 +61,9 @@ export default function TestsPage() {
       <p>Test Analytics</p>
       <CodecovQueryParamsProvider>
         <PageFilterBar condensed>
-          <DatePicker />
-          <RepoPicker />
           <IntegratedOrgPicker />
+          <RepoPicker />
+          <DatePicker />
         </PageFilterBar>
         {/* TODO: Conditionally show these if the branch we're in is the main branch */}
         <Summaries />
