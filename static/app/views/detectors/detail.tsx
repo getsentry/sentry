@@ -24,7 +24,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
@@ -50,7 +50,7 @@ function getDetectorEnvironment(detector: Detector) {
 }
 
 function AssignToTeam({teamId}: {teamId: string}) {
-  const {teams} = useTeams();
+  const {teams} = useTeamsById({ids: [teamId]});
   const team = teams.find(tm => tm.id === teamId);
   return t('Assign to %s', `#${team?.slug ?? 'unknown'}`);
 }
