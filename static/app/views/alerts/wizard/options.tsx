@@ -149,7 +149,7 @@ export const getAlertWizardCategories = (org: Organization) => {
 export type WizardRuleTemplate = {
   aggregate: string;
   dataset: Dataset;
-  eventTypes: EventTypes;
+  eventTypes?: EventTypes;
   query?: string;
 };
 

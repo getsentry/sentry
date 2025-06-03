@@ -313,7 +313,7 @@ export function createRuleFromWizardTemplate(
 
   return {
     ...createDefaultRule(defaultRuleOptions),
-    eventTypes: [eventTypes],
+    eventTypes: eventTypes ? [eventTypes] : [],
     aggregate,
     dataset,
     query: query ?? '',
