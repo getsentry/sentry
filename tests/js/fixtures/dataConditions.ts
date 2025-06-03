@@ -9,7 +9,7 @@ import {
 
 function DataConditionFixture(params: Partial<DataCondition> = {}): DataCondition {
   return {
-    type: DataConditionType.EQUAL,
+    comparison_type: DataConditionType.EQUAL,
     comparison: '8',
     id: '1',
     ...params,

@@ -321,7 +321,7 @@ function addWhenCondition(
         ...state.triggers.conditions,
         {
           id: uuid4(),
-          type: action.conditionType,
+          comparison_type: action.conditionType,
           comparison: {},
         },
       ],
@@ -418,7 +418,7 @@ function addIfCondition(
           ...group.conditions,
           {
             id: uuid4(),
-            type: conditionType,
+            comparison_type: conditionType,
             comparison: {},
           },
         ],
