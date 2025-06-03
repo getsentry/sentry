@@ -1,5 +1,6 @@
 import inspect
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.conf import settings
@@ -18,7 +19,7 @@ def test_import_paths():
 
 
 @pytest.mark.parametrize("name,config", list(settings.TASKWORKER_SCHEDULES.items()))
-def test_taskworker_schedule_type(name, config) -> None:
+def test_taskworker_schedule_type(name: str, config: dict[str, Any]) -> None:
     assert config["task"], f"schedule {name} is missing a task name"
     (namespace, taskname) = config["task"].split(":")
     assert taskregistry.get_task(namespace, taskname), f"task for {name} is not registered"
@@ -31,7 +32,7 @@ def test_taskworker_schedule_type(name, config) -> None:
 
 
 @pytest.mark.parametrize("config", list(settings.TASKWORKER_SCHEDULES.values()))
-def test_taskworker_schedule_parameters(config) -> None:
+def test_taskworker_schedule_parameters(config: dict[str, Any]) -> None:
     (namespace, taskname) = config["task"].split(":")
     task = taskregistry.get_task(namespace, taskname)
     signature = inspect.signature(task)
