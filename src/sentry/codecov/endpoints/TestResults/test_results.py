@@ -1,11 +1,14 @@
 from enum import Enum
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.TestResults.query import query
@@ -38,6 +41,7 @@ class MeasurementInterval(Enum):
     INTERVAL_1_DAY = "INTERVAL_1_DAY"
 
 
+@extend_schema(tags=["Prevent"])
 @region_silo_endpoint
 class TestResultsEndpoint(CodecovEndpoint):
     owner = ApiOwner.CODECOV
@@ -49,7 +53,21 @@ class TestResultsEndpoint(CodecovEndpoint):
     def has_pagination(self, response):
         return True
 
-    def get(self, request: Request, owner: str, repository: str) -> Response:
+    @extend_schema(
+        operation_id="Retrieve a paginated list of test results for a given repository and owner",
+        parameters=[
+            PreventParams.OWNER,
+            PreventParams.REPOSITORY,
+        ],
+        request=None,
+        responses={
+            200: TestResultSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
         owner = "codecov"
