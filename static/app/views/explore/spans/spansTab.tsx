@@ -204,6 +204,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
+      replaceRawSearchKeys: ['span.description'],
     }),
     [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
   );
