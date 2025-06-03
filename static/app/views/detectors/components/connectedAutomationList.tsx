@@ -1,10 +1,15 @@
+import {useState} from 'react';
+
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -12,6 +17,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useDetectorQueriesByIds} from 'sentry/views/automations/hooks';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+
+const AUTOMATIONS_PER_PAGE = 10;
 
 type Props = {
   automationIds: Detector['workflowIds'];
@@ -27,6 +34,15 @@ export function ConnectedAutomationsList({
   const organization = useOrganization();
   const canEdit = connectedAutomationIds && !!toggleConnected;
   const queries = useDetectorQueriesByIds(automationIds);
+  const [currentPage, setCurrentPage] = useState(0);
+  const totalPages = Math.ceil(queries.length / AUTOMATIONS_PER_PAGE);
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  };
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
 
   const data = queries
     .map((query): ConnectedAutomationsData | undefined => {
@@ -57,16 +73,45 @@ export function ConnectedAutomationsList({
     return <LoadingIndicator />;
   }
 
+  const pagination = (
+    <Flex justify="flex-end">
+      <ButtonBar merged>
+        <Button
+          onClick={handlePreviousPage}
+          disabled={currentPage === 0}
+          aria-label={t('Previous page')}
+          icon={<IconChevron direction="left" />}
+          size="sm"
+        />
+        <Button
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages - 1}
+          aria-label={t('Next page')}
+          icon={<IconChevron direction="right" />}
+          size="sm"
+        />
+      </ButtonBar>
+    </Flex>
+  );
+
   if (canEdit) {
-    return <SimpleTable columns={connectedColumns} data={data} />;
+    return (
+      <Flex column>
+        <SimpleTable columns={connectedColumns} data={data} />
+        {pagination}
+      </Flex>
+    );
   }
 
   return (
-    <SimpleTable
-      columns={baseColumns}
-      data={data}
-      fallback={t('No automations connected')}
-    />
+    <Flex column>
+      <SimpleTable
+        columns={baseColumns}
+        data={data}
+        fallback={t('No automations connected')}
+      />
+      {pagination}
+    </Flex>
   );
 }
 
