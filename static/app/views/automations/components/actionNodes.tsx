@@ -1,7 +1,7 @@
 import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Action, Integration} from 'sentry/types/workflowEngine/actions';
+import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {AzureDevOpsNode} from 'sentry/views/automations/components/actions/azureDevOps';
 import {DiscordNode} from 'sentry/views/automations/components/actions/discord';
@@ -13,13 +13,15 @@ import {JiraServerNode} from 'sentry/views/automations/components/actions/jiraSe
 import {MSTeamsNode} from 'sentry/views/automations/components/actions/msTeams';
 import {OpsgenieNode} from 'sentry/views/automations/components/actions/opsgenie';
 import {PagerdutyNode} from 'sentry/views/automations/components/actions/pagerduty';
+import {SentryAppNode} from 'sentry/views/automations/components/actions/sentryApp';
 import {SlackNode} from 'sentry/views/automations/components/actions/slack';
+import {WebhookNode} from 'sentry/views/automations/components/actions/webhook';
 
 interface ActionNodeProps {
   action: Action;
   actionId: string;
-  onUpdate: (condition: Record<string, any>) => void;
-  integrations?: Integration[];
+  handler: ActionHandler;
+  onUpdate: (params: Record<string, any>) => void;
 }
 
 export const ActionNodeContext = createContext<ActionNodeProps | null>(null);
@@ -33,13 +35,13 @@ export function useActionNodeContext(): ActionNodeProps {
 }
 
 type ActionNode = {
-  action: React.ReactNode;
-  label: string;
+  action?: React.ReactNode;
+  label?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
   [ActionType.AZURE_DEVOPS, {label: t('Azure DevOps'), action: <AzureDevOpsNode />}],
-  [ActionType.EMAIL, {label: t('Email'), action: <EmailNode />}],
+  [ActionType.EMAIL, {label: t('Notify on preferred channel'), action: <EmailNode />}],
   [
     ActionType.DISCORD,
     {
@@ -70,10 +72,27 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
     },
   ],
   [
+    ActionType.PLUGIN,
+    {
+      label: t('Legacy integrations'),
+      action: t('Send a notification (for all legacy integrations)'),
+    },
+  ],
+  [
+    ActionType.SENTRY_APP,
+    {
+      action: <SentryAppNode />,
+    },
+  ],
+  [
     ActionType.SLACK,
     {
       label: t('Slack'),
       action: <SlackNode />,
     },
+  ],
+  [
+    ActionType.WEBHOOK,
+    {label: t('Send a notification via an integration'), action: <WebhookNode />},
   ],
 ]);

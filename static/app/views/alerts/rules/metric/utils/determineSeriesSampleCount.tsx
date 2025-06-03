@@ -1,10 +1,16 @@
 import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
+export type SeriesSamplingInfo = {
+  isSampled: boolean | null;
+  sampleCount: number;
+  dataScanned?: 'full' | 'partial';
+};
+
 export function determineSeriesSampleCountAndIsSampled(
   data: TimeSeries[],
   topNMode: boolean
-): {isSampled: boolean | null; sampleCount: number; dataScanned?: 'full' | 'partial'} {
+): SeriesSamplingInfo {
   if (data.length <= 0) {
     return {sampleCount: 0, isSampled: null};
   }

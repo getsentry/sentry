@@ -68,7 +68,12 @@ function DestinationSummaryPage() {
                     <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
                   </ToolRibbon>
 
-                  {!onboardingProject && (
+                  {onboardingProject ? (
+                    <LegacyOnboarding
+                      organization={organization}
+                      project={onboardingProject}
+                    />
+                  ) : (
                     <ReadoutRibbon>
                       <MetricReadout
                         title={t('Avg Time In Queue')}
@@ -110,13 +115,6 @@ function DestinationSummaryPage() {
                   )}
                 </HeaderContainer>
               </ModuleLayout.Full>
-
-              {onboardingProject && (
-                <LegacyOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                />
-              )}
 
               {!onboardingProject && (
                 <Fragment>

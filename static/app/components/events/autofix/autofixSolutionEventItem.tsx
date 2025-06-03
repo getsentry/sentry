@@ -147,7 +147,7 @@ export function SolutionEventItem({
           </AutofixHighlightWrapper>
           <IconWrapper>
             {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
-              <StyledIconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+              <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
             )}
             <SelectionButtonWrapper>
               <Tooltip

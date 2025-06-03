@@ -16,17 +16,17 @@ export default function PercentSessionsNode() {
 function ComparisonTypeField() {
   const {condition, condition_id, onUpdateType} = useDataConditionNodeContext();
 
-  if (condition.comparison_type === DataConditionType.PERCENT_SESSIONS_COUNT) {
+  if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
     return <CountBranch />;
   }
-  if (condition.comparison_type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
+  if (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
     return <PercentBranch />;
   }
 
   return (
     <AutomationBuilderSelectField
-      name={`${condition_id}.comparison_type`}
-      value={condition.comparison_type}
+      name={`${condition_id}.type`}
+      value={condition.type}
       options={[
         {
           label: 'more than...',

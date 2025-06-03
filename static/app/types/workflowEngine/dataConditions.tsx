@@ -54,8 +54,8 @@ export enum DataConditionGroupLogicType {
 
 export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
   id: string;
+  type: DataConditionType;
   condition_result?: any;
 }
 
@@ -64,4 +64,23 @@ export interface DataConditionGroup {
   id: string;
   logicType: DataConditionGroupLogicType;
   actions?: Action[];
+}
+
+export enum DataConditionHandlerGroupType {
+  DETECTOR_TRIGGER = 'detector_trigger',
+  WORKFLOW_TRIGGER = 'workflow_trigger',
+  ACTION_FILTER = 'action_filter',
+}
+
+export enum DataConditionHandlerSubgroupType {
+  ISSUE_ATTRIBUTES = 'issue_attributes',
+  FREQUENCY = 'frequency',
+  EVENT_ATTRIBUTES = 'event_attributes',
+}
+
+export interface DataConditionHandler {
+  comparisonJsonSchema: Record<string, any>;
+  handlerGroup: DataConditionHandlerGroupType;
+  handlerSubgroup: DataConditionHandlerSubgroupType;
+  type: DataConditionType;
 }

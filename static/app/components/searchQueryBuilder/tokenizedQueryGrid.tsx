@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
@@ -38,7 +38,7 @@ function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
   const {dispatch} = useSearchQueryBuilder();
   const autoFocused = useRef(!autoFocus);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (autoFocused.current) {
       return; // already focused
     }
@@ -191,8 +191,8 @@ export function TokenizedQueryGrid({
 }
 
 const SearchQueryGridWrapper = styled('div')`
-  padding-top: ${space(0.75)};
-  padding-bottom: ${space(0.75)};
+  padding-top: ${p => (p.theme.isChonk ? space(0.5) : space(0.75))};
+  padding-bottom: ${p => (p.theme.isChonk ? space(0.5) : space(0.75))};
   padding-left: 32px;
   padding-right: ${space(0.75)};
   display: flex;
