@@ -101,6 +101,7 @@ def compare_tables_for_dashboard_widget_queries(
             "fields": None,
             "widget_query": widget_query,
             "mismatches": None,
+            "query": None,
         }
 
     fields = widget_query.fields
@@ -111,6 +112,7 @@ def compare_tables_for_dashboard_widget_queries(
             "fields": None,
             "widget_query": widget_query,
             "mismatches": None,
+            "query": None,
         }
 
     selected_columns = _get_field_list(fields)
