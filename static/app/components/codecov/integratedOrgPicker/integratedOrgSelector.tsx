@@ -106,7 +106,7 @@ export function IntegratedOrgSelector({
     <CompactSelect
       {...selectProps}
       options={options}
-      value={chosenOrg ?? undefined}
+      value={chosenOrg ?? ''}
       onChange={handleChange}
       onClose={onClose}
       closeOnSelect
@@ -122,7 +122,9 @@ export function IntegratedOrgSelector({
               {...selectProps.triggerProps}
             >
               <TriggerLabelWrap>
-                <TriggerLabel>{chosenOrg}</TriggerLabel>
+                <TriggerLabel>
+                  {chosenOrg || t('Select integrated organization')}
+                </TriggerLabel>
               </TriggerLabelWrap>
             </DropdownButton>
           );
