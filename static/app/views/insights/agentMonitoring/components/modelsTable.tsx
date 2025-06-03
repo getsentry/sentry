@@ -29,9 +29,10 @@ import {
 } from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {
+  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
-  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-  getLLMGenerationsFilter,
+  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -41,10 +42,11 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 interface TableData {
   avg: number;
   errorRate: number;
+  inputTokens: number;
   model: string;
+  outputTokens: number;
   p95: number;
   requests: number;
-  tokens: number;
 }
 
 const EMPTY_ARRAY: never[] = [];
@@ -52,9 +54,10 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: AI_TOKEN_USAGE_ATTRIBUTE_SUM, name: t('Tokens used'), width: 140},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
+  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
+  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
   {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
@@ -64,7 +67,7 @@ export function ModelsTable() {
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
   const {query} = useTransactionNameQuery();
 
-  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
+  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
     navigate(
@@ -82,7 +85,8 @@ export function ModelsTable() {
     {
       fields: [
         AI_MODEL_ID_ATTRIBUTE,
-        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
@@ -111,7 +115,8 @@ export function ModelsTable() {
       avg: span['avg(span.duration)'],
       p95: span['p95(span.duration)'],
       errorRate: span['failure_rate()'],
-      tokens: span[AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
+      outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
     }));
   }, [modelsRequest.data]);
 
@@ -187,8 +192,10 @@ const BodyCell = memo(function BodyCell({
       return getDuration(dataRow.p95 / 1000, 2, true);
     case 'failure_rate()':
       return formatPercentage(dataRow.errorRate ?? 0);
-    case AI_TOKEN_USAGE_ATTRIBUTE_SUM:
-      return formatAbbreviatedNumber(dataRow.tokens);
+    case AI_INPUT_TOKENS_ATTRIBUTE_SUM:
+      return formatAbbreviatedNumber(dataRow.inputTokens);
+    case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
+      return formatAbbreviatedNumber(dataRow.outputTokens);
     default:
       return null;
   }

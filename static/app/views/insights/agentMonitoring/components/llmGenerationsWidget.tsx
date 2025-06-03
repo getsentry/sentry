@@ -11,7 +11,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   AI_MODEL_ID_ATTRIBUTE,
-  getLLMGenerationsFilter,
+  getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -39,7 +39,7 @@ export default function LLMGenerationsWidget() {
 
   const theme = useTheme();
 
-  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
+  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
   const generationsRequest = useEAPSpans(
     {

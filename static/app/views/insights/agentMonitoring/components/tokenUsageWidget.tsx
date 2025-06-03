@@ -13,7 +13,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-  getLLMGenerationsFilter,
+  getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -40,7 +40,7 @@ export default function TokenUsageWidget() {
     granularity: 'spans-low',
   });
 
-  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
+  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
   const tokensRequest = useEAPSpans(
     {
@@ -113,7 +113,7 @@ export default function TokenUsageWidget() {
           <div>
             <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
           </div>
-          <span>{formatAbbreviatedNumber(item['sum(ai.total_tokens.used)'] || 0)}</span>
+          <span>{formatAbbreviatedNumber(item[AI_TOKEN_USAGE_ATTRIBUTE_SUM] || 0)}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>
@@ -132,7 +132,7 @@ export default function TokenUsageWidget() {
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: ['sum(ai.total_tokens.used)'],
+                  yAxes: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
                 },
               ],
               groupBy: [AI_MODEL_ID_ATTRIBUTE],
