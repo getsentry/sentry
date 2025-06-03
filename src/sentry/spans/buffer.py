@@ -174,6 +174,9 @@ class SpansBuffer:
             ),
         )
 
+    def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
     def process_spans(self, spans: Sequence[Span], now: int):
         """
         :param spans: List of to-be-ingested spans.
@@ -183,7 +186,6 @@ class SpansBuffer:
 
         queue_keys = []
         is_root_span_count = 0
-        has_root_span_count = 0
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
 
@@ -192,7 +194,7 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}".encode("ascii")
+                    set_key = self._get_span_key(project_and_trace, parent_span_id)
                     p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
@@ -218,14 +220,9 @@ class SpansBuffer:
                     )
 
                     is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    shard = self.assigned_shards[
-                        int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
-                    ]
-                    queue_keys.append(self._get_queue_key(shard))
+                    queue_keys.append((project_and_trace, parent_span_id))
 
                 results = p.execute()
-
-        num_subsegments = 0
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
@@ -233,8 +230,13 @@ class SpansBuffer:
 
             assert len(queue_keys) == len(results)
 
-            for queue_key, result in zip(queue_keys, results):
-                redirect_depth, set_key, has_root_span, *span_keys = result
+            for (project_and_trace, parent_span_id), result in zip(queue_keys, results):
+                redirect_depth, set_key, has_root_span = result
+
+                shard = self.assigned_shards[
+                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
+                ]
+                queue_key = self._get_queue_key(shard)
 
                 min_redirect_depth = min(min_redirect_depth, redirect_depth)
                 max_redirect_depth = max(max_redirect_depth, redirect_depth)
@@ -242,22 +244,19 @@ class SpansBuffer:
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
                 # usual.
-                num_subsegments += 1
                 if has_root_span:
-                    has_root_span_count += 1
                     offset = self.span_buffer_root_timeout_secs
                 else:
                     offset = self.span_buffer_timeout_secs
 
-                delete_set = queue_deletes.setdefault(queue_key, set())
-
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
 
-                delete_set.update(span_keys)
-
-                # if we are going to add this item, we should not need to
-                # delete it from redis
+                spans = trees[project_and_trace, parent_span_id]
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                delete_set.update(
+                    self._get_span_key(project_and_trace, span.span_id) for span in spans
+                )
                 delete_set.discard(set_key)
 
             with self.client.pipeline(transaction=False) as p:
@@ -274,10 +273,7 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
-
-        metrics.timing("spans.buffer.process_spans.num_subsegments", num_subsegments)
-        metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
-
+        metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
         metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
 
