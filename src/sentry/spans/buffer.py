@@ -252,10 +252,10 @@ class SpansBuffer:
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
 
-                spans = trees[project_and_trace, parent_span_id]
+                subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in spans
+                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
                 )
                 delete_set.discard(set_key)
 
