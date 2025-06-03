@@ -96,7 +96,10 @@ function getMissingValues({
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
     isMissingProjectName: projectName === '',
     isMissingAlertThreshold:
-      shouldCreateCustomRule && !conditions?.every?.(condition => !!condition.value),
+      shouldCreateCustomRule &&
+      (!conditions ||
+        conditions.length === 0 ||
+        !conditions.every(condition => !!condition.value)),
     isMissingMessagingIntegrationChannel:
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
