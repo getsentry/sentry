@@ -58,7 +58,7 @@ class GitlabCommentTestCase(GitLabTestCase):
                 project=self.another_org_project, user=self.another_org_user
             ),
         }
-        self.repo = self.create_repo(name="Get Sentry / Example Repo", external_id=123)
+        self.repo = self.create_gitlab_repo(name="Get Sentry / Example Repo", external_id=123)
         self.pr_key = 1
         self.commit_sha = 1
         self.fingerprint = 1

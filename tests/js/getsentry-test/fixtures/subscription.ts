@@ -138,6 +138,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     dataRetention: null,
     hasReservedBudgets: false,
     reservedBudgetCategories: [],
+    reservedBudgets: [],
     categories: {
       errors: MetricHistoryFixture({
         category: DataCategory.ERRORS,
