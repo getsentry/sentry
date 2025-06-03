@@ -7,10 +7,10 @@ included to provide background for each test case. At the end of this file a con
 The full post-mortem is documented in Notion.
 
 Background:
-The number of workers in our 'upload to GCS step' was increased from 8 to 16. Leading to a steady
-backlog on four partitions. The number of workers was increased to 32 in an attempt to remedy the
-situation but it made the situation slightly worse. Resetting the worker count back to 8 quickly
-burned the backlog and we were back to normal.
+The number of workers in our 'upload to GCS step' was increased from 8 to 16. A backlog formed on
+four partitions. The number of workers was increased to 32 in an attempt to remedy the situation
+but it made the situation slightly worse. Resetting the worker count back to 8 quickly burned the
+backlog and we were back to normal.
 """
 
 import time
@@ -68,10 +68,16 @@ def case(step_workers, step_queue_depth, shared_resource_workers, shared_resourc
     consumer = Consumer()
 
     def processor(m):
-        shared()
+        shared()  # lock and sleep
+
+    def run_task_work(m):
+        # useless work in a loop to emulate processing.
+        for i in range(10_000):
+            i / 0.1
+        return m
 
     step = RunTask(
-        function=lambda v: v,
+        function=run_task_work,
         next_step=RunTaskInThreads(
             processing_function=processor,
             concurrency=step_workers,
@@ -185,7 +191,7 @@ def test3_over_production_hogs_cpu_time_leading_to_starvation():
     lock had no impact. Resource starvation from the over-eager main thread was not sharing
     resources appropriately with the workers.
     """
-    # Workers are balanced and queue depth is insufficient for production load. Messages will be
+    # Workers are balanced and queue depth is INSUFFICIENT for production load. Messages will be
     # rejected.
     producer, consumer, _ = case(
         step_workers=10,
@@ -197,8 +203,7 @@ def test3_over_production_hogs_cpu_time_leading_to_starvation():
     start = time.time()
 
     for _ in range(100):
-        # Produce in a loop until the step accepts our message. That's why the call this test
-        # Mr. Farenheit.
+        # Produce in a loop until the step accepts our message.
         while True:
             # Mirroring StreamProcessor classes behavior. We poll first. This ensures we're making
             # progress. The submit method won't empty the queue on its own. We always poll first.
@@ -217,11 +222,12 @@ def test3_over_production_hogs_cpu_time_leading_to_starvation():
         if consumer.consumed_count == 100:
             break
         else:
+            # Sleep to prevent starvation.
             time.sleep(0.001)
 
     end = time.time()
     print("Test 3 duration", end - start)  # noqa
-    # 55 ± 10 milliseconds.
+    # 65 ± 10 milliseconds.
 
 
 def test4_high_production_to_queue_does_not_starve():
@@ -237,7 +243,7 @@ def test4_high_production_to_queue_does_not_starve():
     When MessageRejected is NOT raised in a tight loop the process completed ~5x faster than
     when stuck in a tight loop.
     """
-    # Workers are balanced and queue depth is sufficient for production load. Messages will NOT be
+    # Workers are balanced and queue depth is SUFFICIENT for production load. Messages will NOT be
     # rejected.
     producer, consumer, _ = case(
         step_workers=10,
@@ -266,7 +272,7 @@ def test4_high_production_to_queue_does_not_starve():
 
     end = time.time()
     print("Test 4 duration", end - start)  # noqa
-    # 13.5 ± 1 milliseconds.
+    # 40 ± 5 milliseconds.
 
 
 def test5_modulated_message_rejected_intensity_from_production_patterns():
@@ -319,7 +325,7 @@ def test5_modulated_message_rejected_intensity_from_production_patterns():
 
     end = time.time()
     print("Test 5a duration", end - start)  # noqa
-    # 130 ± 5 milliseconds.
+    # 170 ± 5 milliseconds.
 
     #
     # SPIKEY PRODUCTION PATTERN
@@ -356,7 +362,8 @@ def test6_production_patterns_with_unbalanced_threads():
     allow.
 
     Hypothesis:
-    Lowering the number of threads improves total system time.
+    Lowering the number of threads significantly improves total system time in the precense of an
+    insufficiently deep queue.
 
     Result:
     Total system time was on average lower with a balanced number of threads than unbalanced. A
@@ -432,21 +439,17 @@ def test6_production_patterns_with_unbalanced_threads():
 def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_depth():
     """
     Background:
-    Test 6.
+    During the production incident resolution was driven by lowering the number of threads the
+    consumer process had to mirror the number of concurrent accesses the shared resource would
+    allow.
 
     Hypothesis:
     Lowering the number of threads significantly improves total system time even in the precense
     of a sufficiently deep queue.
 
     Result:
-    Negated result. A very slight performance delta was observed between the balanced and
+    Negated result. An insignificant performance delta was observed between the balanced and
     unbalanced workers.
-
-    Addendum:
-    This delta could be unrelated and may disappear when run on different machines. A real analysis
-    with a profiler would be necessary to determine if this delta is real or not. I have chosen not
-    to do that as the null result is significant enough as is to demonstrate a fact about our
-    production backlog.
     """
     #
     # UNBALANCED WORKER POOL
@@ -479,7 +482,7 @@ def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_dept
 
     end = time.time()
     print("Test 7a duration", end - start)  # noqa
-    # 135 ± 1 milliseconds.
+    # 400 ± 5 milliseconds.
 
     #
     # BALANCED WORKER POOL
@@ -512,7 +515,7 @@ def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_dept
 
     end = time.time()
     print("Test 7b duration", end - start)  # noqa
-    # 133 ± 1 milliseconds.
+    # 400 ± 5 milliseconds.
 
 
 def test8_introducing_backoff_reduces_starvation():
@@ -566,7 +569,7 @@ def test8_introducing_backoff_reduces_starvation():
 
     end1 = time.time()
     print("Test 8 duration", end1 - start1)  # noqa
-    # 13.5 ± 1 milliseconds.
+    # 40 ± 5 milliseconds.
 
 
 if __name__ == "__main__":
@@ -583,11 +586,9 @@ if __name__ == "__main__":
 """
 Hypothesis:
 A combination of spikey production volumes and unbalanced worker threads leaded to a lowering of
-total system throughput. This lowering caused our consumption rate to be roughly even with with our
+total system throughput. This lowering caused our consumption rate to be slightly slower than our
 production rate. System deploys introduced backlog while the consumer was bootstrapping new code.
-This lead to a persistent backlog where each deploy would introduce a step change in the total
-message backlog. The consumer could not burn down the backlog due to the matching rate of
-production.
+This lead to step changes in backlog which could not be burned down.
 
 Result:
 1. No evidence of significant MessageRejected volume was observed in the logs. Tight looping due
@@ -600,8 +601,11 @@ Result:
    other service in Sentry produced logs.
       - Absense of evidence is not evidence of absense. Further investigation is needed to
         determine if the connection pool was full but not logged.
-
-TBD. Production testing required.
+3. The consumption rate of the consumer recovered when the number of threads was lowered from 16/32
+   to 8 and not before. This signifies the number of threads in the pool is a significant
+   contributor to throughput, though, I could not reproduce that result in my tests and could
+   find no log messages to support any starvation theory. CPU usage was not found to be
+   significantly higher than is typical for that time of day.
 
 Addendum:
 It is unknown why only four partitions (two consumers) were affected while the others remained
