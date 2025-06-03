@@ -73,7 +73,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   });
 
   function handlePurchaseSeer() {
-    navigate(`/settings/billing/checkout/?referrer=manage_subscription`);
+    navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
   }
 
   function handleAddBudget() {
