@@ -1,3 +1,5 @@
+from enum import Enum
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,50 +11,31 @@ from sentry.codecov.client import CodecovApiClient
 from sentry.codecov.endpoints.TestResults.query import query
 from sentry.codecov.endpoints.TestResults.serializers import TestResultSerializer
 
-# Sample GraphQL response structure for reference
-sample_graphql_response = {
-    "data": {
-        "owner": {
-            "repository": {
-                "__typename": "Repository",
-                "testAnalytics": {
-                    "testResults": {
-                        "edges": [
-                            {
-                                "node": {
-                                    "updatedAt": "2025-05-22T16:21:18.763951+00:00",
-                                    "avgDuration": 0.04066228070175437,
-                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_no_yaml",
-                                    "failureRate": 0.0,
-                                    "flakeRate": 0.0,
-                                    "commitsFailed": 0,
-                                    "totalFailCount": 0,
-                                    "totalFlakyFailCount": 0,
-                                    "totalSkipCount": 0,
-                                    "totalPassCount": 70,
-                                }
-                            },
-                            {
-                                "node": {
-                                    "updatedAt": "2025-05-22T16:21:18.763961+00:00",
-                                    "avgDuration": 0.034125877192982455,
-                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
-                                    "failureRate": 0.0,
-                                    "flakeRate": 0.0,
-                                    "commitsFailed": 0,
-                                    "totalFailCount": 0,
-                                    "totalFlakyFailCount": 0,
-                                    "totalSkipCount": 0,
-                                    "totalPassCount": 70,
-                                }
-                            },
-                        ],
-                    }
-                },
-            }
-        }
-    }
-}
+
+class OrderingDirection(Enum):
+    DESC = "DESC"
+    ASC = "ASC"
+
+
+class OrderingParameter(Enum):
+    AVG_DURATION = "AVG_DURATION"
+    FLAKE_RATE = "FLAKE_RATE"
+    FAILURE_RATE = "FAILURE_RATE"
+    COMMITS_WHERE_FAIL = "COMMITS_WHERE_FAIL"
+    UPDATED_AT = "UPDATED_AT"
+
+
+class TestResultsFilterParameter(Enum):
+    FLAKY_TESTS = "FLAKY_TESTS"
+    FAILED_TESTS = "FAILED_TESTS"
+    SLOWEST_TESTS = "SLOWEST_TESTS"
+    SKIPPED_TESTS = "SKIPPED_TESTS"
+
+
+class MeasurementInterval(Enum):
+    INTERVAL_30_DAY = "INTERVAL_30_DAY"
+    INTERVAL_7_DAY = "INTERVAL_7_DAY"
+    INTERVAL_1_DAY = "INTERVAL_1_DAY"
 
 
 @region_silo_endpoint
@@ -67,18 +50,31 @@ class TestResultsEndpoint(CodecovEndpoint):
         return True
 
     def get(self, request: Request, owner: str, repository: str) -> Response:
-        """Retrieves the list of test results for a given commit."""
+        """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
+
+        owner = "codecov"
+        repository = "gazebo"
+        branch = "main"
 
         variables = {
             "owner": owner,
             "repo": repository,
+            "filters": {
+                "branch": branch,
+                "flags": None,
+                "interval": MeasurementInterval.INTERVAL_1_DAY.value,
+                "parameter": TestResultsFilterParameter.FLAKY_TESTS.value,
+                "term": None,
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": OrderingDirection.DESC.value,
+                "parameter": OrderingParameter.UPDATED_AT.value,
+            },
+            "first": 10,
         }
 
-        assert variables
-
         graphql_response = CodecovApiClient.query(query, variables)
-
-        graphql_response = sample_graphql_response  # Mock response for now
 
         test_results = TestResultSerializer().to_representation(graphql_response)
 
