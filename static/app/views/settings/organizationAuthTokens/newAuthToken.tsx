@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -17,14 +17,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
+import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
@@ -132,7 +131,6 @@ function AuthTokenCreateForm({
 export default function OrganizationAuthTokensNewAuthToken() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const [newToken, setNewToken] = useState<OrgAuthTokenWithToken | null>(null);
 
   const handleGoBack = useCallback(
     () => navigate(`/settings/${organization.slug}/auth-tokens/`),
@@ -146,7 +144,7 @@ export default function OrganizationAuthTokensNewAuthToken() {
 
       <TextBlock>
         {t(
-          'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+          'Organization Auth Tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
         )}
       </TextBlock>
       <TextBlock>
@@ -161,17 +159,10 @@ export default function OrganizationAuthTokensNewAuthToken() {
         <PanelHeader>{t('Create New Auth Token')}</PanelHeader>
 
         <PanelBody>
-          {newToken ? (
-            <NewTokenHandler
-              token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
-              handleGoBack={handleGoBack}
-            />
-          ) : (
-            <AuthTokenCreateForm
-              organization={organization}
-              onCreatedToken={setNewToken}
-            />
-          )}
+          <AuthTokenCreateForm
+            organization={organization}
+            onCreatedToken={token => displayNewToken(token.token, handleGoBack)}
+          />
         </PanelBody>
       </Panel>
     </div>

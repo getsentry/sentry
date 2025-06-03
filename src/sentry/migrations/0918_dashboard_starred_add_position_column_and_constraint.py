@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0916_delete_open_period_rows"),
+        ("sentry", "0917_convert_org_saved_searches_to_views"),
     ]
 
     operations = [

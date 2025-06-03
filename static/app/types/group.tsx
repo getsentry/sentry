@@ -855,6 +855,7 @@ export const enum PriorityLevel {
 }
 
 export const enum FixabilityScoreThresholds {
+  SUPER_HIGH = 'super_high',
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
