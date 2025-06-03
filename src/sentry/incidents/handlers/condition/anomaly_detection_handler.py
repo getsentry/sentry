@@ -13,6 +13,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Condition, DataPacket
+from sentry.workflow_engine.models.data_condition import DataConditionEvaluationException
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
 
@@ -28,11 +29,6 @@ SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
     AnomalyType.LOW_CONFIDENCE.value: DetectorPriorityLevel.OK,  # Seer doesn't support warning alerts yet
     AnomalyType.NONE.value: DetectorPriorityLevel.OK,
 }
-
-
-# placeholder until we create this in the workflow engine model
-class DetectorError(Exception):
-    pass
 
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
@@ -78,12 +74,14 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         # covers both None and []
         if not anomaly_data:
             # something went wrong during evaluation
-            raise DetectorError("Error during Seer data evaluation process.")
+            raise DataConditionEvaluationException("Error during Seer data evaluation process.")
 
         anomaly_type = anomaly_data[0].get("anomaly", {}).get("anomaly_type")
         if anomaly_type == AnomalyType.NO_DATA.value:
-            raise DetectorError("Project doesn't have enough data for detector to evaluate")
+            raise DataConditionEvaluationException(
+                "Project doesn't have enough data for detector to evaluate"
+            )
         elif anomaly_type is None:
-            raise DetectorError("Seer response contained no evaluation data")
+            raise DataConditionEvaluationException("Seer response contained no evaluation data")
 
         return SEER_EVALUATION_TO_DETECTOR_PRIORITY[anomaly_type]
