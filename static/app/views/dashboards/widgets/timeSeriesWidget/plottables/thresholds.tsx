@@ -3,6 +3,7 @@ import type {ItemStyleOption} from 'echarts/types/src/util/types';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
 import type {
   Thresholds as ThresholdsConfig,
@@ -106,22 +107,22 @@ export class Thresholds implements Plottable {
     const {max1, max2} = this.thresholds.max_values;
 
     const markLines = [
-      this.toMarkLine(max1 ?? Infinity, 'Good', {
+      this.toMarkLine(max1 ?? Infinity, t('Good'), {
         color: theme.green300,
       }),
     ];
 
     if (max1) {
       markLines.push(
-        this.toMarkLine(max2 ?? Infinity, 'Meh', {
-          color: theme.green300,
+        this.toMarkLine(max2 ?? Infinity, t('Meh'), {
+          color: theme.yellow300,
         })
       );
     }
 
     if (max2) {
       markLines.push(
-        this.toMarkLine(Infinity, 'Poor', {
+        this.toMarkLine(Infinity, t('Poor'), {
           color: theme.red300,
         })
       );
