@@ -47,6 +47,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
+    equations: list[str] | None = None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -54,6 +55,7 @@ def run_table_query(
         rpc_dataset_common.TableQuery(
             query_string=query_string,
             selected_columns=selected_columns,
+            equations=equations,
             orderby=orderby,
             offset=offset,
             limit=limit,
@@ -232,7 +234,8 @@ def run_top_events_timeseries_query(
         referrer,
         config,
         sampling_mode,
-        table_search_resolver,
+        equations=[],
+        search_resolver=table_search_resolver,
     )
     if len(top_events["data"]) == 0:
         return {}
