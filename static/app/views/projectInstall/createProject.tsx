@@ -19,12 +19,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-<<<<<<< HEAD
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-=======
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
->>>>>>> master
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -144,12 +139,7 @@ export function CreateProject() {
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
-<<<<<<< HEAD
   const createProjectAndRules = useCreateProjectAndRules();
-=======
-  const createProject = useCreateProject();
-  const createProjectRules = useCreateProjectRules();
->>>>>>> master
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -159,47 +149,6 @@ export function CreateProject() {
     null
   );
 
-<<<<<<< HEAD
-=======
-  const createRules = useCallback(
-    async ({
-      project,
-      alertRuleConfig,
-    }: {project: Project} & Pick<FormData, 'alertRuleConfig'>) => {
-      const ruleIds = [];
-
-      if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await createProjectRules.mutateAsync({
-          projectSlug: project.slug,
-          name: project.name,
-          conditions: alertRuleConfig?.conditions,
-          actions: alertRuleConfig?.actions,
-          actionMatch: alertRuleConfig?.actionMatch,
-          frequency: alertRuleConfig?.frequency,
-        });
-
-        ruleIds.push(ruleData.id);
-      }
-
-      const notificationRule = await createNotificationAction({
-        shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-        name: project.name,
-        projectSlug: project.slug,
-        conditions: alertRuleConfig?.conditions,
-        actionMatch: alertRuleConfig?.actionMatch,
-        frequency: alertRuleConfig?.frequency,
-      });
-
-      if (notificationRule) {
-        ruleIds.push(notificationRule.id);
-      }
-
-      return ruleIds;
-    },
-    [createNotificationAction, createProjectRules]
-  );
-
->>>>>>> master
   const autoFill = useMemo(() => {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
