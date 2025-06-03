@@ -590,6 +590,17 @@ message backlog. The consumer could not burn down the backlog due to the matchin
 production.
 
 Result:
+1. No evidence of significant MessageRejected volume was observed in the logs. Tight looping due
+   to repeated MessageRejected leading to thread starvation can not be supported through the
+   evidence available.
+      - MessageRejected errors were observed in the logs for this consumer but not at sufficient
+        volume to have caused the drop in throughput observed.  I.e. one error every few minutes.
+2. No evidence of connection pool resources being exhausted. A search for logs matching the
+   criteria "Connection pool is full" was made but results were found for others services only. No
+   other service in Sentry produced logs.
+      - Absense of evidence is not evidence of absense. Further investigation is needed to
+        determine if the connection pool was full but not logged.
+
 TBD. Production testing required.
 
 Addendum:
