@@ -127,7 +127,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     }
     createIssueView({
       name: 'Easy Fixes 🤖',
-      query: 'is:unresolved issue.seer_actionability:high',
+      query: 'is:unresolved issue.seer_actionability:[high,super_high]',
       querySort: IssueSortOptions.DATE,
       projects,
       environments: [],

@@ -23,12 +23,21 @@ interface ProjectSeerProps {
   project: Project;
 }
 
-export const SEER_THRESHOLD_MAP = ['off', 'low', 'medium', 'high', 'always'] as const;
+export const SEER_THRESHOLD_MAP = [
+  'off',
+  'super_low',
+  'low',
+  'medium',
+  'high',
+  'always',
+] as const;
 
 export function formatSeerValue(value: string | undefined) {
   switch (value) {
     case 'off':
       return t('Off');
+    case 'super_low':
+      return t('Super Low');
     case 'low':
       return t('Low');
     case 'medium':
