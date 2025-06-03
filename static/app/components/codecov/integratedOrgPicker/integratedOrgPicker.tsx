@@ -2,7 +2,6 @@ import {useSearchParams} from 'react-router-dom';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {t} from 'sentry/locale';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {
   IntegratedOrgSelector,
@@ -15,14 +14,12 @@ export function IntegratedOrgPicker({
   triggerProps = {},
   ...selectProps
 }: IntegratedOrgProps) {
-  const {selection} = usePageFilters();
-
   const {integratedOrg} = useCodecovContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   return (
     <IntegratedOrgSelector
-      triggerLabel={selection.integratedOrg ?? t('Select an integrated organization')}
+      triggerLabel={integratedOrg ?? t('Select an integrated organization')}
       {...selectProps}
       onChange={newIntegratedOrg => {
         const currentParams = Object.fromEntries(searchParams.entries());
