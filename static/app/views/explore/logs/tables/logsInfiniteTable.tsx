@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -45,9 +45,6 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
-const LOGS_FETCH_PREVIOUS_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // Pixels from bottom of table to trigger table fetch.
-const LOGS_FETCH_NEXT_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 20; // Pixels from bottom of table to trigger table fetch.
-
 type LogsTableProps = {
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
@@ -55,6 +52,10 @@ type LogsTableProps = {
   showHeader?: boolean;
   stringAttributes?: TagCollection;
 };
+
+const LOGS_GRID_SCROLL_ITEM_THRESHOLD = 20; // Items from bottom of table to trigger table fetch.
+const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
+const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
 export function LogsInfiniteTable({
   showHeader = true,
@@ -80,6 +81,10 @@ export function LogsInfiniteTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(new Set());
+  const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
+    Record<string, number>
+  >({});
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -90,20 +95,30 @@ export function LogsInfiniteTable({
     },
   });
 
+  const estimateSize = useCallback(
+    (index: number) => {
+      const logItemId = data?.[index]?.[OurLogKnownFieldKey.ID];
+      const estimatedHeight =
+        expandedLogRowsHeights[logItemId ?? ''] ?? LOGS_GRID_BODY_ROW_HEIGHT;
+      return estimatedHeight;
+    },
+    [expandedLogRowsHeights, data]
+  );
+
   const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
-    estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
-    overscan: 150,
+    estimateSize,
+    overscan: LOGS_OVERSCAN_AMOUNT,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
     scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
   });
 
   const containerVirtualizer = useVirtualizer({
     count: data?.length ?? 0,
-    estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
-    overscan: 150,
+    estimateSize,
+    overscan: LOGS_OVERSCAN_AMOUNT,
     getScrollElement: () => scrollContainer?.current ?? null,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
@@ -113,6 +128,7 @@ export function LogsInfiniteTable({
 
   const firstItem = virtualItems[0]?.start;
   const lastItem = virtualItems[virtualItems.length - 1]?.end;
+  const lastItemIndex = virtualItems[virtualItems.length - 1]?.index;
 
   const [paddingTop, paddingBottom] =
     defined(firstItem) && defined(lastItem)
@@ -129,27 +145,47 @@ export function LogsInfiniteTable({
   useEffect(() => {
     if (isScrolling) {
       if (
-        scrollDirection === 'forward' &&
-        scrollOffset &&
-        scrollOffset > LOGS_FETCH_NEXT_THRESHOLD
-      ) {
-        fetchNextPage();
-      } else if (
         scrollDirection === 'backward' &&
         scrollOffset &&
-        virtualizer.getTotalSize() - scrollOffset < LOGS_FETCH_PREVIOUS_THRESHOLD
+        scrollOffset <= LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD
       ) {
         fetchPreviousPage();
+      }
+      if (
+        scrollDirection === 'forward' &&
+        lastItemIndex &&
+        lastItemIndex >= data?.length - LOGS_GRID_SCROLL_ITEM_THRESHOLD
+      ) {
+        fetchNextPage();
       }
     }
   }, [
     scrollDirection,
-    scrollOffset,
+    lastItemIndex,
+    data?.length,
     isScrolling,
     fetchNextPage,
     fetchPreviousPage,
-    virtualizer,
+    scrollOffset,
   ]);
+
+  const handleExpand = useCallback((logItemId: string) => {
+    setExpandedLogRows(prev => {
+      const newSet = new Set(prev);
+      newSet.add(logItemId);
+      return newSet;
+    });
+  }, []);
+  const handleExpandHeight = useCallback((logItemId: string, estimatedHeight: number) => {
+    setExpandedLogRowsHeights(prev => ({...prev, [logItemId]: estimatedHeight}));
+  }, []);
+  const handleCollapse = useCallback((logItemId: string) => {
+    setExpandedLogRows(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(logItemId);
+      return newSet;
+    });
+  }, []);
 
   return (
     <Fragment>
@@ -190,6 +226,10 @@ export function LogsInfiniteTable({
                   highlightTerms={highlightTerms}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
+                  onExpand={handleExpand}
+                  onCollapse={handleCollapse}
+                  isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
+                  onExpandHeight={handleExpandHeight}
                 />
                 {isPastFetchedRows && (
                   <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
