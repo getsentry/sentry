@@ -72,7 +72,7 @@ import {
 } from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
-// eslint-disable-next-line no-restricted-imports
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
