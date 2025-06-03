@@ -309,7 +309,6 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -597,7 +596,6 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
@@ -1006,7 +1004,6 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openForcedTrialModal).toHaveBeenCalled());
