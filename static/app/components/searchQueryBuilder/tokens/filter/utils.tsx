@@ -231,7 +231,7 @@ export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
       };
     }
   } else if (token.value.type === Token.VALUE_TEXT_LIST) {
-    if (getIsContains(token.value.items.every(entry => entry.value?.wildcard))) {
+    if (token.value.items.every(entry => getIsContains(entry.value?.wildcard))) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),
         operator: token.negated
