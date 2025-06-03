@@ -7,14 +7,12 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tag} from 'sentry/components/core/badge/tag';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import organizationGeneralSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import organizationMembershipSettingsFields from 'sentry/data/forms/organizationMembershipSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
@@ -77,7 +75,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     formsConfig[0]!.fields = [
       ...formsConfig[0]!.fields.slice(0, 2),
       organizationIdField,
-      ...formsConfig[0]!.fields.slice(2),
+      ...formsConfig[0]!.fields.slice(2, 3),
       makeHideAiFeaturesField(organization),
       {
         name: 'codecovAccess',
@@ -122,24 +120,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
-      {
-        name: 'enablePrReviewTestGeneration',
-        type: 'blank',
-        label: (
-          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            {t('Enable PR Review and Test Generation')}
-            <FeatureBadge type="beta" />
-          </div>
-        ),
-        help: (
-          <div>
-            {t('Use AI to generate feedback and tests in pull requests')}{' '}
-            <ExternalLink href="https://sentry-docs-git-sentry-prevent-ai.sentry.dev/product/sentry-prevent-ai/">
-              {t('Learn more')}
-            </ExternalLink>
-          </div>
-        ),
-      },
+      ...formsConfig[0]!.fields.slice(3),
     ];
     return formsConfig;
   }, [access, organization]);
