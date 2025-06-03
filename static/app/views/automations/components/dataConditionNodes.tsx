@@ -5,13 +5,19 @@ import {
   type DataCondition,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
+import AgeComparisonNode, {
+  AgeComparisonDetails,
+} from 'sentry/views/automations/components/actionFilters/ageComparison';
 import {AssignedToNode} from 'sentry/views/automations/components/actionFilters/assignedTo';
-import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
+import EventAttributeNode, {
+  EventAttributeDetails,
+} from 'sentry/views/automations/components/actionFilters/eventAttribute';
 import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
 import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
-import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
+import IssuePriorityNode, {
+  IssuePriorityDetails,
+} from 'sentry/views/automations/components/actionFilters/issuePriority';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
 import LevelNode from 'sentry/views/automations/components/actionFilters/level';
 import PercentSessionsNode from 'sentry/views/automations/components/actionFilters/percentSessions';
@@ -41,6 +47,7 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
 type DataConditionNode = {
   label: string;
   dataCondition?: React.ReactNode;
+  details?: React.ComponentType<any>;
 };
 
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
@@ -63,10 +70,23 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.NEW_HIGH_PRIORITY_ISSUE,
+    {
+      label: t('Sentry marks a new issue as high priority'),
+    },
+  ],
+  [
+    DataConditionType.EXISTING_HIGH_PRIORITY_ISSUE,
+    {
+      label: t('Sentry marks an existing issue as high priority'),
+    },
+  ],
+  [
     DataConditionType.AGE_COMPARISON,
     {
       label: t('Issue age'),
       dataCondition: <AgeComparisonNode />,
+      details: AgeComparisonDetails,
     },
   ],
   [
@@ -88,6 +108,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue priority'),
       dataCondition: <IssuePriorityNode />,
+      details: IssuePriorityDetails,
     },
   ],
   [
@@ -109,6 +130,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Event attribute'),
       dataCondition: <EventAttributeNode />,
+      details: EventAttributeDetails,
     },
   ],
   [
