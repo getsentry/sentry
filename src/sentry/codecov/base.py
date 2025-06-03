@@ -10,6 +10,8 @@ class CodecovEndpoint(Endpoint):
     Used for endpoints that are specific to Codecov / Prevent.
     """
 
+    permission_classes = ()
+
     def convert_args(self, request: Request, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         # TODO: in case we need to modify args, do it here

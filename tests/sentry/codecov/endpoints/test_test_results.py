@@ -26,10 +26,6 @@ class TestResultsEndpointTest(APITestCase):
         )
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient.query")
-    @patch(
-        "sentry.codecov.endpoints.TestResults.test_results.TestResultsEndpoint.permission_classes",
-        (),
-    )
     def test_get_returns_mock_response(self, mock_query):
         """Test that GET request returns the expected mock GraphQL response structure"""
         # Mock GraphQL response structure
