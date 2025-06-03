@@ -1,10 +1,17 @@
+from enum import IntEnum
 from unittest import mock
 
 import pytest
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
-from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
+
+
+class MockDataConditionEnum(IntEnum):
+    FOO = 1
+    BAR = 2
 
 
 class GetConditionResultTest(TestCase):
@@ -37,13 +44,33 @@ class GetConditionResultTest(TestCase):
         assert dc.get_condition_result() is True
 
 
-class EvaluateValueTest(TestCase):
+class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
         assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
         assert dc.evaluate_value(1) is None
+
+    def test_dict_comparison_result(self):
+        def evaluate_value(
+            value: int, comparison: dict[str, DetectorPriorityLevel]
+        ) -> DetectorPriorityLevel:
+            return (
+                DetectorPriorityLevel.HIGH
+                if comparison["baz"].value > 1
+                else DetectorPriorityLevel.OK
+            )
+
+        dc = self.setup_condition_mocks(
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
+        )
+        dc.update(comparison={"baz": MockDataConditionEnum.BAR})
+        assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
+
+        dc.update(comparison={"baz": MockDataConditionEnum.FOO})
+        assert dc.evaluate_value(0) == DetectorPriorityLevel.OK
+        self.teardown_condition_mocks()
 
     def test_bad_condition(self):
         with pytest.raises(ValueError):
@@ -68,19 +95,12 @@ class EvaluateValueTest(TestCase):
         )
         assert dc.evaluate_value(2) is None
 
-    @mock.patch("sentry.workflow_engine.models.data_condition.condition_handler_registry")
-    def test_condition_evaluation__data_condition_exception(self, mock_registry):
-        class DataConditionHandlerMock(DataConditionHandler[int]):
-            @staticmethod
-            def evaluate_value(value: int, comparison: int) -> bool:
-                raise DataConditionEvaluationException("Something went wrong")
+    def test_condition_evaluation__data_condition_exception(self):
+        def evaluate_value(value: int, comparison: int) -> bool:
+            raise DataConditionEvaluationException("A known error occurred")
 
-        mock_registry.get.return_value = DataConditionHandlerMock()
-
-        dc = self.create_data_condition(
-            type=Condition.LEVEL,  # this will be overridden by the mock, cannot be a operator
-            comparison=1.0,
-            condition_result=DetectorPriorityLevel.HIGH,
+        dc = self.setup_condition_mocks(
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
         )
 
         with mock.patch("sentry.workflow_engine.models.data_condition.logger.info") as mock_logger:
@@ -90,20 +110,17 @@ class EvaluateValueTest(TestCase):
                 == "A known error occurred while evaluating a data condition"
             )
 
-    @mock.patch("sentry.workflow_engine.models.data_condition.condition_handler_registry")
-    def test_condition_evaluation___exception(self, mock_registry):
-        class DataConditionHandlerMock(DataConditionHandler[int]):
-            @staticmethod
-            def evaluate_value(value: int, comparison: int) -> bool:
-                raise Exception("Something went wrong")
+        self.teardown_condition_mocks()
 
-        mock_registry.get.return_value = DataConditionHandlerMock()
+    def test_condition_evaluation___exception(self):
+        def evaluate_value(value: int, comparison: int) -> bool:
+            raise Exception("Something went wrong")
 
-        dc = self.create_data_condition(
-            type=Condition.LEVEL,  # this will be overridden by the mock, cannot be a operator
-            comparison=1.0,
-            condition_result=DetectorPriorityLevel.HIGH,
+        dc = self.setup_condition_mocks(
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
         )
 
         with pytest.raises(Exception):
             dc.evaluate_value(2)
+
+        self.teardown_condition_mocks()

@@ -74,16 +74,13 @@ function StreamWrapper({children}: Props) {
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
   const onNewIssuesFeed = prefersStackedNav && !viewId;
-  const useGlobalPageFilters =
-    !organization.features.includes('issue-stream-custom-views') || onNewIssuesFeed;
+  const useGlobalPageFilters = !prefersStackedNav || onNewIssuesFeed;
 
   return (
     <PageFiltersContainer
       skipLoadLastUsed={!useGlobalPageFilters}
       disablePersistence={!useGlobalPageFilters}
-      skipInitializeUrlParams={
-        !onNewIssuesFeed && organization.features.includes('issue-stream-custom-views')
-      }
+      skipInitializeUrlParams={!onNewIssuesFeed && prefersStackedNav}
     >
       <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </PageFiltersContainer>
