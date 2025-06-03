@@ -9,6 +9,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   getAIGenerationsFilter,
@@ -101,21 +102,24 @@ export default function LLMGenerationsWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {models?.map((item, index) => (
-        <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
-          <div>
-            <SeriesColorIndicator
-              style={{
-                backgroundColor: colorPalette[index],
-              }}
-            />
-          </div>
-          <div>
-            <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
-          </div>
-          <span>{item['count(span.duration)']}</span>
-        </Fragment>
-      ))}
+      {models?.map((item, index) => {
+        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
+        return (
+          <Fragment key={modelId}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <ModelText>
+              <ModelName modelId={modelId} />
+            </ModelText>
+            <span>{item['count(span.duration)']}</span>
+          </Fragment>
+        );
+      })}
     </WidgetFooterTable>
   );
 
