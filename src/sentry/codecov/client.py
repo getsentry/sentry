@@ -60,14 +60,13 @@ class CodecovApiClient:
 
     def __init__(
         self,
-        git_provider_user: GitProviderId,
+        git_provider_org: GitProviderId,
         git_provider: GitProvider = GitProvider.GitHub,
     ):
         """
         Creates a `CodecovApiClient`.
 
-        :param git_provider_user: The ID of the current Sentry user's linked git
-           provider account, according to the git provider.
+        :param git_provider_org: The organization slug for the git provider.
         :param git_provider: The git provider that the above user's account is
            hosted on.
         """
@@ -78,7 +77,7 @@ class CodecovApiClient:
         self.base_url = settings.CODECOV_API_BASE_URL
         self.signing_secret = signing_secret
         self.custom_claims = {
-            "g_u": git_provider_user,
+            "g_o": git_provider_org,
             "g_p": git_provider,
         }
 

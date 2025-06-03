@@ -21,7 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import {BillingType} from 'getsentry/types';
+import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
@@ -52,6 +52,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const isTouchCustomer = subscription?.type === BillingType.INVOICED;
   const isSponsoredCustomer = Boolean(subscription?.isSponsored);
 
+  const isPerCategoryOnDemand =
+    subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY;
+
   const userHasBillingAccess = organization.access.includes('org:billing');
 
   const autofixAcknowledgeMutation = useMutation({
@@ -78,6 +81,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   function handleAddBudget() {
     if (!subscription) {
+      return;
+    }
+    if (isPerCategoryOnDemand) {
+      // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
+      navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent#step3`);
       return;
     }
     openOnDemandBudgetEditModal({

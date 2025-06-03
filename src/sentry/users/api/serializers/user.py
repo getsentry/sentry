@@ -297,7 +297,7 @@ class DetailedUserSerializer(UserSerializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse:
-        d = cast(UserSerializerResponse, super().serialize(obj, attrs, user))
+        d = super().serialize(obj, attrs, user)
 
         # TODO(schew2381): Remove mention of superuser below once the staff feature flag is removed
 
