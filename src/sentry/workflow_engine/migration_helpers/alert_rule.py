@@ -765,7 +765,7 @@ def dual_update_migrated_alert_rule_trigger(
     updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(label, DetectorPriorityLevel.HIGH)
     alert_rule = alert_rule_trigger.alert_rule
 
-    # if we're changing to anomaly detection, replace the detector trigger with the new type
+    # if we're changing to anomaly detection, we need to set the comparison JSON
     if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
         updated_detector_trigger_fields["type"] = Condition.ANOMALY_DETECTION
         updated_detector_trigger_fields["comparison"] = {

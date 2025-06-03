@@ -1586,6 +1586,45 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
             comparison=200,
         ).exists()
 
+    def test_spe_anomaly_detection_to_percent(self):
+        dual_write_alert_rule(self.anomaly_detection_alert)
+        self.anomaly_detection_alert.update(
+            detection_type=AlertRuleDetectionType.PERCENT,
+            comparison_delta=90,
+            sensitivity=None,
+            seasonality=None,
+        )
+        self.anomaly_detection_alert_trigger.update(alert_threshold=150)
+        self.anomaly_detection_alert.refresh_from_db()
+        self.anomaly_detection_alert_trigger.refresh_from_db()
+
+        dual_update_alert_rule(self.anomaly_detection_alert)
+
+        # check detector
+        detector = AlertRuleDetector.objects.get(
+            alert_rule_id=self.anomaly_detection_alert.id
+        ).detector
+        assert detector.config["sensitivity"] is None
+        assert detector.config["seasonality"] is None
+        assert detector.config["detection_type"] == AlertRuleDetectionType.PERCENT
+        assert detector.config["comparison_delta"] == 90
+
+        # check detector trigger
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        assert detector_trigger.type == Condition.GREATER
+        assert detector_trigger.comparison == 150
+
+        # check explicit resolve detector trigger
+        assert DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+            type=Condition.LESS_OR_EQUAL,
+            comparison=150,
+        ).exists()
+
     def test_spe_anomaly_detection_update(self):
         dual_write_alert_rule(self.anomaly_detection_alert)
         self.anomaly_detection_alert.update(sensitivity=AlertRuleSensitivity.LOW)
