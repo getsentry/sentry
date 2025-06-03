@@ -997,6 +997,12 @@ class SearchResolver:
         operation, fields, functions = arithmetic.parse_arithmetic(equation)
         lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
         rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+        has_aggregates = False
+        for function in functions:
+            resolved_function, _ = self.resolve_function(function)
+            if resolved_function.is_aggregate:
+                has_aggregates = True
+                break
         return (
             ResolvedEquation(
                 public_alias=f"equation|{equation}",
@@ -1007,7 +1013,7 @@ class SearchResolver:
                 operator=constants.ARITHMETIC_OPERATOR_MAP[operation.operator],
                 lhs=lhs,
                 rhs=rhs,
-                is_aggregate=len(functions) > 0,
+                is_aggregate=has_aggregates,
             ),
             lhs_contexts + rhs_contexts,
         )
