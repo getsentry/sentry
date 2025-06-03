@@ -950,8 +950,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         node.parent,
         {
           span_id: spanId,
-          op: head.value.op ?? tail.value.op ?? '',
-          description: head.value.description ?? tail.value.description,
+          op: head.value.op ?? '',
+          description: head.value.description,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
