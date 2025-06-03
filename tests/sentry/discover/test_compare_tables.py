@@ -115,6 +115,16 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             fields=["count()", "http.status_code"],
         )
 
+        self.non_existent_eap_widget_query = DashboardWidgetQuery.objects.create(
+            widget=self.non_existent_field_widget,
+            name="Test Non Existent EAP Widget Query",
+            order=5,
+            conditions="title:hello level:info",
+            aggregates=["count()"],
+            columns=["count()", "http.status_code"],
+            fields=["count()", "http.status_code"],
+        )
+
         self.triple_write_segment(
             project=self.project,
             trace_id=uuid4().hex,
@@ -146,7 +156,19 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             duration=100,
             exclusive_time=100,
             days_before_now=2,
-            tags={"sentry.http.status_code": "200"},
+            tags={"http.status_code": "200"},
+        )
+
+        self.triple_write_segment(
+            project=self.project,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            transaction="hello",
+            duration=100,
+            exclusive_time=100,
+            days_before_now=2,
+            tags={"http.status_code": "400"},
         )
 
     def triple_write_segment(
@@ -196,6 +218,8 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         if tags := kwargs.get("tags", {}):
             data["tags"] = [[key, val] for key, val in tags.items()]
 
+        data["transaction"] = kwargs.get("transaction", "hello")
+
         self.store_event(data, project_id=self.project.id)
 
         self.store_segment(
@@ -212,7 +236,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
 
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction.status": "unknown"},
+            tags=tags,
             project_id=project.id,
             org_id=project.organization.id,
             value=duration,
@@ -263,6 +287,14 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
     def test_compare_non_existent_fields_tables_2(self):
         comparison_result = compare_tables_for_dashboard_widget_queries(
             self.non_existent_field_widget_query_2
+        )
+        assert comparison_result["passed"] is False
+        assert comparison_result["reason"] == CompareTableResult.NO_DATA
+        assert comparison_result["mismatches"] is not None and [] == comparison_result["mismatches"]
+
+    def test_compare_non_existent_eap_widget_query(self):
+        comparison_result = compare_tables_for_dashboard_widget_queries(
+            self.non_existent_eap_widget_query
         )
         assert comparison_result["passed"] is False
         assert comparison_result["reason"] == CompareTableResult.FIELD_NOT_FOUND

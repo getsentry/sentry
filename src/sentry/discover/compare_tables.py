@@ -26,6 +26,7 @@ class CompareTableResult(Enum):
     BOTH_FAILED = "both_requests_failed"
     FIELD_NOT_FOUND = "field_not_found"
     METRICS_FAILED = "metrics_failed"
+    NO_DATA = "no_data"
     NO_FIELDS = "no_fields"
     NO_PROJECT = "no_project"
     PASSED = "passed"
@@ -38,9 +39,6 @@ class CompareTableResultDict(TypedDict):
     fields: list[str] | None
     widget_query: DashboardWidgetQuery
     mismatches: list[str] | None
-
-
-mismatched_tags_count: dict[str, int] = {}
 
 
 def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
@@ -56,12 +54,7 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
     # if there's no metrics data we know there are mismatches,
     # we will check the EAP data for the names of the mismatched fields
     if no_metrics_data:
-        for field, data in metrics_fields.items():
-            if is_equation(field):
-                continue
-            mismatches.append(field)
-            mismatched_tags_count[field] = mismatched_tags_count.get(field, 0) + 1
-        return (len(mismatches) == 0, mismatches)
+        return (False, [], CompareTableResult.NO_DATA)
 
     try:
         for field, data in metrics_data_row.items():
@@ -72,11 +65,6 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
                 logger.info("Field %s not found in EAP response", field)
                 mismatches.append(field)
 
-        # add the count of mismatches for each field to the mismatched_tags_count
-        # after just in case and exception is raised
-        for field in mismatches:
-            mismatched_tags_count[field] = mismatched_tags_count.get(field, 0) + 1
-
     except Exception:
         # if there is an error trying to access fields in the EAP data,
         # return all queried fields as mismatches
@@ -85,10 +73,13 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
             if is_equation(field):
                 continue
             all_fields_mismatch.append(field)
-            mismatched_tags_count[field] = mismatched_tags_count.get(field, 0) + 1
-        return (len(all_fields_mismatch) == 0, all_fields_mismatch)
+        return (
+            len(all_fields_mismatch) == 0,
+            all_fields_mismatch,
+            CompareTableResult.FIELD_NOT_FOUND,
+        )
 
-    return (len(mismatches) == 0, mismatches)
+    return (len(mismatches) == 0, mismatches, CompareTableResult.FIELD_NOT_FOUND)
 
 
 def compare_tables_for_dashboard_widget_queries(
@@ -180,6 +171,7 @@ def compare_tables_for_dashboard_widget_queries(
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.BOTH_FAILED)
+            scope.set_tag("widget_filter_query", query)
             scope.set_tag(
                 "widget_viewer_url",
                 f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
@@ -191,11 +183,13 @@ def compare_tables_for_dashboard_widget_queries(
             "fields": fields,
             "widget_query": widget_query,
             "mismatches": None,
+            "query": query,
         }
     elif has_metrics_error:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.METRICS_FAILED)
+            scope.set_tag("widget_filter_query", query)
             scope.set_tag(
                 "widget_viewer_url",
                 f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
@@ -207,11 +201,13 @@ def compare_tables_for_dashboard_widget_queries(
             "fields": fields,
             "widget_query": widget_query,
             "mismatches": None,
+            "query": query,
         }
     elif has_eap_error:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.EAP_FAILED)
+            scope.set_tag("widget_filter_query", query)
             scope.set_tag(
                 "widget_viewer_url",
                 f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
@@ -223,9 +219,10 @@ def compare_tables_for_dashboard_widget_queries(
             "fields": fields,
             "widget_query": widget_query,
             "mismatches": None,
+            "query": query,
         }
     else:
-        passed, mismatches = compare_table_results(metrics_query_result, eap_result)
+        passed, mismatches, reason = compare_table_results(metrics_query_result, eap_result)
         if passed:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("passed", True)
@@ -241,12 +238,14 @@ def compare_tables_for_dashboard_widget_queries(
                 "fields": fields,
                 "widget_query": widget_query,
                 "mismatches": mismatches,
+                "query": query,
             }
         else:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("passed", False)
-                scope.set_tag("failed_reason", CompareTableResult.FIELD_NOT_FOUND)
+                scope.set_tag("failed_reason", reason)
                 scope.set_tag("mismatches", mismatches)
+                scope.set_tag("widget_filter_query", query)
                 scope.set_tag(
                     "widget_viewer_url",
                     f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
@@ -254,8 +253,9 @@ def compare_tables_for_dashboard_widget_queries(
                 sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
             return {
                 "passed": False,
-                "reason": CompareTableResult.FIELD_NOT_FOUND,
+                "reason": reason,
                 "fields": fields,
                 "widget_query": widget_query,
                 "mismatches": mismatches,
+                "query": query,
             }
