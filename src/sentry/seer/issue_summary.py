@@ -239,6 +239,8 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     option = project.get_option("sentry:autofix_automation_tuning")
     if option == "off":
         return False
+    elif option == "super_low":
+        return fixability_score >= FixabilityScoreThresholds.SUPER_HIGH.value
     elif option == "low":
         return fixability_score >= FixabilityScoreThresholds.HIGH.value
     elif option == "medium":

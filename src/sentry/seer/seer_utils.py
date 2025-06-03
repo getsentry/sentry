@@ -2,6 +2,7 @@ import enum
 
 
 class FixabilityScoreThresholds(enum.Enum):
+    SUPER_HIGH = 0.76
     HIGH = 0.66
     MEDIUM = 0.40
     LOW = 0.25
