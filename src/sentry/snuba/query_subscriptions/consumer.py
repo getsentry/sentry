@@ -163,6 +163,9 @@ def handle_message(
                 tags={"dataset": dataset},
             ),
         ):
+            # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
+            # If a stringified JSON of the dict is OK, nothing needs to be done.
+            # Otherwise it needs to be split up into multiple set_data calls.
             span.set_data("payload", contents)
             span.set_data("subscription_dataset", subscription.snuba_query.dataset)
             span.set_data("subscription_query", subscription.snuba_query.query)

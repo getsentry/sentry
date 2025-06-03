@@ -66,6 +66,10 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
 
         with sentry_sdk.start_span(op="CurrentReleaseEndpoint.get.current_release") as span:
             span.set_data("Environment Count", len(environments))
+            # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
+            # If a stringified JSON of the dict is OK, nothing needs to be done.
+            # Otherwise it needs to be split up into multiple set_data calls.
+
             span.set_data(
                 "Raw Parameters",
                 {

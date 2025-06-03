@@ -190,6 +190,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         query_source = self.get_request_source(request)
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
+            # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
+            # If a stringified JSON of the dict is OK, nothing needs to be done.
+            # Otherwise it needs to be split up into multiple set_data calls.
             span.set_data("organization", organization)
 
             top_events = 0

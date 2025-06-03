@@ -126,6 +126,9 @@ class GroupTypeRegistry:
             span.set_tag("has_batch_features", batch_features is not None)
             span.set_tag("released", released)
             span.set_tag("enabled", enabled)
+            # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
+            # If a stringified JSON of the dict is OK, nothing needs to be done.
+            # Otherwise it needs to be split up into multiple set_data calls.
             span.set_data("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 

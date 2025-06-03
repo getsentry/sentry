@@ -793,6 +793,9 @@ def _convert_aggregate_and_query_to_metrics(
     }
 
     with sentry_sdk.start_span(op="converting_aggregate_and_query") as span:
+        # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
+        # If a stringified JSON of the dict is OK, nothing needs to be done.
+        # Otherwise it needs to be split up into multiple set_data calls.
         span.set_data("widget_query_args", {"query": query, "aggregate": aggregate})
         # Create as many specs as we support
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():

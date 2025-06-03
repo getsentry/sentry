@@ -63,6 +63,9 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
             query_kwargs["actor"] = request.user
         with start_span(op="start_search") as span:
+            # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
+            # If a stringified JSON of the dict is OK, nothing needs to be done.
+            # Otherwise it needs to be split up into multiple set_data calls.
             span.set_data("query_kwargs", query_kwargs)
             result = search.backend.query(**query_kwargs)
             return result.hits
