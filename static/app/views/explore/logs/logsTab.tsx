@@ -97,8 +97,7 @@ export function LogsTabContent({
       yAxis: [`${aggregateFunction}(${aggregateParam})`],
       interval,
       fields: [...(groupBy ? [groupBy] : []), `${aggregateFunction}(${aggregateParam})`],
-      // TODO: not implemented in back end yet
-      // topEvents: (!!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined),
+      topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
