@@ -231,9 +231,10 @@ class SpansBuffer:
             assert len(queue_keys) == len(results)
 
             for queue_key, result in zip(queue_keys, results):
-                for redirect_depth, delete_item, add_item, has_root_span in itertools.batched(
-                    result, 4
-                ):
+                redirect_depth, set_key, has_root_span, *span_keys = result
+                add_item = set_key
+
+                for delete_item in span_keys:
                     min_redirect_depth = min(min_redirect_depth, redirect_depth)
                     max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
