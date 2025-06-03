@@ -54,11 +54,11 @@ export function Button({
         )}
         <ButtonLabel size={size} borderless={props.borderless}>
           {props.icon && (
-            <ButtonIcon size={size} hasChildren={hasChildren}>
+            <Icon size={size} hasChildren={hasChildren}>
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
               </IconDefaultsProvider>
-            </ButtonIcon>
+            </Icon>
           )}
           {props.children}
         </ButtonLabel>
@@ -71,7 +71,7 @@ export const StyledButton = styled('button')<ButtonProps>`
   ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
 `;
 
-export const ButtonLabel = styled('span', {
+const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
@@ -84,7 +84,7 @@ export const ButtonLabel = styled('span', {
   white-space: nowrap;
 `;
 
-export const ButtonIcon = styled('span')<{
+const Icon = styled('span')<{
   hasChildren?: boolean;
   size?: CommonButtonProps['size'];
 }>`
