@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -370,10 +369,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     const showProfilingBanner = this.dataCategory === 'profiles';
     const newLayout = prefersStackedNav(organization);
 
-    const HeaderContainer = newLayout ? SettingsPageHeader : Layout.Header;
-    const BodyContainer = newLayout ? NewLayoutBody : Body;
-
-    const header = newLayout ? (
+    const BodyWrapper = newLayout ? NewLayoutBody : Body;
+    const noTeamInsightsHeader = newLayout ? (
       <SettingsPageHeader
         title={t('Stats & Usage')}
         subtitle={t(
@@ -403,9 +400,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             {hasTeamInsights ? (
               <HeaderTabs organization={organization} activeTab="stats" />
             ) : (
-              header
+              noTeamInsightsHeader
             )}
-            <BodyContainer>
+            <BodyWrapper>
               <Layout.Main fullWidth>
                 <HookHeader organization={organization} />
                 <ControlsWrapper>
@@ -431,7 +428,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                   />
                 </ErrorBoundary>
               </Layout.Main>
-            </BodyContainer>
+            </BodyWrapper>
           </PageFiltersContainer>
         </NoProjectMessage>
       </SentryDocumentTitle>
@@ -475,8 +472,6 @@ const DropdownDataCategory = styled(CompactSelect)`
     border-radius: ${p => p.theme.borderRadius};
   }
 `;
-
-const NewLayoutHeader = styled('div')``;
 
 const NewLayoutBody = styled('div')``;
 

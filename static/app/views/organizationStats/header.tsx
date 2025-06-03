@@ -61,7 +61,7 @@ function StatsHeader({organization, activeTab}: Props) {
           'A view of the usage data that Sentry has received across your entire organization.'
         )}
         tabs={
-          <TabsContainer>
+          <TabsContainer value={activeTab}>
             <StatsHeaderTabs organization={organization} activeTab={activeTab} />
           </TabsContainer>
         }
@@ -94,7 +94,7 @@ function StatsHeader({organization, activeTab}: Props) {
   );
 }
 
-const TabsContainer = styled('div')`
+const TabsContainer = styled(Layout.HeaderTabs)`
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(2)};
 `;
