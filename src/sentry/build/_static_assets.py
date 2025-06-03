@@ -24,7 +24,14 @@ def _build_static_assets() -> None:
             raise SystemExit(ret)
 
     with tempfile.TemporaryDirectory() as tmpd:
-        _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only", f"--store-dir={tmpd}")
+        _cmd(
+            "pnpm",
+            "install",
+            "--production",
+            "--frozen-lockfile",
+            "--reporter=append-only",
+            f"--store-dir={tmpd}",
+        )
 
     _cmd("pnpm", "run", "build-production")
     _cmd("pnpm", "run", "build-chartcuterie-config")
