@@ -165,6 +165,8 @@ export declare namespace TraceTree {
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
+    profile_id: string;
+    profiler_id: string;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
@@ -237,7 +239,16 @@ export declare namespace TraceTree {
     };
   }
 
-  interface ChildrenAutogroup extends Span {
+  interface ChildrenAutogroup {
+    autogrouped_by: {
+      op: string;
+    };
+    op: string;
+    span_id: string;
+    description?: string;
+  }
+
+  interface EAPChildrenAutogroup extends EAPSpan {
     autogrouped_by: {
       op: string;
     };
@@ -354,6 +365,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       replay: ReplayRecord | null;
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): TraceTree {
     const tree = new TraceTree();
@@ -564,6 +576,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
     traceNode.space = [space[0]!, space[1]!];
 
     tree.indicators.sort((a, b) => a.start - b.start);
+
+    if (isEAPTraceNode(traceNode)) {
+      if (options?.preferences?.missing_instrumentation) {
+        TraceTree.DetectMissingInstrumentation(tree.root);
+      }
+
+      if (options?.preferences?.autogroup.parent) {
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+      }
+    }
+
     return tree;
   }
 
@@ -802,18 +825,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (
         previous &&
         child &&
-        isSpanNode(previous) &&
-        isSpanNode(child) &&
+        ((isSpanNode(previous) && isSpanNode(child)) ||
+          (isNonTransactionEAPSpanNode(previous) &&
+            isNonTransactionEAPSpanNode(child))) &&
         shouldAddMissingInstrumentationSpan(child.event?.sdk?.name ?? '') &&
         shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name ?? '') &&
         child.space[0] - previous.space[0] - previous.space[1] >=
           TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
       ) {
+        const previousEndTimestamp = isSpanNode(previous)
+          ? previous.value.timestamp
+          : previous.value.end_timestamp;
         const node = new MissingInstrumentationNode(
           child.parent!,
           {
             type: 'missing_instrumentation',
-            start_timestamp: previous.value.timestamp,
+            start_timestamp: previousEndTimestamp,
             timestamp: child.value.start_timestamp,
           },
           {
@@ -876,7 +903,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (!isSpanNode(node) || node.children.length > 1) {
+      if ((!isSpanNode(node) && !isEAPSpanNode(node)) || node.children.length > 1) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -896,7 +923,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        isSpanNode(tail.children[0]!) &&
+        (isSpanNode(tail.children[0]!) || isEAPSpanNode(tail.children[0]!)) &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
@@ -918,10 +945,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
+      const spanId = isEAPSpanNode(head) ? head.value.event_id : head.value.span_id;
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
-          ...head.value,
+          span_id: spanId,
+          op: head.value.op ?? '',
+          description: head.value.description,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
@@ -1353,11 +1383,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (type === 'ag' && isAutogroupedNode(node)) {
         if (isParentAutogroupedNode(node)) {
-          return (
-            node.value.span_id === id ||
-            node.head.value.span_id === id ||
-            node.tail.value.span_id === id
-          );
+          const headSpanId = isEAPSpanNode(node.head)
+            ? node.head.value.event_id
+            : node.head.value.span_id;
+          const tailSpanId = isEAPSpanNode(node.tail)
+            ? node.tail.value.event_id
+            : node.tail.value.span_id;
+          return headSpanId === id || tailSpanId === id;
         }
         if (isSiblingAutogroupedNode(node)) {
           const child = node.children[0]!;
@@ -1368,7 +1400,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       if (type === 'ms' && isMissingInstrumentationNode(node)) {
-        return node.previous.value.span_id === id || node.next.value.span_id === id;
+        const previousSpanId = isSpanNode(node.previous)
+          ? node.previous.value.span_id
+          : node.previous.value.event_id;
+        const nextSpanId = isSpanNode(node.next)
+          ? node.next.value.span_id
+          : node.next.value.event_id;
+        return previousSpanId === id || nextSpanId === id;
       }
 
       if (type === 'error' && (isTraceErrorNode(node) || isEAPErrorNode(node))) {
@@ -1428,14 +1466,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return false;
       }
       if (isMissingInstrumentationNode(n)) {
-        return n.previous.value.span_id === eventId || n.next.value.span_id === eventId;
+        const previousSpanId = isSpanNode(n.previous)
+          ? n.previous.value.span_id
+          : n.previous.value.event_id;
+        const nextSpanId = isSpanNode(n.next)
+          ? n.next.value.span_id
+          : n.next.value.event_id;
+        return previousSpanId === eventId || nextSpanId === eventId;
       }
       if (isParentAutogroupedNode(n)) {
-        return (
-          n.value.span_id === eventId ||
-          n.head.value.span_id === eventId ||
-          n.tail.value.span_id === eventId
-        );
+        const headSpanId = isEAPSpanNode(n.head)
+          ? n.head.value.event_id
+          : n.head.value.span_id;
+        const tailSpanId = isEAPSpanNode(n.tail)
+          ? n.tail.value.event_id
+          : n.tail.value.span_id;
+        return headSpanId === eventId || tailSpanId === eventId;
       }
 
       if (isSiblingAutogroupedNode(n)) {
@@ -2071,6 +2117,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     replayTraces: ReplayTrace[];
     rerender: () => void;
     urlParams: Location['query'];
+    preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
     let cancelled = false;
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;
@@ -2122,6 +2169,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           TraceTree.FromTrace(updatedData, {
             meta: options.meta?.data,
             replay: null,
+            preferences: options.preferences,
           })
         );
         rerender();
@@ -2161,7 +2209,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
-      return `ag-${n.head.value.span_id}`;
+      const headSpanId = isEAPSpanNode(n.head)
+        ? n.head.value.event_id
+        : n.head.value.span_id;
+      return `ag-${headSpanId}`;
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0]!;
@@ -2190,7 +2241,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   if (isMissingInstrumentationNode(n)) {
-    return `ms-${n.previous.value.span_id}`;
+    const previousSpanId = isSpanNode(n.previous)
+      ? n.previous.value.span_id
+      : n.previous.value.event_id;
+    return `ms-${previousSpanId}`;
   }
 
   throw new Error('Not implemented');

@@ -1526,7 +1526,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     allowWildcard: false,
   },
   [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
-    desc: t('How actionable the issue is, determined by Seer'),
+    desc: t('How easily you can fix the issue with a code change, estimated by Seer'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
