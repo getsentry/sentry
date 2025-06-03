@@ -9,6 +9,7 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import ProgressRing from 'sentry/components/progressRing';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -94,7 +95,9 @@ function OnboardingItem({
               `}
               text={
                 doneTasks.length === allTasks.length ? (
-                  <IconCheckmark />
+                  <IconDefaultsProvider>
+                    <IconCheckmark />
+                  </IconDefaultsProvider>
                 ) : (
                   doneTasks.length
                 )
