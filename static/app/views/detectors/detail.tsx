@@ -43,8 +43,8 @@ const priorities: Priority[] = [
 ];
 
 function getDetectorEnvironment(detector: Detector) {
-  return detector.dataSources.find(ds => ds.queryObj.snubaQuery.environment)?.queryObj
-    .snubaQuery.environment;
+  return detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')
+    ?.queryObj.snubaQuery.environment;
 }
 
 export default function DetectorDetails() {

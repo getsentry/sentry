@@ -1,5 +1,8 @@
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 
+/**
+ * See SnubaQuerySerializer
+ */
 interface SnubaQuery {
   aggregate: string;
   dataset: string;
@@ -12,26 +15,52 @@ interface SnubaQuery {
   environment?: string;
 }
 
-interface QueryObject {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription: string;
-}
-
-export interface SnubaQueryDataSource {
+interface BaseDataSource {
   id: string;
   organizationId: string;
-  queryObj: QueryObject;
   sourceId: string;
+  type: 'snuba_query_subscription' | 'uptime_subscription';
+}
+
+export interface SnubaQueryDataSource extends BaseDataSource {
+  /**
+   * See QuerySubscriptionSerializer
+   */
+  queryObj: {
+    id: string;
+    snubaQuery: SnubaQuery;
+    status: number;
+    subscription: string;
+  };
   type: 'snuba_query_subscription';
 }
 
-export type DataSource = SnubaQueryDataSource;
+interface UptimeSubscriptionDataSource extends BaseDataSource {
+  /**
+   * See UptimeSubscriptionSerializer
+   */
+  queryObj: {
+    hostProviderId: string;
+    hostProviderName: string;
+    intervalSeconds: number;
+    method: string;
+    timeoutMs: number;
+    traceSampling: boolean;
+    url: string;
+    urlDomain: string;
+    urlDomainSuffix: string;
+  };
+  type: 'uptime_subscription';
+}
+
+/**
+ * See DataSourceSerializer
+ */
+type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
 export type DetectorType =
   | 'crons'
-  | 'errors'
+  | 'error'
   | 'metric'
   | 'performance'
   | 'replay'
@@ -39,9 +68,9 @@ export type DetectorType =
   | 'uptime';
 
 interface NewDetector {
-  conditionGroup: DataConditionGroup;
+  conditionGroup: DataConditionGroup | null;
   config: Record<string, unknown>;
-  dataSources: DataSource[];
+  dataSources: DataSource[] | null;
   disabled: boolean;
   name: string;
   projectId: string;
@@ -50,9 +79,10 @@ interface NewDetector {
 }
 
 export interface Detector extends Readonly<NewDetector> {
-  readonly createdBy: string;
+  readonly createdBy: string | null;
   readonly dateCreated: string;
   readonly dateUpdated: string;
   readonly id: string;
   readonly lastTriggered: string;
+  readonly owner: string | null;
 }
