@@ -98,23 +98,23 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
             for m in release_project_environments
         ],
     )
-    for adopted_release in missing_releases:
+    for missing_release in missing_releases:
         metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
         try:
             env = Environment.objects.get_or_create(
-                name=adopted_release["environment"], organization_id=org_id
+                name=missing_release["environment"], organization_id=org_id
             )[0]
             try:
                 release = Release.objects.get_or_create(
                     organization_id=org_id,
-                    version=adopted_release["version"],
+                    version=missing_release["version"],
                     defaults={
                         "status": ReleaseStatus.OPEN,
                     },
                 )[0]
             except IntegrityError:
                 release = Release.objects.get(
-                    organization_id=org_id, version=adopted_release["version"]
+                    organization_id=org_id, version=missing_release["version"]
                 )
             except ValidationError:
                 release = None
@@ -122,19 +122,19 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                     "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
                     extra={
                         "org_id": org_id,
-                        "release_version": adopted_release["version"],
+                        "release_version": missing_release["version"],
                     },
                 )
 
             if release:
-                release.add_project(Project.objects.get(id=adopted_release["project_id"]))
+                release.add_project(Project.objects.get(id=missing_release["project_id"]))
 
                 ReleaseEnvironment.objects.get_or_create(
                     environment=env, organization_id=org_id, release=release
                 )
 
                 rpe = ReleaseProjectEnvironment.objects.create(
-                    project_id=adopted_release["project_id"],
+                    project_id=missing_release["project_id"],
                     release_id=release.id,
                     environment=env,
                     adopted=timezone.now(),
