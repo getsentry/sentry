@@ -262,6 +262,7 @@ def schedule_invalidate_project_config(
     organization_id=None,
     project_id=None,
     public_key=None,
+    countdown=5,
     transaction_db=None,
 ):
     """Schedules the :func:`invalidate_project_config` task.
@@ -287,12 +288,15 @@ def schedule_invalidate_project_config(
     >>>     )
 
     If there is no active database transaction open for the provided ``transaction_db``,
-    the project config task is scheduled immediately.
+    the project config task is executed immediately.
 
     :param trigger: The reason for the invalidation.  This is used to tag metrics.
     :param organization_id: Invalidates all project keys for all projects in an organization.
     :param project_id: Invalidates all project keys for a project.
     :param public_key: Invalidate a single public key.
+    :param countdown: The time to delay running this task in seconds.  Normally there is a
+        slight delay to increase the likelihood of deduplicating invalidations but you can
+        tweak this, like e.g. the :func:`invalidate_all` task does.
     :param transaction_db: The database currently being used by an active transaction.
         This directs the on_commit handler for the task to the correct transaction.
     """
@@ -316,6 +320,7 @@ def schedule_invalidate_project_config(
                 organization_id=organization_id,
                 project_id=project_id,
                 public_key=public_key,
+                countdown=countdown,
             ),
             using=transaction_db,
         )
@@ -327,6 +332,7 @@ def _schedule_invalidate_project_config(
     organization_id=None,
     project_id=None,
     public_key=None,
+    countdown=5,
 ):
     """For param docs, see :func:`schedule_invalidate_project_config`."""
     from sentry.models.project import Project
@@ -375,6 +381,7 @@ def _schedule_invalidate_project_config(
     )
 
     invalidate_project_config.apply_async(
+        countdown=countdown,
         kwargs={
             "project_id": project_id,
             "organization_id": organization_id,
