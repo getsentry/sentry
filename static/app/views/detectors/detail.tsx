@@ -2,9 +2,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
+import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,6 +25,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {useTeams} from 'sentry/utils/useTeams';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
@@ -45,6 +48,32 @@ const priorities: Priority[] = [
 function getDetectorEnvironment(detector: Detector) {
   return detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')
     ?.queryObj.snubaQuery.environment;
+}
+
+function AssignToTeam({teamId}: {teamId: string}) {
+  const {teams} = useTeams();
+  const team = teams.find(tm => tm.id === teamId);
+  return t('Assign to %s', `#${team?.slug ?? 'unknown'}`);
+}
+
+function AssignToUser({userId}: {userId: string}) {
+  return t('Assign to %s', <ActorBadge actor={{id: userId, name: '', type: 'user'}} />);
+}
+
+function OwnerDisplay({owner}: {owner: string | null}) {
+  if (!owner) {
+    return t('Unassigned');
+  }
+
+  const [ownerType, ownerId] = owner.split(':');
+  if (ownerType === 'team') {
+    return <AssignToTeam teamId={ownerId!} />;
+  }
+  if (ownerType === 'user') {
+    return <AssignToUser userId={ownerId!} />;
+  }
+
+  return t('Unassigned');
 }
 
 export default function DetectorDetails() {
@@ -91,7 +120,9 @@ export default function DetectorDetails() {
                 <DetailsPanel detector={detector} />
               </Section>
               <Section title={t('Assign')}>
-                {t('Assign to %s', 'admin@sentry.io')}
+                <Flex align="center" gap={space(1)}>
+                  <OwnerDisplay owner={detector.owner} />
+                </Flex>
               </Section>
               <Section title={t('Prioritize')}>
                 <PrioritiesList>
