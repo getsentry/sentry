@@ -7,6 +7,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
@@ -42,6 +43,7 @@ export function useIssuesTraceTree({
 }: UseTraceTreeParams): IssuesTraceTree {
   const api = useApi();
   const {projects} = useProjects();
+  const traceState = useTraceState();
   const organization = useOrganization();
 
   const [tree, setTree] = useState<IssuesTraceTree>(IssuesTraceTree.Empty());
@@ -84,12 +86,15 @@ export function useIssuesTraceTree({
       const newTree = IssuesTraceTree.FromTrace(trace.data, {
         meta: meta.data,
         replay,
+        preferences: traceState.preferences,
       });
 
       setTree(newTree);
       newTree.build();
       return;
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,

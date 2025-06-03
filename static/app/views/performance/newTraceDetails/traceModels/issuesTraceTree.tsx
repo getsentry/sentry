@@ -46,6 +46,7 @@ export class IssuesTraceTree extends TraceTree {
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       replay: ReplayRecord | null;
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): IssuesTraceTree {
     const tree = super.FromTrace(trace, options);
