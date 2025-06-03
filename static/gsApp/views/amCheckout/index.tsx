@@ -138,7 +138,7 @@ class AMCheckout extends Component<Props, State> {
         ) {
           return budget.reservedBudget > 0;
         }
-        return !props.organization.features.includes(budget.billingFlag);
+        return !props.organization.features.includes(budget.billingFlag || '');
       });
       if (selectedAll) {
         step = 2;
