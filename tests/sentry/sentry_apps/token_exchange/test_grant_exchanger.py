@@ -8,7 +8,6 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.asserts import (
@@ -24,12 +23,11 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class TestGrantExchanger(TestCase):
     def setUp(self):
-        self.orm_install = self.create_sentry_app_installation(prevent_token_exchange=True)
-        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
-        self.code = self.orm_install.api_grant.code
+        self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
+        self.code = self.install.api_grant.code
         assert self.install.sentry_app.application is not None
         self.client_id = self.install.sentry_app.application.client_id
-        self.user = self.orm_install.sentry_app.proxy_user
+        self.user = self.install.sentry_app.proxy_user
 
         self.grant_exchanger = GrantExchanger(
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
@@ -118,7 +116,7 @@ class TestGrantExchanger(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_grant_must_be_active(self, mock_record):
-        self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
+        self.install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
@@ -181,7 +179,7 @@ class TestGrantExchanger(TestCase):
         assert e.value.message == "Could not find application from grant"
         assert e.value.webhook_context == {
             "code": self.code[:4],
-            "grant_id": self.orm_install.api_grant.id,
+            "grant_id": self.install.api_grant.id,
         }
         assert e.value.public_context == {}
 
@@ -226,7 +224,7 @@ class TestGrantExchanger(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_deletes_grant_on_successful_exchange(self, mock_record):
-        grant_id = self.orm_install.api_grant_id
+        grant_id = self.install.api_grant_id
         self.grant_exchanger.run()
         assert not ApiGrant.objects.filter(id=grant_id)
 
@@ -247,7 +245,7 @@ class TestGrantExchanger(TestCase):
         from sentry.utils.locking import UnableToAcquireLock
 
         # simulate a race condition on the grant exchange
-        grant_id = self.orm_install.api_grant_id
+        grant_id = self.install.api_grant_id
         lock = locks.get(
             ApiGrant.get_lock_key(grant_id),
             duration=10,
