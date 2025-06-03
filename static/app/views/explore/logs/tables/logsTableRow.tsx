@@ -233,18 +233,7 @@ export const LogRowContent = memo(function LogRowContent({
                 onClick={() => toggleExpanded()}
               />
             ) : (
-              <span
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  marginRight: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {chevronIcon}
-              </span>
+              <span id="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
