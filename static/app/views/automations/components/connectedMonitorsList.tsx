@@ -8,7 +8,7 @@ import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
@@ -69,10 +69,10 @@ export default function ConnectedMonitorsList({
 }
 
 interface BaseMonitorsData {
-  createdBy: string;
+  createdBy: Detector['createdBy'];
   lastIssue: Group | undefined;
   title: {link: string; name: string; projectId: string};
-  type: DetectorType;
+  type: Detector['type'];
 }
 
 const baseColumns = defineColumns<BaseMonitorsData>({
@@ -95,7 +95,7 @@ const baseColumns = defineColumns<BaseMonitorsData>({
   },
   createdBy: {
     Header: () => t('Creator'),
-    Cell: ({value}) => <UserCell user={value} />,
+    Cell: ({value}) => (value ? <UserCell user={value} /> : null),
     width: '1fr',
   },
 });

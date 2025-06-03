@@ -165,10 +165,13 @@ export declare namespace TraceTree {
     occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
+    profile_id: string;
+    profiler_id: string;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
     transaction: string;
+    transaction_id: string;
     description?: string;
     measurements?: Record<string, number>;
   };
@@ -353,6 +356,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       replay: ReplayRecord | null;
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): TraceTree {
     const tree = new TraceTree();
@@ -563,6 +567,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
     traceNode.space = [space[0]!, space[1]!];
 
     tree.indicators.sort((a, b) => a.start - b.start);
+
+    if (isEAPTraceNode(traceNode) && options?.preferences?.missing_instrumentation) {
+      TraceTree.DetectMissingInstrumentation(tree.root);
+    }
+
     return tree;
   }
 
@@ -801,18 +810,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (
         previous &&
         child &&
-        isSpanNode(previous) &&
-        isSpanNode(child) &&
+        ((isSpanNode(previous) && isSpanNode(child)) ||
+          (isNonTransactionEAPSpanNode(previous) &&
+            isNonTransactionEAPSpanNode(child))) &&
         shouldAddMissingInstrumentationSpan(child.event?.sdk?.name ?? '') &&
         shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name ?? '') &&
         child.space[0] - previous.space[0] - previous.space[1] >=
           TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
       ) {
+        const previousEndTimestamp = isSpanNode(previous)
+          ? previous.value.timestamp
+          : previous.value.end_timestamp;
         const node = new MissingInstrumentationNode(
           child.parent!,
           {
             type: 'missing_instrumentation',
-            start_timestamp: previous.value.timestamp,
+            start_timestamp: previousEndTimestamp,
             timestamp: child.value.start_timestamp,
           },
           {
@@ -1367,7 +1380,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       if (type === 'ms' && isMissingInstrumentationNode(node)) {
-        return node.previous.value.span_id === id || node.next.value.span_id === id;
+        const previousSpanId = isSpanNode(node.previous)
+          ? node.previous.value.span_id
+          : node.previous.value.event_id;
+        const nextSpanId = isSpanNode(node.next)
+          ? node.next.value.span_id
+          : node.next.value.event_id;
+        return previousSpanId === id || nextSpanId === id;
       }
 
       if (type === 'error' && (isTraceErrorNode(node) || isEAPErrorNode(node))) {
@@ -1427,7 +1446,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return false;
       }
       if (isMissingInstrumentationNode(n)) {
-        return n.previous.value.span_id === eventId || n.next.value.span_id === eventId;
+        const previousSpanId = isSpanNode(n.previous)
+          ? n.previous.value.span_id
+          : n.previous.value.event_id;
+        const nextSpanId = isSpanNode(n.next)
+          ? n.next.value.span_id
+          : n.next.value.event_id;
+        return previousSpanId === eventId || nextSpanId === eventId;
       }
       if (isParentAutogroupedNode(n)) {
         return (
@@ -2070,6 +2095,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     replayTraces: ReplayTrace[];
     rerender: () => void;
     urlParams: Location['query'];
+    preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
     let cancelled = false;
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;
@@ -2121,6 +2147,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           TraceTree.FromTrace(updatedData, {
             meta: options.meta?.data,
             replay: null,
+            preferences: options.preferences,
           })
         );
         rerender();
@@ -2189,7 +2216,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   if (isMissingInstrumentationNode(n)) {
-    return `ms-${n.previous.value.span_id}`;
+    const previousSpanId = isSpanNode(n.previous)
+      ? n.previous.value.span_id
+      : n.previous.value.event_id;
+    return `ms-${previousSpanId}`;
   }
 
   throw new Error('Not implemented');

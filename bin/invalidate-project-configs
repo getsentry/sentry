@@ -37,7 +37,7 @@ def invalidate_project_configs(percentage):
     for org_id in RangeQuerySetWrapperWithProgressBar(queryset, result_value_getter=lambda x: x):
         if (org_id % 100) < percentage:
             schedule_invalidate_project_config(
-                trigger="invalidate-all-orgs", organization_id=org_id
+                trigger="invalidate-all-orgs", organization_id=org_id, countdown=0
             )
 
 

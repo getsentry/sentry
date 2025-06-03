@@ -109,7 +109,7 @@ interface CIEfficiencyProps {
 export function CIEfficiency({isLoading, ...bodyProps}: CIEfficiencyProps) {
   return (
     <CIEfficiencyPanel>
-      <PanelHeader>{t('CI Efficiency')}</PanelHeader>
+      <PanelHeader>{t('CI Run Efficiency')}</PanelHeader>
       <PanelBody>
         {isLoading ? <LoadingIndicator /> : <CIEfficiencyBody {...bodyProps} />}
       </PanelBody>

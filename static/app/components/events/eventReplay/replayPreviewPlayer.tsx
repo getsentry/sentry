@@ -23,6 +23,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
@@ -72,6 +73,8 @@ export default function ReplayPreviewPlayer({
   const referrer = getRouteStringFromRoutes(routes);
   const fromFeedback = referrer === '/feedback/';
 
+  const {groupId} = useParams<{groupId: string}>();
+
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
     if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
@@ -107,6 +110,7 @@ export default function ReplayPreviewPlayer({
               referrer: getRouteStringFromRoutes(routes),
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
               t: (currentTime + startOffsetMs) / 1000,
+              groupId,
             },
           }}
           {...fullReplayButtonProps}

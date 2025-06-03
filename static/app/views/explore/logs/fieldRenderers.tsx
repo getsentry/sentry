@@ -124,7 +124,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 
   return (
     <LogDate align={props.extra.align}>
-      <DateTime seconds date={timestampToUse} format="MMM D, h:mm:ss.SSS A" />
+      <DateTime seconds milliseconds date={timestampToUse} />
     </LogDate>
   );
 }

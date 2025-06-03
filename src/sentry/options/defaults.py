@@ -1686,6 +1686,11 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.sql_injection.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register(
@@ -1773,7 +1778,7 @@ register(
 )  # ms
 register(
     "performance.issues.http_overhead.http_request_delay_threshold",
-    default=500,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
@@ -1898,6 +1903,18 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "explore.trace-items.keys.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explore.trace-items.values.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # In Single Tenant with 100% DS, we may need to reverse the UI change made by dynamic-sampling
 # if metrics extraction isn't ready.
@@ -1919,6 +1936,14 @@ register(
 )
 # Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# If span alerts should use eap-items entity. Uses eap-items-span if disabled.
+register(
+    "alerts.spans.use-eap-items",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.

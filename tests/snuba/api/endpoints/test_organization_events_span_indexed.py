@@ -4638,8 +4638,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ['tags["flag.evaluation.feature.organizations:foo",number]'],
-                "query": 'has:tags["flag.evaluation.feature.organizations:foo",number]',
+                "field": ["tags[flag.evaluation.feature.organizations:foo,number]"],
+                "query": "has:tags[flag.evaluation.feature.organizations:foo,number] tags[flag.evaluation.feature.organizations:foo,number]:1",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -4649,7 +4649,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             {
                 "id": span["span_id"],
                 "project.name": self.project.slug,
-                'tags["flag.evaluation.feature.organizations:foo",number]': 1,
+                "tags[flag.evaluation.feature.organizations:foo,number]": 1,
             },
         ]
 

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
@@ -23,7 +24,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
 
-        eventstream_state = object()
+        eventstream_state: dict[str, Any] = {"key": "value"}
 
         with self.tasks():
             merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)

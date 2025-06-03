@@ -121,9 +121,6 @@ def get_rust_enhancements(
         raise InvalidEnhancerConfig(str(e))
 
 
-EMPTY_RUST_ENHANCEMENTS = get_rust_enhancements("config_string", "")
-
-
 # TODO: Convert this into a typeddict in ophio
 RustExceptionData = dict[str, bytes | None]
 
@@ -470,12 +467,6 @@ class Enhancements:
     # from cache.
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
-    # TODO: Once we switch to always using split enhancements, these can go away
-    classifier_rules: list[EnhancementRule] = []
-    contributes_rules: list[EnhancementRule] = []
-    classifier_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
-    contributes_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
-
     def __init__(
         self,
         rules: list[EnhancementRule],
@@ -493,17 +484,17 @@ class Enhancements:
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
 
         self.run_split_enhancements = version == 3
-        if self.run_split_enhancements:
-            classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
-            self.classifier_rules = classifier_config.rules
-            self.contributes_rules = contributes_config.rules
-            self.classifier_rust_enhancements = merge_rust_enhancements(
-                self.bases, classifier_config.rust_enhancements, type="classifier"
-            )
-            self.contributes_rust_enhancements = merge_rust_enhancements(
-                self.bases, contributes_config.rust_enhancements, type="contributes"
-            )
+        classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
+
+        self.classifier_rules = classifier_config.rules
+        self.contributes_rules = contributes_config.rules
+        self.classifier_rust_enhancements = merge_rust_enhancements(
+            self.bases, classifier_config.rust_enhancements, type="classifier"
+        )
+        self.contributes_rust_enhancements = merge_rust_enhancements(
+            self.bases, contributes_config.rust_enhancements, type="contributes"
+        )
 
     def apply_category_and_updated_in_app_to_frames(
         self,
@@ -524,52 +515,20 @@ class Enhancements:
         rust_exception_data = make_rust_exception_data(exception_data)
 
         with metrics.timer("grouping.enhancements.get_in_app") as metrics_timer_tags:
-            metrics_timer_tags["split"] = False
-            category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
-                match_frames, rust_exception_data
+            metrics_timer_tags["split"] = True
+            category_and_in_app_results = (
+                self.classifier_rust_enhancements.apply_modifications_to_frames(
+                    match_frames, rust_exception_data
+                )
             )
 
-        if self.run_split_enhancements:
-            with metrics.timer("grouping.enhancements.get_in_app") as metrics_timer_tags:
-                metrics_timer_tags["split"] = True
-                category_and_in_app_results_split = (
-                    self.classifier_rust_enhancements.apply_modifications_to_frames(
-                        match_frames, rust_exception_data
-                    )
-                )
-            split_enhancement_misses: list[Any] = []
-        else:
-            category_and_in_app_results_split = category_and_in_app_results
-
-        for i, frame, (category, in_app), (category_split, in_app_split) in zip(
-            range(len(frames)),
-            frames,
-            category_and_in_app_results,
-            category_and_in_app_results_split,
-        ):
+        for frame, (category, in_app) in zip(frames, category_and_in_app_results):
             if in_app is not None:
                 # If the `in_app` value changes as a result of this call, the original value (in
                 # integer form) will be added to `frame.data` under the key "orig_in_app"
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
-
-            # If we're running the split enhancements experiment, track any places where the results
-            # are different from what we expect
-            if self.run_split_enhancements:
-                _check_split_enhancements_frame_category_and_in_app(
-                    i, category, category_split, in_app, in_app_split, split_enhancement_misses
-                )
-
-        if self.run_split_enhancements:
-            logger.info(
-                "grouping.split_enhancements.classifier_results",
-                extra=(
-                    {"outcome": "failure", "frames": frames, "misses": split_enhancement_misses}
-                    if split_enhancement_misses
-                    else {"outcome": "success"}
-                ),
-            )
 
     def assemble_stacktrace_component_legacy(
         self,
@@ -652,61 +611,40 @@ class Enhancements:
         """
 
         with metrics.timer("grouping.enhancements.get_contributes_and_hint") as metrics_timer_tags:
-            metrics_timer_tags.update({"split": False, "variant": variant_name})
+            metrics_timer_tags.update({"split": True, "variant": variant_name})
 
-            # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
-            match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
-
-            rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
             rust_exception_data = make_rust_exception_data(exception_data)
 
-            # Modify the rust frames by applying +group/-group rules and getting hints for both those
-            # changes and the `in_app` changes applied by earlier in the ingestion process by
-            # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
-            # for the overall stacktrace (returned in `rust_results`).
-            rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-                match_frames, rust_exception_data, rust_frames
-            )
-
-        if self.run_split_enhancements:
-            with metrics.timer(
-                "grouping.enhancements.get_contributes_and_hint"
-            ) as metrics_timer_tags:
-                metrics_timer_tags.update({"split": True, "variant": variant_name})
-
-                # Create a set of rust frames to which we can ask rust to add in-app hints. (We know all
-                # hints generated by classifier enhancements are in-app by definition.)
-                in_app_rust_frames = [EmptyRustFrame() for frame in frames]
-                # Only spend the time to get in-app hints if we might use them
-                if variant_name == "app":
-                    self.classifier_rust_enhancements.assemble_stacktrace_component(
-                        match_frames, rust_exception_data, in_app_rust_frames
-                    )
-
-                # Do the same for contributes hints, this time using the contributes enhancements. These
-                # rust frames will also collect `contributes` values, along with the `contributes` and
-                # `hint` values for the stacktrace.
-                contributes_rust_frames = [
-                    RustFrame(contributes=c.contributes) for c in frame_components
-                ]
-                contributes_match_frames = [
-                    # We don't want to include `orig_in_app` here because otherwise +/-group hints can
-                    # get clobbered by +/-app hints
-                    {**match_frame, "orig_in_app": None}
-                    for match_frame in match_frames
-                ]
-                rust_stacktrace_results_split = (
-                    self.contributes_rust_enhancements.assemble_stacktrace_component(
-                        contributes_match_frames, rust_exception_data, contributes_rust_frames
-                    )
+            # Create a set of rust frames to which we can ask rust to add in-app hints. (We know all
+            # hints generated by classifier enhancements are in-app by definition.)
+            in_app_rust_frames = [EmptyRustFrame() for frame in frames]
+            # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
+            in_app_match_frames: list[Any] = [
+                create_match_frame(frame, platform) for frame in frames
+            ]
+            # Only spend the time to get in-app hints if we might use them
+            if variant_name == "app":
+                self.classifier_rust_enhancements.assemble_stacktrace_component(
+                    in_app_match_frames, rust_exception_data, in_app_rust_frames
                 )
 
-            split_enhancement_misses: list[Any] = []
-        else:
-            # We need to give these values so the zip below will work, but we're not going to use
-            # them if we're not running split enhancements, so we can just reuse the regular results
-            in_app_rust_frames = contributes_rust_frames = rust_frames
-            rust_stacktrace_results_split = rust_stacktrace_results
+            # Do the same for contributes hints, this time using the contributes enhancements. These
+            # rust frames will also collect `contributes` values, along with the `contributes` and
+            # `hint` values for the stacktrace.
+            contributes_rust_frames = [
+                RustFrame(contributes=c.contributes) for c in frame_components
+            ]
+            contributes_match_frames = [
+                # We don't want to include `orig_in_app` here because otherwise +/-group hints can
+                # get clobbered by +/-app hints
+                {**match_frame, "orig_in_app": None}
+                for match_frame in in_app_match_frames
+            ]
+            rust_stacktrace_results = (
+                self.contributes_rust_enhancements.assemble_stacktrace_component(
+                    contributes_match_frames, rust_exception_data, contributes_rust_frames
+                )
+            )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
         # both collect metrics and use the information in decisions about whether to send the event
@@ -714,71 +652,37 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for i, frame, frame_component, rust_frame, in_app_rust_frame, contributes_rust_frame in zip(
-            range(len(frames)),
-            frames,
-            frame_components,
-            rust_frames,
-            in_app_rust_frames,
-            contributes_rust_frames,
+        for frame, frame_component, in_app_rust_frame, contributes_rust_frame in zip(
+            frames, frame_components, in_app_rust_frames, contributes_rust_frames
         ):
             # System frames should never contribute in the app variant, so if that's what we have,
             # force `contribtues=False`, regardless of the rust results
             if variant_name == "app" and not frame_component.in_app:
                 contributes = False
             else:
-                contributes = rust_frame.contributes
+                contributes = bool(  # bool-ing this to please mypy
+                    contributes_rust_frame.contributes
+                )
 
             frame_component.update(contributes=contributes)
 
-            hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
-            if self.run_split_enhancements:
-                split_in_app_hint = (
-                    get_hint_for_frame(
-                        variant_name, frame, frame_component, in_app_rust_frame, "in-app"
-                    )
-                    if variant_name == "app"
-                    else None  # In-app hints don't apply to the system stacktrace
+            in_app_hint = (
+                get_hint_for_frame(
+                    variant_name, frame, frame_component, in_app_rust_frame, "in-app"
                 )
-                split_contributes_hint = get_hint_for_frame(
-                    variant_name, frame, frame_component, contributes_rust_frame, "contributes"
-                )
+                if variant_name == "app"
+                else None  # In-app hints don't apply to the system stacktrace
+            )
+            contributes_hint = get_hint_for_frame(
+                variant_name, frame, frame_component, contributes_rust_frame, "contributes"
+            )
+            hint = _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
 
             frame_component.update(hint=hint)
 
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
             frame_counts[key] += 1
-
-            if self.run_split_enhancements:
-                _check_split_enhancements_frame_contributes_and_hint(
-                    i,
-                    rust_frame,
-                    contributes_rust_frame,
-                    hint,
-                    split_in_app_hint,
-                    split_contributes_hint,
-                    split_enhancement_misses,
-                )
-
-        if self.run_split_enhancements:
-            _check_split_enhancements_stacktrace_contributes_and_hint(
-                rust_stacktrace_results, rust_stacktrace_results_split, split_enhancement_misses
-            )
-
-            logger.info(
-                "grouping.split_enhancements.contributes_results",
-                extra=(
-                    {
-                        "outcome": "failure",
-                        "variant": variant_name,
-                        "frames": frames,
-                        "misses": split_enhancement_misses,
-                    }
-                    if split_enhancement_misses
-                    else {"outcome": "success"}
-                ),
-            )
 
         # Because of the special case above, in which we ignore the rust-derived `contributes` value
         # for certain frames, it's possible for the rust-derived `contributes` value for the overall
@@ -811,10 +715,7 @@ class Enhancements:
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        rulesets = [self.rules]
-
-        if self.run_split_enhancements:
-            rulesets.extend([self.classifier_rules, self.contributes_rules])
+        rulesets = [self.rules, self.classifier_rules, self.contributes_rules]
 
         # Create a base64 bytestring for each set of rules, and join them with a character we know
         # can never appear in base64. We do it this way rather than combining all three sets of

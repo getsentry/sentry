@@ -1,4 +1,4 @@
-import {DetectorDataSourceFixture, DetectorFixture} from 'sentry-fixture/detectors';
+import {DetectorFixture, SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -10,21 +10,20 @@ import DetectorDetails from 'sentry/views/detectors/detail';
 describe('DetectorDetails', function () {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
   const project = ProjectFixture();
-  const defaultDataSource = DetectorDataSourceFixture();
+  const defaultDataSource = SnubaQueryDataSourceFixture();
+  const dataSource = SnubaQueryDataSourceFixture({
+    queryObj: {
+      ...defaultDataSource.queryObj,
+      snubaQuery: {
+        ...defaultDataSource.queryObj.snubaQuery,
+        query: 'test',
+        environment: 'test-environment',
+      },
+    },
+  });
   const snubaQueryDetector = DetectorFixture({
     projectId: project.id,
-    dataSources: [
-      DetectorDataSourceFixture({
-        queryObj: {
-          ...defaultDataSource.queryObj,
-          snubaQuery: {
-            ...defaultDataSource.queryObj.snubaQuery,
-            query: 'test',
-            environment: 'test-environment',
-          },
-        },
-      }),
-    ],
+    dataSources: [dataSource],
   });
   const initialRouterConfig = {
     location: {
@@ -51,14 +50,10 @@ describe('DetectorDetails', function () {
       await screen.findByRole('heading', {name: snubaQueryDetector.name})
     ).toBeInTheDocument();
     // Displays the snuba query
-    expect(
-      screen.getByText(snubaQueryDetector.dataSources[0]!.queryObj.snubaQuery.query)
-    ).toBeInTheDocument();
+    expect(screen.getByText(dataSource.queryObj.snubaQuery.query)).toBeInTheDocument();
     // Displays the environment
     expect(
-      screen.getByText(
-        snubaQueryDetector.dataSources[0]!.queryObj.snubaQuery.environment!
-      )
+      screen.getByText(dataSource.queryObj.snubaQuery.environment!)
     ).toBeInTheDocument();
   });
 });

@@ -33,6 +33,7 @@ import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
@@ -212,7 +213,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'sentry.normalized_description');
-          mutableSearch.addFilterValue('span.module', 'db');
+          mutableSearch.addFilterValue('span.category', 'db');
+          mutableSearch.addFilterValue('!span.op', `[${EXCLUDED_DB_OPS.join(',')}]`);
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
@@ -238,7 +240,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('span.module', 'http');
+          mutableSearch.addFilterValue('span.category', 'http');
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
