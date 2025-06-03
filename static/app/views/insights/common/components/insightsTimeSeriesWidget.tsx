@@ -17,6 +17,7 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {
   TimeSeriesWidgetVisualization,
@@ -51,6 +52,7 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  extraPlottables?: Plottable[];
   groupBy?: SpanFields[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
@@ -82,10 +84,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const hasChartActionsEnabled =
     organization.features.includes('insights-chart-actions') && useEap;
   const yAxes = new Set<string>();
-
-  const visualizationProps: TimeSeriesWidgetVisualizationProps = {
-    showLegend: props.showLegend,
-    plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
+  const plottables = [
+    ...(props.series.filter(Boolean) ?? []).map(serie => {
       const timeSeries = markDelayedData(
         convertSeriesToTimeseries(serie),
         INGESTION_DELAY
@@ -106,6 +106,12 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         alias: props.aliases?.[timeSeries.yAxis],
       });
     }),
+    ...(props.extraPlottables ?? []),
+  ];
+
+  const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    showLegend: props.showLegend,
+    plottables,
   };
 
   if (props.samples) {
