@@ -831,13 +831,13 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
       reservedBudgetCategoryInfo,
     };
 
-    await act(async () => {
+    act(() => {
       render(<ReservedUsageChart {...mockProps} />);
     });
 
     // When displayMode is 'usage' for reserved budget categories,
     // it should show "Current Usage Period" title (usage mode)
-    expect(screen.getByText('Current Usage Period')).toBeInTheDocument();
+    await screen.findByText('Current Usage Period');
     expect(screen.queryByText(/Estimated.*Spend This Period/)).not.toBeInTheDocument();
   });
 
@@ -914,13 +914,13 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
       reservedBudgetCategoryInfo,
     };
 
-    await act(async () => {
+    act(() => {
       render(<ReservedUsageChart {...mockProps} />);
     });
 
     // When displayMode is 'cost' for reserved budget categories,
     // it should show "Estimated ... Spend This Period" title (cost mode)
-    expect(screen.getByText(/Estimated.*Spend This Period/)).toBeInTheDocument();
+    await screen.findByText(/Estimated.*Spend This Period/);
     expect(screen.queryByText('Current Usage Period')).not.toBeInTheDocument();
   });
 });
