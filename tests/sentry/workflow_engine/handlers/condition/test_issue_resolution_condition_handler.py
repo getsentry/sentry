@@ -23,4 +23,4 @@ class TestIssueResolutionChangeCondition(ConditionTestCase):
     def test_evaluate_value__not_matching_comparison(self):
         self.group_event.group.status = 2
         result = self.dc.evaluate_value(self.event_data)
-        assert result is False
+        assert result is None
