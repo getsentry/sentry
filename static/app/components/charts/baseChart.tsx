@@ -678,8 +678,6 @@ function BaseChart({
     };
   }, [style, autoHeightResize, height, width]);
 
-  console.log(chartOption);
-
   return (
     <ChartContainer
       id={isTooltipPortalled ? chartId : undefined}

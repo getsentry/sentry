@@ -84,9 +84,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const hasChartActionsEnabled =
     organization.features.includes('insights-chart-actions') && useEap;
   const yAxes = new Set<string>();
-
   const plottables = [
-    ...(props.series.filter(Boolean) ?? [])?.map(serie => {
+    ...(props.series.filter(Boolean) ?? []).map(serie => {
       const timeSeries = markDelayedData(
         convertSeriesToTimeseries(serie),
         INGESTION_DELAY
