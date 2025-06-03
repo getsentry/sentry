@@ -37,6 +37,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.pipeline import PipelineView
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
@@ -52,6 +53,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -1313,6 +1315,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
+
+        serialized_organization = organization_service.serialize_organization(
+            id=self.organization.id, as_user=serialize_rpc_user(self.user)
+        )
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
@@ -1320,6 +1326,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "installation_info": installations,
                 "has_scm_multi_org": True,
                 "organization_slug": self.organization.slug,
+                "organization": serialized_organization,
             },
         )
 
@@ -1525,6 +1532,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
+
+        serialized_organization = organization_service.serialize_organization(
+            id=self.organization.id, as_user=serialize_rpc_user(self.user)
+        )
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
@@ -1532,6 +1543,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "installation_info": installations,
                 "has_scm_multi_org": False,
                 "organization_slug": self.organization.slug,
+                "organization": serialized_organization,
             },
         )
 
@@ -1580,6 +1592,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
+
+        serialized_organization = organization_service.serialize_organization(
+            id=self.organization.id, as_user=serialize_rpc_user(self.user)
+        )
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
@@ -1587,6 +1603,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "installation_info": installations,
                 "has_scm_multi_org": False,
                 "organization_slug": self.organization.slug,
+                "organization": serialized_organization,
             },
         )
 
