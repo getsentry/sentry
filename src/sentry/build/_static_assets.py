@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import tempfile
 
 
 def _build_static_assets() -> None:
@@ -22,7 +23,9 @@ def _build_static_assets() -> None:
         if ret:
             raise SystemExit(ret)
 
-    _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only", "--use-store=false")
+    with tempfile.TemporaryDirectory() as tmpd:
+        _cmd("pnpm", "install", "--production", "--frozen-lockfile", "--reporter=append-only", f"--store-dir={tmpd}")
+
     _cmd("pnpm", "run", "build-production")
     _cmd("pnpm", "run", "build-chartcuterie-config")
 
