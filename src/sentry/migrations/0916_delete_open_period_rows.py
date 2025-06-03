@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0914_increase_orgmember_user_email_max_length"),
+        ("sentry", "0915_add_user_email_unique_column"),
     ]
 
     operations = [
