@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
-import tempfile
 
 
 def _build_static_assets() -> None:
@@ -23,18 +22,10 @@ def _build_static_assets() -> None:
         if ret:
             raise SystemExit(ret)
 
-    with tempfile.TemporaryDirectory() as tmpd:
-        _cmd(
-            "pnpm",
-            "install",
-            "--production",
-            "--frozen-lockfile",
-            "--reporter=append-only",
-            f"--store-dir={tmpd}",
-        )
-
-    _cmd("pnpm", "run", "build-production")
-    _cmd("pnpm", "run", "build-chartcuterie-config")
+    _cmd("yarn", "install", "--production", "--frozen-lockfile", "--quiet")
+    _cmd("yarn", "tsc", "-p", "config/tsconfig.build.json")
+    _cmd("yarn", "build-production")
+    _cmd("yarn", "build-chartcuterie-config")
 
 
 def main() -> int:
