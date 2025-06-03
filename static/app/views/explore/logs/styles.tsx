@@ -361,9 +361,3 @@ export const LogsSidebarCollapseButton = withChonk(
     }
   `
 );
-
-export const LogRowChevronWrapper = styled('span')`
-  width: 18px;
-  height: 18px;
-  margin-right: 4px;
-`;
