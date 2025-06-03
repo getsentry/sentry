@@ -57,7 +57,7 @@ from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-class TraceItemAttribute(TypedDict):
+class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
     secondaryAliases: NotRequired[list[str]]
@@ -157,7 +157,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
-) -> TraceItemAttribute:
+) -> TraceItemAttributeKey:
     key = translate_internal_to_public_alias(name, type, item_type)
     secondary_aliases = get_secondary_aliases(name, item_type)
 
@@ -168,7 +168,7 @@ def as_attribute_key(
     else:
         key = name
 
-    attribute_key: TraceItemAttribute = {
+    attribute_key: TraceItemAttributeKey = {
         # key is what will be used to query the API
         "key": key,
         # name is what will be used to display the tag nicely in the UI
