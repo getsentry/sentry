@@ -24,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import PlanList from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {CheckoutType, PlanTier} from 'getsentry/types';
+import {CheckoutType, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
@@ -48,6 +48,23 @@ function ChangePlanAction({
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
   const orgId = organization.slug;
+
+  /**
+   * Check if the current subscription has Seer budget enabled
+   */
+  const hasCurrentSeerBudget = useMemo(() => {
+    return (
+      subscription.reservedBudgets?.some(
+        budget =>
+          budget.apiName === ReservedBudgetCategoryType.SEER && budget.reservedBudget > 0
+      ) ?? false
+    );
+  }, [subscription.reservedBudgets]);
+
+  // Initialize Seer budget value in form model
+  React.useEffect(() => {
+    formModel.setValue('seer', hasCurrentSeerBudget);
+  }, [formModel, hasCurrentSeerBudget]);
 
   const api = useApi({persistInFlight: true});
   const {
@@ -196,11 +213,17 @@ function ChangePlanAction({
       return;
     }
 
+    // Add Seer budget parameter for AM plans and TEST tier
+    const submitData = {
+      ...data,
+      seer: formModel.getValue('seer'),
+    };
+
     if (activeTier === PlanTier.MM2) {
       try {
         await api.requestPromise(`/customers/${orgId}/`, {
           method: 'PUT',
-          data,
+          data: submitData,
         });
         onSubmitSuccess(data);
       } catch (error) {
@@ -213,7 +236,7 @@ function ChangePlanAction({
     try {
       await api.requestPromise(`/customers/${orgId}/subscription/`, {
         method: 'PUT',
-        data,
+        data: submitData,
       });
       onSubmitSuccess(data);
       onSuccess?.();
@@ -257,6 +280,7 @@ function ChangePlanAction({
             setActiveTier(tab);
             setBillingInterval(MONTHLY);
             setContractInterval(MONTHLY);
+            formModel.setValue('seer', hasCurrentSeerBudget);
           }}
         >
           <TabList>
