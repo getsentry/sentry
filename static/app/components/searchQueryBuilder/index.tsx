@@ -116,6 +116,16 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
+   * When set, provided keys will override default raw search capabilities, while
+   * replacing it with options that include the provided keys, and the user's input
+   * as value.
+   *
+   * e.g. if `replaceRawSearchKeys` is set to `['span.description']`, the user will be
+   * able to type `randomValue` and the combobox will show `span.description:randomValue`
+   * as an option, and so on with any other provided keys.
+   */
+  replaceRawSearchKeys?: string[];
+  /**
    * When true, will trigger the `onSearch` callback when the query changes.
    */
   searchOnChange?: boolean;
