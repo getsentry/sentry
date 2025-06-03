@@ -748,13 +748,15 @@ def _derive_client_error_sampling_rate(jobs: Sequence[Job], projects: ProjectsMa
                     .get("error_sampling", {})
                     .get("client_sample_rate")
                 )
-                # Only set sample_rate if it's a valid number between 0 and 1
-                if (
-                    client_sample_rate is not None
-                    and isinstance(client_sample_rate, (int, float))
-                    and 0 <= client_sample_rate <= 1
-                ):
-                    job["data"]["sample_rate"] = client_sample_rate
+
+                if client_sample_rate is not None and isinstance(client_sample_rate, (int, float)):
+                    if 0 <= client_sample_rate <= 1:
+                        job["data"]["sample_rate"] = client_sample_rate
+                    else:
+                        metrics.incr(
+                            "events.client_sample_rate.invalid_range",
+                            tags={"project_id": project.id},
+                        )
             except (KeyError, TypeError, AttributeError):
                 pass
 
