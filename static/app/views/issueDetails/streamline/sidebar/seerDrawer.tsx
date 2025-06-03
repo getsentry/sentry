@@ -272,7 +272,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                 {aiConfig.hasAutofix && (
                   <Button
                     size="xs"
-                    onClick={reset}
+                    onClick={() => {
+                      reset();
+                      aiConfig.refetchAutofixSetup?.();
+                    }}
                     title={
                       autofixData?.last_triggered_at
                         ? tct('Last run at [date]', {

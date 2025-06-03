@@ -15,6 +15,7 @@ interface AiConfigResult {
   isAutofixSetupLoading: boolean;
   needsGenAiAcknowledgement: boolean;
   orgNeedsGenAiAcknowledgement: boolean;
+  refetchAutofixSetup: () => void;
 }
 
 export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
@@ -23,6 +24,7 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     data: autofixSetupData,
     isPending: isAutofixSetupLoading,
     hasAutofixQuota,
+    refetch: refetchAutofixSetup,
   } = useAutofixSetup({
     groupId: group.id,
   });
@@ -62,5 +64,6 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     areAiFeaturesAllowed,
     hasGithubIntegration,
     hasAutofixQuota,
+    refetchAutofixSetup,
   };
 };
