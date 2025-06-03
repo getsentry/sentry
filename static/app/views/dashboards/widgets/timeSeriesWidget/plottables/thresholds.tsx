@@ -53,24 +53,32 @@ export class Thresholds implements Plottable {
   toMarkAreas(theme: Theme) {
     const {max1, max2} = this.thresholds.max_values;
 
-    if (!max1 || !max2) {
-      return [];
-    }
-
-    return [
-      this.toMarkArea([0, max1], {
+    const markAreas = [
+      this.toMarkArea([0, max1 ?? Infinity], {
         color: theme.green300,
         opacity: 0.1,
       }),
-      this.toMarkArea([max1, max2], {
-        color: theme.yellow300,
-        opacity: 0.1,
-      }),
-      this.toMarkArea([max2, Infinity], {
-        color: theme.red300,
-        opacity: 0.1,
-      }),
     ];
+
+    if (max1) {
+      markAreas.push(
+        this.toMarkArea([max1, max2 ?? Infinity], {
+          color: theme.yellow300,
+          opacity: 0.1,
+        })
+      );
+    }
+
+    if (max2) {
+      markAreas.push(
+        this.toMarkArea([max2, Infinity], {
+          color: theme.red300,
+          opacity: 0.1,
+        })
+      );
+    }
+
+    return markAreas;
   }
 
   toMarkLine(yAxis: number, label: string, style?: ItemStyleOption) {
@@ -97,21 +105,29 @@ export class Thresholds implements Plottable {
   toMarkLines(theme: Theme) {
     const {max1, max2} = this.thresholds.max_values;
 
-    if (!max1 || !max2) {
-      return [];
-    }
-
-    return [
-      this.toMarkLine(max1, 'Good', {
+    const markLines = [
+      this.toMarkLine(max1 ?? Infinity, 'Good', {
         color: theme.green300,
       }),
-      this.toMarkLine(max2, 'Meh', {
-        color: theme.yellow300,
-      }),
-      this.toMarkLine(Infinity, 'Poor', {
-        color: theme.red300,
-      }),
     ];
+
+    if (max1) {
+      markLines.push(
+        this.toMarkLine(max2 ?? Infinity, 'Meh', {
+          color: theme.green300,
+        })
+      );
+    }
+
+    if (max2) {
+      markLines.push(
+        this.toMarkLine(Infinity, 'Poor', {
+          color: theme.red300,
+        })
+      );
+    }
+
+    return markLines;
   }
 
   toSeries({theme}: ThresholdPlottablePlottingOptions): SeriesOption[] {

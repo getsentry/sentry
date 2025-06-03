@@ -1,9 +1,7 @@
 import styled from '@emotion/styled';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -34,8 +32,9 @@ export function WebVitalStatusLineChart({
   browserTypes,
   subregions,
 }: Props) {
-  const pageFilters = usePageFilters();
   const defaultQuery = useDefaultWebVitalsQuery();
+  const webVitalP90 = webVital ? PERFORMANCE_SCORE_P90S[webVital] : 0;
+  const webVitalMedian = webVital ? PERFORMANCE_SCORE_MEDIANS[webVital] : 0;
 
   const search = new MutableSearch(defaultQuery);
 
@@ -56,7 +55,6 @@ export function WebVitalStatusLineChart({
   } = useMetricsSeries(
     {
       search,
-      interval: getInterval(pageFilters.selection.datetime, 'low'),
       yAxis: webVital ? [`p75(measurements.${webVital})`] : [],
       enabled: !!webVital,
     },
@@ -67,11 +65,17 @@ export function WebVitalStatusLineChart({
     ? timeseriesData?.[`p75(measurements.${webVital})`]
     : {data: [], meta: {fields: {}, units: {}}, seriesName: ''};
 
+  const seriesIsPoor = webVitalSeries.data?.some(({value}) => value > webVitalMedian);
+  const seriesIsMeh = webVitalSeries.data?.some(({value}) => value >= webVitalP90);
+
+  const includePoorThreshold = seriesIsPoor;
+  const includeMehThreshold = seriesIsMeh;
+
   const thresholdsPlottable = new Thresholds({
     thresholds: {
       max_values: {
-        max1: webVital ? PERFORMANCE_SCORE_P90S[webVital] : 0,
-        max2: webVital ? PERFORMANCE_SCORE_MEDIANS[webVital] : 0,
+        max1: includeMehThreshold ? webVitalP90 : undefined,
+        max2: includePoorThreshold ? webVitalMedian : undefined,
       },
       unit: 'ms',
     },
