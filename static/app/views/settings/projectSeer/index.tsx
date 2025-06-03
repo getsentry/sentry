@@ -53,13 +53,15 @@ export function formatSeerValue(value: string | undefined) {
 
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
-  label: t('Automatically Fix Issues with Seer'),
+  label: t('Automatically Solve Issues with Seer'),
   help: props =>
     tct(
-      "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager. This may have billing implications.[break][break][link:You can configure automation for other projects too.]",
+      "Set how frequently Seer runs on incoming issues automatically. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to help with more issues. Seer will find a root cause and solution, but won't automatically open PRs.[break][break][link:You can configure automation for other projects too.][break][break]Each run is charged at the [ratelink:standard billing rate] for Seer's Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
       {
         break: <br />,
         link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
+        ratelink: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+        spendlink: <Link to={'docs.sentry.io/todo'} />,
       }
     ),
   type: 'range',
