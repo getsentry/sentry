@@ -21,6 +21,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_errors_tasks
 from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 
 CACHED_ID_BLOCK_SIZE = 1000
@@ -199,32 +200,32 @@ def refill_cached_short_ids(project_id, using="default") -> None:
     redis_key = make_short_id_counter_key(project_id)
 
     lock = locks.get(f"pc:lock:{project_id}", duration=30, name="project_short_id_counter_refill")
-    if lock.locked():
-        # if the lock is already locked, we can return early, as we don't need to refill twice
+
+    try:
+        with lock.acquire():
+            # in case the counter was just/already filled, we can return early
+            if redis.llen(redis_key) >= CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
+                metrics.incr("counter.refill_cached_short_ids.early_return")
+                return
+
+            project = Project.objects.get_from_cache(id=project_id)
+
+            # We need the transaction to ensure that the redis push is atomic
+            # with the database counter increment,
+            # otherwise we could have duplicates if the counter is incremented between
+            # the database increment and the redis push.
+            with transaction.atomic(using=using):
+                current_value = increment_project_counter_in_database(
+                    project, delta=CACHED_ID_BLOCK_SIZE, using=using
+                )
+                # Append the new block of values to Redis in a single operation
+                start = current_value - CACHED_ID_BLOCK_SIZE + 1
+                redis.rpush(redis_key, *range(start, current_value + 1))
+                redis.expire(redis_key, 60 * 60 * 24 * 365)  # 1 year
+                # TODO: should we delete the keys when a project is deleted instead of / in addition expiring?
+    except UnableToAcquireLock:
         metrics.incr("counter.refill_cached_short_ids.lock_contention")
         return
-
-    with lock.acquire():
-        # in case the counter was just/already filled, we can return early
-        if redis.llen(redis_key) >= CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
-            metrics.incr("counter.refill_cached_short_ids.early_return")
-            return
-
-        project = Project.objects.get_from_cache(id=project_id)
-
-        # We need the transaction to ensure that the redis push is atomic
-        # with the database counter increment,
-        # otherwise we could have duplicates if the counter is incremented between
-        # the database increment and the redis push.
-        with transaction.atomic(using=using):
-            current_value = increment_project_counter_in_database(
-                project, delta=CACHED_ID_BLOCK_SIZE, using=using
-            )
-            # Append the new block of values to Redis in a single operation
-            start = current_value - CACHED_ID_BLOCK_SIZE + 1
-            redis.rpush(redis_key, *range(start, current_value + 1))
-            redis.expire(redis_key, 60 * 60 * 24 * 365)  # 1 year
-            # TODO: should we delete the keys when a project is deleted instead of / in addition expiring?
 
 
 def make_short_id_counter_key(project_id: int) -> str:

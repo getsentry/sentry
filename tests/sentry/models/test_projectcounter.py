@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.test import override_settings
 
 from sentry import options
+from sentry.locks import locks
 from sentry.models.counter import (
     CACHED_ID_BLOCK_SIZE,
     LOW_WATER_RATIO,
@@ -216,13 +217,13 @@ def test_refill_cached_short_ids(default_project, redis_mock):
 @django_db_all
 def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
     # Mock the lock as already locked
-    lock_mock = MagicMock()
-    lock_mock.locked.return_value = True
-
-    with patch("sentry.models.counter.locks.get", return_value=lock_mock):
+    lock = locks.get(
+        f"pc:lock:{default_project.id}", duration=30, name="project_short_id_counter_refill"
+    )
+    with lock.acquire():
         refill_cached_short_ids(default_project.id)
         # Should not have called any Redis operations
-        redis_mock.rpush.assert_not_called()
+        redis_mock.rpush.assert_not_called()  # noqa: F821
 
 
 @django_db_all
