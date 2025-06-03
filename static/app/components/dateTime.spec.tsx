@@ -49,6 +49,16 @@ describe('DateTime', () => {
     expect(screen.getByText('Oct 16, 7:41:20 PM')).toBeInTheDocument();
   });
 
+  it('renders a date with milliseconds', () => {
+    renderPDT(<DateTime date={new Date()} milliseconds />);
+    expect(screen.getByText('Oct 16, 7:41:20.000 PM')).toBeInTheDocument();
+  });
+
+  it('renders a date with seconds and milliseconds', () => {
+    renderPDT(<DateTime date={new Date()} seconds milliseconds />);
+    expect(screen.getByText('Oct 16, 7:41:20.000 PM')).toBeInTheDocument();
+  });
+
   it('renders a date with the time zone', () => {
     renderPDT(<DateTime date={new Date()} timeZone />);
     expect(screen.getByText('Oct 16, 7:41 PM PDT')).toBeInTheDocument();
@@ -85,6 +95,16 @@ describe('DateTime', () => {
     it('renders only the time', () => {
       renderPDT(<DateTime date={new Date()} timeOnly />);
       expect(screen.getByText('19:41')).toBeInTheDocument();
+    });
+
+    it('renders a date with milliseconds', () => {
+      renderPDT(<DateTime date={new Date()} milliseconds />);
+      expect(screen.getByText('Oct 16, 19:41:20.000')).toBeInTheDocument();
+    });
+
+    it('renders a date with seconds and milliseconds', () => {
+      renderPDT(<DateTime date={new Date()} seconds milliseconds />);
+      expect(screen.getByText('Oct 16, 19:41:20.000')).toBeInTheDocument();
     });
 
     it('renders date with forced utc', () => {

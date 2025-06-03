@@ -1,12 +1,10 @@
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
-import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
+import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-const MUTATION_KEY = 'create-project';
 
 interface Variables {
   platform: OnboardingSelectedSDK;
@@ -16,11 +14,10 @@ interface Variables {
 }
 
 export function useCreateProject() {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
   return useMutation<Project, RequestError, Variables>({
-    mutationKey: [MUTATION_KEY],
     mutationFn: ({firstTeamSlug, name, platform, default_rules}) => {
       return api.requestPromise(
         firstTeamSlug
@@ -41,8 +38,4 @@ export function useCreateProject() {
       ProjectsStore.onCreateSuccess(response, organization.slug);
     },
   });
-}
-
-export function useIsCreatingProject() {
-  return Boolean(useIsMutating({mutationKey: [MUTATION_KEY]}));
 }
