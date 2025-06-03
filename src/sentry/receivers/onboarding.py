@@ -98,7 +98,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         platform=project.platform,
     )
 
-    task = complete_onboarding_task(
+    completed = complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.FIRST_PROJECT,
         user_id=user_id,
@@ -106,7 +106,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     )
 
     # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
-    if not task:
+    if not completed:
         complete_onboarding_task(
             organization=project.organization,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -148,11 +148,11 @@ def record_first_event(project, event, **kwargs):
         # and completed the quick start task.
         return
 
-    task = complete_onboarding_task(
+    completed = complete_onboarding_task(
         project.organization, OnboardingTask.FIRST_EVENT, user_id=owner_id, project_id=project.id
     )
 
-    if task:
+    if completed:
         analytics.record(
             "first_event.sent",
             user_id=owner_id,
@@ -193,13 +193,13 @@ def record_first_profile(project, **kwargs):
 @first_replay_received.connect(weak=False, dispatch_uid="onboarding.record_first_replay")
 def record_first_replay(project, **kwargs):
     logger.info("record_first_replay_start")
-    success = complete_onboarding_task(
+    completed = complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.SESSION_REPLAY,
     )
-    logger.info("record_first_replay_onboard_task", extra={"success": success})
+    logger.info("record_first_replay_onboard_task", extra={"success": completed})
 
-    if success:
+    if completed:
         logger.info("record_first_replay_analytics_start")
         analytics.record(
             "first_replay.sent",
@@ -319,13 +319,13 @@ def record_release_received(project, release, **kwargs):
     if not release:
         return
 
-    success = complete_onboarding_task(
+    completed = complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.RELEASE_TRACKING,
         project_id=project.id,
     )
 
-    if success:
+    if completed:
         if (owner_id := get_owner_id(project)) is None:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
@@ -373,12 +373,12 @@ def record_sourcemaps_received(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    success = complete_onboarding_task(
+    completed = complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.SOURCEMAPS,
         project_id=project.id,
     )
-    if success:
+    if completed:
         if (owner_id := get_owner_id(project)) is None:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",

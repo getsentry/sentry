@@ -46,7 +46,7 @@ class OnboardingTaskBackend(Service, Generic[T]):
         task: int,
         date_completed: datetime | None = None,
         **task_kwargs,
-    ) -> T | None:
+    ) -> bool:
         raise NotImplementedError
 
     def has_completed_onboarding_task(self, organization: Organization, task: int) -> bool:

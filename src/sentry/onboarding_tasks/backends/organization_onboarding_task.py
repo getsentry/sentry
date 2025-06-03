@@ -43,9 +43,9 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         task: int,
         date_completed: datetime | None = None,
         **task_kwargs,
-    ) -> OrganizationOnboardingTask | None:
+    ) -> bool:
         # Mark the task as complete
-        task_model = self.Model.objects.record(
+        created = self.Model.objects.record(
             organization_id=organization.id,
             task=task,
             status=OnboardingTaskStatus.COMPLETE,
@@ -54,9 +54,9 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         )
 
         # Check if all required tasks are complete to see if we can mark onboarding as complete
-        if task_model:
+        if created:
             self.try_mark_onboarding_complete(organization.id)
-        return task_model
+        return created
 
     def has_completed_onboarding_task(self, organization: Organization, task: int) -> bool:
         return OrganizationOnboardingTask.objects.filter(
