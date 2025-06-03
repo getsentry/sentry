@@ -33,8 +33,7 @@ import {
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {CreateAlertButton} from 'sentry/views/insights/common/components/createAlertButton';
-import {OpenInExploreButton} from 'sentry/views/insights/common/components/openInExploreButton';
+import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -190,16 +189,14 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <Widget.WidgetDescription description={props.description} />
             )}
             {hasChartActionsEnabled && (
-              <OpenInExploreButton
+              <ChartActionDropdown
                 chartType={chartType}
                 yAxes={yAxisArray}
                 groupBy={props.groupBy}
                 title={props.title}
                 search={props.search}
+                aliases={props.aliases}
               />
-            )}
-            {hasChartActionsEnabled && (
-              <CreateAlertButton yAxis={yAxisArray[0]} search={props.search} />
             )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
