@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -93,7 +94,10 @@ function getMissingValues({
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
     isMissingProjectName: projectName === '',
     isMissingAlertThreshold:
-      shouldCreateCustomRule && !conditions?.every?.(condition => !!condition.value),
+      shouldCreateCustomRule &&
+      (!conditions ||
+        conditions.length === 0 ||
+        !conditions.every(condition => !!condition.value)),
     isMissingMessagingIntegrationChannel:
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
@@ -456,8 +460,16 @@ export function CreateProject() {
                   ? RuleAction.DEFAULT_ALERT
                   : RuleAction.CREATE_ALERT_LATER
             }
-            interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
-            threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
+            interval={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                : undefined
+            }
+            threshold={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.value)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.value)
+                : undefined
+            }
             metric={
               formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
                 'EventFrequencyCondition'
