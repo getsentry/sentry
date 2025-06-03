@@ -55,11 +55,7 @@ function AssignToTeam({teamId}: {teamId: string}) {
   return t('Assign to %s', `#${team?.slug ?? 'unknown'}`);
 }
 
-function AssignToUser({userId}: {userId: string}) {
-  return t('Assign to %s', <ActorBadge actor={{id: userId, name: '', type: 'user'}} />);
-}
-
-function OwnerDisplay({owner}: {owner: string | null}) {
+function DetectorAssignee({owner}: {owner: string | null}) {
   if (!owner) {
     return t('Unassigned');
   }
@@ -69,7 +65,10 @@ function OwnerDisplay({owner}: {owner: string | null}) {
     return <AssignToTeam teamId={ownerId!} />;
   }
   if (ownerType === 'user') {
-    return <AssignToUser userId={ownerId!} />;
+    return t(
+      'Assign to %s',
+      <ActorBadge actor={{id: ownerId!, name: '', type: 'user'}} />
+    );
   }
 
   return t('Unassigned');
@@ -119,7 +118,7 @@ export default function DetectorDetails() {
                 <DetailsPanel detector={detector} />
               </Section>
               <Section title={t('Assign')}>
-                <OwnerDisplay owner={detector.owner} />
+                <DetectorAssignee owner={detector.owner} />
               </Section>
               <Section title={t('Prioritize')}>
                 <PrioritiesList>
