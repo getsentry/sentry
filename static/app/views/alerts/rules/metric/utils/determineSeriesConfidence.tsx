@@ -1,13 +1,5 @@
-import type {
-  Confidence,
-  EventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
+import type {Confidence, EventsStats} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {
-  isEventsStats,
-  isMultiSeriesEventsStats,
-} from 'sentry/views/dashboards/utils/isEventsStats';
 
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence
 const LOW_CONFIDENCE_THRESHOLD = 0.25;
@@ -94,17 +86,6 @@ function finalConfidence(
   return 'high';
 }
 
-export function determineMultiSeriesConfidence(
-  data: MultiSeriesEventsStats,
-  threshold = LOW_CONFIDENCE_THRESHOLD
-): Confidence {
-  return Object.values(data).reduce(
-    (acc, eventsStats) =>
-      combineConfidence(acc, determineSeriesConfidence(eventsStats, threshold)),
-    null as Confidence
-  );
-}
-
 function combineConfidence(a: Confidence, b: Confidence): Confidence {
   if (!defined(a)) {
     return b;
@@ -119,42 +100,4 @@ function combineConfidence(a: Confidence, b: Confidence): Confidence {
   }
 
   return 'high';
-}
-
-export function determineIsSampled(
-  data: MultiSeriesEventsStats | EventsStats
-): boolean | null {
-  let hasSampledInterval = false;
-  let hasUnsampledInterval = false;
-
-  function resolve(sampleRate: number | null) {
-    if (!defined(sampleRate)) {
-      return;
-    }
-    if (sampleRate === 1) {
-      hasUnsampledInterval = true;
-    } else {
-      hasSampledInterval = true;
-    }
-  }
-
-  if (isEventsStats(data)) {
-    for (const sampleRate of data.meta?.accuracy?.samplingRate || []) {
-      if (defined(sampleRate)) {
-        resolve(sampleRate.value);
-      }
-    }
-  }
-
-  if (isMultiSeriesEventsStats(data)) {
-    for (const stats of Object.values(data)) {
-      for (const sampleRate of stats.meta?.accuracy?.samplingRate || []) {
-        if (defined(sampleRate)) {
-          resolve(sampleRate.value);
-        }
-      }
-    }
-  }
-
-  return hasSampledInterval ? true : hasUnsampledInterval ? false : null;
 }
