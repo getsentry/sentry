@@ -82,7 +82,9 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
         return []
 
     # Happy path. Query the releases and adopt them.
-    release_project_environments = query_adopted_release_project_environments(adopted_releases)
+    release_project_environments = query_adopted_release_project_environments(
+        adopted_releases, org_id
+    )
     adopt_release_project_environments(release_project_environments)
     adopted_ids = [m.id for m in release_project_environments]
     metrics.incr("sentry.tasks.process_projects_with_sessions.updated_rpe", amount=len(adopted_ids))
@@ -166,14 +168,17 @@ class AdoptedRelease(TypedDict):
 
 def query_adopted_release_project_environments(
     adopted_releases: list[AdoptedRelease],
+    organization_id: int,
 ) -> list[ReleaseProjectEnvironment]:
     """Fetch a list of release project environment rows which match the adopted releases."""
     query_filters = Q()
     for release in adopted_releases:
         query_filters |= Q(
+            release__organization_id=organization_id,
             release__version=release["version"],
             project_id=release["project_id"],
             environment__name=release["environment"],
+            environment__organization_id=organization_id,
         )
 
     return list(ReleaseProjectEnvironment.objects.filter(query_filters))

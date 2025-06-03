@@ -602,18 +602,40 @@ class ReleaseHealthIntegrationTestCase(TestCase, BaseMetricsTestCase):
         # Assert similar releases are ignored. All three pieces of metadata must match
         # simultaneously for a row to be returned.
         adopted_releases = [to_adopted_release(self.rpe1)]
-        results = query_adopted_release_project_environments(adopted_releases)
+        results = query_adopted_release_project_environments(adopted_releases, self.organization.id)
         assert len(results) == 1
 
         # Assert only the extra valid release is found.
         adopted_releases.append(to_adopted_release(self.rpe3))
-        results = query_adopted_release_project_environments(adopted_releases)
+        results = query_adopted_release_project_environments(adopted_releases, self.organization.id)
         assert len(results) == 2
 
         # Extra release not found because it doesn't exist in the database.
         adopted_releases.append({"project_id": 1, "environment": "any", "version": "whatever"})
-        results = query_adopted_release_project_environments(adopted_releases)
+        results = query_adopted_release_project_environments(adopted_releases, self.organization.id)
         assert len(results) == 2
+
+        # Different organization
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        project.update(flags=F("flags").bitor(Project.flags.has_releases))
+        release = self.create_release(project=project, version="foo@1.0.0")
+        environment = self.create_environment(name="prod", project=project)
+        rpe = ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+        )
+
+        results = query_adopted_release_project_environments(
+            [to_adopted_release(rpe)], self.organization.id
+        )
+        assert len(results) == 0
+
+        results = query_adopted_release_project_environments(
+            [to_adopted_release(rpe)], organization.id
+        )
+        assert len(results) == 1
 
     def test_adopt_release_project_environments(self):
         self.mock_release_project_environments()
