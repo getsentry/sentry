@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -26,9 +25,7 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings
-
-logger = logging.getLogger(__name__)
+from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
@@ -45,7 +42,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[QuerySubscriptionUpdate],
         priority: DetectorPriorityLevel,
-    ) -> tuple[DetectorOccurrence, EventData] | None:
+    ) -> tuple[DetectorOccurrence, EventData]:
         try:
             alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
             alert_id = alert_rule_detector.alert_rule_id
@@ -57,33 +54,27 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
                 condition_group=self.detector.workflow_condition_group, condition_result=priority
             )
         except DataCondition.DoesNotExist:
-            logger.exception(
-                "Failed to find detector trigger, cannot create metric issue occurrence",
-                extra={"detector_id": self.detector.id},
+            raise DetectorException(
+                f"Failed to find detector trigger for detector id {self.detector.id}, cannot create metric issue occurrence"
             )
-            return None
 
         try:
             query_subscription = QuerySubscription.objects.get(id=data_packet.source_id)
         except QuerySubscription.DoesNotExist:
-            logger.exception(
-                "Failed to find query subscription related to the detector, cannot create metric issue occurrence",
-                extra={"detector_id": self.detector.id},
+            raise DetectorException(
+                f"Failed to find query subscription for detector id {self.detector.id}, cannot create metric issue occurrence"
             )
-            return None
 
         try:
             snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
         except SnubaQuery.DoesNotExist:
-            logger.exception(
-                "Failed to find snuba query related to the detector, cannot create metric issue occurrence",
-                extra={"detector_id": self.detector.id},
+            raise DetectorException(
+                f"Failed to find snuba query for detector id {self.detector.id}, cannot create metric issue occurrence"
             )
-            return None
 
         try:
             assignee = parse_and_validate_actor(
-                self.detector.created_by_id, self.detector.project.organization_id
+                str(self.detector.created_by_id), self.detector.project.organization_id
             )
         except Exception:
             assignee = None
