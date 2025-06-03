@@ -7,7 +7,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models import DataCondition, DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import BaseDetectorHandlerTest
@@ -17,6 +17,7 @@ from tests.sentry.workflow_engine.handlers.detector.test_base import BaseDetecto
 class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
     def setUp(self):
         super().setUp()
+        self.detector_group_key = None
         self.detector, self.critical_detector_trigger = self.create_detector_and_condition(
             "handler_with_state"
         )
@@ -47,6 +48,39 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
 
         self.handler = MetricIssueDetectorHandler(self.detector)
 
+    def generate_evidence_data(
+        self,
+        value: int,
+        detector_trigger: DataCondition,
+        extra_trigger: DataCondition | None = None,
+    ):
+        evidence_data = {
+            "detector_id": self.detector.id,
+            "value": detector_trigger.condition_result,
+            "data_condition_ids": [detector_trigger.id],
+            "data_condition_type": detector_trigger.type.value,
+            "data_condition_comparison_value": value,
+            "alert_id": self.alert_rule.id,
+            "conditions": [
+                {
+                    "id": detector_trigger.id,
+                    "type": detector_trigger.type,
+                    "comparison": detector_trigger.comparison,
+                    "condition_result": detector_trigger.condition_result.value,
+                },
+            ],
+        }
+        if extra_trigger:
+            evidence_data["conditions"].append(
+                {
+                    "id": extra_trigger.id,
+                    "type": extra_trigger.type,
+                    "comparison": extra_trigger.comparison,
+                    "condition_result": extra_trigger.condition_result.value,
+                }
+            )
+        return evidence_data
+
     def test_metric_issue_occurence(self):
         value = self.critical_detector_trigger.comparison + 1
         packet = QuerySubscriptionUpdate(
@@ -60,30 +94,10 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         )
         result = self.handler.evaluate(data_packet)
 
-        detector_group_key = None
-        evidence_data = {
-            "detector_id": self.detector.id,
-            "value": self.critical_detector_trigger.condition_result,
-            "data_condition_ids": [self.critical_detector_trigger.id],
-            "data_condition_type": self.critical_detector_trigger.type.value,
-            "data_condition_comparison_value": value,
-            "alert_id": self.alert_rule.id,
-            "conditions": [
-                {
-                    "id": self.critical_detector_trigger.id,
-                    "type": self.critical_detector_trigger.type,
-                    "comparison": self.critical_detector_trigger.comparison,
-                    "condition_result": self.critical_detector_trigger.condition_result.value,
-                },
-                {
-                    "id": self.warning_detector_trigger.id,
-                    "type": self.warning_detector_trigger.type,
-                    "comparison": self.warning_detector_trigger.comparison,
-                    "condition_result": self.warning_detector_trigger.condition_result.value,
-                },
-            ],
-        }
-        occurrence = result[detector_group_key].result
+        evidence_data = self.generate_evidence_data(
+            value, self.critical_detector_trigger, self.warning_detector_trigger
+        )
+        occurrence = result[self.detector_group_key].result
         assert occurrence.project_id == self.detector.project_id
         assert occurrence.issue_title == self.detector.name
         assert occurrence.subtitle == self.handler.construct_title(
@@ -96,10 +110,48 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         assert occurrence.priority == self.critical_detector_trigger.condition_result
 
     def test_warning_level(self):
-        pass
+        value = self.warning_detector_trigger.comparison + 1
+        packet = QuerySubscriptionUpdate(
+            entity="entity",
+            subscription_id=self.query_subscription.id,
+            values={"value": value},
+            timestamp=datetime.now(UTC),
+        )
+        data_packet = DataPacket[QuerySubscriptionUpdate](
+            source_id=str(self.query_subscription.id), packet=packet
+        )
+        result = self.handler.evaluate(data_packet)
+
+        evidence_data = self.generate_evidence_data(value, self.warning_detector_trigger)
+        occurrence = result[self.detector_group_key].result
+        assert occurrence.project_id == self.detector.project_id
+        assert occurrence.issue_title == self.detector.name
+        assert occurrence.subtitle == self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.warning_detector_trigger,
+            priority=self.warning_detector_trigger.condition_result,
+        )
+        assert occurrence.evidence_data == evidence_data
+        assert occurrence.level == "error"
+        assert occurrence.priority == self.warning_detector_trigger.condition_result
 
     def test_return_none(self):
-        pass
+        value = self.critical_detector_trigger.comparison + 1
+        packet = QuerySubscriptionUpdate(
+            entity="entity",
+            subscription_id=self.query_subscription.id,
+            values={"value": value},
+            timestamp=datetime.now(UTC),
+        )
+        data_packet = DataPacket[QuerySubscriptionUpdate](
+            source_id=str(self.query_subscription.id), packet=packet
+        )
+        DataCondition.objects.all().delete()
+        result = self.handler.evaluate(data_packet)
+        occurrence = result[self.detector_group_key].result
+        assert (
+            occurrence is None
+        )  # TODO: retuning none here doesn't seem liked by the stateful handler, would it be better to raise?
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):
