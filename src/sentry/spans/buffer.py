@@ -205,23 +205,22 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    for span in subsegment:
-                        p.execute_command(
-                            "EVALSHA",
-                            add_buffer_sha,
-                            1,
-                            project_and_trace,
-                            "true" if span.is_segment_span else "false",
-                            span.span_id,
-                            parent_span_id,
-                            self.redis_ttl,
-                        )
+                    p.execute_command(
+                        "EVALSHA",
+                        add_buffer_sha,
+                        1,
+                        project_and_trace,
+                        len(subsegment),
+                        parent_span_id,
+                        self.redis_ttl,
+                        *[span.span_id for span in subsegment],
+                    )
 
-                        is_root_span_count += int(span.is_segment_span)
-                        shard = self.assigned_shards[
-                            int(span.trace_id, 16) % len(self.assigned_shards)
-                        ]
-                        queue_keys.append(self._get_queue_key(shard))
+                    is_root_span_count += sum(span.is_segment_span for span in subsegment)
+                    shard = self.assigned_shards[
+                        int(project_and_trace.replace(":", ""), 16) % len(self.assigned_shards)
+                    ]
+                    queue_keys.append(self._get_queue_key(shard))
 
                 results = p.execute()
 
@@ -231,31 +230,32 @@ class SpansBuffer:
 
             assert len(queue_keys) == len(results)
 
-            for queue_key, (redirect_depth, delete_item, add_item, has_root_span) in zip(
-                queue_keys, results
-            ):
-                min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                max_redirect_depth = max(max_redirect_depth, redirect_depth)
+            for queue_key, result in zip(queue_keys, results):
+                for redirect_depth, delete_item, add_item, has_root_span in itertools.batched(
+                    result, 4
+                ):
+                    min_redirect_depth = min(min_redirect_depth, redirect_depth)
+                    max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
-                delete_set = queue_deletes.setdefault(queue_key, set())
-                delete_set.add(delete_item)
-                # if we are going to add this item, we should not need to
-                # delete it from redis
-                delete_set.discard(add_item)
+                    delete_set = queue_deletes.setdefault(queue_key, set())
+                    delete_set.add(delete_item)
+                    # if we are going to add this item, we should not need to
+                    # delete it from redis
+                    delete_set.discard(add_item)
 
-                # if the currently processed span is a root span, OR the buffer
-                # already had a root span inside, use a different timeout than
-                # usual.
-                if has_root_span:
-                    has_root_span_count += 1
-                    offset = self.span_buffer_root_timeout_secs
-                else:
-                    offset = self.span_buffer_timeout_secs
+                    # if the currently processed span is a root span, OR the buffer
+                    # already had a root span inside, use a different timeout than
+                    # usual.
+                    if has_root_span:
+                        has_root_span_count += 1
+                        offset = self.span_buffer_root_timeout_secs
+                    else:
+                        offset = self.span_buffer_timeout_secs
 
-                zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[add_item] = now + offset
-                if delete_item != add_item:
-                    zadd_items.pop(delete_item, None)
+                    zadd_items = queue_adds.setdefault(queue_key, {})
+                    zadd_items[add_item] = now + offset
+                    if delete_item != add_item:
+                        zadd_items.pop(delete_item, None)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
