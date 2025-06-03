@@ -46,6 +46,7 @@ if has_root_span then
 end
 
 local return_value = {redirect_depth, set_key, has_root_span}
+local hset_args = {}
 
 for i = 5, num_spans + 4 do
     local span_id = ARGV[i]
@@ -53,8 +54,8 @@ for i = 5, num_spans + 4 do
 
     local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
 
-    redis.call("hset", main_redirect_key, span_id, set_span_id)
-    redis.call("expire", main_redirect_key, set_timeout)
+    table.insert(hset_args, span_id)
+    table.insert(hset_args, set_span_id)
 
     if not is_root_span and redis.call("scard", span_key) > 0 then
         redis.call("sunionstore", set_key, set_key, span_key)
@@ -63,6 +64,9 @@ for i = 5, num_spans + 4 do
 
     table.insert(return_value, span_key)
 end
+
+redis.call("hset", main_redirect_key, unpack(hset_args))
+redis.call("expire", main_redirect_key, set_timeout)
 
 if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
     redis.call("sunionstore", set_key, set_key, parent_key)
