@@ -82,31 +82,31 @@ export default function WizardField({
   const traceItemAggregationOptions: MenuOption[] = [
     {
       label: AlertWizardAlertNames.trace_item_throughput,
-      value: 'throughput',
+      value: 'trace_item_throughput',
     },
     {
       label: AlertWizardAlertNames.trace_item_duration,
-      value: 'trans_duration',
+      value: 'trace_item_duration',
     },
     {
       label: AlertWizardAlertNames.trace_item_apdex,
-      value: 'apdex',
+      value: 'trace_item_apdex',
     },
     {
       label: AlertWizardAlertNames.trace_item_failure_rate,
-      value: 'failure_rate',
+      value: 'trace_item_failure_rate',
     },
     {
       label: AlertWizardAlertNames.trace_item_lcp,
-      value: 'lcp',
+      value: 'trace_item_lcp',
     },
     {
       label: AlertWizardAlertNames.trace_item_fid,
-      value: 'fid',
+      value: 'trace_item_fid',
     },
     {
       label: AlertWizardAlertNames.trace_item_cls,
-      value: 'cls',
+      value: 'trace_item_cls',
     },
   ];
 

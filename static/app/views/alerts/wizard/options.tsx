@@ -23,7 +23,10 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 export type AlertType =
   | 'issues'
@@ -125,16 +128,31 @@ export const getAlertWizardCategories = (org: Organization) => {
         options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
       });
     }
+    const deprecatedTransactionAggregationOptions: AlertType[] = [
+      'throughput',
+      'trans_duration',
+      'apdex',
+      'failure_rate',
+      'lcp',
+      'fid',
+      'cls',
+    ];
+
+    const traceItemAggregationOptions: AlertType[] = [
+      'trace_item_throughput',
+      'trace_item_duration',
+      'trace_item_apdex',
+      'trace_item_failure_rate',
+      'trace_item_lcp',
+      'trace_item_fid',
+      'trace_item_cls',
+    ];
     result.push({
       categoryHeading: t('Performance'),
       options: [
-        'throughput',
-        'trans_duration',
-        'apdex',
-        'failure_rate',
-        'lcp',
-        'fid',
-        'cls',
+        ...(deprecateTransactionAlerts(org)
+          ? traceItemAggregationOptions
+          : deprecatedTransactionAggregationOptions),
 
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
