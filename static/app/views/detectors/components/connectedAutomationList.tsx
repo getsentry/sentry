@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
@@ -33,16 +33,15 @@ export function ConnectedAutomationsList({
 }: Props) {
   const organization = useOrganization();
   const canEdit = connectedAutomationIds && !!toggleConnected;
+  // TODO: There will eventually be a single api call to fetch a page of automations
   const queries = useDetectorQueriesByIds(automationIds);
   const [currentPage, setCurrentPage] = useState(0);
   const totalPages = Math.ceil(queries.length / AUTOMATIONS_PER_PAGE);
 
-  const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(0, prev - 1));
-  };
-  const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
-  };
+  // Reset the page when the automationIds change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [automationIds]);
 
   const data = queries
     .map((query): ConnectedAutomationsData | undefined => {
@@ -72,6 +71,13 @@ export function ConnectedAutomationsList({
   if (isLoading) {
     return <LoadingIndicator />;
   }
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  };
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
 
   const pagination = (
     <Flex justify="flex-end">
