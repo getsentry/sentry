@@ -47,8 +47,6 @@ jobs:
           node-version-file: '.volta.json'
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
-        with:
-          version: 10.10.0
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
