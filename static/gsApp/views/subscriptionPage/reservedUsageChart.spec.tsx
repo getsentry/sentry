@@ -1,9 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
@@ -16,6 +19,7 @@ import {
   mapReservedBudgetStatsToChart,
   mapStatsToChart,
 } from './reservedUsageChart';
+import ReservedUsageChart from './reservedUsageChart';
 
 describe('mapStatsToChart', () => {
   it('should map stats to chart data', () => {
@@ -748,5 +752,175 @@ describe('getCategoryOptions', () => {
     result.forEach(option => {
       expect(subscription.planDetails.categories).toContain(option.value);
     });
+  });
+});
+
+describe('DisplayMode Toggle for Reserved Budget Categories', () => {
+  const organization = OrganizationFixture({access: ['org:billing']});
+
+  it('should respect displayMode="usage" for SEER reserved budget categories', async () => {
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+
+    // Set up some SEER usage data
+    subscription.categories.seerAutofix = MetricHistoryFixture({
+      category: DataCategory.SEER_AUTOFIX,
+      usage: 10,
+      reserved: 25_00, // $25.00 budget
+    });
+
+    const usageStats = {
+      seerAutofix: [
+        {
+          date: '2019-01-01',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+        {
+          date: '2019-01-02',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+      ],
+    };
+
+    const reservedBudgetCategoryInfo = {
+      seerAutofix: {
+        freeBudget: 0,
+        prepaidBudget: 25_00,
+        reservedCpe: 1_00, // $1.00 per fix
+        reservedSpend: 10_00, // $10.00 spent
+        totalReservedBudget: 25_00,
+        apiName: 'seer',
+      },
+    };
+
+    const location = {
+      pathname: '/billing',
+      query: {
+        category: DataCategory.SEER_AUTOFIX,
+        displayMode: 'usage', // This should be respected, not overridden
+      },
+      search: '',
+      hash: '',
+      state: null,
+      key: '',
+      action: 'PUSH' as const,
+    };
+
+    const mockProps = {
+      location,
+      organization,
+      subscription,
+      usagePeriodStart: '2019-01-01',
+      usagePeriodEnd: '2019-01-31',
+      usageStats,
+      displayMode: 'usage' as const,
+      reservedBudgetCategoryInfo,
+    };
+
+    await act(async () => {
+      render(<ReservedUsageChart {...mockProps} />);
+    });
+
+    // When displayMode is 'usage' for reserved budget categories,
+    // it should show "Current Usage Period" title (usage mode)
+    expect(screen.getByText('Current Usage Period')).toBeInTheDocument();
+    expect(screen.queryByText(/Estimated.*Spend This Period/)).not.toBeInTheDocument();
+  });
+
+  it('should respect displayMode="cost" for SEER reserved budget categories', async () => {
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+    });
+
+    // Set up some SEER usage data
+    subscription.categories.seerAutofix = MetricHistoryFixture({
+      category: DataCategory.SEER_AUTOFIX,
+      usage: 10,
+      reserved: 25_00, // $25.00 budget
+    });
+
+    const usageStats = {
+      seerAutofix: [
+        {
+          date: '2019-01-01',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+        {
+          date: '2019-01-02',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+      ],
+    };
+
+    const reservedBudgetCategoryInfo = {
+      seerAutofix: {
+        freeBudget: 0,
+        prepaidBudget: 25_00,
+        reservedCpe: 1_00, // $1.00 per fix
+        reservedSpend: 10_00, // $10.00 spent
+        totalReservedBudget: 25_00,
+        apiName: 'seer',
+      },
+    };
+
+    const location = {
+      pathname: '/billing',
+      query: {
+        category: DataCategory.SEER_AUTOFIX,
+        displayMode: 'cost', // This should be respected
+      },
+      search: '',
+      hash: '',
+      state: null,
+      key: '',
+      action: 'PUSH' as const,
+    };
+
+    const mockProps = {
+      location,
+      organization,
+      subscription,
+      usagePeriodStart: '2019-01-01',
+      usagePeriodEnd: '2019-01-31',
+      usageStats,
+      displayMode: 'cost' as const,
+      reservedBudgetCategoryInfo,
+    };
+
+    await act(async () => {
+      render(<ReservedUsageChart {...mockProps} />);
+    });
+
+    // When displayMode is 'cost' for reserved budget categories,
+    // it should show "Estimated ... Spend This Period" title (cost mode)
+    expect(screen.getByText(/Estimated.*Spend This Period/)).toBeInTheDocument();
+    expect(screen.queryByText('Current Usage Period')).not.toBeInTheDocument();
   });
 });
