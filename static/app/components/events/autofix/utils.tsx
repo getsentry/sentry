@@ -130,7 +130,10 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
 };
 
 export const isSupportedAutofixProvider = (provider: string) => {
-  return provider.toLowerCase().includes('github');
+  return (
+    provider.toLowerCase() === 'github' ||
+    provider.toLowerCase() === 'integrations:github'
+  );
 };
 
 export interface AutofixProgressDetails {
