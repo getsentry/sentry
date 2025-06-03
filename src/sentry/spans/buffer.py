@@ -224,6 +224,8 @@ class SpansBuffer:
 
                 results = p.execute()
 
+        num_subsegments = 0
+
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
@@ -232,31 +234,30 @@ class SpansBuffer:
 
             for queue_key, result in zip(queue_keys, results):
                 redirect_depth, set_key, has_root_span, *span_keys = result
-                add_item = set_key
 
-                for delete_item in span_keys:
-                    min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                    max_redirect_depth = max(max_redirect_depth, redirect_depth)
+                min_redirect_depth = min(min_redirect_depth, redirect_depth)
+                max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
-                    delete_set = queue_deletes.setdefault(queue_key, set())
-                    delete_set.add(delete_item)
-                    # if we are going to add this item, we should not need to
-                    # delete it from redis
-                    delete_set.discard(add_item)
+                # if the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than
+                # usual.
+                num_subsegments += 1
+                if has_root_span:
+                    has_root_span_count += 1
+                    offset = self.span_buffer_root_timeout_secs
+                else:
+                    offset = self.span_buffer_timeout_secs
 
-                    # if the currently processed span is a root span, OR the buffer
-                    # already had a root span inside, use a different timeout than
-                    # usual.
-                    if has_root_span:
-                        has_root_span_count += 1
-                        offset = self.span_buffer_root_timeout_secs
-                    else:
-                        offset = self.span_buffer_timeout_secs
+                delete_set = queue_deletes.setdefault(queue_key, set())
 
-                    zadd_items = queue_adds.setdefault(queue_key, {})
-                    zadd_items[add_item] = now + offset
-                    if delete_item != add_item:
-                        zadd_items.pop(delete_item, None)
+                zadd_items = queue_adds.setdefault(queue_key, {})
+                zadd_items[set_key] = now + offset
+
+                delete_set.update(span_keys)
+
+                # if we are going to add this item, we should not need to
+                # delete it from redis
+                delete_set.discard(set_key)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
@@ -272,7 +273,10 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
+
+        metrics.timing("spans.buffer.process_spans.num_subsegments", num_subsegments)
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
+
         metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
         metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
 
