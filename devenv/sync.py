@@ -162,14 +162,14 @@ Then, use it to run sync this one time.
         reporoot,
     )
 
-    with open(f"{reporoot}/package.json") as f:
-        package_json = json.load(f)
+    # packageManager causes interoperability errors with yarn
+    # enable this after 3-stage rollout
+    # with open(f"{reporoot}/package.json") as f:
+    #     package_json = json.load(f)
+    #     pnpm = package_json["packageManager"]
+    #     pnpm_version = pnpm.split("@")[-1]
 
-        # packageManager causes interoperability errors with yarn
-        # enable this after 3-stage rollout
-        # pnpm = package_json["packageManager"]
-        # pnpm_version = pnpm.split("@")[-1]
-        pnpm_version = "10.10.0"
+    pnpm_version = "10.10.0"
 
     # TODO: move pnpm install into devenv
     install_pnpm(pnpm_version, reporoot)
