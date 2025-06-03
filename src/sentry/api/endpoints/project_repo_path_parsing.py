@@ -67,7 +67,7 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
             organization_id=self.org_id, providers=self.providers
         )
 
-        matching_integrations: list[RpcIntegration] = list(filter(integration_match, integrations))
+        matching_integrations = list(filter(integration_match, integrations))
         if not matching_integrations:
             raise serializers.ValidationError("Could not find integration")
 
