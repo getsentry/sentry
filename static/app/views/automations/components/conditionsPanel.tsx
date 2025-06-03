@@ -1,6 +1,8 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Action} from 'sentry/types/workflowEngine/actions';
@@ -22,12 +24,12 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
       <Flex column gap={space(1)}>
         <div>
           {tct('[when:When] any of the following occur', {
-            when: <Badge />,
+            when: <ConditionBadge />,
           })}
         </div>
         {triggers.conditions.map((trigger, index) => (
           <div key={index}>
-            <Details item={trigger} nodesMap={dataConditionNodesMap} />
+            <DataConditionDetails condition={trigger} />
           </div>
         ))}
       </Flex>
@@ -50,45 +52,50 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
     <ActionFilterWrapper showDivider={totalFilters > 1}>
       <div>
         {tct('[if:If] any of these filters match', {
-          if: <Badge />,
+          if: <ConditionBadge />,
         })}
       </div>
       {actionFilter.conditions.length > 0
         ? actionFilter.conditions.map((filter, index) => (
             <div key={index}>
-              <Details item={filter} nodesMap={dataConditionNodesMap} />
+              <DataConditionDetails condition={filter} />
             </div>
           ))
         : t('Any event')}
       <div>
         {tct('[then:Then] perform these actions', {
-          then: <Badge />,
+          then: <ConditionBadge />,
         })}
       </div>
       {actionFilter.actions?.map((action, index) => (
         <div key={index}>
-          <Details item={action} nodesMap={actionNodesMap} />
+          <ActionDetails action={action} />
         </div>
       ))}
     </ActionFilterWrapper>
   );
 }
 
-function Details<T extends DataCondition | Action>({
-  item,
-  nodesMap,
-}: {
-  item: T;
-  nodesMap: Map<string, {details?: (item: T) => React.ReactNode; label?: string}>;
-}) {
-  const node = nodesMap.get(item.type);
+function DataConditionDetails({condition}: {condition: DataCondition}) {
+  const node = dataConditionNodesMap.get(condition.type);
   const Component = node?.details;
 
   if (!Component) {
     return <span>{node?.label}</span>;
   }
 
-  return Component(item);
+  return <Component condition={condition} />;
+}
+
+function ActionDetails({action}: {action: Action}) {
+  const node = actionNodesMap.get(action.type);
+  const Component = node?.details;
+
+  if (!Component) {
+    return <span>{node?.label}</span>;
+  }
+
+  return <Component action={action} />;
 }
 
 const Panel = styled('div')`
@@ -101,19 +108,6 @@ const Panel = styled('div')`
   padding: ${space(1.5)};
 `;
 
-const Badge = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.5;
-`;
-
 const ActionFilterWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
@@ -121,10 +115,10 @@ const ActionFilterWrapper = styled('div')<{showDivider?: boolean}>`
 
   ${p =>
     p.showDivider &&
-    `
-    padding-top: ${space(1.5)};
-    border-top: 1px solid ${p.theme.translucentBorder};
-  `}
+    css`
+      padding-top: ${space(1.5)};
+      border-top: 1px solid ${p.theme.translucentBorder};
+    `}
 `;
 
 export default ConditionsPanel;

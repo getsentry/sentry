@@ -14,10 +14,10 @@ enum TimeUnit {
   DAYS = 'days',
 }
 
-const TimeChoices = [
-  {value: [TimeUnit.MINUTES], label: 'minute(s)'},
-  {value: [TimeUnit.HOURS], label: 'hour(s)'},
-  {value: [TimeUnit.DAYS], label: 'day(s)'},
+const TIME_CHOICES = [
+  {value: TimeUnit.MINUTES, label: 'minute(s)'},
+  {value: TimeUnit.HOURS, label: 'hour(s)'},
+  {value: TimeUnit.DAYS, label: 'day(s)'},
 ];
 
 interface AgeComparisonDetailsProps {
@@ -32,7 +32,7 @@ export function AgeComparisonDetails({condition}: AgeComparisonDetailsProps) {
       )?.label || condition.comparison.comparison_type,
     value: condition.comparison.value,
     time:
-      TimeChoices.find(choice => choice.value[0] === condition.comparison.time)?.label ||
+      TIME_CHOICES.find(choice => choice.value[0] === condition.comparison.time)?.label ||
       condition.comparison.time,
   });
 }
@@ -84,7 +84,7 @@ function TimeField() {
     <AutomationBuilderSelectField
       name={`${condition_id}.comparison.time`}
       value={condition.comparison.time}
-      options={TimeChoices}
+      options={TIME_CHOICES}
       onChange={(value: string) => {
         onUpdate({
           time: value,

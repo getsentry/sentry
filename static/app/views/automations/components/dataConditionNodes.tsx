@@ -47,7 +47,7 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
 type DataConditionNode = {
   label: string;
   dataCondition?: React.ReactNode;
-  details?: (condition: DataCondition) => React.ReactNode;
+  details?: React.ComponentType<any>;
 };
 
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
@@ -86,9 +86,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue age'),
       dataCondition: <AgeComparisonNode />,
-      details: (condition: DataCondition) => (
-        <AgeComparisonDetails condition={condition} />
-      ),
+      details: AgeComparisonDetails,
     },
   ],
   [
@@ -110,9 +108,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue priority'),
       dataCondition: <IssuePriorityNode />,
-      details: (condition: DataCondition) => (
-        <IssuePriorityDetails condition={condition} />
-      ),
+      details: IssuePriorityDetails,
     },
   ],
   [
@@ -134,9 +130,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Event attribute'),
       dataCondition: <EventAttributeNode />,
-      details: (condition: DataCondition) => (
-        <EventAttributeDetails condition={condition} />
-      ),
+      details: EventAttributeDetails,
     },
   ],
   [

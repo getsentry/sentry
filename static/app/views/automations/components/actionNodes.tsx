@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import React, {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -36,7 +36,7 @@ export function useActionNodeContext(): ActionNodeProps {
 
 type ActionNode = {
   action: React.ReactNode;
-  details?: (action: Action) => React.ReactNode;
+  details?: React.ComponentType<any>;
   label?: string;
 };
 
