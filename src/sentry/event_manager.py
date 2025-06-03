@@ -492,6 +492,7 @@ class EventManager:
 
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
+        _derive_client_error_sampling_rate(jobs, projects)
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -734,6 +735,21 @@ def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
             # Get rid of ephemeral interface data
             if iface.ephemeral:
                 data.pop(iface.path, None)
+
+
+def _derive_client_error_sampling_rate(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        project = projects[job["project_id"]]
+        if project.id in options.get("issues.client_error_sampling.project_allowlist"):
+            try:
+                job["data"]["sample_rate"] = (
+                    job["data"]
+                    .get("contexts", {})
+                    .get("error_sampling", {})
+                    .get("client_sample_rate")
+                )
+            except (KeyError, TypeError):
+                pass
 
 
 def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
