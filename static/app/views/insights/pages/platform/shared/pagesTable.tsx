@@ -56,10 +56,10 @@ const errorRateColorThreshold = {
   warning: 0.05,
 } as const;
 
-const getP95Threshold = (avg: number) => {
+const getP95Threshold = (_avg: number) => {
   return {
-    error: avg * 3,
-    warning: avg * 2,
+    error: 4000,
+    warning: 2500,
   };
 };
 
