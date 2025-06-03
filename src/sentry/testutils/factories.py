@@ -1284,7 +1284,6 @@ class Factories:
 
             install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
             install.save()
-            # rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
             if not prevent_token_exchange and (
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
