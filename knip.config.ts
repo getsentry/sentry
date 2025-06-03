@@ -14,6 +14,8 @@ const productionEntryPoints = [
   'static/app/gettingStartedDocs/**/*.{js,mjs,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
+  // used in script in package.json
+  'config/build-chartcuterie.ts',
   // --- we should be able to get rid of those: ---
   // todo codecov has unused code from the migration
   'static/app/{components,views}/codecov/**/*.{js,mjs,ts,tsx}',
@@ -44,6 +46,7 @@ const config: KnipConfig = {
   storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
+    'config/**/*.ts!',
     'tests/js/**/*.{js,mjs,ts,tsx}',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
@@ -56,12 +59,22 @@ const config: KnipConfig = {
   compilers: {
     mdx: async text => String(await compile(text)),
   },
+  ignoreDependencies: [
+    'core-js',
+    '@spotlightjs/spotlight', // todo not sure why we need this
+    '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
+    'tsconfig-paths', // passed as cli arg to benchmarking
+    'eslint-import-resolver-typescript', // used in eslint config
+    'jest-environment-jsdom', // used as testEnvironment in jest config
+    'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
+    '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
+    'buffer', // rspack.ProvidePlugin, needs better knip plugin
+    'process', // rspack.ProvidePlugin, needs better knip plugin
+  ],
   rules: {
     binaries: 'off',
-    dependencies: 'off',
     enumMembers: 'off',
     unlisted: 'off',
-    unresolved: 'off',
   },
 };
 
