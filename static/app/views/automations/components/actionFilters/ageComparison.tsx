@@ -19,8 +19,8 @@ function ComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
     <AutomationBuilderSelectField
-      name={`${condition_id}.comparison.comparison_type`}
-      value={condition.comparison.comparison_type}
+      name={`${condition_id}.comparison.type`}
+      value={condition.comparison.type}
       options={AGE_COMPARISON_CHOICES}
       onChange={(value: AgeComparison) => {
         onUpdate({
