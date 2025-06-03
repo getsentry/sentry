@@ -65,11 +65,12 @@ export function WebVitalStatusLineChart({
     ? timeseriesData?.[`p75(measurements.${webVital})`]
     : {data: [], meta: {fields: {}, units: {}}, seriesName: ''};
 
-  const seriesIsPoor = webVitalSeries.data?.some(({value}) => value > webVitalMedian);
-  const seriesIsMeh = webVitalSeries.data?.some(({value}) => value >= webVitalP90);
-
-  const includePoorThreshold = seriesIsPoor;
-  const includeMehThreshold = seriesIsMeh;
+  const includePoorThreshold = webVitalSeries.data?.some(
+    ({value}) => value > webVitalMedian
+  );
+  const includeMehThreshold = webVitalSeries.data?.some(
+    ({value}) => value >= webVitalP90
+  );
 
   const thresholdsPlottable = new Thresholds({
     thresholds: {
