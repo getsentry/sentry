@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import {ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Outbound API Requests');
 export const FRONTEND_MODULE_TITLE = t('Network Requests');
@@ -19,8 +18,7 @@ export const FIELD_ALIASES = {
 };
 
 export const BASE_FILTERS = {
-  'span.module': ModuleName.HTTP,
-  'span.op': 'http.client', // `span.module` alone isn't enough, since some SDKs create other `http.*` spans like `http.client.response_body`
+  'span.op': 'http.client',
 };
 
 export const MODULE_DOC_LINK =

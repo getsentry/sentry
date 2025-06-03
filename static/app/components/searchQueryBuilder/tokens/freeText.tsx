@@ -115,7 +115,11 @@ function countPreviousItemsOfType({
   type: Token;
 }) {
   const itemKeys = [...state.collection.getKeys()];
-  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey);
+  const focusedKey = state.selectionManager.focusedKey;
+  if (!focusedKey) {
+    return 0;
+  }
+  const currentIndex = itemKeys.indexOf(focusedKey);
 
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
@@ -492,14 +496,46 @@ function SearchQueryBuilderInputInternal({
         onInputChange={e => {
           // Parse text to see if this keystroke would have created any tokens.
           // Add a trailing quote in case the user wants to wrap with quotes.
-          const parsedText = parseSearch(e.target.value + '"');
+          const rawValue = e.target.value;
+          const parsedText = parseSearch(rawValue + '"');
 
-          if (
-            parsedText?.some(
+          const parenIndex =
+            parsedText?.findIndex(
               textToken =>
                 textToken.type === Token.L_PAREN || textToken.type === Token.R_PAREN
-            )
-          ) {
+            ) ?? -1;
+
+          if (parenIndex > -1) {
+            // There's a chance they're trying to type a function.
+            // If so we should autocomplete it as a function.
+            const paren = parsedText![parenIndex]!;
+            if (paren.type === Token.L_PAREN) {
+              const maybeSpaces = parsedText![parenIndex - 1];
+              const maybeFunction = parsedText![parenIndex - 2];
+              if (
+                maybeSpaces?.type === Token.SPACES &&
+                maybeSpaces.value === '' &&
+                maybeFunction?.type === Token.FREE_TEXT &&
+                getFieldDefinition(maybeFunction.value)?.kind === FieldKind.FUNCTION
+              ) {
+                dispatch({
+                  type: 'UPDATE_FREE_TEXT',
+                  tokens: [token],
+                  text: replaceFocusedWordWithFilter(
+                    inputValue,
+                    selectionIndex,
+                    filterValue,
+                    getFieldDefinition
+                  ),
+                  focusOverride: calculateNextFocusForFilter(state),
+                  shouldCommitQuery: false,
+                });
+                resetInputValue();
+                return;
+              }
+            }
+
+            // It's not a function so treat it as just a parenthesis
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],

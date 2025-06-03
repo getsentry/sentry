@@ -49,6 +49,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
   type DashboardWidgetSource,
+  DEFAULT_WIDGET_NAME,
   DisplayType,
   type Widget,
   type WidgetQuery,
@@ -700,7 +701,7 @@ export function handleAddQueryToDashboard({
     widget: {
       // We need the event view name for when we're adding from a saved query page
       title: (query?.name ??
-        (eventView.name === 'All Errors' ? t('Custom Widget') : eventView.name))!,
+        (eventView.name === 'All Errors' ? DEFAULT_WIDGET_NAME : eventView.name))!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {

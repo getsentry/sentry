@@ -6,14 +6,9 @@ import AutomationBuilderSelectField, {
   selectControlStyles,
 } from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
+import {ActionTarget} from 'sentry/types/workflowEngine/actions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
-
-enum TargetType {
-  USER = 'user',
-  TEAM = 'team',
-  ISSUE_OWNERS = 'issue_owners',
-}
 
 enum FallthroughChoiceType {
   ALL_MEMBERS = 'AllMembers',
@@ -22,9 +17,9 @@ enum FallthroughChoiceType {
 }
 
 const TARGET_TYPE_CHOICES = [
-  {value: TargetType.ISSUE_OWNERS, label: 'Suggested assignees'},
-  {value: TargetType.TEAM, label: 'Team'},
-  {value: TargetType.USER, label: 'Member'},
+  {value: ActionTarget.ISSUE_OWNERS, label: 'Suggested assignees'},
+  {value: ActionTarget.TEAM, label: 'Team'},
+  {value: ActionTarget.USER, label: 'Member'},
 ];
 
 const FALLTHROUGH_CHOICES = [
@@ -44,10 +39,12 @@ function TargetTypeField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
     <AutomationBuilderSelectField
-      name={`${actionId}.data.targetType`}
-      value={action.data.targetType}
+      name={`${actionId}.config.target_type`}
+      value={action.config.target_type}
       options={TARGET_TYPE_CHOICES}
-      onChange={(value: string) => onUpdate({targetType: value, targetIdentifier: ''})}
+      onChange={(value: string) =>
+        onUpdate({config: {target_type: value, target_identifier: undefined}})
+      }
     />
   );
 }
@@ -56,27 +53,31 @@ function IdentifierField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   const organization = useOrganization();
 
-  if (action.data.targetType === TargetType.TEAM) {
+  if (action.config.target_type === ActionTarget.TEAM) {
     return (
       <SelectWrapper>
         <TeamSelector
-          name={`${actionId}.data.targetIdentifier`}
-          value={action.data.targetIdentifier}
-          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
+          name={`${actionId}.config.target_identifier`}
+          value={action.config.target_identifier}
+          onChange={(value: any) =>
+            onUpdate({config: {target_identifier: value.actor.id}})
+          }
           useId
           styles={selectControlStyles}
         />
       </SelectWrapper>
     );
   }
-  if (action.data.targetType === TargetType.USER) {
+  if (action.config.target_type === ActionTarget.USER) {
     return (
       <SelectWrapper>
         <SelectMembers
           organization={organization}
-          key={`${actionId}.data.targetIdentifier`}
-          value={action.data.targetIdentifier}
-          onChange={(value: any) => onUpdate({targetIdentifier: value.actor.id})}
+          key={`${actionId}.config.target_identifier`}
+          value={action.config.target_identifier}
+          onChange={(value: any) =>
+            onUpdate({config: {target_identifier: value.actor.id}})
+          }
           styles={selectControlStyles}
         />
       </SelectWrapper>
@@ -94,7 +95,7 @@ function FallthroughField() {
       name={`${actionId}.data.fallthroughType`}
       value={action.data.fallthroughType}
       options={FALLTHROUGH_CHOICES}
-      onChange={(value: string) => onUpdate({fallthroughType: value})}
+      onChange={(value: string) => onUpdate({data: {fallthroughType: value}})}
     />
   );
 }

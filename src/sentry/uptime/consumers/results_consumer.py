@@ -318,7 +318,7 @@ def handle_active_result(
 
         # Bail if we're doing issue creation via detectors, we don't want to
         # create issues using the legacy system in this case. If this flag is
-        # not enabkled the detector will still run, but will not produce an
+        # not enabled the detector will still run, but will not produce an
         # issue occurrence.
         #
         # Once we've determined that the detector handler is producing issues
