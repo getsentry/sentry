@@ -950,6 +950,23 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             </Fragment>
                           );
                         })}
+                      <StyledDollarsField
+                        label="Seer Budget"
+                        name="seerBudget"
+                        help="Monthly reserved budget for Seer"
+                        required={this.isSettingSeerBudget()}
+                        disabled={!this.isSettingSeerBudget()}
+                        value={data.seerBudget}
+                        onChange={v =>
+                          this.setState(state => ({
+                            ...state,
+                            data: {
+                              ...state.data,
+                              seerBudget: v,
+                            },
+                          }))
+                        }
+                      />
                     </Fragment>
                   )}
               </div>
@@ -1046,24 +1063,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       data: {
                         ...state.data,
                         customPrice: v,
-                      },
-                    }))
-                  }
-                />
-
-                <StyledDollarsField
-                  label="Seer Budget"
-                  name="seerBudget"
-                  help="Monthly reserved budget for Seer"
-                  required={this.hasCompleteSeerBudget()}
-                  disabled={!this.hasCompleteSeerBudget()}
-                  value={data.seerBudget}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        seerBudget: v,
                       },
                     }))
                   }
