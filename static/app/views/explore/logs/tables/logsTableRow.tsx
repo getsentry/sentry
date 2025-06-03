@@ -2,7 +2,6 @@ import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {ButtonIcon, ButtonLabel} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
@@ -43,7 +42,6 @@ import {
   LogAttributeTreeWrapper,
   LogDetailTableBodyCell,
   LogFirstCellContent,
-  LogRowChevronWrapper,
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
@@ -235,13 +233,18 @@ export const LogRowContent = memo(function LogRowContent({
                 onClick={() => toggleExpanded()}
               />
             ) : (
-              <LogRowChevronWrapper>
-                <ButtonLabel size={buttonSize} borderless={false}>
-                  <ButtonIcon size={buttonSize} hasChildren={false}>
-                    {chevronIcon}
-                  </ButtonIcon>
-                </ButtonLabel>
-              </LogRowChevronWrapper>
+              <span
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  marginRight: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {chevronIcon}
+              </span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
