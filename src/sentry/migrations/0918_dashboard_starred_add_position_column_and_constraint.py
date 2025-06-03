@@ -27,6 +27,10 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
+        migrations.AlterUniqueTogether(
+            name="dashboardfavoriteuser",
+            unique_together=set(),
+        ),
         migrations.AddField(
             model_name="dashboardfavoriteuser",
             name="organization",
