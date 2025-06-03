@@ -55,12 +55,17 @@ class OnboardingTaskStatus(enum.IntEnum):
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(
-        self, organization_id: int, task: int, status=OnboardingTaskStatus.COMPLETE, **kwargs
+        self,
+        organization_id: int,
+        task: int,
+        status: OnboardingTaskStatus = OnboardingTaskStatus.COMPLETE,
+        **kwargs,
     ) -> bool:
-        """Record the completion of an onboarding task."""
+        """Record the completion of an onboarding task. Caches the completion. Returns whether the task was created or not."""
         if status != OnboardingTaskStatus.COMPLETE:
-            # TODO: do not use cached version, if status is not COMPLETE
-            raise ValueError("Only COMPLETE status is supported")
+            raise ValueError(
+                f"status={status} unsupported must be {OnboardingTaskStatus.COMPLETE}."
+            )
 
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
