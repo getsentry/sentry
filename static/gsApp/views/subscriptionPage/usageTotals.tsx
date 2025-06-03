@@ -986,6 +986,11 @@ export function CombinedUsageTotals({
     );
   }
 
+  // match the unused bar to the last category in category order that has been used
+  // for that budget; otherwise default to the first category in category 0order
+  let categoryForUnusedPrepaid = firstCategory;
+  let categoryForUnusedOnDemand = firstCategory;
+
   return (
     <SubscriptionCard data-test-id={`usage-card-${apiName}`}>
       <CardBody>
@@ -1112,6 +1117,7 @@ export function CombinedUsageTotals({
                           )
                           .map(([rbCategory, rbInfo]) => {
                             if (rbInfo.reservedSpend > 0) {
+                              categoryForUnusedPrepaid = rbCategory as DataCategory;
                               return (
                                 <PlanUseBar
                                   style={{
@@ -1134,7 +1140,7 @@ export function CombinedUsageTotals({
                       style={{
                         width: `${unusedPrepaidWidth}%`,
                         backgroundColor: colorFn(
-                          categoryToColors[firstCategory]?.reserved
+                          categoryToColors[categoryForUnusedPrepaid]?.reserved
                         )
                           .fade(0.5)
                           .string(),
@@ -1151,6 +1157,7 @@ export function CombinedUsageTotals({
                       );
 
                       if (ondemandPercentUsed >= 1) {
+                        categoryForUnusedOnDemand = rbCategory as DataCategory;
                         return (
                           <PlanUseBar
                             key={rbCategory}
@@ -1169,7 +1176,7 @@ export function CombinedUsageTotals({
                         style={{
                           width: `${unusedOnDemandWidth}%`,
                           backgroundColor: colorFn(
-                            categoryToColors[firstCategory]?.ondemand
+                            categoryToColors[categoryForUnusedOnDemand]?.ondemand
                           )
                             .fade(0.5)
                             .string(),

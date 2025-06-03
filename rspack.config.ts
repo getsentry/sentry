@@ -187,6 +187,15 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
             autoLabel: DEV_MODE ? 'always' : 'never',
           },
         ],
+        [
+          'swc-plugin-component-annotate',
+          {
+            'annotate-fragments': false,
+            'component-attr': 'data-sentry-component',
+            'element-attr': 'data-sentry-element',
+            'source-file-attr': 'data-sentry-source-file',
+          },
+        ],
       ],
     },
     parser: {
@@ -773,8 +782,8 @@ if (IS_PRODUCTION) {
         create: false,
       },
       reactComponentAnnotation: {
-        // Only enable in production, annotating is slow in development
-        enabled: true,
+        // Using swc-plugin-react-component-annotate instead
+        enabled: false,
       },
       bundleSizeOptimizations: {
         // This is enabled so that our SDKs send exceptions to Sentry
