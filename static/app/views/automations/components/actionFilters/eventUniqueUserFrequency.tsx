@@ -16,19 +16,17 @@ export default function EventUniqueUserFrequencyNode() {
 function ComparisonTypeField() {
   const {condition, condition_id, onUpdateType} = useDataConditionNodeContext();
 
-  if (condition.comparison_type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT) {
+  if (condition.type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT) {
     return <CountBranch />;
   }
-  if (
-    condition.comparison_type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
-  ) {
+  if (condition.type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT) {
     return <PercentBranch />;
   }
 
   return (
     <AutomationBuilderSelectField
-      name={`${condition_id}.comparison_type`}
-      value={condition.comparison_type}
+      name={`${condition_id}.type`}
+      value={condition.type}
       options={[
         {
           label: 'more than...',
