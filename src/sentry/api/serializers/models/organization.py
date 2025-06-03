@@ -39,6 +39,7 @@ from sentry.constants import (
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -513,6 +514,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
+    ingestThroughTrustedRelaysOnly: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -732,6 +734,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
+        if features.has("organizations:ingest-through-trusted-relays-only", obj):
+            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+                "sentry:ingest-through-trusted-relays-only",
+                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+            )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -765,6 +773,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

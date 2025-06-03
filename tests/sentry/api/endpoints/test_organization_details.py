@@ -1275,6 +1275,28 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             data = {"targetSampleRate": 0.1}
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
+    def test_ingest_through_trusted_relays_only_option(self):
+        # by default option is not set
+        assert not self.organization.get_option("sentry:ingest_through_trusted_relays_only")
+
+        with self.feature("organizations:ingest-through-trusted-relays-only"):
+            data = {"ingestThroughTrustedRelaysOnly": True}
+            self.get_success_response(self.organization.slug, **data)
+            assert self.organization.get_option("sentry:ingest-through-trusted-relays-only")
+
+        with self.feature({"organizations:ingest-through-trusted-relays-only": False}):
+            data = {"ingestThroughTrustedRelaysOnly": True}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:ingest-through-trusted-relays-only")
+    def test_get_ingest_through_trusted_relays_only_option(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["ingestThroughTrustedRelaysOnly"] is False
+
+    def test_get_ingest_through_trusted_relays_only_option_without_feature(self):
+        response = self.get_success_response(self.organization.slug)
+        assert "ingestThroughTrustedRelaysOnly" not in response.data
+
     @with_feature("organizations:dynamic-sampling-custom")
     def test_target_sample_rate_range(self):
         # low, within and high
