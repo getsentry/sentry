@@ -78,7 +78,6 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[] | null): void;
-  updateIntegratedOrg(integratedOrg: string | null): void;
   updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 }
@@ -213,15 +212,6 @@ const storeConfig: PageFiltersStoreDefinition = {
     }
 
     this.state = {...this.state, pinnedFilters: newPinnedFilters};
-    this.trigger(this.getState());
-  },
-
-  updateIntegratedOrg(integratedOrg: string | null) {
-    if (valueIsEqual(this.state.selection.integratedOrg, integratedOrg)) {
-      return;
-    }
-
-    this.state = {...this.state, selection: {...this.state.selection, integratedOrg}};
     this.trigger(this.getState());
   },
 };

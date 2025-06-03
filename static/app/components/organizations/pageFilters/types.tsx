@@ -7,7 +7,6 @@
 export type PageFiltersStringified = {
   end?: string | null;
   environment?: string[] | null;
-  integratedOrg?: string | null;
   project?: string[] | null;
   start?: string | null;
   statsPeriod?: string | null;
@@ -20,7 +19,6 @@ export type PageFiltersStringified = {
 export type PageFiltersState = {
   end: Date | null;
   environment: string[] | null;
-  integratedOrg: string | null;
   period: string | null;
   project: number[] | null;
   start: Date | null;
