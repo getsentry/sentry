@@ -2,7 +2,7 @@ import {Flex} from 'sentry/components/container/flex';
 import {IconClaude} from 'sentry/icons/iconClaude';
 import {IconGemini} from 'sentry/icons/iconGemini';
 import {IconOpenAI} from 'sentry/icons/iconOpenAI';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
 
 interface ModelNameProps {
