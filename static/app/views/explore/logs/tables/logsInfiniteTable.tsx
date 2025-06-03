@@ -328,29 +328,37 @@ function LogsTableHeader({
   );
 }
 
-function EmptyRenderer() {
+export function EmptyRenderer({hasSearch = true}: {hasSearch?: boolean}) {
   return (
     <TableStatus>
       <EmptyStateWarning withIcon>
         <EmptyStateText size="fontSizeExtraLarge">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="fontSizeMedium">
-          {tct(
-            'Try adjusting your filters or get started with sending logs by checking these [instructions]',
-            {
-              instructions: (
-                <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
-                  {t('instructions')}
-                </ExternalLink>
-              ),
-            }
-          )}
+          {hasSearch
+            ? tct(
+                'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+                {
+                  instructions: (
+                    <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
+                      {t('instructions')}
+                    </ExternalLink>
+                  ),
+                }
+              )
+            : tct('Get started by sending logs by checking these [instructions]', {
+                instructions: (
+                  <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
+                    {t('instructions')}
+                  </ExternalLink>
+                ),
+              })}
         </EmptyStateText>
       </EmptyStateWarning>
     </TableStatus>
   );
 }
 
-function ErrorRenderer() {
+export function ErrorRenderer() {
   return (
     <TableStatus>
       <IconWarning color="gray300" size="lg" />
@@ -358,7 +366,7 @@ function ErrorRenderer() {
   );
 }
 
-function LoadingRenderer({size}: {size?: number}) {
+export function LoadingRenderer({size}: {size?: number}) {
   return (
     <TableStatus size={size}>
       <LoadingIndicator size={size} />

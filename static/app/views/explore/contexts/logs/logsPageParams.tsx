@@ -62,7 +62,7 @@ interface LogsPageParams {
    * If provided, add a 'trace:{trace id}' to all queries.
    * Used in embedded views like error page and trace page
    */
-  readonly limitToTraceId?: string;
+  readonly limitToTraceId?: string | string[];
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
@@ -84,7 +84,7 @@ interface LogsPageParamsProviderProps {
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
-  limitToTraceId?: string;
+  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
@@ -111,14 +111,26 @@ export function LogsPageParamsProvider({
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
-  if (limitToSpanId && limitToTraceId) {
+
+  // Handle trace IDs - convert to array if single value
+  const traceIds = Array.isArray(limitToTraceId)
+    ? limitToTraceId
+    : limitToTraceId
+      ? [limitToTraceId]
+      : undefined;
+
+  if (traceIds?.length) {
     baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
-    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-  } else if (limitToTraceId) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    // Use square bracket notation for multiple trace IDs
+    const traceIdValue = `[${traceIds.join(',')}]`;
+    if (traceIdValue) {
+      baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
+      if (limitToSpanId) {
+        baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+      }
+    }
   }
+
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -149,7 +161,7 @@ export function LogsPageParamsProvider({
         baseSearch,
         projectIds,
         analyticsPageSource,
-        limitToTraceId,
+        limitToTraceId: traceIds,
       }}
     >
       {children}
