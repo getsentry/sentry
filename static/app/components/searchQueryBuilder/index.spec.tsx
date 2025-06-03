@@ -3827,4 +3827,30 @@ describe('SearchQueryBuilder', function () {
       expect(screen.getByLabelText('avg(tags[bar,number]):>0')).toBeInTheDocument();
     });
   });
+
+  describe('replaceRawSearchKeys', function () {
+    it('should replace raw search keys with defined key:value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:randomValue'})
+      ).toBeInTheDocument();
+    });
+  });
 });
