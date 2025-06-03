@@ -27,10 +27,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name="dashboardfavoriteuser",
-            unique_together=set(),
-        ),
         migrations.AddField(
             model_name="dashboardfavoriteuser",
             name="organization",
@@ -43,11 +39,15 @@ class Migration(CheckedMigration):
             name="position",
             field=models.PositiveSmallIntegerField(null=True),
         ),
-        migrations.AddConstraint(
-            model_name="dashboardfavoriteuser",
-            constraint=models.UniqueConstraint(
-                fields=("user_id", "dashboard"),
-                name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddConstraint(
+                    model_name="dashboardfavoriteuser",
+                    constraint=models.UniqueConstraint(
+                        fields=("user_id", "dashboard"),
+                        name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
+                    ),
+                ),
+            ],
         ),
     ]
