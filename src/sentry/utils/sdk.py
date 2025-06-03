@@ -694,15 +694,6 @@ def bind_ambiguous_org_context(
     )
 
 
-def set_measurement(measurement_name, value, unit=None):
-    try:
-        transaction = sentry_sdk.Scope.get_current_scope().transaction
-        if transaction is not None:
-            transaction.set_measurement(measurement_name, value, unit)
-    except Exception:
-        pass
-
-
 def set_span_data(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
@@ -745,6 +736,5 @@ __all__ = (
     "patch_transport_for_instrumentation",
     "isolation_scope",
     "set_current_event_project",
-    "set_measurement",
     "traces_sampler",
 )
