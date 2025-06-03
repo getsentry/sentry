@@ -9,14 +9,17 @@ logger = logging.getLogger(__name__)
 
 def make_input_prompt(
     feedbacks,
-):  # feedbacks would probably be a list, so make it a string somehow then .lower()?
+):
+    feedbacks_string = "\n".join(f"- {msg}" for msg in feedbacks)
     return f"""**Task**
 **Instructions: You are an AI assistant that analyzes customer feedback.
 Create a summary based on the user feedbacks that is at most three sentences, and complete the sentence "Users say...". Be concise, but specific in the summary.
 Also figure out the top 4 specific sentiments in the messages. These sentiments should be distinct from each other and not the same concept.
 After the summary, for each sentiment, also indicate if it is mostly positive or negative.**
 
-**User Feedbacks:** "{feedbacks.lower()}"
+**User Feedbacks:**
+
+{feedbacks_string}
 
 **Output Format:** Summary: <1-2 sentence summary>
 Key sentiments:
@@ -55,14 +58,14 @@ def parse_response(
         summary_text = summary_match.group(1).strip()
     else:
         logger.error("Error parsing AI feedback summary")
-        return False, ("", [])
+        return False, "", []
 
     sentiments = SENTIMENT_REGEX.findall(text)
     if sentiments:
-        return True, (summary_text, sentiments)
+        return True, summary_text, sentiments
     else:
         logger.error("Error parsing AI feedback key sentiments")
-        return False, ("", [])
+        return False, "", []
 
 
 # TODO: make corresponing feature flag and function for user feedback summaries

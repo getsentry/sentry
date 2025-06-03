@@ -15,6 +15,7 @@ from sentry.api.endpoints.organization_events_anomalies import OrganizationEvent
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_feedback_summary import OrganizationFeedbackSummaryEndpoint
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_member_invite.details import (
@@ -2049,6 +2050,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-feedback/$",
         OrganizationUserReportsEndpoint.as_view(),
+        name="sentry-api-0-organization-user-feedback",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/user-feedback-summary/$",
+        OrganizationFeedbackSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(

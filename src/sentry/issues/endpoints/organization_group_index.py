@@ -266,6 +266,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     )
     @track_slo_response("workflow")
     def get(self, request: Request, organization: Organization) -> Response:
+        # print("get issues has been called!")
+
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_stats_period(request.GET)
