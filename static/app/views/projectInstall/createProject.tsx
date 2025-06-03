@@ -147,7 +147,7 @@ export function CreateProject() {
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
-    'created-project',
+    'created-project-context',
     null
   );
 
