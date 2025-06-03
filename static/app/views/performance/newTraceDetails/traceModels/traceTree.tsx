@@ -238,7 +238,16 @@ export declare namespace TraceTree {
     };
   }
 
-  interface ChildrenAutogroup extends Span {
+  interface ChildrenAutogroup {
+    autogrouped_by: {
+      op: string;
+    };
+    op: string;
+    span_id: string;
+    description?: string;
+  }
+
+  interface EAPChildrenAutogroup extends EAPSpan {
     autogrouped_by: {
       op: string;
     };
@@ -567,8 +576,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
-    if (isEAPTraceNode(traceNode) && options?.preferences?.missing_instrumentation) {
-      TraceTree.DetectMissingInstrumentation(tree.root);
+    if (isEAPTraceNode(traceNode)) {
+      if (options?.preferences?.missing_instrumentation) {
+        TraceTree.DetectMissingInstrumentation(tree.root);
+      }
+
+      if (options?.preferences?.autogroup.parent) {
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+      }
     }
 
     return tree;
@@ -887,7 +902,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (!isSpanNode(node) || node.children.length > 1) {
+      if ((!isSpanNode(node) && !isEAPSpanNode(node)) || node.children.length > 1) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -907,7 +922,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        isSpanNode(tail.children[0]!) &&
+        (isSpanNode(tail.children[0]!) || isEAPSpanNode(tail.children[0]!)) &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
@@ -929,10 +944,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
+      const spanId = isEAPSpanNode(head) ? head.value.event_id : head.value.span_id;
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
-          ...head.value,
+          span_id: spanId,
+          op: head.value.op ?? tail.value.op ?? '',
+          description: head.value.description ?? tail.value.description,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
@@ -1364,11 +1382,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (type === 'ag' && isAutogroupedNode(node)) {
         if (isParentAutogroupedNode(node)) {
-          return (
-            node.value.span_id === id ||
-            node.head.value.span_id === id ||
-            node.tail.value.span_id === id
-          );
+          const headSpanId = isEAPSpanNode(node.head)
+            ? node.head.value.event_id
+            : node.head.value.span_id;
+          const tailSpanId = isEAPSpanNode(node.tail)
+            ? node.tail.value.event_id
+            : node.tail.value.span_id;
+          return headSpanId === id || tailSpanId === id;
         }
         if (isSiblingAutogroupedNode(node)) {
           const child = node.children[0]!;
@@ -1454,11 +1474,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return previousSpanId === eventId || nextSpanId === eventId;
       }
       if (isParentAutogroupedNode(n)) {
-        return (
-          n.value.span_id === eventId ||
-          n.head.value.span_id === eventId ||
-          n.tail.value.span_id === eventId
-        );
+        const headSpanId = isEAPSpanNode(n.head)
+          ? n.head.value.event_id
+          : n.head.value.span_id;
+        const tailSpanId = isEAPSpanNode(n.tail)
+          ? n.tail.value.event_id
+          : n.tail.value.span_id;
+        return headSpanId === eventId || tailSpanId === eventId;
       }
 
       if (isSiblingAutogroupedNode(n)) {
@@ -2186,7 +2208,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
-      return `ag-${n.head.value.span_id}`;
+      const headSpanId = isEAPSpanNode(n.head)
+        ? n.head.value.event_id
+        : n.head.value.span_id;
+      return `ag-${headSpanId}`;
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0]!;
