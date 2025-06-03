@@ -2,7 +2,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
@@ -120,9 +119,7 @@ export default function DetectorDetails() {
                 <DetailsPanel detector={detector} />
               </Section>
               <Section title={t('Assign')}>
-                <Flex align="center" gap={space(1)}>
-                  <OwnerDisplay owner={detector.owner} />
-                </Flex>
+                <OwnerDisplay owner={detector.owner} />
               </Section>
               <Section title={t('Prioritize')}>
                 <PrioritiesList>
