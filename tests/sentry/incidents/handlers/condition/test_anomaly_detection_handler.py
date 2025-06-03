@@ -2,10 +2,8 @@ from datetime import UTC, datetime
 from unittest import mock
 
 import orjson
-import pytest
 from urllib3.response import HTTPResponse
 
-from sentry.incidents.handlers.condition.anomaly_detection_handler import DetectorError
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -118,8 +116,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             "source_type": DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
             "dataset": self.subscription.snuba_query.dataset,
         }
-        with pytest.raises(DetectorError):
-            self.dc.evaluate_value(self.data_packet)
+        self.dc.evaluate_value(self.data_packet)
         mock_logger.warning.assert_called_with(
             "Timeout error when hitting anomaly detection endpoint", extra=timeout_extra
         )
@@ -131,8 +128,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        with pytest.raises(DetectorError):
-            self.dc.evaluate_value(self.data_packet)
+        self.dc.evaluate_value(self.data_packet)
         assert mock_logger.warning.call_args[0] == (
             "Seer anomaly detection response returned no potential anomalies",
         )
@@ -152,8 +148,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             "dataset": self.subscription.snuba_query.dataset,
             "response_data": None,
         }
-        with pytest.raises(DetectorError):
-            self.dc.evaluate_value(self.data_packet)
+        self.dc.evaluate_value(self.data_packet)
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint", extra=extra
         )
@@ -165,8 +160,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         # XXX: coercing a response into something that will fail to parse
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
-        with pytest.raises(DetectorError):
-            self.dc.evaluate_value(self.data_packet)
+        self.dc.evaluate_value(self.data_packet)
         mock_logger.exception.assert_called_with(
             "Failed to parse Seer anomaly detection response", extra=mock.ANY
         )

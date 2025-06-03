@@ -98,14 +98,8 @@ def evaluate_data_conditions(
         return ProcessedDataConditionGroup(logic_result=True, condition_results=[])
 
     for condition, value in conditions_to_evaluate:
-        is_condition_triggered = False
         evaluation_result = condition.evaluate_value(value)
-
-        if evaluation_result:
-            if isinstance(evaluation_result, bool):
-                is_condition_triggered = evaluation_result
-            else:
-                is_condition_triggered = True
+        is_condition_triggered = evaluation_result is not None
 
         if is_condition_triggered:
             # Check for short-circuiting evaluations
