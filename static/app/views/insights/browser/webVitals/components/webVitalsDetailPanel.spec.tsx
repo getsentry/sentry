@@ -36,7 +36,12 @@ describe('WebVitalsDetailPanel', function () {
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: {},
+      body: {
+        data: [
+          [1543449600, [20, 12]],
+          [1543449601, [10, 5]],
+        ],
+      },
     });
   });
 
