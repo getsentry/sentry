@@ -1,21 +1,19 @@
 import styled from '@emotion/styled';
 
+import {useFetchGroupAndEvent} from 'sentry/components/featureFlags/hooks/useFetchGroupAndEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
 export default function EventGraphWidget({
@@ -23,25 +21,24 @@ export default function EventGraphWidget({
   chartRef,
 }: LoadableChartWidgetProps) {
   const {groupId} = useParams();
-  const organization = useOrganization();
   const {[ReleasesDrawerFields.EVENT_ID]: eventId} = useLocationQuery({
     fields: {
       [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
     },
   });
 
-  const {data: groupData, isPending, isError} = useGroup({groupId: groupId!});
-  const projectSlug = groupData?.project.slug;
   const {
-    data: event,
-    isPending: isEventPending,
-    isError: isEventError,
-  } = useApiQuery<Event>(
-    [`/organizations/${organization.slug}/events/${projectSlug}:${eventId}/`],
-    {staleTime: Infinity, enabled: Boolean(eventId && projectSlug && organization.slug)}
-  );
+    event,
+    group: groupData,
+    isPending,
+    isError,
+  } = useFetchGroupAndEvent({
+    eventId,
+    groupId,
+    enabled: Boolean(eventId && groupId),
+  });
 
-  if (isPending || isEventPending) {
+  if (isPending) {
     return (
       <Container>
         <Placeholder height="100%" />
@@ -49,7 +46,7 @@ export default function EventGraphWidget({
     );
   }
 
-  if (isError || isEventError) {
+  if (isError || !event || !groupData) {
     return (
       <Container>
         <Placeholder height="100%" error={t('Error loading chart')} />

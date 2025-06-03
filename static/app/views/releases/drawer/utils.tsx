@@ -33,6 +33,7 @@ export const RELEASES_DRAWER_FIELD_MAP = {
   [ReleasesDrawerFields.ENVIRONMENT]: decodeList,
   [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
   [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
+  [ReleasesDrawerFields.FLAGS_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.LIST_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.PROJECT]: decodeList,
   [ReleasesDrawerFields.RELEASE]: decodeScalar,
