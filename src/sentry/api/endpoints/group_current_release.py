@@ -69,7 +69,6 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
             # TODO: Do not set a dict as a data attribute, because opentelemetry does not support it.
             # If a stringified JSON of the dict is OK, nothing needs to be done.
             # Otherwise it needs to be split up into multiple set_data calls.
-
             span.set_data(
                 "Raw Parameters",
                 {

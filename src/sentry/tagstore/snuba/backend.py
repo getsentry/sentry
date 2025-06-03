@@ -366,6 +366,7 @@ class SnubaTagStorage(TagStorage):
                     op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
                 ) as span:
                     cache.set(cache_key, result, 300)
+
                     # TODO: Do not set a list as a data attribute, because opentelemetry does not support it.
                     # If a stringified JSON of the dict is OK, nothing needs to be done.
                     # Otherwise it needs to be split up into multiple set_data calls.
