@@ -35,7 +35,7 @@ export interface SnubaQueryDataSource extends BaseDataSource {
   type: 'snuba_query_subscription';
 }
 
-export interface UptimeSubscriptionDataSource extends BaseDataSource {
+interface UptimeSubscriptionDataSource extends BaseDataSource {
   /**
    * See UptimeSubscriptionSerializer
    */
@@ -56,7 +56,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
 /**
  * See DataSourceSerializer
  */
-export type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
+type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
 export type DetectorType =
   | 'crons'
