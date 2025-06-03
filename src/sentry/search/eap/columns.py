@@ -234,6 +234,21 @@ class ResolvedConditionalAggregate(ResolvedFunction):
         )
 
 
+@dataclass(frozen=True, kw_only=True)
+class ResolvedEquation(ResolvedFunction):
+    operator: Column.BinaryFormula.Op.ValueType
+    lhs: Column | None
+    rhs: Column | None
+
+    @property
+    def proto_definition(self) -> Column.BinaryFormula:
+        return Column.BinaryFormula(
+            op=self.operator,
+            left=self.lhs,
+            right=self.rhs,
+        )
+
+
 @dataclass(kw_only=True)
 class FunctionDefinition:
     """
