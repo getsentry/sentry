@@ -400,9 +400,20 @@ class SearchResolver:
             )
         return final_raw_value
 
+    def convert_term(self, term: event_search.SearchFilter) -> event_search.SearchFilter:
+        name = term.key.name
+
+        converter = self.definitions.filter_aliases.get(name)
+        if converter is not None:
+            term = converter(self.params, term)
+
+        return term
+
     def resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
+        term = self.convert_term(term)
+
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
         value = term.value.value
@@ -803,7 +814,7 @@ class SearchResolver:
             else:
                 field_type = None
             # make sure to remove surrounding quotes if it's a tag
-            field = tag_match.group("tag").strip('"') if tag_match else column
+            field = tag_match.group("tag") if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]

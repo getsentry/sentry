@@ -233,7 +233,9 @@ function EAPBackendOverviewPage() {
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            {!showOnboarding && (
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
               <Fragment>
                 <ModuleLayout.Third>
                   <StackedWidgetWrapper>
@@ -261,9 +263,6 @@ function EAPBackendOverviewPage() {
                   <BackendOverviewTable response={response} sort={sorts[1]} />
                 </ModuleLayout.Full>
               </Fragment>
-            )}
-            {showOnboarding && (
-              <LegacyOnboarding project={onboardingProject} organization={organization} />
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -301,6 +300,7 @@ const StackedWidgetWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   height: 100%;
+  min-height: 502px;
 `;
 
 const TripleRowWidgetWrapper = styled('div')`

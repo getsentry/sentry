@@ -143,7 +143,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
             "sentry.uptime.detectors.tasks.process_project_url_ranking",
             return_value=False,
         ) as mock_process_project_url_ranking:
-            process_organization_url_ranking(self.organization)
+            process_organization_url_ranking(self.organization.id)
             mock_process_project_url_ranking.assert_has_calls(
                 [
                     call(self.project, 3),

@@ -91,7 +91,11 @@ class CheckoutOverview extends Component<Props> {
           key={productInfo.apiName}
           data-test-id={`${productInfo.apiName}-reserved`}
         >
-          <DetailTitle>{toTitleCase(productInfo.productName)}</DetailTitle>
+          <DetailTitle>
+            {toTitleCase(productInfo.productCheckoutName, {
+              allowInnerUpperCase: true,
+            })}
+          </DetailTitle>
           <DetailPrice>
             {price}/{this.shortInterval}
           </DetailPrice>

@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
-import CodecovProvider from 'sentry/components/codecov/container/codecovParamsProvider';
+import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
 import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -14,13 +13,6 @@ import type {ValidSort} from 'sentry/views/codecov/tests/testAnalyticsTable/test
 import TestAnalyticsTable, {
   isAValidSort,
 } from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
-
-const DEFAULT_CODECOV_DATETIME_SELECTION = {
-  start: null,
-  end: null,
-  utc: false,
-  period: '24h',
-};
 
 // TODO: Sorting will only work once this is connected to the API
 const fakeApiResponse = {
@@ -66,21 +58,15 @@ export default function TestsPage() {
   return (
     <LayoutGap>
       <p>Test Analytics</p>
-      <PageFiltersContainer
-        defaultSelection={{datetime: DEFAULT_CODECOV_DATETIME_SELECTION}}
-      >
+      <CodecovQueryParamsProvider>
         <PageFilterBar condensed>
           <DatePicker />
-        </PageFilterBar>
-      </PageFiltersContainer>
-      <CodecovProvider>
-        <PageFilterBar condensed>
           <RepoPicker />
         </PageFilterBar>
-      </CodecovProvider>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
+        {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+        <Summaries />
+        <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />
+      </CodecovQueryParamsProvider>
     </LayoutGap>
   );
 }
