@@ -400,9 +400,20 @@ class SearchResolver:
             )
         return final_raw_value
 
+    def convert_term(self, term: event_search.SearchFilter) -> event_search.SearchFilter:
+        name = term.key.name
+
+        converter = self.definitions.filter_aliases.get(name)
+        if converter is not None:
+            term = converter(self.params, term)
+
+        return term
+
     def resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
+        term = self.convert_term(term)
+
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
         value = term.value.value
@@ -803,7 +814,7 @@ class SearchResolver:
             else:
                 field_type = None
             # make sure to remove surrounding quotes if it's a tag
-            field = tag_match.group("tag").strip('"') if tag_match else column
+            field = tag_match.group("tag") if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]
@@ -915,14 +926,19 @@ class SearchResolver:
                     f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
-            if (
-                isinstance(argument_definition, AttributeArgumentDefinition)
-                and argument_definition.attribute_types is not None
+            if isinstance(argument_definition, AttributeArgumentDefinition) and (
+                argument_definition.attribute_types is not None
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
-                raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
-                )
+                if argument_definition.field_allowlist is not None:
+                    if parsed_argument.public_alias not in argument_definition.field_allowlist:
+                        raise InvalidSearchQuery(
+                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}."
+                        )
+                else:
+                    raise InvalidSearchQuery(
+                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    )
 
         resolved_arguments = []
         for parsed_arg in parsed_args:
@@ -949,6 +965,7 @@ class SearchResolver:
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
             query_result_cache=self._query_result_cache,
+            extrapolation_override=self.config.disable_aggregate_extrapolation,
         )
 
         resolved_context = None

@@ -1,3 +1,4 @@
+import copy
 from unittest.mock import patch
 
 import jsonschema
@@ -70,8 +71,12 @@ class TestGcpBearerAuthentication:
         }
         default_project.update_option("sentry:builtin_symbol_sources", ["ccc"])
 
+        builtin_sources_before = copy.deepcopy(settings.SENTRY_BUILTIN_SOURCES)
+
         with Feature(features):
             sources = get_sources_for_project(default_project)
+
+        assert builtin_sources_before == copy.deepcopy(settings.SENTRY_BUILTIN_SOURCES)
 
         # Make sure that we expanded successfully here
         # Source 1 will be sentry, the following 2 will be the expanded gcs sources

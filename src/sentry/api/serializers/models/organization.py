@@ -39,6 +39,7 @@ from sentry.constants import (
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -513,6 +514,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
+    ingestThroughTrustedRelaysOnly: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -548,6 +550,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
+    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -688,6 +691,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
+            "gitlabOpenPRBot": bool(
+                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
+            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -728,6 +734,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
+        if features.has("organizations:ingest-through-trusted-relays-only", obj):
+            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+                "sentry:ingest-through-trusted-relays-only",
+                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+            )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -761,6 +773,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

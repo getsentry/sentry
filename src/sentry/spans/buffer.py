@@ -64,6 +64,7 @@ Glossary for types of keys:
 from __future__ import annotations
 
 import itertools
+import logging
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -84,6 +85,8 @@ from sentry.utils import metrics, redis
 SegmentKey = bytes
 
 QueueKey = bytes
+
+logger = logging.getLogger(__name__)
 
 
 def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
@@ -141,11 +144,17 @@ class SpansBuffer:
         assigned_shards: list[int],
         span_buffer_timeout_secs: int = 60,
         span_buffer_root_timeout_secs: int = 10,
+        segment_page_size: int = 100,
+        max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
+        max_segment_spans: int = 1001,
         redis_ttl: int = 3600,
     ):
         self.assigned_shards = list(assigned_shards)
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
+        self.segment_page_size = segment_page_size
+        self.max_segment_bytes = max_segment_bytes
+        self.max_segment_spans = max_segment_spans
         self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
 
@@ -344,25 +353,20 @@ class SpansBuffer:
 
                 result = p.execute()
 
-        segment_keys: list[tuple[QueueKey, SegmentKey]] = []
+        segment_keys: list[tuple[int, QueueKey, SegmentKey]] = []
+        for shard, queue_key, keys in zip(self.assigned_shards, queue_keys, result):
+            for segment_key in keys:
+                segment_keys.append((shard, queue_key, segment_key))
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
-            with self.client.pipeline(transaction=False) as p:
-                # ZRANGEBYSCORE output
-                for queue_key, segment_span_ids in zip(queue_keys, result):
-                    # process return value of zrevrangebyscore
-                    for segment_key in segment_span_ids:
-                        segment_keys.append((queue_key, segment_key))
-                        p.smembers(segment_key)
-
-                segments = p.execute()
+            segments = self._load_segment_data([k for _, _, k in segment_keys])
 
         return_segments = {}
-
         num_has_root_spans = 0
 
-        for (queue_key, segment_key), segment in zip(segment_keys, segments):
+        for shard, queue_key, segment_key in segment_keys:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
+            segment = segments.get(segment_key, [])
 
             output_spans = []
             has_root_span = False
@@ -396,6 +400,9 @@ class SpansBuffer:
 
                 output_spans.append(OutputSpan(payload=val))
 
+            metrics.incr(
+                "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
+            )
             return_segments[segment_key] = FlushedSegment(queue_key=queue_key, spans=output_spans)
             num_has_root_spans += int(has_root_span)
 
@@ -403,6 +410,62 @@ class SpansBuffer:
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
         return return_segments
+
+    def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
+        """
+        Loads the segments from Redis, given a list of segment keys. Segments
+        exceeding a certain size are skipped, and an error is logged.
+
+        :param segment_keys: List of segment keys to load.
+        :return: Dictionary mapping segment keys to lists of span payloads.
+        """
+
+        payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
+        cursors = {key: 0 for key in segment_keys}
+        sizes = {key: 0 for key in segment_keys}
+
+        while cursors:
+            with self.client.pipeline(transaction=False) as p:
+                current_keys = []
+                for key, cursor in cursors.items():
+                    p.sscan(key, cursor=cursor, count=self.segment_page_size)
+                    current_keys.append(key)
+
+                results = p.execute()
+
+            for key, (cursor, spans) in zip(current_keys, results):
+                sizes[key] += sum(len(span) for span in spans)
+                if sizes[key] > self.max_segment_bytes:
+                    metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
+                    logger.error("Skipping too large segment, byte size %s", sizes[key])
+
+                    del payloads[key]
+                    del cursors[key]
+                    continue
+
+                payloads[key].extend(spans)
+                if len(payloads[key]) > self.max_segment_spans:
+                    metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
+                    logger.error("Skipping too large segment, span count %s", len(payloads[key]))
+
+                    del payloads[key]
+                    del cursors[key]
+                    continue
+
+                if cursor == 0:
+                    del cursors[key]
+                else:
+                    cursors[key] = cursor
+
+        for key, spans in payloads.items():
+            if not spans:
+                # This is a bug, most likely the input topic is not
+                # partitioned by trace_id so multiple consumers are writing
+                # over each other. The consequence is duplicated segments,
+                # worst-case.
+                metrics.incr("sentry.spans.buffer.empty_segments")
+
+        return payloads
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))

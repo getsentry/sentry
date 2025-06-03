@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -151,4 +152,6 @@ class TestSyncAssigneeOutbound(TestCase):
         mock_sync_assignee.assert_not_called()
 
         assert mock_record_event.call_count == 2
-        assert_halt_metric(mock_record_event, "organization_integration_not_found")
+        assert_halt_metric(
+            mock_record_event, OrganizationIntegrationNotFound("missing org_integration")
+        )

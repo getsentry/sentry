@@ -25,6 +25,7 @@ import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -62,7 +63,7 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<RequestDataFragment>;
-  notificationRule?: Partial<RequestDataFragment>;
+  notificationRule?: IssueAlertRule;
   team?: string;
 };
 
@@ -137,7 +138,6 @@ const keyToErrorText: Record<string, string> = {
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
@@ -253,7 +253,7 @@ export function CreateProject() {
       let projectToRollback: Project | undefined;
 
       try {
-        const {project, customRule, notificationRule} =
+        const {project, notificationRule, ruleIds} =
           await createProjectAndRules.mutateAsync({
             projectName,
             platform: selectedPlatform,
@@ -272,7 +272,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: [customRule?.id, notificationRule?.id].filter(defined),
+          rule_ids: ruleIds,
         });
 
         addSuccessMessage(
@@ -303,7 +303,6 @@ export function CreateProject() {
           )
         );
       } catch (error) {
-        setErrors(error.responseJSON);
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
@@ -347,8 +346,6 @@ export function CreateProject() {
 
   const handleProjectCreation = useCallback(
     async (data: FormData) => {
-      setErrors(undefined);
-
       const selectedPlatform = data.platform;
 
       if (!isNotPartialPlatform(selectedPlatform)) {
@@ -542,13 +539,13 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {errors && (
+          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
               <Alert type="error">
-                {Object.keys(errors).map(key => (
+                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(errors as any)[key]}
+                    {(createProjectAndRules.error.responseJSON as any)[key]}
                   </div>
                 ))}
               </Alert>

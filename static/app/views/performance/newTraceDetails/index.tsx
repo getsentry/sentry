@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -8,8 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -45,7 +44,7 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
   if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
     Sentry.withScope(scope => {
       scope.setFingerprint(['trace-null-slug']);
-      Sentry.captureMessage(`Trace slug is empty`);
+      Sentry.captureMessage('Trace slug is empty');
     });
 
     return '';
@@ -81,28 +80,12 @@ export function TraceView() {
   );
 }
 
-// We only load logs data here to determine if a trace has associated logs and use the first log
-// to represent only-logs traces. The embedded logs components fetch their own data and support
-// pagination.
-function useInitialLogsData() {
-  const logsTableData = useLogsPageData();
-  const logsData = useRef<UseExploreLogsTableResult | undefined>(undefined);
-
-  useEffect(() => {
-    if (logsTableData.logsData.data && !logsData.current?.data.length) {
-      logsData.current = logsTableData.logsData;
-    }
-  }, [logsTableData]);
-
-  return logsData.current;
-}
-
 function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const logsData = useInitialLogsData();
-  const hideTraceWaterfallIfEmpty = (logsData?.data.length ?? 0) > 0;
+  const logsData = useLogsPageDataQueryResult().data;
+  const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
   const hasTraceTabsUI = useHasTraceTabsUI();
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
@@ -110,9 +93,10 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
   const rootEventResults = useTraceRootEvent({
     tree,
-    logs: logsData?.data,
+    logs: logsData,
     traceId: traceSlug,
   });
+  const traceInnerLayoutRef = useRef<HTMLDivElement>(null);
 
   const traceWaterfallModels = useTraceWaterfallModels();
   const traceWaterfallScroll = useTraceWaterfallScroll({
@@ -124,7 +108,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
     rootEventResults,
-    logs: logsData?.data,
+    logs: logsData,
   });
 
   const legacyTraceInnerContent = (
@@ -148,7 +132,8 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
         tree={tree}
         rootEventResults={rootEventResults}
         onScrollToNode={traceWaterfallScroll.onScrollToNode}
-        logs={logsData?.data}
+        logs={logsData}
+        scrollContainer={traceInnerLayoutRef}
       />
     </FlexBox>
   );
@@ -187,7 +172,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       {currentTab === TraceLayoutTabKeys.PROFILES ? (
         <TraceProfiles tree={tree} onScrollToNode={traceWaterfallScroll.onScrollToNode} />
       ) : null}
-      {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
+      {currentTab === TraceLayoutTabKeys.LOGS ? (
+        <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
+      ) : null}
       {currentTab === TraceLayoutTabKeys.SUMMARY ? (
         <TraceSummarySection traceSlug={traceSlug} />
       ) : null}
@@ -199,24 +186,22 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       title={`${t('Trace Details')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
-      <TraceViewLogsDataProvider traceSlug={traceSlug}>
-        <NoProjectMessage organization={organization}>
-          <TraceExternalLayout>
-            <TraceMetaDataHeader
-              rootEventResults={rootEventResults}
-              tree={tree}
-              metaResults={meta}
-              organization={organization}
-              traceSlug={traceSlug}
-              traceEventView={traceEventView}
-              logs={logsData?.data}
-            />
-            <TraceInnerLayout>
-              {hasTraceTabsUI ? traceInnerContent : legacyTraceInnerContent}
-            </TraceInnerLayout>
-          </TraceExternalLayout>
-        </NoProjectMessage>
-      </TraceViewLogsDataProvider>
+      <NoProjectMessage organization={organization}>
+        <TraceExternalLayout>
+          <TraceMetaDataHeader
+            rootEventResults={rootEventResults}
+            tree={tree}
+            metaResults={meta}
+            organization={organization}
+            traceSlug={traceSlug}
+            traceEventView={traceEventView}
+            logs={logsData}
+          />
+          <TraceInnerLayout ref={traceInnerLayoutRef}>
+            {hasTraceTabsUI ? traceInnerContent : legacyTraceInnerContent}
+          </TraceInnerLayout>
+        </TraceExternalLayout>
+      </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
@@ -231,6 +216,7 @@ const TraceExternalLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
+  max-height: 100vh;
 
   ~ footer {
     display: none;
@@ -244,7 +230,7 @@ const FlexBox = styled('div')`
 `;
 
 const TraceInnerLayout = styled(FlexBox)`
-  flex: 1 1 100%;
   padding: ${space(2)} ${space(3)};
-  overflow-y: scroll;
+  flex-grow: 1;
+  overflow-y: auto;
 `;
