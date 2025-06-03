@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
@@ -110,7 +111,9 @@ export default function DetectorDetails() {
                 <IssuesList />
               </Section>
               <Section title={t('Connected Automations')}>
-                <ConnectedAutomationsList automations={[]} />
+                <ErrorBoundary mini>
+                  <ConnectedAutomationsList automationIds={detector.workflowIds} />
+                </ErrorBoundary>
               </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>
