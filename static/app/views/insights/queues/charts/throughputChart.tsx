@@ -12,6 +12,7 @@ import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDis
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
   id: string;
@@ -27,6 +28,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
   const search = MutableSearch.fromQueryObject({
     'span.op': '[queue.publish, queue.process]',
   } satisfies SpanQueryFilters);
+  const groupBy = SpanFields.SPAN_OP;
 
   if (destination) {
     search.addFilterValue('messaging.destination.name', destination, false);
@@ -40,7 +42,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     {
       search,
       yAxis: ['epm()'],
-      fields: ['epm()', 'span.op'],
+      fields: ['epm()', groupBy],
       topN: 2,
       transformAliasToInputFormat: true,
     },
@@ -62,6 +64,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     <InsightsLineChartWidget
       id={id}
       search={search}
+      groupBy={[groupBy]}
       title={t('Published vs Processed')}
       series={[
         renameDiscoverSeries(

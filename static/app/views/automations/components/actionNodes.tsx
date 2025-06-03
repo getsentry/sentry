@@ -21,7 +21,7 @@ interface ActionNodeProps {
   action: Action;
   actionId: string;
   handler: ActionHandler;
-  onUpdate: (condition: Record<string, any>) => void;
+  onUpdate: (params: Record<string, any>) => void;
 }
 
 export const ActionNodeContext = createContext<ActionNodeProps | null>(null);
