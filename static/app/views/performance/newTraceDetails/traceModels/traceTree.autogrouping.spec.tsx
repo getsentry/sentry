@@ -1,4 +1,6 @@
 import {
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -59,6 +61,30 @@ const parentAutogroupSpans = [
   makeSpan({op: 'db', description: 'redis', span_id: '0000'}),
   makeSpan({op: 'db', description: 'redis', span_id: '0001', parent_span_id: '0000'}),
   makeSpan({op: 'db', description: 'redis', span_id: '0002', parent_span_id: '0001'}),
+];
+
+const parentAutogroupEAPSpans = [
+  makeEAPSpan({
+    op: 'db',
+    description: 'redis',
+    event_id: '0000',
+    children: [
+      makeEAPSpan({
+        op: 'db',
+        description: 'redis',
+        event_id: '0001',
+        parent_span_id: '0000',
+        children: [
+          makeEAPSpan({
+            op: 'db',
+            description: 'redis',
+            event_id: '0002',
+            parent_span_id: '0001',
+          }),
+        ],
+      }),
+    ],
+  }),
 ];
 
 const parentAutogroupSpansWithChilden = [
@@ -305,6 +331,101 @@ describe('autogrouping', () => {
       TraceTree.invalidate(tree.root, true);
       expect(tree.build().serialize()).toEqual(snapshot);
       expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    describe('eap traces', () => {
+      it('groups parent chain with same op', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(parentAutogroupEAPSpans),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('assigns children to tail node', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              op: 'db',
+              description: 'redis',
+              event_id: '0000',
+              children: [
+                makeEAPSpan({
+                  op: 'db',
+                  description: 'redis',
+                  event_id: '0001',
+                  parent_span_id: '0000',
+                  children: [
+                    makeEAPSpan({
+                      op: 'db',
+                      description: 'redis',
+                      event_id: '0002',
+                      parent_span_id: '0001',
+                      children: [
+                        makeEAPSpan({
+                          op: 'http.server',
+                          description: 'redis',
+                          event_id: '0003',
+                          parent_span_id: '0002',
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ]),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('collapsing parent autogroup removes its children', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(parentAutogroupEAPSpans),
+          traceMetadata
+        );
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isParentAutogroupedNode(c)) {
+            tree.expand(c, true);
+          }
+        });
+
+        expect(tree.build().serialize()).toMatchSnapshot();
+
+        TraceTree.ForEachChild(tree.root, c => {
+          if (isParentAutogroupedNode(c)) {
+            tree.expand(c, false);
+          }
+        });
+
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('removes collapsed parent autogroup', () => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace(parentAutogroupEAPSpans),
+          traceMetadata
+        );
+        const snapshot = tree.build().serialize();
+
+        // Add children autogroup
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+
+        // Remove it and assert that the tree is back to the original state
+        TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
+
+        expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
+        expect(tree.build().serialize()).toEqual(snapshot);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
     });
   });
 
