@@ -773,6 +773,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
