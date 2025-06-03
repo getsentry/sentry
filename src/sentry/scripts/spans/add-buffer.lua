@@ -21,10 +21,10 @@ local parent_span_id = ARGV[2]
 local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
 
-local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
-
 local set_span_id = parent_span_id
 local redirect_depth = 0
+
+local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 
 for i = 0, 10000 do  -- theoretically this limit means that segment trees of depth 10k may not be joined together correctly.
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
@@ -45,25 +45,24 @@ if has_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
 end
 
-local return_value = {redirect_depth, set_key, has_root_span}
 local hset_args = {}
 local sunionstore_args = {}
-local unlink_args = {}
+
+if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
+    table.insert(sunionstore_args, parent_key)
+end
 
 for i = 5, num_spans + 4 do
     local span_id = ARGV[i]
     local is_root_span = span_id == parent_span_id
 
-    local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-
     table.insert(hset_args, span_id)
     table.insert(hset_args, set_span_id)
 
     if not is_root_span then
+        local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
         table.insert(sunionstore_args, span_key)
     end
-
-    table.insert(return_value, span_key)
 end
 
 redis.call("hset", main_redirect_key, unpack(hset_args))
@@ -74,11 +73,6 @@ if #sunionstore_args > 0 then
     redis.call("unlink", unpack(sunionstore_args))
 end
 
-if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
-    redis.call("sunionstore", set_key, set_key, parent_key)
-    redis.call("unlink", parent_key)
-end
-
 redis.call("expire", set_key, set_timeout)
 
-return return_value
+return {redirect_depth, set_key, has_root_span}
