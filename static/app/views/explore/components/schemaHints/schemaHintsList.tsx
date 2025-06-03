@@ -385,6 +385,7 @@ function SchemaHintsList({
             .lastIndexOf(hint.key)}`,
           part: 'value',
         },
+        shouldCommitQuery: false,
       });
 
       trackAnalytics('trace.explorer.schema_hints_click', {

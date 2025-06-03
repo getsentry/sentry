@@ -54,6 +54,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  shouldCommitQuery?: boolean;
 };
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
@@ -557,13 +558,15 @@ export function useQueryBuilderState({
             ...state,
             committedQuery: state.query,
           };
-        case 'UPDATE_QUERY':
+        case 'UPDATE_QUERY': {
+          const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
             ...state,
             query: action.query,
-            committedQuery: action.query,
+            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
             focusOverride: action.focusOverride ?? null,
           };
+        }
         case 'RESET_FOCUS_OVERRIDE':
           return {
             ...state,
