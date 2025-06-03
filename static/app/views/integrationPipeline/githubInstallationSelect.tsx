@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -9,7 +9,6 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import GlobalModal from 'sentry/components/globalModal';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -64,7 +63,7 @@ const InstallButtonHook = HookOrDefault({
   defaultComponent: renderInstallationButton,
 });
 
-function GithubInstallationSelect({
+export function GithubInstallationSelect({
   installation_info,
   has_scm_multi_org,
   organization_slug,
@@ -129,10 +128,6 @@ function GithubInstallationSelect({
       ),
     })
   );
-  const mainContainerRef = useRef<HTMLDivElement>(null);
-  const handleModalClose = useCallback(() => {
-    mainContainerRef.current?.focus?.();
-  }, []);
 
   const renderInstallationButtonOld = () => {
     if (installationID !== '-1' && isSelfHosted) {
@@ -176,7 +171,6 @@ function GithubInstallationSelect({
 
   return (
     <Fragment>
-      <GlobalModal onClose={handleModalClose} />
       <StyledContainer>
         <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
         <p>
@@ -246,5 +240,3 @@ const StyledSelect = styled(CompactSelect)`
     width: 100%;
   }
 `;
-
-export default GithubInstallationSelect;

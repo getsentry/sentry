@@ -1,8 +1,9 @@
 import {installation_info} from 'sentry-fixture/githubInstallationSelect';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GithubInstallationSelect from './githubInstallationSelect';
+import {GithubInstallationSelect} from './githubInstallationSelect';
 
 describe('GithubInstallationSelect', () => {
   beforeEach(() => {
@@ -15,6 +16,7 @@ describe('GithubInstallationSelect', () => {
         installation_info={installation_info}
         has_scm_multi_org
         organization_slug="le-org"
+        organization={OrganizationFixture()}
       />
     );
 
@@ -45,6 +47,7 @@ describe('GithubInstallationSelect', () => {
         installation_info={installation_info}
         has_scm_multi_org
         organization_slug="le-org"
+        organization={OrganizationFixture()}
       />
     );
     // Click the select dropdown
@@ -76,6 +79,7 @@ describe('GithubInstallationSelect', () => {
         installation_info={installation_info}
         has_scm_multi_org
         organization_slug="le-org"
+        organization={OrganizationFixture()}
       />
     );
 
@@ -100,6 +104,7 @@ describe('GithubInstallationSelect', () => {
         installation_info={installation_info}
         has_scm_multi_org={false}
         organization_slug="le-org"
+        organization={OrganizationFixture()}
       />
     );
 

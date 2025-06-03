@@ -17,7 +17,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import useApi from 'sentry/utils/useApi';
-import GithubInstallationSelect from 'sentry/views/integrationPipeline/githubInstallationSelect';
+import {GithubInstallationSelect} from 'sentry/views/integrationPipeline/githubInstallationSelect';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';

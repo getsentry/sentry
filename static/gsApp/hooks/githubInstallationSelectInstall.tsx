@@ -1,12 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import GlobalModal from 'sentry/components/globalModal';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,9 +29,12 @@ function GithubInstallationSelectInstallButton({
   handleSubmit,
   isSaving,
 }: Props) {
-  const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const org = useOrganization();
+  const organization = useOrganization();
   const source = 'github.multi_org';
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const handleModalClose = useCallback(() => {
+    mainContainerRef.current?.focus?.();
+  }, []);
 
   if (installationID === '-1' || has_scm_multi_org) {
     return (
@@ -42,34 +44,24 @@ function GithubInstallationSelectInstallButton({
     );
   }
 
-  if (isSelfHosted) {
-    return (
-      <Tooltip
-        title={t('Please check your configuration, scm-multi-org feature is not enabled')}
-      >
-        <StyledButton disabled>{t('Install')}</StyledButton>;
-      </Tooltip>
-    );
-  }
-
   return (
-    <StyledButton
-      onClick={() => {
-        trackAnalytics(`${source}.upsell`, {
-          organization: org,
-          subscription: subscription.planTier,
-        });
-        openUpsellModal({source, organization: org});
-      }}
-      disabled={isSaving || !installationID || isSelfHosted}
-    >
-      <ButtonContent>
-        <Fragment>
-          <IconLightning />
-          {t('Upgrade')}
-        </Fragment>
-      </ButtonContent>
-    </StyledButton>
+    <Fragment>
+      <GlobalModal onClose={handleModalClose} />
+      <StyledButton
+        icon={<IconLightning />}
+        priority="primary"
+        onClick={() => {
+          trackAnalytics(`${source}.upsell`, {
+            organization,
+            subscriptionTier: subscription.planTier,
+          });
+          openUpsellModal({source, organization});
+        }}
+        disabled={isSaving || !installationID}
+      >
+        {t('Upgrade')}
+      </StyledButton>
+    </Fragment>
   );
 }
 
@@ -81,9 +73,4 @@ const StyledButton = styled(Button)`
   }
 `;
 
-const ButtonContent = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 export default withSubscription(GithubInstallationSelectInstallButton);
