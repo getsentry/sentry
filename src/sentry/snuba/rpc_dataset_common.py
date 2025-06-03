@@ -28,6 +28,7 @@ from sentry.search.eap.columns import (
     ResolvedAggregate,
     ResolvedAttribute,
     ResolvedConditionalAggregate,
+    ResolvedEquation,
     ResolvedFormula,
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
@@ -79,9 +80,15 @@ def process_timeseries_list(timeseries_list: list[TimeSeries]) -> ProcessedTimes
 
 
 def categorize_column(
-    column: ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+    column: (
+        ResolvedAttribute
+        | ResolvedAggregate
+        | ResolvedConditionalAggregate
+        | ResolvedFormula
+        | ResolvedEquation
+    ),
 ) -> Column:
-    if isinstance(column, ResolvedFormula):
+    if isinstance(column, (ResolvedFormula, ResolvedEquation)):
         return Column(formula=column.proto_definition, label=column.public_alias)
     if isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
@@ -249,6 +256,7 @@ class TableQuery:
     referrer: str
     sampling_mode: SAMPLING_MODES | None
     resolver: SearchResolver
+    equations: list[str] | None = None
     name: str | None = None
 
 
@@ -258,7 +266,11 @@ class TableRequest:
 
     rpc_request: TraceItemTableRequest
     columns: list[
-        ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
+        ResolvedAttribute
+        | ResolvedAggregate
+        | ResolvedConditionalAggregate
+        | ResolvedFormula
+        | ResolvedEquation
     ]
 
 
@@ -289,14 +301,21 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
     sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
     meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
     where, having, query_contexts = resolver.resolve_query(query.query_string)
-    columns, column_contexts = resolver.resolve_columns(query.selected_columns)
+    equations, equation_contexts = resolver.resolve_equations(
+        query.equations if query.equations else []
+    )
+    columns, column_contexts = resolver.resolve_columns(
+        query.selected_columns,
+        has_aggregates=any(equation for equation in equations if equation.is_aggregate),
+    )
     contexts = resolver.resolve_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
     # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
     orderby_aliases = {
-        get_function_alias(column_name): resolved_column
-        for resolved_column, column_name in zip(columns, query.selected_columns)
+        resolved_column.public_alias: resolved_column for resolved_column in columns + equations
     }
+    for alias_column in columns:
+        orderby_aliases[get_function_alias(alias_column.public_alias)] = alias_column
     # Orderby is only applicable to TraceItemTableRequest
     resolved_orderby = []
     orderby_columns = query.orderby if query.orderby is not None else []
@@ -313,9 +332,11 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
             )
         )
 
-    has_aggregations = any(col for col in columns if col.is_aggregate)
+    has_aggregations = any(col for col in columns if col.is_aggregate) or any(
+        col for col in equations if col.is_aggregate
+    )
 
-    labeled_columns = [categorize_column(col) for col in columns]
+    labeled_columns = [categorize_column(col) for col in columns + equations]
 
     return TableRequest(
         TraceItemTableRequest(
@@ -337,7 +358,7 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
             page_token=PageToken(offset=query.offset),
             virtual_column_contexts=[context for context in contexts if context is not None],
         ),
-        columns,
+        columns + equations,
     )
 
 
