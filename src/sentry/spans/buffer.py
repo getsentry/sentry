@@ -184,7 +184,7 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
-        queue_keys = []
+        result_meta = []
         is_root_span_count = 0
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
@@ -220,7 +220,7 @@ class SpansBuffer:
                     )
 
                     is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    queue_keys.append((project_and_trace, parent_span_id))
+                    result_meta.append((project_and_trace, parent_span_id))
 
                 results = p.execute()
 
@@ -228,9 +228,9 @@ class SpansBuffer:
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
 
-            assert len(queue_keys) == len(results)
+            assert len(result_meta) == len(results)
 
-            for (project_and_trace, parent_span_id), result in zip(queue_keys, results):
+            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
                 redirect_depth, set_key, has_root_span = result
 
                 shard = self.assigned_shards[
