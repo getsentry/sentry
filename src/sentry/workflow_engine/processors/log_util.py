@@ -3,8 +3,25 @@ import time
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import timedelta
-from typing import Any
+from functools import wraps
+from typing import Any, TypeVar
+
+extra_var: ContextVar[dict[str, Any]] = ContextVar("extra", default={})
+
+T = TypeVar("T")
+
+
+class ContextFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        for k, v in extra_var.get().items():
+            if k not in record.__dict__:
+                record.__dict__[k] = v
+        return True
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, ContextFilter)
 
 
 def top_n_slowest(durations: dict[str, float], n: int) -> dict[str, float]:
@@ -126,3 +143,65 @@ def track_batch_performance(
         yield tracker
     finally:
         tracker.finalize()
+
+
+class LogExtraContext:
+    def __init__(self):
+        self._current_extra = dict(extra_var.get())
+
+    def update(self, **extra: Any) -> None:
+        """Update the current context with new values."""
+        self._current_extra.update(extra)
+        extra_var.set(self._current_extra)
+
+    def set(self, **extra: Any) -> None:
+        """Replace the current context with new values."""
+        self._current_extra = dict(extra)
+        extra_var.set(self._current_extra)
+
+
+@contextmanager
+def log_extra_context(logger: logging.Logger, **extra: Any) -> Generator[LogExtraContext]:
+    """Context manager that provides a mutable context object for logging.
+
+    Example:
+        with log_extra_context(logger, project_id=123) as ctx:
+            logger.info("Processing")  # Will include project_id
+            ctx.update(user_id=456)
+            logger.info("User action")  # Will include both project_id and user_id
+    """
+    # Ensure logger has ContextFilter
+    # no-op if already present
+    logger.addFilter(ContextFilter())
+
+    old_extra = extra_var.get()
+    context = LogExtraContext()
+    if extra:
+        context.update(**extra)
+    try:
+        yield context
+    finally:
+        extra_var.set(old_extra)
+
+
+def with_log_context(
+    logger: logging.Logger, **extra: Any
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    """Decorator that provides a log context as the first parameter to the decorated function.
+
+    Example:
+        @with_log_context(logger, project_id=123)
+        def process_item(ctx, item):
+            ctx.update(user_id=456)
+            logger.info("Processing")  # Will include both project_id and user_id
+    """
+
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> T:
+            with log_extra_context(logger, **extra) as ctx:
+                return func(ctx, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
