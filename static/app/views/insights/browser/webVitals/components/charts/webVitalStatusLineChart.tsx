@@ -1,16 +1,12 @@
 import styled from '@emotion/styled';
-import type {LineSeriesOption, SeriesOption} from 'echarts';
-import type {ItemStyleOption} from 'echarts/types/src/util/types';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/types';
-import type {
-  Plottable,
-  PlottableTimeSeriesValueType,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
+import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
