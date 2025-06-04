@@ -57,6 +57,6 @@ const WaitingHelpText = styled('small')`
 `;
 
 const WaitingIndicator = styled('div')`
-  margin: 0 6px;
+  margin: 0 ${space(0.75)};
   ${pulsingIndicatorStyles};
 `;
