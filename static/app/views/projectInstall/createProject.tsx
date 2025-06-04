@@ -252,11 +252,11 @@ export function CreateProject() {
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig?.defaultRules
-            ? 'Default'
-            : alertRuleConfig?.shouldCreateCustomRule
-              ? 'Custom'
-              : 'No Rule',
+          issue_alert: alertRuleConfig?.shouldCreateCustomRule
+            ? 'Custom'
+            : alertRuleConfig?.shouldCreateRule === false
+              ? 'No Rule'
+              : 'Default',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
@@ -277,8 +277,8 @@ export function CreateProject() {
           name: project.name,
           team: project.team?.slug,
           alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
+            shouldCreateRule: alertRuleConfig?.shouldCreateRule,
+            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule,
             conditions: alertRuleConfig?.conditions,
             actions: alertRuleConfig?.actions,
             actionMatch: alertRuleConfig?.actionMatch,
