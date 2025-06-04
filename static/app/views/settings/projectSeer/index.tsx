@@ -53,7 +53,7 @@ export function formatSeerValue(value: string | undefined) {
 
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
-  label: t('Automatically Solve Issues with Seer'),
+  label: t('Automatically Analyze Incoming Issues'),
   help: props =>
     tct(
       "Set how frequently Seer runs on incoming issues automatically. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to help with more issues. Seer will find a root cause and solution, but won't automatically open PRs.[break][break][link:You can configure automation for other projects too.][break][break]Each run is charged at the [ratelink:standard billing rate] for Seer's Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",

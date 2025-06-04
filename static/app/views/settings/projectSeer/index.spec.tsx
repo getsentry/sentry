@@ -270,7 +270,7 @@ describe('ProjectSeer', function () {
     render(<ProjectSeer project={initialProject} />, {organization});
 
     const slider = await screen.findByRole('slider', {
-      name: /Automatically Solve Issues with Seer/i,
+      name: /Automatically Analyze Incoming Issues/i,
     });
 
     act(() => {
