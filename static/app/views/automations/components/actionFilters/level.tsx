@@ -20,7 +20,7 @@ export function LevelDetails({condition}: {condition: DataCondition}) {
   });
 }
 
-export default function LevelNode() {
+export function LevelNode() {
   return tct("The event's level [match] [level]", {
     match: <MatchField />,
     level: <LevelField />,
