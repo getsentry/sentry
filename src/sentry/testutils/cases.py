@@ -1149,14 +1149,26 @@ class SnubaTestCase(BaseTestCase):
         self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        entity = "eap_items_span" if is_eap else "spans"
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
-                data=json.dumps(spans),
-            ).status_code
-            == 200
-        )
+        if is_eap:
+            files = {}
+            for i, span in enumerate(spans):
+                trace_item = span_to_trace_item(span)
+                files[f"item_{i}"] = trace_item.SerializeToString()
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+                    files=files,
+                ).status_code
+                == 200
+            )
+        else:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
     def store_ourlogs(self, ourlogs):
         files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
@@ -2224,14 +2236,23 @@ class ProfilesSnubaTestCase(
         self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        entity = "eap_items_span" if is_eap else "spans"
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
-                data=json.dumps(spans),
-            ).status_code
-            == 200
-        )
+        if is_eap:
+            files = {f"span_{i}": span.SerializeToString() for i, span in enumerate(spans)}
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+                    files=files,
+                ).status_code
+                == 200
+            )
+        else:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
 
 @pytest.mark.snuba
@@ -3286,6 +3307,49 @@ def scalar_to_any_value(value: Any) -> AnyValue:
     if isinstance(value, dict):
         return AnyValue(**value)
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
+
+
+def span_to_trace_item(span) -> TraceItem:
+    attributes = {}
+
+    for k, v in span["tags"].items():
+        attributes[k] = scalar_to_any_value(v)
+
+    for k, v in span["sentry_tags"].items():
+        attributes[f"sentry.{k}"] = scalar_to_any_value(v)
+
+    for k, v in span["measurements"].items():
+        attributes[k] = scalar_to_any_value(v["value"])
+
+    for field in {
+        "duration_ms",
+        "end_timestamp_precise",
+        "event_id",
+        "exclusive_time_ms",
+        "group_raw",
+        "parent_span_id",
+        "profile_idstart_timestamp_ms",
+        "segment_id",
+        "span_id",
+        "start_timestamp_precise",
+    }:
+        attributes[f"sentry.{field}"] = scalar_to_any_value(span[field])
+
+    timestamp = Timestamp()
+
+    timestamp.FromMilliseconds(span["start_timestamp_ms"])
+
+    return TraceItem(
+        organization_id=span["organization_id"],
+        project_id=span["project_id"],
+        item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        timestamp=timestamp,
+        trace_id=span["trace_id"],
+        item_id=uuid4().bytes,
+        received=timestamp,
+        retention_days=90,
+        attributes=attributes,
+    )
 
 
 class OurLogTestCase(BaseTestCase):
