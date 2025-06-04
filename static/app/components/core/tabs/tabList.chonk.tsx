@@ -34,7 +34,7 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
           grid-auto-flow: row;
           align-content: start;
           gap: 1px;
-          padding-right: ${space(2)};
+          padding-right: ${space(0.5)};
           ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
         `};
 `;

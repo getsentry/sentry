@@ -92,7 +92,11 @@ export const chonkInnerWrapStyles = ({
         margin-right: -${space(1)};
       `
     : css`
-        padding: ${space(0.75)} ${space(2)};
+        padding: 10px 16px;
+        /**
+          * To align the SelectionIndicator (2px width, 4px spacing)
+          */
+        margin-left: 6px;
       `};
 `;
 export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
@@ -122,7 +126,7 @@ export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
           width: 2px;
           height: 50%;
 
-          left: 0;
+          left: -6px;
           top: 50%;
           transform: translateY(-50%);
         `};

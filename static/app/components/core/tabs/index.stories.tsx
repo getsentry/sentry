@@ -26,7 +26,7 @@ export default Storybook.story('Tabs', story => {
         This will give you all kinds of accessibility and state tracking out of the box.
         But you will have to render all tab content, including hooks, upfront.
       </p>
-      <Tabs>
+      <Tabs orientation="vertical">
         <TabList>
           {TABS.map(tab => (
             <TabList.Item disabled={tab.disabled} key={tab.key}>
