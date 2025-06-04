@@ -192,7 +192,7 @@ export function OrganizationAuthTokensIndex({
               ) : undefined
             }
             emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Auth token'), t('Created'), t('Last access'), '']}
+            headers={[t('Token'), t('Created'), t('Last access'), '']}
           >
             {!isError && !isPending && !!tokenList?.length && (
               <TokenList
