@@ -28,12 +28,12 @@ class QueryInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
+        self.potential_unsafe_inputs = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
         self.request_data = event.get("request", {}).get("data", {})
         self.request_url = event.get("request", {}).get("url", "")
-        self.potential_unsafe_inputs = []
         for key, value in self.request_data.items():
             if not isinstance(value, (str, int, float, bool)) and value is not None:
                 self.potential_unsafe_inputs.append(key)
