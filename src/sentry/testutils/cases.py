@@ -3312,19 +3312,18 @@ def scalar_to_any_value(value: Any) -> AnyValue:
 def span_to_trace_item(span) -> TraceItem:
     attributes = {}
 
-    for k, v in span["tags"].items():
+    for k, v in span.get("tags", {}).items():
         attributes[k] = scalar_to_any_value(v)
 
-    for k, v in span["sentry_tags"].items():
+    for k, v in span.get("sentry_tags", {}).items():
         attributes[f"sentry.{k}"] = scalar_to_any_value(v)
 
-    for k, v in span["measurements"].items():
+    for k, v in span.get("measurements", {}).items():
         attributes[k] = scalar_to_any_value(v["value"])
 
     if "description" in span:
         description = scalar_to_any_value(span["description"])
         attributes["sentry.raw_description"] = description
-        attributes["sentry.normalized_description"] = description
 
     for field in {
         "duration_ms",
@@ -3336,7 +3335,6 @@ def span_to_trace_item(span) -> TraceItem:
         "parent_span_id",
         "profile_id",
         "segment_id",
-        "start_timestamp_ms",
         "start_timestamp_precise",
     }:
         if field in span:
