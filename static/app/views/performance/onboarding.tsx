@@ -486,7 +486,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [firstTrace, setFirstTrace] = useState(false);
+  const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
 
   const currentPlatform = project.platform
@@ -632,8 +632,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
       organization={organization}
       project={project}
       eventType="transaction"
-      onIssueReceived={({firstIssue}) => {
-        setFirstTrace(!!firstIssue);
+      onIssueReceived={() => {
+        setReceived(true);
       }}
     >
       {({firstIssue}) =>
@@ -735,7 +735,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
             </div>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
-              {firstTrace ? (
+              {received ? (
                 <Button
                   priority="primary"
                   onClick={() => {
