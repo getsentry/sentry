@@ -239,7 +239,6 @@
   },
   "pnpm": {
     "overrides": {
-      "jest-runtime>cjs-module-lexer": "1.2.3",
       "react-mentions>@babel/runtime": "7.26.10",
       "react-is": "19.1.0"
     }
