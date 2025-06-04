@@ -1,5 +1,5 @@
 import * as docgen from 'react-docgen-typescript';
-import type {LoaderContext} from 'webpack';
+import type {LoaderContext} from '@rspack/core';
 
 /**
  * Extracts documentation from the modules by running the TS compiler and serializing the types
