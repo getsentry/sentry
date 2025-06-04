@@ -3316,6 +3316,9 @@ def span_to_trace_item(span) -> TraceItem:
         attributes[k] = scalar_to_any_value(v)
 
     for k, v in span.get("sentry_tags", {}).items():
+        if k == "description":
+            k = "normalized_description"
+
         attributes[f"sentry.{k}"] = scalar_to_any_value(v)
 
     for k, v in span.get("measurements", {}).items():
