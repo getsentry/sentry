@@ -1010,9 +1010,13 @@ class JiraServerIntegration(IssueSyncIntegration):
                 raw_labels_input = data["labels"]
                 processed_labels = []
                 if isinstance(raw_labels_input, str):
-                    processed_labels = [label.strip() for label in raw_labels_input.split(",") if label.strip()]
+                    processed_labels = [
+                        label.strip() for label in raw_labels_input.split(",") if label.strip()
+                    ]
                 elif isinstance(raw_labels_input, list):
-                    processed_labels = [str(label).strip() for label in raw_labels_input if str(label).strip()]
+                    processed_labels = [
+                        str(label).strip() for label in raw_labels_input if str(label).strip()
+                    ]
                 cleaned_data["labels"] = processed_labels
                 continue
             if field_name in data.keys():
