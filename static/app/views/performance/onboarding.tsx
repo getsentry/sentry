@@ -488,7 +488,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [firstTrace, setFirstTrace] = useState<FirstIssue>();
-  const showNewUi = true;
+  const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
