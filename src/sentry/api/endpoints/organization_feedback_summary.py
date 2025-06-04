@@ -26,10 +26,10 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get summary and key sentiments of the user feedbacks of a given organization
+        Get the summary of the user feedbacks of an organization
         ``````````````````````````````````````````````````
 
-        Returns a tuple of summary and key sentiments. The user feedbacks can be filtered by a list of projects and the date range that they were created in.
+        Returns the summary of the user feedbacks. The user feedbacks can be filtered by a list of projects and the date range that they were created in.
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
@@ -39,11 +39,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         res = {
             "summary": "User appreciate that the app is fast and easy to use and that features are working well. Some users are experiencing UI issues with the app, such as the navigation bar not being visible.",
-            "key_sentiments": [
-                {"value": "Fast", "type": "positive"},
-                {"value": "Easy to use", "type": "positive"},
-                {"value": "UI bugs", "type": "negative"},
-            ],
         }
 
         # stolen from organization_group_index.py
@@ -70,17 +65,19 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         #     print(f)
 
         # without an openai API key, we'll just return a sample response
-        return Response(res)
+        # return Response(res)
 
-        # TODO: chatgpt generates BS if there are no feedbacks, maybe return some other status / response if there are less than 5 feedbacks
+        # TODO: chatgpt generates BS if there are no feedbacks, maybe return some other status / response if there are less than 5 feedbacks to just hide the summary
         # there is a max token limit for the LLM, we also need to find the max number of feedbacks (starting from the most recent) that can be sent to the LLM, can we filter for that or maybe binary search after getting all feedbacks in the given time period?
-        summary = generate_summary(group_feedbacks)  # if this throws an error, we should return 500
-
-        if not summary[0]:  # parsing wasn't successful
+        try:
+            summary = generate_summary(
+                group_feedbacks
+            )  # if this throws an error, we should return 500
+        except Exception:
             return Response(
                 {"detail": "Error generating summary"}, status=500
             )  # TODO: add more details to the error message and add logging
 
-        res = {"summary": summary[1], "key_sentiments": summary[2]}
+        res = {"summary": summary}
 
         return Response(res)
