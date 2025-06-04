@@ -46,6 +46,7 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
 
 export interface BaseTabProps {
   children: React.ReactNode;
+  disabled: boolean;
   hidden: boolean;
   isSelected: boolean;
   orientation: Orientation;
@@ -60,9 +61,10 @@ export interface BaseTabProps {
 function InnerWrap({
   children,
   to,
+  disabled,
   orientation,
-}: Pick<BaseTabProps, 'children' | 'to' | 'orientation'>) {
-  return to ? (
+}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled'>) {
+  return to && !disabled ? (
     <TabLink
       to={to}
       onMouseDown={handleLinkClick}
@@ -85,6 +87,7 @@ function BaseTab({
   overflowing,
   tabProps,
   hidden,
+  disabled,
   isSelected,
   variant = 'flat',
   as = 'li',
@@ -114,7 +117,7 @@ function BaseTab({
       ref={ref}
       as={as}
     >
-      <InnerWrap to={to} orientation={orientation}>
+      <InnerWrap to={to} orientation={orientation} disabled={disabled}>
         <StyledInteractionStateLayer
           orientation={orientation}
           higherOpacity={isSelected}
@@ -146,8 +149,9 @@ export function Tab({
   const {
     key,
     rendered,
-    props: {to, hidden},
+    props: {to, hidden, disabled},
   } = item;
+
   const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, objectRef);
 
   return (
@@ -156,6 +160,7 @@ export function Tab({
       isSelected={isSelected}
       to={to}
       hidden={hidden}
+      disabled={disabled}
       orientation={orientation}
       overflowing={overflowing}
       ref={objectRef}
