@@ -65,6 +65,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -745,6 +746,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                         query: {
                           ...location.query,
                           guidedStep: undefined,
+                          table: Tab.TRACE,
                         },
                       },
                       {replace: true}

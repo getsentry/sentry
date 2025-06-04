@@ -6,6 +6,8 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {Tab} from 'sentry/views/explore/hooks/useTab';
+
 import {LegacyOnboarding, Onboarding} from './onboarding';
 
 describe('Performance Onboarding View > Unsupported Banner', function () {
@@ -132,6 +134,7 @@ describe('Testing new onboarding ui', function () {
         expect.objectContaining({
           query: {
             guidedStep: undefined,
+            table: Tab.TRACE,
           },
         })
       );
