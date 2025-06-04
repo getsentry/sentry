@@ -3319,15 +3319,21 @@ def span_to_trace_item(span) -> TraceItem:
 
     for field in {"tags", "data"}:
         for k, v in span.get(field, {}).items():
+            if v is None:
+                continue
             attributes[k] = scalar_to_any_value(v)
 
     for k, v in span.get("sentry_tags", {}).items():
+        if v is None:
+            continue
         if k == "description":
             k = "normalized_description"
 
         attributes[f"sentry.{k}"] = scalar_to_any_value(v)
 
     for k, v in span.get("measurements", {}).items():
+        if v is None or v["value"] is None:
+            continue
         if k == "client_sample_rate":
             client_sample_rate = v["value"]
         elif k == "server_sample_rate":
@@ -3335,7 +3341,7 @@ def span_to_trace_item(span) -> TraceItem:
         else:
             attributes[k] = scalar_to_any_value(v["value"])
 
-    if "description" in span:
+    if "description" in span and span["description"] is not None:
         description = scalar_to_any_value(span["description"])
         attributes["sentry.raw_description"] = description
 
@@ -3344,14 +3350,13 @@ def span_to_trace_item(span) -> TraceItem:
         "end_timestamp_precise",
         "event_id",
         "exclusive_time_ms",
-        "group_raw",
         "is_segment",
         "parent_span_id",
         "profile_id",
         "segment_id",
         "start_timestamp_precise",
     }:
-        if field in span:
+        if field in span and span[field] is not None:
             attributes[f"sentry.{field}"] = scalar_to_any_value(span[field])
 
     timestamp = Timestamp()
