@@ -67,7 +67,7 @@ export function TabStateProvider<T extends string | number>({
   return (
     <TabsContext
       value={{
-        rootProps: {...props, orientation: 'horizontal'},
+        rootProps: {orientation: 'horizontal', ...props},
         tabListState,
         setTabListState,
       }}
