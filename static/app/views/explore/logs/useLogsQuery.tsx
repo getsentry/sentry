@@ -123,7 +123,6 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
     },
     pageFiltersReady,
     eventView,
-    referrer,
   };
 
   const queryKey: ApiQueryKey = [
