@@ -1030,21 +1030,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
-  TimeWindowsAreConsistent() {
-    const {currentData, historicalData, timeWindow} = this.state;
-    const currentDataPoint1 = currentData[1];
-    const currentDataPoint0 = currentData[0];
-    if (!currentDataPoint0 || !currentDataPoint1) {
-      return false;
-    }
-    const historicalDataPoint1 = historicalData[1];
-    const historicalDataPoint0 = historicalData[0];
-    if (!historicalDataPoint0 || !historicalDataPoint1) {
-      return false;
-    }
-
-    const currentTimeWindow = (currentDataPoint1[0] - currentDataPoint0[0]) / 60;
-    const historicalTimeWindow = (historicalDataPoint1[0] - historicalDataPoint0[0]) / 60;
+  timeWindowsAreConsistent() {
+    const {currentData = [], historicalData = [], timeWindow} = this.state;
+    const currentTimeWindow = getTimeWindowFromDataset(currentData, timeWindow);
+    const historicalTimeWindow = getTimeWindowFromDataset(historicalData, timeWindow);
     return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
   }
 
@@ -1054,7 +1043,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
       currentData.length === 0 ||
-      historicalData.length === 0
+      historicalData.length === 0 ||
+      !this.timeWindowsAreConsistent()
     ) {
       return;
     }
@@ -1096,10 +1086,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      // don't set the anomalies if historical and current data have incorrect time windows
-      if (!this.TimeWindowsAreConsistent()) {
-        this.setState({anomalies});
-      }
+      this.setState({anomalies});
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
@@ -1466,6 +1453,25 @@ function formatStatsToHistoricalDataset(
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
       ) ?? [])
     : [];
+}
+
+function getTimeWindowFromDataset(
+  data: ReturnType<typeof formatStatsToHistoricalDataset>,
+  defaultWindow: TimeWindow
+): number {
+  for (let i = 0; i < data.length; i++) {
+    const [timestampA] = data[i] ?? [];
+    const [timestampB] = data[i + 1] ?? [];
+    if (!timestampA || !timestampB) {
+      break;
+    }
+    // ignore duplicate timestamps
+    if (timestampA === timestampB) {
+      continue;
+    }
+    return Math.abs(timestampB - timestampA) / 60;
+  }
+  return defaultWindow;
 }
 
 const Main = styled(Layout.Main)`
