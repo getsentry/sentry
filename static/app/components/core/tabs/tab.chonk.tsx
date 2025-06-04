@@ -111,7 +111,7 @@ export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
   ${p =>
     p.orientation === 'horizontal'
       ? css`
-          width: calc(100% - ${space(2)});
+          width: 100%;
           height: 2px;
 
           bottom: 0;
