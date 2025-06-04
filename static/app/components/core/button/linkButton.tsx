@@ -36,6 +36,7 @@ export function LinkButton({
       <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
+        disabled={disabled}
         size={size}
         {...props}
         // @ts-expect-error set href as undefined to force "disabled" state.
