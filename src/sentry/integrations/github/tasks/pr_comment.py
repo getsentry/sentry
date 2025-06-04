@@ -60,6 +60,7 @@ def github_comment_reactions():
             continue
 
         # Add check for GitHub provider before proceeding
+        # TODO: nuke comment reactions or implement for all providers
         if repo.provider not in ("github", "integrations:github"):
             metrics.incr("pr_comment.comment_reactions.skipped_non_github")
             continue
