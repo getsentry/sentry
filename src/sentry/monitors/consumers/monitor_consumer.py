@@ -435,7 +435,12 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
         clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
         logger.info(
             "monitors.consumer.sentry_clock_pulse_debug_entry",
-            extra={"clock_time": clock_time, **params},
+            extra={
+                "clock_time": clock_time,
+                "item_ts": item.ts,
+                "start_time": start_time,
+                **params,
+            },
         )
 
     project = Project.objects.get_from_cache(id=project_id)

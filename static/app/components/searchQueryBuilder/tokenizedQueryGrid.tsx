@@ -191,8 +191,8 @@ export function TokenizedQueryGrid({
 }
 
 const SearchQueryGridWrapper = styled('div')`
-  padding-top: ${space(0.75)};
-  padding-bottom: ${space(0.75)};
+  padding-top: ${p => (p.theme.isChonk ? space(0.5) : space(0.75))};
+  padding-bottom: ${p => (p.theme.isChonk ? space(0.5) : space(0.75))};
   padding-left: 32px;
   padding-right: ${space(0.75)};
   display: flex;

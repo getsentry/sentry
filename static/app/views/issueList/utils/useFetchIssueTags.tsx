@@ -364,6 +364,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
       name: 'Issue Fixability',
       values: [
+        FixabilityScoreThresholds.SUPER_HIGH,
         FixabilityScoreThresholds.HIGH,
         FixabilityScoreThresholds.MEDIUM,
         FixabilityScoreThresholds.LOW,
