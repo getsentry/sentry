@@ -377,9 +377,6 @@ def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     if ratio_attribute.name == "score.total":
         return total_performance_score(args, settings)
 
-    web_vital = score_attribute.name.split(".")[-1]
-    vital_count = get_count_of_vital(web_vital, settings)
-
     return Column.BinaryFormula(
         default_value_double=0.0,
         left=Column(
@@ -390,7 +387,7 @@ def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
             )
         ),
         op=Column.BinaryFormula.OP_MULTIPLY,
-        right=Column(literal=LiteralValue(val_double=1.0 if vital_count > 0 else 0.0)),
+        right=Column(literal=LiteralValue(val_double=1.0)),
     )
 
 
