@@ -6,7 +6,7 @@ import AutomationBuilderSelectField, {
   selectControlStyles,
 } from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {t, tct} from 'sentry/locale';
-import {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';

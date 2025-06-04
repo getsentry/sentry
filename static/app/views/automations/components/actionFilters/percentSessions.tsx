@@ -1,9 +1,7 @@
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
-import {
-  DataCondition,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   CountBranch,
   PercentBranch,

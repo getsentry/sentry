@@ -2,10 +2,8 @@ import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRo
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
-import {
-  DataCondition,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   CountBranch,
   PercentBranch,
