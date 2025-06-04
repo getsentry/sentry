@@ -374,6 +374,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
 )
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
+from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
 )
@@ -3447,6 +3448,12 @@ urlpatterns = [
         r"^uptime-ips/$",
         UptimeIpsEndpoint.as_view(),
         name="sentry-api-0-uptime-ips",
+    ),
+    # Tempest public IP address list
+    re_path(
+        r"^tempest-ips/$",
+        TempestIpsEndpoint.as_view(),
+        name="sentry-api-0-tempest-ips",
     ),
     # Secret Scanning
     re_path(
