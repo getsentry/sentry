@@ -2,12 +2,14 @@
 
 
 import os
+from inspect import isclass
 
 import click
 from django.template.defaultfilters import pluralize
 
 from sentry.runner.decorators import configuration
 from sentry.utils import json
+from sentry.utils.performance_issues.base import PerformanceDetector
 
 
 @click.group()
@@ -30,18 +32,20 @@ def detect(path: str, detector_class: str | None, verbose: int) -> None:
     using default detector settings with every detector. Path should be a
     path to a JSON event data file or directory containing JSON event data files or folders of JSON event data files.
     """
-    from sentry.utils.performance_issues.performance_detection import (
-        DETECTOR_CLASSES,
-        get_detection_settings,
-        run_detector_on_data,
-    )
+    from sentry.utils.performance_issues import performance_detection
 
     if detector_class:
-        detector_classes = [cls for cls in DETECTOR_CLASSES if cls.type.value == detector_class]
+        detector_classes = [performance_detection.__dict__[detector_class]]
     else:
-        detector_classes = DETECTOR_CLASSES
+        detector_classes = [
+            cls
+            for _, cls in performance_detection.__dict__.items()
+            if isclass(cls) and issubclass(cls, PerformanceDetector) and cls != PerformanceDetector
+        ]
 
-    settings = get_detection_settings()
+    settings = performance_detection.get_detection_settings()
+
+    settings = performance_detection.get_detection_settings()
 
     def run_detector_on_file(filepath: str) -> None:
         if not filepath.endswith(".json"):
@@ -57,7 +61,7 @@ def detect(path: str, detector_class: str | None, verbose: int) -> None:
                 if verbose > 0:
                     click.echo(f"Detecting using {detector.__class__.__name__}")
 
-                run_detector_on_data(detector, data)
+                performance_detection.run_detector_on_data(detector, data)
 
                 if verbose > 1:
                     if len(detector.stored_problems) == 0:
