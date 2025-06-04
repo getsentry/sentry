@@ -206,6 +206,7 @@ class _Widget(TypedDict):
     created_by: dict[str, Any] | None
     permissions: NotRequired[dict[str, Any]]
     is_favorited: NotRequired[bool]
+    projects: list[int]
 
 
 class DashboardListSerializer(Serializer):
@@ -226,7 +227,14 @@ class DashboardListSerializer(Serializer):
         permissions = DashboardPermissions.objects.filter(dashboard_id__in=item_dict.keys())
 
         result: dict[int, _Widget]
-        result = defaultdict(lambda: {"widget_display": [], "widget_preview": [], "created_by": {}})
+        result = defaultdict(
+            lambda: {
+                "widget_display": [],
+                "widget_preview": [],
+                "created_by": {},
+                "projects": [],
+            }
+        )
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
             display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
