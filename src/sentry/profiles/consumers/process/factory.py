@@ -1,4 +1,5 @@
-import random
+import time
+import zlib
 from base64 import b64encode
 from collections.abc import Iterable, Mapping
 
@@ -18,39 +19,21 @@ def process_message(message: Message[KafkaPayload]) -> None:
     sampled = is_sampled(message.payload.headers)
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        b64encoded_uncompressed = b64encode(message.payload.value).decode("utf-8")
-
-        if random.random() < options.get("taskworker.try_compress.profile_metrics.rollout"):
-            import time
-            import zlib
-
-            metrics.distribution(
-                "profiling.profile_metrics.uncompressed_bytes", len(b64encoded_uncompressed)
+        start_time = time.perf_counter()
+        b64encoded_compressed = b64encode(
+            zlib.compress(
+                message.payload.value,
+                level=options.get("taskworker.try_compress.profile_metrics.level"),
             )
-
-            start_time = time.perf_counter()
-            b64encoded_compressed = b64encode(
-                zlib.compress(
-                    message.payload.value,
-                    level=options.get("taskworker.try_compress.profile_metrics.level"),
-                )
-            ).decode("utf-8")
-            metrics.distribution(
-                "profiling.profile_metrics.compressed_bytes",
-                len(b64encoded_compressed),
-            )
-            end_time = time.perf_counter()
-            metrics.distribution(
-                "profiling.profile_metrics.compression_time",
-                end_time - start_time,
-            )
-            process_profile_task.delay(
-                payload=b64encoded_compressed, sampled=sampled, compressed_profile=True
-            )
-        else:
-            process_profile_task.delay(
-                payload=b64encoded_uncompressed, sampled=sampled, compressed_profile=False
-            )
+        ).decode("utf-8")
+        end_time = time.perf_counter()
+        metrics.distribution(
+            "profiling.profile_metrics.compression_time",
+            end_time - start_time,
+        )
+        process_profile_task.delay(
+            payload=b64encoded_compressed, sampled=sampled, compressed_profile=True
+        )
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
