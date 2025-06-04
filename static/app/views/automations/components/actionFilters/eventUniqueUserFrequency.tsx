@@ -45,7 +45,7 @@ export function EventUniqueUserFrequencyPercentDetails({
   );
 }
 
-export default function EventUniqueUserFrequencyNode() {
+export function EventUniqueUserFrequencyNode() {
   return tct('Number of users affected by an issue is [select]', {
     select: <ComparisonTypeField />,
   });
