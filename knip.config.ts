@@ -71,6 +71,8 @@ const config: KnipConfig = {
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
     '@types/webpack-env', // needed to make require.context work
+    '@types/stripe-v3', // needed for global `stripe` namespace typings
+    '@types/gtag.js', // needed for global `gtag` namespace typings
   ],
   rules: {
     binaries: 'off',
