@@ -82,6 +82,7 @@ export const chonkInnerWrapStyles = ({
 
   ${orientation === 'horizontal'
     ? css`
+        gap: ${theme.space.md};
         /**
          * Extra padding + negative margin trick, to expand click area
          * The difference between 10px and 14 is to account for
@@ -92,6 +93,7 @@ export const chonkInnerWrapStyles = ({
         margin-right: -${space(1)};
       `
     : css`
+        gap: ${theme.space.sm};
         padding: 10px 16px;
         /**
           * To align the SelectionIndicator (2px width, 4px spacing)
