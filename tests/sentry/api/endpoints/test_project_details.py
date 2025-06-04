@@ -1884,6 +1884,60 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
+    @with_feature("organizations:dynamic-sampling-minimum-sample-rate")
+    def test_dynamic_sampling_minimum_sample_rate_with_feature(self):
+        """Test setting and getting dynamicSamplingMinimumSampleRate with feature flag enabled"""
+        # Test setting to True
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=True,
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is True
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
+        # Test getting the field after setting it
+        get_response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "dynamicSamplingMinimumSampleRate" in get_response.data
+        assert get_response.data["dynamicSamplingMinimumSampleRate"] is True
+
+        # Test setting to False
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=False,
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is False
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
+
+        # Test getting the field after setting it to False
+        get_response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "dynamicSamplingMinimumSampleRate" in get_response.data
+        assert get_response.data["dynamicSamplingMinimumSampleRate"] is False
+
+    def test_dynamic_sampling_minimum_sample_rate_without_feature(self):
+        """Test setting and getting dynamicSamplingMinimumSampleRate without feature flag"""
+        # Test setting the field without feature flag - should fail
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=True,
+            status_code=400,
+        )
+
+        # Test that the field is not present in GET response without feature flag
+        get_response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "dynamicSamplingMinimumSampleRate" not in get_response.data
+
     @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self):
         # assert default value is False, and that put request updates the value
