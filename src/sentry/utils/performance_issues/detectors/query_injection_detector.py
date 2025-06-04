@@ -35,7 +35,7 @@ class QueryInjectionDetector(PerformanceDetector):
         self.request_url = event.get("request", {}).get("url", "")
         self.potential_unsafe_inputs = []
         for key, value in self.request_data.items():
-            if not isinstance(value, (str, int, float)):
+            if not isinstance(value, (str, int, float, bool)) and value is not None:
                 self.potential_unsafe_inputs.append(key)
 
     def visit_span(self, span: Span) -> None:
