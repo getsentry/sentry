@@ -12,6 +12,7 @@ import type {
 } from '@react-types/shared';
 
 import {
+  chonkInnerWrapStyles,
   ChonkStyledFocusLayer,
   ChonkStyledTabWrap,
 } from 'sentry/components/core/tabs/tab.chonk';
@@ -267,7 +268,7 @@ const innerWrapStyles = ({
 `;
 
 const TabLink = styled(Link)<{orientation: Orientation}>`
-  ${innerWrapStyles}
+  ${p => (p.theme.isChonk ? innerWrapStyles(p) : chonkInnerWrapStyles(p as any))}
 
   &,
   &:hover {
@@ -276,7 +277,7 @@ const TabLink = styled(Link)<{orientation: Orientation}>`
 `;
 
 const TabInnerWrap = styled('span')<{orientation: Orientation}>`
-  ${innerWrapStyles}
+  ${p => (p.theme.isChonk ? innerWrapStyles(p) : chonkInnerWrapStyles(p as any))}
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
