@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+import os
+
+import click
+from django.apps import apps
+
+from sentry.runner import configure
+from sentry.runner.commands.devservices import get_docker_client
+from sentry.silo.base import SiloMode
+
+configure()
+
+from django.conf import settings
+
+from sentry.models.organizationmapping import OrganizationMapping
+
+
+def exec_run(container, command):
+    wrapped_command = f'sh -c "{" ".join(command)}"'
+    exit_code, output = container.exec_run(cmd=wrapped_command, stdout=True, stderr=True)
+    if exit_code:
+        click.echo("Container operation Failed!")
+        click.echo(f"Container operation failed with {output}")
+    return output
+
+
+def split_database(tables: list[str], source: str, destination: str, reset: bool, verbose: bool):
+    click.echo(f">> Dumping tables from {source} database")
+    command = ["pg_dump", "-U", "postgres", "-d", source, "--clean"]
+    for table in tables:
+        command.extend(["-t", table])
+    command.extend([">", f"/tmp/{destination}-tables.sql"])
+
+    with get_docker_client() as client:
+        postgres_container = (
+            "sentry-postgres-1"
+            if os.environ.get("USE_OLD_DEVSERVICES") != "1"
+            else "sentry_postgres"
+        )
+        postgres = client.containers.get(postgres_container)
+
+        if verbose:
+            click.echo(f">> Running {' '.join(command)}")
+        exec_run(postgres, command)
+
+        if reset:
+            click.echo(f">> Dropping existing {destination} database")
+            exec_run(postgres, ["dropdb", "-U", "postgres", "--if-exists", destination])
+            exec_run(postgres, ["createdb", "-U", "postgres", destination])
+
+        citext_command = [
+            "psql",
+            "-U",
+            "postgres",
+            destination,
+            "-c",
+            "'CREATE EXTENSION IF NOT EXISTS citext'",
+        ]
+
+        if verbose:
+            click.echo(f">> RUNNING: {' '.join(citext_command)}")
+        exec_run(postgres, citext_command)
+
+        # Use the dump file to build control silo tables.
+        click.echo(f">> Building {destination} database from dump file")
+        import_command = [
+            "psql",
+            "-U",
+            "postgres",
+            destination,
+            "<",
+            f"/tmp/{destination}-tables.sql",
+        ]
+        if verbose:
+            click.echo(f">> Running {' '.join(import_command)}")
+        exec_run(postgres, import_command)
+
+        if destination == "region" and reset:
+            click.echo(">> Cloning stored procedures")
+            function_dump = [
+                "psql",
+                "-U",
+                "postgres",
+                source,
+                "-c",
+                "'\\sf sentry_increment_project_counter'",
+            ]
+            function_sql = exec_run(postgres, function_dump)
+
+            import_function = [
+                "psql",
+                "-U",
+                "postgres",
+                destination,
+                "-c",
+                "'" + function_sql.decode("utf8") + "'",
+            ]
+            exec_run(postgres, import_function)
+
+
+def revise_organization_mappings(legacy_region_name: str):
+    if settings.SENTRY_MONOLITH_REGION == legacy_region_name:
+        click.echo(
+            "> No OrganizationMapping have been modified. Set 'SENTRY_MONOLITH_REGION' in sentry.conf.py to update monolith mappings."
+        )
+    else:
+        qs = OrganizationMapping.objects.filter(region_name=legacy_region_name)
+        record_count = len(qs)
+        qs.update(region_name=settings.SENTRY_MONOLITH_REGION)
+        click.echo(
+            f"> {record_count} OrganizationMapping record(s) have been updated from '{legacy_region_name}' to '{settings.SENTRY_MONOLITH_REGION}'"
+        )
+
+
+@click.command()
+@click.option(
+    "--legacy-region-name",
+    default="--monolith--",
+    help="Previous value of settings.SENTRY_MONOLITH_REGION to overwrite in organization mappings",
+)
+@click.option("--verbose", default=False, is_flag=True, help="Enable verbose logging")
+@click.option(
+    "--reset",
+    default=False,
+    is_flag=True,
+    help="Reset the target databases to be empty before loading extracted data and schema.",
+)
+@click.option("--database", default="sentry", help="Which database to derive splits from")
+def main(database: str, reset: bool, verbose: bool, legacy_region_name: str):
+    """
+    This is a development tool that can convert a monolith database into
+    control + region databases by using silo annotations.
+
+    This operation will not modify the original source database.
+    """
+    # We have a few tables that either need to be in both silos,
+    # or only in control. These tables don't have silo annotations
+    # as they are inherited from django and their silo assignments
+    # need to be manually defined.
+    region_tables = ["django_migrations", "django_content_type"]
+    control_tables = [
+        "django_migrations",
+        "django_admin_log",
+        "django_content_type",
+        "django_site",
+        "django_session",
+        "auth_user",
+        "auth_group",
+        "auth_permission",
+        "auth_group_permissions",
+        "auth_user_groups",
+        "auth_user_user_permissions",
+    ]
+    for model in apps.get_models():
+        silo_limit = getattr(model._meta, "silo_limit", None)
+        if not silo_limit:
+            click.echo(f"> Could not find silo assignment for {model._meta.db_table}")
+            continue
+        if SiloMode.CONTROL in silo_limit.modes:
+            control_tables.append(model._meta.db_table)
+        if SiloMode.REGION in silo_limit.modes:
+            region_tables.append(model._meta.db_table)
+
+    revise_organization_mappings(legacy_region_name=legacy_region_name)
+    split_database(control_tables, database, "control", reset=reset, verbose=verbose)
+    split_database(region_tables, database, "region", reset=reset, verbose=verbose)
+
+
+if __name__ == "__main__":
+    main()

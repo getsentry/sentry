@@ -1,0 +1,14 @@
+---
+created: '2019-03-14T17:12:35.707255Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
+errors: null
+to_json:
+  data:
+    foo: bar
+  headers:
+  - - Content-Type
+    - application/x-www-form-urlencoded
+  inferred_content_type: application/x-www-form-urlencoded
+  url: http://example.com/

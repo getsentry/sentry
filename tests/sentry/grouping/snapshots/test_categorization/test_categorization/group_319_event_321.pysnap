@@ -1,0 +1,68 @@
+---
+created: '2021-03-29T20:24:32.546543Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication run] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] category=internals
+  /System/Library/Frameworks/AppKit.framewor  _DPSNextEvent category=internals
+  /System/Library/Frameworks/Carbon.framewor  _BlockUntilNextEventMatchingListInModeWithFilter category=internals
+  /System/Library/Frameworks/Carbon.framewor  ReceiveNextEventCommon category=internals
+  /System/Library/Frameworks/Carbon.framewor  RunCurrentEventLoopInMode category=internals
+  /System/Library/Frameworks/CoreFoundation.  CFRunLoopRunSpecific category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopRun category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSources0 category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRunLoopDoSource0 category=internals
+  /System/Library/Frameworks/CoreFoundation.  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
+  /System/Library/Frameworks/Foundation.fram  __NSThreadPerformPerform category=internals
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  -[NSView displayIfNeeded] category=system
+  /System/Library/Frameworks/AppKit.framewor  -[_NSOpenGLViewBackingLayer display] category=internals
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  -[NSOpenGLContext flushBuffer] category=indirection
+  /System/Library/Frameworks/OpenGL.framewor  CGLFlushDrawable category=gl
+  /System/Library/Frameworks/OpenGL.framewor  glSwap_Exec category=internals
+  /System/Library/Extensions/AppleIntelHD400  gldPresentFramebufferData category=internals
+  /System/Library/Extensions/AppleIntelHD400  SwapFlush category=internals
+  /System/Library/Extensions/AppleIntelHD400  intelSubmitCommands category=internals
+  /System/Library/Extensions/AppleIntelHD400  IntelCommandBuffer::getNew category=internals
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusSubmitDataBuffers category=driver
+  /System/Library/Extensions/AppleIntelHD400  gpusKillClientExt category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog.cold.1 category=indirection
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+                                              stripped_application_code
+    /usr/lib/system/libsystem_platform.dylib  _sigtramp category=handler
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/AppKit.framewor  NSRunAlertPanel category=indirection
+  /System/Library/Frameworks/AppKit.framewor  _NSTryRunModal category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Transaction::commit category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Context::commit_transaction category=internals
+  /System/Library/Frameworks/QuartzCore.fram  CA::Layer::display_if_needed category=internals
+  /System/Library/Frameworks/AppKit.framewor  -[_NSOpenGLViewBackingLayer display] category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/OpenGL.framewor  CGLTexImageIOSurface2D category=gl
+  /System/Library/Frameworks/OpenGL.framewor  CGLDescribeRenderer category=internals
+  /System/Library/Frameworks/OpenGL.framewor  gliSetInteger category=internals
+  /System/Library/PrivateFrameworks/GPUSuppo  gldFlushObject category=internals
+  /System/Library/Extensions/AppleIntelHD400  intelSubmitCommands category=internals
+  /System/Library/Extensions/AppleIntelHD400  IntelCommandBuffer::getNew category=internals
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusSubmitDataBuffers category=driver
+  /System/Library/Extensions/AppleIntelHD400  gpusKillClientExt category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog.cold.1 category=indirection
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

@@ -1,0 +1,27 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block main %}
+  <h3>Security Notice</h3>
+  {% block security_body %}{% endblock %}
+  <table>
+    <tr>
+      <td style="width:36px;vertical-align:top;padding-right:15px;">
+        {% avatar_for_email account 36 %}
+      </td>
+      <td>
+        <strong>{{ account.email }}</strong><br />
+        {{ ip_address }}<br />
+        {{ datetime }} UTC
+      </td>
+    </tr>
+    {% block security_metadata %}{% endblock %}
+  </table>
+  <h4>Don't recognize this activity?</h4>
+  <p>If you didn't trigger this action, we recommend you immediately review your account security, including changing your password. If you determine that this activity is malicious please contact <a href="mailto:{% security_contact %}">{% security_contact %}</a>.</p>
+{% endblock %}
+
+{% block footer %}{% endblock %}

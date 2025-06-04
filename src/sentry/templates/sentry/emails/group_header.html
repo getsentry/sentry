@@ -1,0 +1,37 @@
+{% load sentry_helpers %}
+{% load sentry_features %}
+
+{% url 'sentry-stream' group.organization.slug group.project.slug as old_project_link %}
+{% url 'sentry-organization-issue-list' group.organization.slug as new_stream_link %}
+
+
+<div class="group-header">
+  <table class="group-stats">
+    <thead>
+      <tr>
+        <th>
+          <h6>On this issue</h6>
+        </th>
+        <th class="align-right">
+          <h6>Level</h6>
+        </th>
+      </tr>
+    </thead>
+    <tr>
+      <td class="group-message">
+        {% include "sentry/emails/_group.html" %}
+        <p class="meta">
+          <small>
+            <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>
+            <span class="last-seen pretty-date"> Last seen: {{ group.last_seen }} UTC</span>
+            in
+            <a href="{% absolute_uri new_stream_link %}?project={{group.project.id}}"><strong>{{ group.project.organization.slug }} / {{ group.project.slug }}</strong></a>
+          </small>
+        </p>
+      </td>
+      <td class="group-level">
+        <p class="value"><span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span></p>
+      </td>
+    </tr>
+  </table>
+</div>

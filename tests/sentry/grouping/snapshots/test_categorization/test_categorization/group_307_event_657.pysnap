@@ -1,0 +1,25 @@
+---
+created: '2021-03-26T18:19:16.188693Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS / EXC_I386_GPFLT:Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT (thread_id:_, crashed:_)
+                                              stripped_application_code
+     /usr/lib/system/libsystem_pthread.dylib  ??? category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  ??? category=threadbase
+     /usr/lib/system/libsystem_pthread.dylib  ??? category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                    /usr/lib/libc++abi.dylib  ??? category=internals

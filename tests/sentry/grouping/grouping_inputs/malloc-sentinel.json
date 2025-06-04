@@ -1,0 +1,190 @@
+{
+  "platform": "cocoa",
+  "exception": {
+    "values": [
+      {
+        "type": "SIGABRT",
+        "value": "<redacted>",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "symbol": "_pthread_start",
+              "package": "libsystem_pthread.dylib",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "filename": "stripped_application_code",
+              "abs_path": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "filename": "stripped_application_code",
+              "abs_path": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "filename": "stripped_application_code",
+              "abs_path": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "filename": "stripped_application_code",
+              "abs_path": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "filename": "stripped_application_code",
+              "abs_path": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "filename": "stripped_application_code",
+              "abs_path": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "symbol": "stripped_application_code",
+              "package": "stripped_application_code",
+              "in_app": false
+            },
+            {
+              "function": "std::__1::basic_string<T>::~basic_string",
+              "raw_function": "std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >::~basic_string()",
+              "symbol": "_ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev",
+              "package": "libc++.1.dylib",
+              "in_app": false
+            },
+            {
+              "function": "free",
+              "symbol": "free",
+              "package": "libsystem_malloc.dylib",
+              "in_app": false
+            },
+            {
+              "function": "malloc_report",
+              "symbol": "malloc_report",
+              "package": "libsystem_malloc.dylib",
+              "in_app": false
+            },
+            {
+              "function": "malloc_vreport",
+              "symbol": "malloc_vreport",
+              "package": "libsystem_malloc.dylib",
+              "in_app": false
+            },
+            {
+              "function": "abort",
+              "symbol": "abort",
+              "package": "libsystem_c.dylib",
+              "in_app": false
+            },
+            {
+              "function": "pthread_kill",
+              "symbol": "pthread_kill",
+              "package": "libsystem_pthread.dylib",
+              "in_app": false
+            },
+            {
+              "function": "__pthread_kill",
+              "symbol": "__pthread_kill",
+              "package": "libsystem_kernel.dylib",
+              "in_app": false
+            }
+          ]
+        },
+        "thread_id": 6,
+        "mechanism": {
+          "type": "signal",
+          "handled": false,
+          "meta": {
+            "signal": {
+              "number": 6,
+              "code": 0,
+              "name": "SIGABRT"
+            },
+            "mach_exception": {
+              "exception": 10,
+              "code": 0,
+              "subcode": 0,
+              "name": "EXC_CRASH"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

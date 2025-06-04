@@ -1,0 +1,23 @@
+---
+created: '2021-08-06T16:25:44.783161Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+RuntimeException:Could not read input channel file descriptors from parcel. (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                          android.app.Dialog  show category=ui
+              android.view.WindowManagerImpl  addView category=internals
+            android.view.WindowManagerGlobal  addView category=internals
+                   android.view.ViewRootImpl  setView category=internals
+      android.view.IWindowSession$Stub$Proxy  addToDisplay category=internals
+                   android.view.InputChannel  readFromParcel category=internals
+                   android.view.InputChannel  nativeReadFromParcel category=internals

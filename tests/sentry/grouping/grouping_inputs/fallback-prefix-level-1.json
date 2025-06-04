@@ -1,0 +1,47 @@
+{
+  "platform": "cocoa",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BAD_ACCESS",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "symbol": "start",
+              "package": "libdyld.dylib",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "symbol": "UIApplicationMain",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "symbol": "-[UIApplication _run]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "GSEventRunModal",
+              "symbol": "GSEventRunModal",
+              "package": "GraphicsServices",
+              "in_app": false
+            },
+            {
+              "function": "objc_release",
+              "symbol": "objc_release",
+              "package": "libobjc.A.dylib",
+              "in_app": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

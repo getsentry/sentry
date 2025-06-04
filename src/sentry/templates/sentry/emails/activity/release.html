@@ -1,0 +1,107 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block action %}
+{% endblock %}
+
+{% block activity %}
+    <h2 style="margin-bottom: 10px">
+        Version {{ version_parsed }} was deployed to {{ environment }}
+    </h2>
+    <p class="muted"><small><strong style="color: #72697d;">{{ deploy.date_finished }}</strong> <span class="divider">&nbsp;</span>  {{ commit_count }} commit{{ commit_count|pluralize }}, {{ author_count }} author{{ author_count|pluralize }}, and {{ file_count }} file{{ file_count|pluralize }} changed across {{ project_count }} project{{ project_count|pluralize }}</small></p>
+
+    <hr>
+
+    <h6>Projects Affected</h6>
+    <div class="table-border">
+      <table class="table projects">
+        <tbody>
+          {% for project, release_link, resolved_issue_count in projects %}
+            <tr>
+              <td>
+                <h5 style="margin-bottom: 0">
+                  <a href="{{ release_link }}">{{ project.slug }}</a>
+                </h5>
+                <p class="muted" style="margin-bottom: 0">
+                  {% if resolved_issue_count %}
+                    <a href="{{ release_link }}">{{ resolved_issue_count }} Issue{{ resolved_issue_count|pluralize }} expected to be resolved</a>
+                  {% endif %}
+                </p>
+              </td>
+              <td style="text-align: right">
+                <a href="{{ release_link }}" class="btn btn-sm btn-primary">View Release</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <hr style="margin-top: 20px">
+
+    {% if repos %}
+    <h6 style="margin-top: 10px">Commits</h6>
+    <div class="table-border">
+      <table class="table commit-list" style="margin-bottom: 0;">
+        <colgroup>
+          <col width="48px">
+          <col width="400px">
+        </colgroup>
+        {% for repo in repos %}
+          <tr>
+            <th class="lowercase" colspan="3">{{ repo.name }}</th>
+          </tr>
+          {% for commit, user in repo.commits %}
+            <tr>
+              <td class="avatar-column">
+                {% if user %}
+                  {% if user.get_avatar_type == 'upload' %}
+                    <img class="avatar" src="{% profile_photo_url user.id 36 %}">
+                  {% elif user.get_avatar_type == 'letter_avatar' %}
+                    {% email_avatar user.get_display_name user.get_label 36 False %}
+                  {% else %}
+                    {% email_avatar user.get_display_name user.get_label 36 %}
+                  {% endif %}
+                {% elif commit.author %}
+                  {% email_avatar commit.author.name commit.author.get_label 36 %}
+                {% else %}
+                    <div class="placeholder-avatar">?</div>
+                {% endif %}
+              </td>
+              <td>
+                <h4>
+                  {% if commit.message %}
+                    {{ commit.title }}
+                  {% else %}
+                    No message provided
+                  {% endif %}
+                </h4>
+                <div class="commit-meta muted">
+                  {% if commit.author %}
+                    {{ commit.author.name }}
+                  {% else %}
+                    No author provided
+                  {% endif %}
+                   &middot; {{ commit.date_added }}
+                </div>
+              </td>
+              <td class="align-right">
+                <small>{{ commit.short_id }}</small>
+              </td>
+            </tr>
+          {% endfor %}
+        {% endfor %}
+      </table>
+    </div>
+    {% else %}
+    <div class="well">
+      <h3>Deploy emails are better with commit data</h3>
+      <p>Connecting one or more repositories to Sentry will enable us to show a list of commits associated with this deploy.</p>
+      <p>
+        <a href="{{ setup_repo_link }}" class="btn btn-primary">Connect a repository</a>
+      </p>
+    </div>
+    {% endif %}
+{% endblock %}

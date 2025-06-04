@@ -1,0 +1,17 @@
+You have a new account on Sentry!
+
+Username: {{ username }}
+Password: {{ password }}
+
+Sign in to Sentry by visiting the following url:
+
+    {{ url }}
+
+{% spaceless %}
+{% if project %}
+A project has been automatically created for you. Configure your client
+with the following value for the Sentry DSN to start sending events:
+
+    {{ dsn }}
+{% endif %}
+{% endspaceless %}

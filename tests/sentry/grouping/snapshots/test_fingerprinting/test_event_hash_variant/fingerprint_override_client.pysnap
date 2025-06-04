@@ -1,0 +1,31 @@
+---
+created: '2024-11-08T22:03:13.799217+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - what-is-love
+    matchers:
+    - - message
+      - '*love*'
+    text: message:"*love*" -> "what-is-love"
+  version: 1
+fingerprint:
+- what-is-love
+title: Hello my sweet Love
+variants:
+  custom_fingerprint:
+    client_values:
+    - client-sent
+    matched_rule: message:"*love*" -> "what-is-love"
+    type: custom_fingerprint
+    values:
+    - what-is-love
+  default:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

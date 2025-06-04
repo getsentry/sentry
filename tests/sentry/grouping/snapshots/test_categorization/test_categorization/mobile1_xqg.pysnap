@@ -1,0 +1,20 @@
+---
+created: '2021-08-03T15:05:52.323979Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGTRAP:Trap (thread_id:_, crashed:_)
+                                              stripped_application_code
+  /apex/com.android.runtime/lib64/bionic/lib  ??? category=internals
+  /apex/com.android.runtime/lib64/bionic/lib  ??? category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::ThreadPoolWorker::Callback category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::ThreadPoolWorker::Run category=internals
+   /apex/com.android.runtime/lib64/libart.so  ??? category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::jit::Jit::CompileMethod category=runtime
+  /apex/com.android.runtime/lib64/libart-com  art::jit::JitCompiler::CompileMethod category=internals
+  /apex/com.android.runtime/lib64/libart-com  art::OptimizingCompiler::JitCompile category=internals
+  /apex/com.android.runtime/lib64/libart-com  art::OptimizingCompiler::TryCompile category=internals
+  /apex/com.android.runtime/lib64/libart-com  art::OptimizingCompiler::RunOptimizations category=internals
+  /apex/com.android.runtime/lib64/libart-com  art::LoadStoreAnalysis::Run category=internals

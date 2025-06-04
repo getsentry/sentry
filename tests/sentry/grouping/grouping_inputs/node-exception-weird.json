@@ -1,0 +1,261 @@
+{
+  "culprit": "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException(backend.ts)",
+  "event_id": "9aaaf238694f4f90a01579872c118680",
+  "platform": "node",
+  "logger": "",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "Hub.Object.<anonymous>.Hub.withScope",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js",
+              "pre_context": [
+                "    /**",
+                "     * Captures a message event and sends it to Sentry.",
+                "     *",
+                "     * @param message The message to send to Sentry.",
+                "     * @param level Define the level of the message.",
+                "     * @param hint May contain additional information about the original exception.",
+                "     * @returns The generated eventId."
+              ],
+              "post_context": [
+                "    Hub.prototype.captureMessage = function (message, level, hint) {",
+                "        var eventId = (this._lastEventId = misc_1.uuid4());",
+                "        this.invokeClient('captureMessage', message, level, tslib_1.__assign({}, hint, { event_id: eventId }));",
+                "        return eventId;",
+                "    };",
+                "    /**",
+                "     * Captures a manually created event and sends it to Sentry."
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js",
+              "module": "hub",
+              "colno": 7,
+              "in_app": true,
+              "context_line": "     */",
+              "lineno": 171
+            },
+            {
+              "function": "null.<anonymous>",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts",
+              "module": "onunhandledrejection.ts",
+              "filename": "/home/travis/build/getsentry/sentry-javascript/packages/node/src/integrations/onunhandledrejection.ts",
+              "lineno": 808,
+              "colno": 11,
+              "in_app": true
+            },
+            {
+              "function": "Hub.mockConstructor [as captureException]",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "pre_context": [
+                "        return fn.apply(this, arguments);",
+                "      };",
+                "",
+                "      break;",
+                "",
+                "    default:",
+                "      mockConstructor = function mockConstructor() {"
+              ],
+              "post_context": [
+                "      };",
+                "",
+                "      break;",
+                "  }",
+                "",
+                "  return mockConstructor;",
+                "}"
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "module": "jest-mock.build:index",
+              "colno": 19,
+              "in_app": false,
+              "context_line": "        return fn.apply(this, arguments);",
+              "lineno": 150
+            },
+            {
+              "function": "Hub.<anonymous>",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "pre_context": [
+                "            } // Otherwise use prototype implementation",
+                "",
+                "            if (returnValue === undefined && f._protoImpl) {",
+                "              return f._protoImpl.apply(this, arguments);",
+                "            }",
+                "",
+                "            return returnValue;"
+              ],
+              "post_context": [
+                "        } catch (error) {",
+                "          // Store the thrown error so we can record it, then re-throw it.",
+                "          thrownError = error;",
+                "          callDidThrowError = true;",
+                "          throw error;",
+                "        } finally {",
+                "          // Record the result of the function."
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "module": "jest-mock.build:index",
+              "colno": 13,
+              "in_app": false,
+              "context_line": "          })();",
+              "lineno": 446
+            },
+            {
+              "function": "finalReturnValue",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "pre_context": [
+                "              specificMockImpl = mockConfig.specificMockImpls.shift();",
+                "",
+                "              if (specificMockImpl === undefined) {",
+                "                specificMockImpl = mockConfig.mockImpl;",
+                "              }",
+                "",
+                "              if (specificMockImpl) {"
+              ],
+              "post_context": [
+                "              }",
+                "            } // Otherwise use prototype implementation",
+                "",
+                "            if (returnValue === undefined && f._protoImpl) {",
+                "              return f._protoImpl.apply(this, arguments);",
+                "            }",
+                ""
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "module": "jest-mock.build:index",
+              "colno": 41,
+              "in_app": false,
+              "context_line": "                return specificMockImpl.apply(this, arguments);",
+              "lineno": 437
+            },
+            {
+              "function": "Hub.<anonymous>",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "pre_context": [
+                "          type: 'function'",
+                "        },",
+                "        () => {",
+                "          object[methodName] = original;",
+                "        }",
+                "      );",
+                "      object[methodName].mockImplementation(function() {"
+              ],
+              "post_context": [
+                "      });",
+                "    }",
+                "",
+                "    return object[methodName];",
+                "  }",
+                "",
+                "  _spyOnProperty(obj, propertyName, accessType = 'get') {"
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/node_modules/jest-mock/build/index.js",
+              "module": "jest-mock.build:index",
+              "colno": 25,
+              "in_app": false,
+              "context_line": "        return original.apply(this, arguments);",
+              "lineno": 806
+            },
+            {
+              "function": "Hub.Object.<anonymous>.Hub.captureException",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts",
+              "pre_context": [
+                "",
+                "    if (!top.scope || !top.client) {",
+                "      return;",
+                "    }",
+                "",
+                "    const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = top.client.getOptions();",
+                ""
+              ],
+              "post_context": [
+                "      return;",
+                "    }",
+                "",
+                "    const timestamp = new Date().getTime() / 1000;",
+                "    const mergedBreadcrumb = { timestamp, ...breadcrumb };",
+                "    const finalBreadcrumb = beforeBreadcrumb",
+                "      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)"
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/packages/hub/src/hub.ts",
+              "module": "hub.ts",
+              "colno": 5,
+              "in_app": true,
+              "context_line": "    if (maxBreadcrumbs <= 0) {",
+              "lineno": 255
+            },
+            {
+              "function": "Hub.Object.<anonymous>.Hub.invokeClient",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js",
+              "pre_context": [
+                "     * Create a new scope to store context information.",
+                "     *",
+                "     * The scope will be layered on top of the current one. It is isolated, i.e. all",
+                "     * breadcrumbs and context information added to this scope will be removed once",
+                "     * the scope ends. Be sure to always remove this scope with {@link this.popScope}",
+                "     * when the operation finishes or throws.",
+                "     *"
+              ],
+              "post_context": [
+                "     */",
+                "    Hub.prototype.pushScope = function () {",
+                "        // We want to clone the content of prev scope",
+                "        var stack = this.getStack();",
+                "        var parentScope = stack.length > 0 ? stack[stack.length - 1].scope : undefined;",
+                "        var scope = scope_1.Scope.clone(parentScope);",
+                "        this.getStack().push({"
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/packages/hub/dist/hub.js",
+              "module": "hub",
+              "colno": 33,
+              "in_app": true,
+              "context_line": "     * @returns Scope, the new cloned scope",
+              "lineno": 91
+            },
+            {
+              "function": "NodeClient.Object.<anonymous>.BaseClient.captureException",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts",
+              "pre_context": [
+                "  public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {",
+                "    let eventId: string | undefined = hint && hint.event_id;",
+                "",
+                "    const promisedEvent = isPrimitive(message)",
+                "      ? this.getBackend().eventFromMessage(`${message}`, level, hint)",
+                "      : this.getBackend().eventFromException(message, hint);",
+                ""
+              ],
+              "post_context": [
+                "      .then(event => this.processEvent(event, hint, scope))",
+                "      .then(finalEvent => {",
+                "        eventId = finalEvent.event_id;",
+                "      })",
+                "      .catch(reason => {",
+                "        logger.log(reason);",
+                "      });"
+              ],
+              "filename": "/home/travis/build/getsentry/sentry-javascript/packages/core/src/baseclient.ts",
+              "module": "baseclient.ts",
+              "colno": 18,
+              "in_app": true,
+              "context_line": "    promisedEvent",
+              "lineno": 110
+            },
+            {
+              "function": "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException",
+              "abs_path": "/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts",
+              "module": "backend.ts",
+              "filename": "/home/travis/build/getsentry/sentry-javascript/packages/node/src/backend.ts",
+              "lineno": 2093,
+              "colno": 37,
+              "in_app": true
+            }
+          ]
+        },
+        "type": "Error",
+        "value": "bla"
+      }
+    ]
+  },
+  "release": null
+}

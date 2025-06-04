@@ -1,0 +1,91 @@
+{
+  "event_id": "a2cfd50060314ed5863e4405d468e090",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[NSApplication run]",
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]",
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "_DPSNextEvent",
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "_BlockUntilNextEventMatchingListInModeWithFilter",
+              "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
+            },
+            {
+              "function": "ReceiveNextEventCommon",
+              "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
+            },
+            {
+              "function": "RunCurrentEventLoopInMode",
+              "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopServiceMachPort",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "mach_msg_trap",
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "0x00000000 / 0x00000000",
+        "value": "Fatal Error: 0x00000000 / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,135 @@
+{
+  "event_id": "6ad93e8e45e94215a5014919351fac05",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "C:\\Windows\\SYSTEM32\\MSVCP140.dll"
+            },
+            {
+              "function": "RtlDispatchException",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpExecuteHandlerForException",
+              "package": "C:\\Windows\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "abs_path": "d:\\agent\\_work\\1\\s\\src\\vctools\\crt\\vcruntime\\src\\eh\\riscchandler.cpp",
+              "filename": "riscchandler.cpp",
+              "function": "__C_specific_handler",
+              "package": "C:\\Windows\\SYSTEM32\\VCRUNTIME140.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\functional",
+              "filename": "functional",
+              "function": "std::_Func_class<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\bimap\\container_adaptor\\associative_container_adaptor.hpp",
+              "filename": "associative_container_adaptor.hpp",
+              "function": "boost::bimaps::container_adaptor::associative_container_adaptor",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Backend.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\multi_index\\detail\\ord_index_impl.hpp",
+              "filename": "ord_index_impl.hpp",
+              "function": "boost::multi_index::detail::ordered_index_impl<T>::find<T>",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Backend.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\multi_index\\detail\\ord_index_ops.hpp",
+              "filename": "ord_index_ops.hpp",
+              "function": "boost::multi_index::detail::ordered_index_find",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Backend.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\artifacts\\boost_source_libraries\\1.65.1d\\boost_libraries\\boost\\multi_index\\detail\\ord_index_ops.hpp",
+              "filename": "ord_index_ops.hpp",
+              "function": "boost::multi_index::detail::ordered_index_find",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Backend.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstddef",
+              "filename": "xstddef",
+              "function": "std::less<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Backend.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+      }
+    ]
+  },
+  "platform": "native"
+}

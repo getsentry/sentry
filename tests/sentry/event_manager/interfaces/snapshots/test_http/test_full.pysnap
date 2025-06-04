@@ -1,0 +1,21 @@
+---
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
+errors: null
+to_json:
+  apiTarget: foo
+  cookies:
+  - - foo
+    - bar
+  data: hello world
+  env:
+    bing: bong
+  fragment: foobar
+  headers:
+  - - X-Foo-Bar
+    - baz
+  method: GET
+  query_string:
+  - - foo
+    - bar
+  url: http://example.com/

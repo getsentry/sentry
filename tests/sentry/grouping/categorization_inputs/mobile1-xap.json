@@ -1,0 +1,98 @@
+{
+  "event_id": "7584bf4a7beb497395e200e293152121",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/system/lib64/libc.so"
+            },
+            {
+              "package": "/system/lib64/libc.so"
+            },
+            {
+              "function": "std::__ndk1::__thread_proxy<T>"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__ndk1::__function::__func<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "glDrawElements",
+              "package": "/system/vendor/lib64/egl/libGLESv2_adreno.so"
+            },
+            {
+              "function": "glDrawElements",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            },
+            {
+              "function": "EsxContext::DrawElementsInstanced",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            },
+            {
+              "function": "EsxContext::ValidateGfxState",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            },
+            {
+              "function": "A5xContext::HwValidateGfxState",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            },
+            {
+              "function": "A5xContext::ValidateState",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            },
+            {
+              "function": "A5xPipeline::WriteGfxPipeline",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            },
+            {
+              "function": "A5xPipeline::WriteGfxShaderRegs",
+              "package": "/system/vendor/lib64/egl/libESXGLESv2_adreno.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

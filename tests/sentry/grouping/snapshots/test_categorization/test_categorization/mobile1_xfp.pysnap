@@ -1,0 +1,29 @@
+---
+created: '2021-07-08T10:29:52.063676Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+GKInvalidArgumentException:A GKAchievement can only be submitted for another player when ending a turn-based match. (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoSource1 category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ category=internals
+                              CoreFoundation  __CFMachPortPerform category=internals
+                                  QuartzCore  display_timer_callback category=internals
+                                  QuartzCore  CA::Display::DisplayLink::dispatch_items category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                              CoreFoundation  +[NSException raise:format:] category=indirection
+                             libobjc.A.dylib  objc_exception_throw category=throw
+                              CoreFoundation  __exceptionPreprocess category=internals

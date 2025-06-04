@@ -1,0 +1,39 @@
+Notifications for example
+June 22, 2016, 4:16 p.m. UTC to June 22, 2016, 4:16 p.m. UTC
+
+Rule #3
+
+* N+1 Query (8481 events, 3702 users)
+  http://testserver/organizations/example/issues/101/?referrer=digest_email
+
+* something bad happened (7367 events, 8961 users)
+  http://testserver/organizations/example/issues/200/?referrer=digest_email
+
+* something bad happened (6616 events, 8490 users)
+  http://testserver/organizations/example/issues/201/?referrer=digest_email
+
+* N+1 Query (538 events, 6347 users)
+  http://testserver/organizations/example/issues/100/?referrer=digest_email
+
+Rule #1
+
+* N+1 Query (8481 events, 3702 users)
+  http://testserver/organizations/example/issues/101/?referrer=digest_email
+
+* something bad happened (7367 events, 8961 users)
+  http://testserver/organizations/example/issues/200/?referrer=digest_email
+
+* something bad happened (6616 events, 8490 users)
+  http://testserver/organizations/example/issues/201/?referrer=digest_email
+
+Rule #2
+
+* N+1 Query (8481 events, 3702 users)
+  http://testserver/organizations/example/issues/101/?referrer=digest_email
+
+* something bad happened (7367 events, 8961 users)
+  http://testserver/organizations/example/issues/200/?referrer=digest_email
+
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

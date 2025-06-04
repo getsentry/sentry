@@ -1,0 +1,65 @@
+[
+  {
+    "desc": "unquoted key",
+    "query": "has:release",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "has",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "has", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "release",
+          "quoted": false,
+          "wildcard": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "quoted key",
+    "query": "has:\"hi:there\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "has",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "has", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "hi:there",
+          "quoted": true,
+          "wildcard": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "malformed key",
+    "query": "has:\"hi there\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "has",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "has", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "hi there",
+          "quoted": true,
+          "wildcard": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

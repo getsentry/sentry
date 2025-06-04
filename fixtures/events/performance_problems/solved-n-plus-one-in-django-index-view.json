@@ -1,0 +1,202 @@
+{
+  "event_id": "4e7c82a05f514c93b6101d255ca14f89",
+  "datetime": "2022-08-31T14:59:32.566927+00:00",
+  "culprit": "/books/",
+  "location": "/books/",
+  "spans": [
+    {
+      "timestamp": 1661957972.566523,
+      "start_timestamp": 1661957970.378754,
+      "exclusive_time": 0.157118,
+      "description": "django.middleware.security.SecurityMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "b35fe8bfc034fe6d",
+      "parent_span_id": "8c9cfb04076db458",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.security.SecurityMiddleware"
+      },
+      "hash": "0f43fb6f6e01ca52",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.566464,
+      "start_timestamp": 1661957970.378852,
+      "exclusive_time": 2.594948,
+      "description": "django.contrib.sessions.middleware.SessionMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "b4cc10cfb5bb0d0b",
+      "parent_span_id": "b35fe8bfc034fe6d",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.contrib.sessions.middleware.SessionMiddleware"
+      },
+      "hash": "3dc5dd68b38e1730",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.566396,
+      "start_timestamp": 1661957970.381379,
+      "exclusive_time": 1.232147,
+      "description": "django.middleware.common.CommonMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "84b7b23061a36e25",
+      "parent_span_id": "b4cc10cfb5bb0d0b",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.common.CommonMiddleware"
+      },
+      "hash": "424c6ae1641f0f0e",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.56635,
+      "start_timestamp": 1661957970.382565,
+      "exclusive_time": 0.113011,
+      "description": "django.middleware.csrf.CsrfViewMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "b6af0fe580697876",
+      "parent_span_id": "84b7b23061a36e25",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.csrf.CsrfViewMiddleware"
+      },
+      "hash": "d5da18d7274b34a1",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.566328,
+      "start_timestamp": 1661957970.382656,
+      "exclusive_time": 0.110864,
+      "description": "django.contrib.auth.middleware.AuthenticationMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "ad32d8a49d273bdc",
+      "parent_span_id": "b6af0fe580697876",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.contrib.auth.middleware.AuthenticationMiddleware"
+      },
+      "hash": "ac72fc0a4f5fe381",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.566309,
+      "start_timestamp": 1661957970.382748,
+      "exclusive_time": 9.091139,
+      "description": "django.contrib.messages.middleware.MessageMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "ac6091f22d9366a3",
+      "parent_span_id": "ad32d8a49d273bdc",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.contrib.messages.middleware.MessageMiddleware"
+      },
+      "hash": "ac1468d8e11a0553",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.566258,
+      "start_timestamp": 1661957970.391788,
+      "exclusive_time": 0.916005,
+      "description": "django.middleware.clickjacking.XFrameOptionsMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "98f79ffd92d4a060",
+      "parent_span_id": "ac6091f22d9366a3",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.clickjacking.XFrameOptionsMiddleware"
+      },
+      "hash": "d8681423cab4275f",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957970.392034,
+      "start_timestamp": 1661957970.392019,
+      "exclusive_time": 0.01502,
+      "description": "django.middleware.csrf.CsrfViewMiddleware.process_view",
+      "op": "django.middleware",
+      "span_id": "b455d7ac30d3a0a0",
+      "parent_span_id": "98f79ffd92d4a060",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "tags": {
+        "django.function_name": "django.middleware.csrf.CsrfViewMiddleware.process_view",
+        "django.middleware_name": "django.middleware.csrf.CsrfViewMiddleware"
+      },
+      "hash": "e853d2eb7fb9ebb0",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.565666,
+      "start_timestamp": 1661957970.392127,
+      "exclusive_time": 3.560066,
+      "description": "index",
+      "op": "django.view",
+      "span_id": "975f73422c8b1592",
+      "parent_span_id": "98f79ffd92d4a060",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "hash": "6a992d5529f459a4",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.244459,
+      "start_timestamp": 1661957970.393029,
+      "exclusive_time": 1520.380972,
+      "description": "connect",
+      "op": "db",
+      "span_id": "9f31e1ee4ef94970",
+      "parent_span_id": "975f73422c8b1592",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "hash": "b640a0ce465fa2a4",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1761957972.078148,
+      "start_timestamp": 1661957971.911963,
+      "exclusive_time": 166.184903,
+      "description": "\n                SELECT VERSION(),\n                       @@sql_mode,\n                       @@default_storage_engine,\n                       @@sql_auto_is_null,\n                       @@lower_case_table_names,\n                       CONVERT_TZ('2001-01-01 01:00:00', 'UTC', 'UTC') IS NOT NULL\n            ",
+      "op": "db",
+      "span_id": "a05754d3fde2db29",
+      "parent_span_id": "9f31e1ee4ef94970",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "hash": "3a91b85ea92a26b9",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.244184,
+      "start_timestamp": 1661957972.07932,
+      "exclusive_time": 164.864064,
+      "description": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+      "op": "db",
+      "span_id": "8ed794ef6fc2ca5d",
+      "parent_span_id": "9f31e1ee4ef94970",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "hash": "061710eb39a66089",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1661957972.563516,
+      "start_timestamp": 1661957972.244967,
+      "exclusive_time": 318.548918,
+      "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id`, `books_author`.`id`, `books_author`.`name` FROM `books_book` INNER JOIN `books_author` ON (`books_book`.`author_id` = `books_author`.`id`) LIMIT 10",
+      "op": "db",
+      "span_id": "85dc61f6b5fbfa2b",
+      "parent_span_id": "975f73422c8b1592",
+      "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+      "hash": "e5aa87dbfacc0120",
+      "same_process_as_parent": true
+    }
+  ],
+  "start_timestamp": 1661957970.376365,
+  "timestamp": 1661957972.566927,
+  "title": "/books/",
+  "transaction": "/books/",
+  "transaction_info": {"source": "route"},
+  "type": "transaction"
+}

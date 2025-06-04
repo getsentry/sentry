@@ -1,0 +1,56 @@
+{
+  "UserFeedback": {
+    "type": "object",
+    "required": [
+      "comments",
+      "dateCreated",
+      "email",
+      "event",
+      "eventID",
+      "id",
+      "issue",
+      "name",
+      "user"
+    ],
+    "properties": {
+      "comments": {
+        "type": "string"
+      },
+      "dateCreated": {
+        "type": "string"
+      },
+      "email": {
+        "type": "string"
+      },
+      "event": {
+        "type": "object",
+        "properties": {
+          "eventID": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "eventID": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "issue": {
+        "type": "object",
+        "nullable": true
+      },
+      "name": {
+        "type": "string"
+      },
+      "user": {
+        "type": "object",
+        "nullable": true
+      }
+    }
+  }
+}

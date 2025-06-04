@@ -1,0 +1,10 @@
+{% load i18n %}
+
+{% if request.GET.success %}
+    <div class="alert alert-success">
+        {% trans "Changes to your configuration were saved successfully." %}
+        <a class="close" data-dismiss="alert" href="javascript:void(0)">&times;</a>
+    </div>
+{% endif %}
+
+{% include "sentry/partial/_form.html" %}

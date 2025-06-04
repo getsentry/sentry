@@ -1,0 +1,39 @@
+---
+created: '2024-12-17T22:50:13.695653+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "client_fingerprint": "['{{ default }}', \"adopt don't shop\"]",
+  "fingerprint": "['{{ default }}', \"adopt don't shop\"]",
+  "fingerprint_source": "client",
+  "is_hybrid_fingerprint": true,
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "True"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "5b5ad5a0fbb4deb5e3fc631ce42681ae"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          type*
+            "FailedToFetchError"
+          value*
+            "FailedToFetchError: Charlie didn't bring the ball back!"
+    info: {"client_fingerprint":["{{ default }}","adopt don't shop"]}
+    values: ["{{ default }}","adopt don't shop"]

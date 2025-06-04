@@ -1,0 +1,25 @@
+{
+  "fingerprint": ["{{ default }}", "dogs are great"],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "bar/foo.tsx",
+              "module": "bar.bar",
+              "filename": "foo.tsx",
+              "lineno": 1,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "ChunkLoadError",
+        "value": "ChunkLoadError: something else..."
+      }
+    ]
+  },
+  "platform": "javascript",
+  "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"}
+}

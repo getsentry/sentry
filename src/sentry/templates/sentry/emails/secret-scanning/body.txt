@@ -1,0 +1,15 @@
+{{ token_type }} exposed
+
+Your Sentry {{ token_type }} was found publicly on the internet. We recommend revoking this token immediately, as exposed tokens pose a security risk to your account:
+{{ revoke_url }}
+
+Name:   {{ token_name }}
+Token:  {{ token_redacted }}
+SHA256: {{ hashed_token }}
+
+Source: {{ exposed_source }}
+URL:    {{ exposed_url }}
+Date:   {{ datetime|date:"N j, Y, P e" }}
+
+Read more about Sentry Auth Tokens:
+https://docs.sentry.io/account/auth-tokens/

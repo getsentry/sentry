@@ -1,0 +1,30 @@
+---
+created: '2021-08-03T15:05:53.053417Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+RemoteException:Remote stack trace:
+	at com.android.server.AlarmManagerService.setImpl(AlarmManagerService.java:1879)
+	at com.android.server.AlarmManagerService$3.set(AlarmManagerService.java:2306)
+	at android.app.IAlarmManager$Stub.onTransact(IAlarmManager.java:178)
+	at android.os.Binder.execTransactInternal(Binder.java:1021)
+	at android.os.Binder.execTransact(Binder.java:994)
+ (thread_id:_, crashed:_)
+
+
+IllegalStateException:_ (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+  androidx.work.impl.utils.ForceStopRunnable  run category=indirection
+  androidx.work.impl.utils.ForceStopRunnable  ࡱࡢ category=indirection
+  androidx.work.impl.utils.ForceStopRunnable  a category=indirection
+  androidx.work.impl.utils.ForceStopRunnable  ࡮ࡢ category=indirection
+                    android.app.AlarmManager  setExact category=std
+                    android.app.AlarmManager  setImpl category=internals
+        android.app.IAlarmManager$Stub$Proxy  set category=internals
+                           android.os.Parcel  readException category=internals
+                           android.os.Parcel  readException category=internals
+                           android.os.Parcel  createException category=internals

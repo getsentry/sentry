@@ -1,0 +1,86 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block bodyclass %}digest{% endblock %}
+
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    {% if not has_alert_integration %}
+      <a href="{{ slack_link }}" class="btn btn-default integration-link">
+        <img src="{% absolute_asset_url 'sentry' 'images/email/slack-logo.png' %}" class="logo-small" />
+        Set up in Slack
+      </a>
+    {% endif %}
+  </div>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container" style="padding-top: 30px;">
+  <h2>{{ counts|length }} new alert{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.slug }}</a></h2>
+  {% with start=start|date:"N j, Y, P e" end=end|date:"N j, Y, P e" %}
+    <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
+  {% endwith %}
+</div>
+
+{% for rule, groups in digest.items %}
+
+    <div class="rule">
+      <div class="container">
+        {% with rule_details=rules_details|get_item:rule.id snooze_alert_url=snooze_alert_urls|get_item:rule.id %}
+        {% if snooze_alert %}
+            <a class="mute" href="{% absolute_uri snooze_alert_url %}">Mute this alert</a>
+        {% endif %}
+            This email was triggered by <a href="{% absolute_uri rule_details.status_url %}">{{ rule_details.label }}</a>
+        {% endwith %}
+      </div>
+    </div>
+
+    <div class="container">
+      <table class="event-list">
+          <tr>
+              <th colspan="2">Issue</th>
+          </tr>
+          {% for group, records in groups.items %}
+            {% if forloop.counter0 < 10 %}
+              <tr>
+                  <td class="error-level">
+                      <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
+                  </td>
+                  <td class="event-detail">
+                      {% include "sentry/emails/_group.html" %}
+                      <div>
+                        <small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
+                        {% if show_replay_links and group.has_replays %}
+                          <span class="replay-link">
+                            <a href="{{ group.get_absolute_url }}replays?referrer=alert_email">
+                              <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="10px" height="10px"
+                                alt="Session Replay">
+                              View Replays
+                            </a>
+                          </span>
+                        {% endif %}
+                      </div>
+                  </td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+          {% with groups.items|length|add:"-10" as remainder %}
+            {% if remainder >= 1 %}
+                <tr>
+                    <td colspan="3" class="more-events">
+                        and {{ remainder }} more issue{{ remainder|pluralize }}
+                    </td>
+                </tr>
+            {% endif %}
+          {% endwith %}
+      </table>
+    </div>
+{% endfor %}
+
+{% endblock %}

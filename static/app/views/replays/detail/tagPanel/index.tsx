@@ -1,0 +1,117 @@
+import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+
+import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {KeyValueTable} from 'sentry/components/keyValueTable';
+import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
+import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+
+export default function TagPanel() {
+  const organization = useOrganization();
+  const {replay} = useReplayContext();
+  const replayRecord = replay?.getReplay();
+  const tags = replayRecord?.tags;
+  const sdkOptions = replay?.getSDKOptions();
+
+  const tagsWithConfig = useMemo(() => {
+    const unorderedTags = {
+      ...tags,
+      ...Object.fromEntries(
+        Object.entries(sdkOptions ?? {}).map(
+          ([key, value]) =>
+            key === 'name' || key === 'version'
+              ? ['sdk.' + key, [value]]
+              : ['sdk.replay.' + key, [value]] // specify tags from the replay sdk; these tags are not searchable
+        )
+      ),
+    };
+
+    // Sort the tags by key
+    const sortedTags = Object.keys(unorderedTags)
+      .sort()
+      .reduce((acc, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        acc[key] = unorderedTags[key];
+        return acc;
+      }, {});
+
+    return sortedTags;
+  }, [tags, sdkOptions]);
+
+  const filterProps = useTagFilters({tags: tagsWithConfig || {}});
+  const {items} = filterProps;
+
+  const generateUrl = useCallback(
+    (name: string, value: string): LocationDescriptor => ({
+      pathname: makeReplaysPathname({
+        path: '/',
+        organization,
+      }),
+      query: {
+        // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
+        query: `${name}:"${value}"`,
+      },
+    }),
+    [organization]
+  );
+
+  if (!replayRecord) {
+    return <PaddedPlaceholder testId="replay-tags-loading-placeholder" height="100%" />;
+  }
+  const filteredTags = Object.entries(items);
+
+  return (
+    <ErrorBoundary mini>
+      <PaddedFluidHeight>
+        <TagFilters tags={tags} {...filterProps} />
+        <TabItemContainer>
+          <StyledPanel>
+            <FluidPanel>
+              {filteredTags.length ? (
+                <KeyValueTable noMargin>
+                  {filteredTags.map(([key, values]) => (
+                    <ReplayTagsTableRow
+                      key={key}
+                      name={key}
+                      values={values}
+                      generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                    />
+                  ))}
+                </KeyValueTable>
+              ) : (
+                <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+              )}
+            </FluidPanel>
+          </StyledPanel>
+        </TabItemContainer>
+      </PaddedFluidHeight>
+    </ErrorBoundary>
+  );
+}
+
+const PaddedPlaceholder = styled(Placeholder)`
+  padding-top: ${space(1)};
+`;
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
+
+const StyledPanel = styled('div')`
+  position: relative;
+  height: 100%;
+  overflow: auto;
+  display: grid;
+`;

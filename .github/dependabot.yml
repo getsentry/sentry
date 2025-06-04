@@ -1,0 +1,74 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    open-pull-requests-limit: 10
+    directory: '/'
+    schedule:
+      # Going to start with a high interval, and then tone it back
+      interval: daily
+      timezone: America/Los_Angeles
+      time: '15:30'
+    reviewers:
+      - '@getsentry/owners-js-deps'
+    labels: []
+    # Group dependency updates together in one PR
+    # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
+    groups:
+      # The name of the group, it will be used in PR titles and branch
+      babel-dependencies:
+        patterns:
+          - '@babel/*'
+      sentry-dependencies:
+        patterns:
+          - '@sentry/*'
+      spectrum-dependencies:
+        patterns:
+          - '@react-stately/*'
+          - '@react-aria/*'
+          - '@react-types/*'
+      emotion-dependencies:
+        patterns:
+          - '@emotion/*'
+      jest-dependencies:
+        patterns:
+          - 'jest'
+          - 'jest-*'
+      react-testing-library-dependencies:
+        patterns:
+          - '@testing-library/*'
+      react-dependencies:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      webpack-dependencies:
+        patterns:
+          - 'webpack'
+          - 'webpack-*'
+    ignore:
+      # For all packages, ignore all patch updates
+      - dependency-name: '*'
+        update-types: ['version-update:semver-patch']
+
+      # We ignore everything that hasn't yet been upgrade, this way we will
+      # only get the _freshest_ of new packages to consider upgrading
+      - dependency-name: '@types/react-router'
+      - dependency-name: '@types/react-select'
+      - dependency-name: '@types/reflux'
+      - dependency-name: 'gettext-parser'
+      - dependency-name: 'react-lazyload'
+      - dependency-name: 'react-router'
+      - dependency-name: 'react-select'
+      - dependency-name: 'reflux'
+      - dependency-name: 'sprintf-js'
+      - dependency-name: 'u2f-api'
+  - package-ecosystem: 'docker'
+    directory: 'self-hosted/'
+    schedule:
+      interval: 'daily'
+    reviewers:
+      - '@getsentry/dev-infra'
+      - '@getsentry/security'
+    # security only updates
+    open-pull-requests-limit: 0

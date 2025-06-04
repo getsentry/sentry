@@ -1,0 +1,117 @@
+{
+  "event_id": "a34995f858d44638ad318eed0221e4e3",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_dispatch_root_queues_init_once",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "start_wqthread",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_wqthread",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_dispatch_worker_thread2",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_root_queue_drain",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "value": "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "forEach",
+        "abs_path": "[native code]",
+        "filename": "[native code]"
+      }
+    ]
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "TeamMinimal": {
+    "type": "object",
+    "required": ["id", "name", "slug"],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "slug": {
+        "type": "string"
+      }
+    }
+  },
+  "Team": {
+    "type": "object",
+    "required": [
+      "avatar",
+      "dateCreated",
+      "hasAccess",
+      "id",
+      "isMember",
+      "isPending",
+      "memberCount",
+      "name",
+      "slug"
+    ],
+    "properties": {
+      "avatar": {
+        "$ref": "avatar.json#/Avatar"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "isPending": {
+        "type": "boolean"
+      },
+      "memberCount": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "name": {
+        "type": "string"
+      },
+      "slug": {
+        "type": "string"
+      }
+    }
+  },
+  "TeamWithOrganization": {
+    "type": "object",
+    "required": [
+      "avatar",
+      "dateCreated",
+      "hasAccess",
+      "id",
+      "isMember",
+      "isPending",
+      "memberCount",
+      "name",
+      "slug",
+      "organization"
+    ],
+    "properties": {
+      "avatar": {
+        "$ref": "avatar.json#/Avatar"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "isPending": {
+        "type": "boolean"
+      },
+      "memberCount": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "organization": {
+        "$ref": "organization.json#/Organization"
+      },
+      "name": {
+        "type": "string"
+      },
+      "slug": {
+        "type": "string"
+      }
+    }
+  },
+  "TeamWithProjects": {
+    "type": "object",
+    "required": [
+      "avatar",
+      "dateCreated",
+      "hasAccess",
+      "id",
+      "isMember",
+      "isPending",
+      "memberCount",
+      "name",
+      "projects",
+      "slug"
+    ],
+    "properties": {
+      "avatar": {
+        "$ref": "avatar.json#/Avatar"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "isPending": {
+        "type": "boolean"
+      },
+      "memberCount": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "name": {
+        "type": "string"
+      },
+      "projects": {
+        "type": "array",
+        "items": {
+          "$ref": "project.json#/Project"
+        }
+      },
+      "slug": {
+        "type": "string"
+      }
+    }
+  }
+}

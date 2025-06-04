@@ -1,0 +1,60 @@
+---
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+errors: null
+get_api_context:
+  excOmitted: null
+  hasSystemFrames: true
+  values:
+  - mechanism:
+      exception_id: 0
+      source: __context__
+      type: generic
+    module: foo.bar
+    rawStacktrace: null
+    stacktrace:
+      frames:
+      - absPath: foo/baz.py
+        colNo: null
+        context: []
+        errors: null
+        filename: foo/baz.py
+        function: null
+        inApp: true
+        instructionAddr: null
+        lineNo: 1
+        lock: null
+        module: null
+        package: null
+        platform: null
+        rawFunction: null
+        sourceLink: null
+        symbol: null
+        symbolAddr: null
+        trust: null
+        vars: null
+      framesOmitted: null
+      hasSystemFrames: true
+      registers: null
+    threadId: null
+    type: ValueError
+    value: hello world
+tags:
+- - mechanism
+  - generic
+to_json:
+  values:
+  - mechanism:
+      exception_id: 0
+      source: __context__
+      type: generic
+    module: foo.bar
+    stacktrace:
+      frames:
+      - abs_path: foo/baz.py
+        filename: foo/baz.py
+        in_app: true
+        lineno: 1
+    type: ValueError
+    value: hello world
+to_string: "ValueError: hello world\n  File \"foo/baz.py\", line 1"

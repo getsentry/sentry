@@ -1,0 +1,12 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+	<h3>{% trans "Recover Account" %}</h3>
+	{% url 'sentry-account-recover' as link %}
+	<p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
+{% endblock %}

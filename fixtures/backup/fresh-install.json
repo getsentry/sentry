@@ -1,0 +1,447 @@
+[
+{
+  "model": "sentry.option",
+  "pk": 1,
+  "fields": {
+    "key": "sentry:last_worker_ping",
+    "last_updated": "2023-06-27T21:40:01.305Z",
+    "last_updated_by": "unknown",
+    "value": 1687902001.2623305
+  }
+},
+{
+  "model": "sentry.option",
+  "pk": 2,
+  "fields": {
+    "key": "sentry:last_worker_version",
+    "last_updated": "2023-06-27T21:40:01.312Z",
+    "last_updated_by": "unknown",
+    "value": "\"23.7.0.dev0\""
+  }
+},
+{
+  "model": "sentry.option",
+  "pk": 3,
+  "fields": {
+    "key": "sentry:install-id",
+    "last_updated": "2023-06-23T00:03:42.785Z",
+    "last_updated_by": "unknown",
+    "value": "\"1bc81f9440424e908a73ca377581cb52682db68a\""
+  }
+},
+{
+  "model": "sentry.option",
+  "pk": 4,
+  "fields": {
+    "key": "sentry:latest_version",
+    "last_updated": "2023-06-27T21:25:02.602Z",
+    "last_updated_by": "unknown",
+    "value": "\"23.6.1\""
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 1,
+  "fields": {
+    "email": "admin@example.com",
+    "date_added": "2023-06-22T22:59:55.531Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 2,
+  "fields": {
+    "email": "member@example.com",
+    "date_added": "2023-06-22T22:59:56.531Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 3,
+  "fields": {
+    "email": "superadmin@example.com",
+    "date_added": "2023-06-22T22:59:57.531Z"
+  }
+},
+{
+  "model": "sentry.organization",
+  "pk": 1,
+  "fields": {
+    "name": "Testing",
+    "slug": "testing",
+    "status": 0,
+    "date_added": "2023-06-22T22:54:28.773Z",
+    "default_role": "member",
+    "is_test": false,
+    "flags": "1"
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
+    "last_login": null,
+    "username": "admin@example.com",
+    "name": "",
+    "email": "admin@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": true,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "is_unclaimed": false,
+    "last_password_change": "2023-06-22T22:59:57.023Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-06-22T22:59:55.488Z",
+    "last_active": "2023-06-22T22:59:55.489Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+Atix29ch10FZLxQI37mVU1gL2KbL/qtru7a/eu9A17=",
+    "last_login": null,
+    "username": "member@example.com",
+    "name": "",
+    "email": "member@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": true,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "is_unclaimed": false,
+    "last_password_change": "2023-06-22T22:59:58.023Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-06-22T22:59:56.488Z",
+    "last_active": "2023-06-22T22:59:56.489Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$720000$Qr71byRoUAtqx37gux7FZLx3Wa7mVU1gL2KbL8Iozk/Fw9dVd/93cwBk=",
+    "last_login": null,
+    "username": "superadmin@example.com",
+    "name": "",
+    "email": "superadmin@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": true,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "is_unclaimed": false,
+    "last_password_change": "2023-06-22T22:59:59.023Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-06-22T22:59:57.488Z",
+    "last_active": "2023-06-22T22:59:57.489Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.relayusage",
+  "pk": 1,
+  "fields": {
+    "relay_id": "541d8473-0a90-4a4e-b536-704f223521b0",
+    "version": "23.6.1",
+    "first_seen": "2023-06-22T23:07:12.275Z",
+    "last_seen": "2023-06-27T21:27:32.702Z",
+    "public_key": "mEOy5fxmUgSEgpDWdovUMgBlkbo-ENo3bP8lyB5Z1-Q"
+  }
+},
+{
+  "model": "sentry.relay",
+  "pk": 1,
+  "fields": {
+    "relay_id": "541d8473-0a90-4a4e-b536-704f223521b0",
+    "public_key": "mEOy5fxmUgSEgpDWdovUMgBlkbo-ENo3bP8lyB5Z1-Q",
+    "first_seen": null,
+    "last_seen": null,
+    "is_internal": true
+  }
+},
+{
+  "model":"sentry.authenticator",
+  "pk":1,
+  "fields": {
+    "user":1,
+    "created_at": "2023-06-22T22:59:55.602Z",
+    "last_used_at": null,
+    "type": 1,
+    "config": "\"\""
+  }
+},
+{
+  "model":"sentry.authenticator",
+  "pk": 2,
+  "fields": {
+    "user": 2,
+    "created_at": "2023-06-22T22:59:56.602Z",
+    "last_used_at": null,
+    "type": 1,
+    "config": "\"\""
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 1,
+  "fields": {
+    "user": 1,
+    "email": "admin@example.com",
+    "validation_hash": "mCnWesSVvYQcq7qXQ36AZHwosAd6cghE",
+    "date_hash_added": "2023-06-22T22:59:55.521Z",
+    "is_verified": false
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 2,
+  "fields": {
+    "user": 2,
+    "email": "member@example.com",
+    "validation_hash": "sJui890evYQcq7qXQ36AZHwochus8f0g",
+    "date_hash_added": "2023-06-22T22:59:56.521Z",
+    "is_verified": false
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 3,
+  "fields": {
+    "user": 3,
+    "email": "superadmin@example.com",
+    "validation_hash": "VSj0hfPGiq1UdkHDg8p49sOP9saYvIwH",
+    "date_hash_added": "2023-06-22T22:59:57.521Z",
+    "is_verified": true
+  }
+},
+{
+  "model": "sentry.userrole",
+  "pk": 1,
+  "fields": {
+    "date_updated": "2023-06-22T23:00:00.123Z",
+    "date_added": "2023-06-22T22:54:27.960Z",
+    "name": "Super Admin",
+    "permissions": "['broadcasts.admin', 'users.admin', 'options.admin']"
+  }
+},
+{
+  "model": "sentry.userroleuser",
+  "pk": 1,
+  "fields": {
+    "date_updated": "2023-06-22T23:00:00.123Z",
+    "date_added": "2023-06-22T22:59:57.000Z",
+    "user": 1,
+    "role": 1
+  }
+},
+{
+  "model": "sentry.userroleuser",
+  "pk": 2,
+  "fields": {
+    "date_updated": "2023-06-22T23:00:00.456Z",
+    "date_added": "2023-06-22T22:59:58.000Z",
+    "user": 3,
+    "role": 1
+  }
+},
+{
+  "model": "sentry.team",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "slug": "testing",
+    "name": "Testing",
+    "status": 0,
+    "actor": 1,
+    "idp_provisioned": false,
+    "date_added": "2023-06-22T22:54:28.821Z"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "user_id": 1,
+    "email": null,
+    "role": "owner",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-06-22T22:59:55.561Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": null,
+    "invite_status": 0,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": "admin@example.com"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 2,
+  "fields": {
+    "organization": 1,
+    "user_id": 2,
+    "email": null,
+    "role": "member",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-06-22T22:59:56.561Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": 3,
+    "invite_status": 0,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": "member@example.com"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 3,
+  "fields": {
+    "organization": 1,
+    "user_id": null,
+    "email": "pending@example.com",
+    "role": "member",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-06-22T22:59:56.561Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": 1,
+    "invite_status": 1,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": null
+  }
+},
+{
+  "model": "sentry.project",
+  "pk": 1,
+  "fields": {
+    "slug": "internal",
+    "name": "Internal",
+    "forced_color": null,
+    "organization": 1,
+    "public": false,
+    "date_added": "2023-06-22T22:54:28.851Z",
+    "status": 0,
+    "first_event": null,
+    "flags": "10",
+    "platform": null
+  }
+},
+{
+  "model": "sentry.projectkey",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "label": "Default",
+    "public_key": "c1373be35a7944808c8bcfede8097df1",
+    "secret_key": "d4d14d244f8e48788673116ca7646c93",
+    "roles": "1",
+    "status": 0,
+    "date_added": "2023-06-22T22:54:28.932Z",
+    "rate_limit_count": null,
+    "rate_limit_window": null,
+    "data": {
+      "dynamicSdkLoaderOptions": {
+        "hasPerformance": true,
+        "hasReplay": true
+      }
+    }
+  }
+},
+{
+  "model": "sentry.rule",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "environment_id": null,
+    "label": "Send a notification for new issues",
+    "data": "{\"match\":\"all\",\"conditions\":[{\"id\":\"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition\"}],\"actions\":[{\"id\":\"sentry.mail.actions.NotifyEmailAction\",\"targetType\":\"IssueOwners\",\"targetIdentifier\":null,\"fallthroughType\":\"ActiveMembers\"}]}",
+    "status": 0,
+    "source": 0,
+    "owner": null,
+    "date_added": "2023-06-22T22:54:28.982Z"
+  }
+},
+{
+  "model": "sentry.projectteam",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "team": 1
+  }
+},
+{
+  "model": "sentry.organizationmemberteam",
+  "pk": 1,
+  "fields": {
+    "team": 1,
+    "organizationmember": 1,
+    "is_active": true,
+    "role": null
+  }
+},
+{
+  "model": "sentry.organizationmemberteam",
+  "pk": 2,
+  "fields": {
+    "team": 1,
+    "organizationmember": 2,
+    "is_active": true,
+    "role": null
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 3,
+  "fields": {
+    "project": 1,
+    "key": "sentry:option-epoch",
+    "value": 11
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 4,
+  "fields": {
+    "project": 1,
+    "key": "sentry:origins",
+    "value": "[\"*\"]"
+  }
+},
+{
+  "model": "sentry.apiapplication",
+  "pk": 1,
+  "fields": {
+    "client_id": "e3bc5ddfe2d6c48115efa3c70bbeb0ef938f37a124a1e3a1275d804d15d111c9","client_secret": "bdcec56c5c1b3763afc292883dc0e7e6a0e7164d20435b9f4799e1df513ff940",
+    "owner":1,
+    "name": "uniquely-named-application",
+    "status": 0,
+    "allowed_origins": "",
+    "redirect_uris": "",
+    "homepage_url": null,
+    "privacy_url": null,
+    "terms_url": null,
+    "date_added": "2023-06-22T21:50:27.787Z"
+  }
+}
+]

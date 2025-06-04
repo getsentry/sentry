@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="robots" content="NONE,NOARCHIVE" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
+    <script>
+      function __sentryMark(name) {
+        if (!window.performance || typeof window.performance.mark !== 'function') { return; }
+        window.performance.mark(name);
+      }
+      __sentryMark('head-start');
+    </script>
+  </head>
+
+  <body>
+    <% if (htmlWebpackPlugin.options.unsupportedBrowser) { %>
+    <style>.unsupported-browser { display: none; }</style>
+    <div class="unsupported-browser">
+      Sorry, your browser is not supported.  Please upgrade to
+      the latest version or switch your browser to use this site.
+      See <a href="http://outdatedbrowser.com/">outdatedbrowser.com</a>
+      for options.
+    </div>
+    <% } %>
+
+    <div id="blk_router">
+      <div class="loading triangle">
+        <div class="loading-mask"></div>
+        <div class="loading-indicator" data-test-id="loading-indicator">
+          <img src="<%=require('sentry-images/sentry-loader.svg')%>" />
+        </div>
+        <div class="loading-message">
+          <p>Please wait while we load an obnoxious amount of JavaScript.</p>
+          <p>
+            <small>You may need to disable adblocking extensions to load Sentry.</small>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <% if (htmlWebpackPlugin.options.window) { %>
+    <script>
+      <% for (var varName in htmlWebpackPlugin.options.window) { %>
+          window['<%=varName%>'] = <%= JSON.stringify(htmlWebpackPlugin.options.window[varName]) %>;
+        <% } %>
+    </script>
+    <% } %>
+  </body>
+</html>

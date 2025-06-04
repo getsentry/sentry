@@ -1,0 +1,219 @@
+{
+  "event_id": "827bb50cd3434987924d7853569e2963",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "RuntimeInit.java",
+              "filename": "RuntimeInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleMessage",
+              "module": "android.app.ActivityThread$H"
+            },
+            {
+              "function": "-wrap18",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleRelaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleLaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleResumeActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "performResumeActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "performResume",
+              "module": "android.app.Activity"
+            },
+            {
+              "abs_path": "Instrumentation.java",
+              "filename": "Instrumentation.java",
+              "function": "callActivityOnResume",
+              "module": "android.app.Instrumentation"
+            },
+            {
+              "abs_path": "FragmentActivity.java",
+              "filename": "FragmentActivity.java",
+              "function": "onResume",
+              "module": "androidx.fragment.app.FragmentActivity"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "onResume",
+              "module": "android.app.Activity"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "isTopOfTask",
+              "module": "android.app.Activity"
+            },
+            {
+              "abs_path": "IActivityManager.java",
+              "filename": "IActivityManager.java",
+              "function": "isTopOfTask",
+              "module": "android.app.IActivityManager$Stub$Proxy"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "readException",
+              "module": "android.os.Parcel"
+            },
+            {
+              "abs_path": "Parcel.java",
+              "filename": "Parcel.java",
+              "function": "readException",
+              "module": "android.os.Parcel"
+            }
+          ]
+        },
+        "type": "IllegalArgumentException"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "RuntimeInit.java",
+              "filename": "RuntimeInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleMessage",
+              "module": "android.app.ActivityThread$H"
+            },
+            {
+              "function": "-wrap18",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleRelaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleLaunchActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "handleResumeActivity",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "performResumeActivity",
+              "module": "android.app.ActivityThread"
+            }
+          ]
+        },
+        "type": "RuntimeException"
+      }
+    ]
+  },
+  "platform": "java"
+}

@@ -1,0 +1,34 @@
+---
+created: '2024-11-08T22:03:15.510987+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - in-main
+    matchers:
+    - - function
+      - main
+    text: function:"main" -> "in-main"
+  version: 1
+fingerprint:
+- in-main
+title: <unlabeled event>
+variants:
+  app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component
+  custom_fingerprint:
+    matched_rule: function:"main" -> "in-main"
+    type: custom_fingerprint
+    values:
+    - in-main
+  system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

@@ -1,0 +1,28 @@
+---
+created: '2024-11-20T21:26:10.823056+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: fingerprint
+hashing_metadata: {
+  "fingerprint": "['soft-timelimit-exceeded']",
+  "fingerprint_source": "server_custom_rule",
+  "is_hybrid_fingerprint": false,
+  "matched_fingerprinting_rule": "type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "fingerprint",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.fingerprint": {
+    "fingerprint_source": "server_custom_rule"
+  }
+}
+---
+contributing variants:
+  custom_fingerprint*
+    hash: "554e214208f0372603dc9fa6c1c0965f"
+    info: {"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
+    values: ["soft-timelimit-exceeded"]

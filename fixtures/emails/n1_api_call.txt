@@ -1,0 +1,51 @@
+Details
+-------
+
+http://testserver/organizations/sentry/issues/x/?referrer=alert_email&amp;alert_type=email&amp;alert_timestamp=1337&amp;alert_rule_id=1
+
+
+Suspect Commits
+---------------
+
+* feat: Do something to raven/base.py
+  1b17483 - dcramer@gmail.com
+
+
+Tags
+----
+
+* browser = Chrome 108.0.0
+* browser.name = Chrome
+* client_os = Mac OS X &gt;=10.15.7
+* client_os.name = Mac OS X
+* device = Mac
+* device.family = Mac
+* deviceMemory = 8 GB
+* effectiveConnectionType = 4g
+* environment = production
+* hardwareConcurrency = 10
+* lcp.element = body &gt; div#__next &gt; h1
+* lcp.size = 5738
+* level = info
+* os = Mac OS X 10.15.7
+* os.name = Mac OS X
+* sentry:user = ip:127.0.0.1
+* transaction = /
+* url = http://localhost:3030/
+
+
+Request
+-----------
+
+
+
+
+User
+-----------
+
+
+
+
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

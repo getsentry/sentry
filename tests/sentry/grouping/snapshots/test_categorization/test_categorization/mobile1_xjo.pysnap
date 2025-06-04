@@ -1,0 +1,29 @@
+---
+created: '2021-08-06T16:25:45.367856Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NullPointerException:_ (thread_id:_, crashed:_)
+                   dalvik.system.NativeStart  main category=system
+          com.android.internal.os.ZygoteInit  main category=internals
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invokeNative category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+              android.view.View$PerformClick  run category=indirection
+                           android.view.View  performClick category=ui
+  com.lenovo.lsf.lenovoid.ui.KeyLoginActivit  onClick category=internals
+  com.lenovo.lsf.lenovoid.ui.KeyLoginActivit  ᫔᫙᫛ category=internals
+  com.lenovo.lsf.lenovoid.analytics.Analytic  trackEventCommon category=internals
+  com.lenovo.lsf.lenovoid.analytics.Analytic  ࡣ᫒᫛ category=internals
+  com.lenovo.lsf.lenovoid.analytics.Analytic  trackEventCommon category=internals
+  com.lenovo.lsf.lenovoid.analytics.Analytic  ࡣ᫒᫛ category=internals
+  com.lenovo.lsf.lenovoid.utility.DeviceInfo  getImeiAddr category=internals
+  com.lenovo.lsf.lenovoid.utility.DeviceInfo  ᫄᫄᫛ category=internals
+  com.lenovo.lsf.lenovoid.utility.DeviceInfo  getIMEI category=internals
+  com.lenovo.lsf.lenovoid.utility.DeviceInfo  ᫄᫄᫛ category=internals

@@ -1,0 +1,20 @@
+<yandex>
+    <max_server_memory_usage_to_ram_ratio>0.3</max_server_memory_usage_to_ram_ratio>
+
+    <remote_servers>
+        <cluster_one_sh>
+            <shard>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster_one_sh>
+    </remote_servers>
+
+    <macros>
+        <shard>1</shard>
+        <replica>1</replica>
+    </macros>
+
+</yandex>

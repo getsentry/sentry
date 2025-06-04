@@ -1,0 +1,47 @@
+name: ❅ Flaky Test
+description: Report a flaky test in CI
+title: '[Flaky CI]: '
+labels: ['Type: CI Flakiness']
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Flakiness Type
+      description: What are you observing
+      options:
+        - Timeout
+        - Jest Snapshot
+        - Insta Snapshot
+        - Assertion failure
+        - Other / Unknown
+    validations:
+      required: true
+  - type: input
+    id: job-name
+    attributes:
+      label: Name of Job
+      placeholder: acceptance / acceptance (0)
+      description: name of job as reported in the status report
+    validations:
+      required: true
+  - type: input
+    id: test-name
+    attributes:
+      label: Name of Test
+      placeholder: tests/js/spec/views/settings/projectDebugFiles/customRepositories.spec.tsx
+      description: file name or function name of failing test
+    validations:
+      required: false
+  - type: input
+    id: test-run-link
+    attributes:
+      label: Link to Test Run
+      placeholder: https://github.com/getsentry/sentry/runs/5582673807
+      description: paste the URL to a test run showing the issue
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: If you know anything else, please add it here

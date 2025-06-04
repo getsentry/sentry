@@ -1,0 +1,53 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_assets %}
+
+{% block title %}{% trans "Internal Server Error" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="alert alert-block alert-error">
+      <div style="font-size:24px;margin-bottom:10px">
+        <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
+        <span>Oops! Something went wrong</span>
+      </div>
+
+      <p>It looks like you've hit an issue in our server API. Don't worry
+        though! We use Sentry to monitor Sentry and it's likely we're already
+        looking into this!</p>
+      <p>If you're daring, you may want to try the following:</p>
+      <ul>
+        <li>Give it a few seconds and <a onClick="window.location.href = window.location.href">reload the page</a>.</li>
+        <li>If all else fails, <a href="https://github.com/getsentry/sentry/issues/new/choose">contact us</a> with more details.</li>
+      </ul>
+    </div>
+
+    {% if request.sentry.id %}
+      {% script %}
+      <script>
+      window.sentryConfig = {{ embed_config }};
+      // TODO(dcramer): This snippet will be moved in to the generated "installation code"
+      (function(document, window){
+        var config = window.sentryConfig;
+        var escape = window.encodeURIComponent;
+        var endpoint = '{% url 'sentry-error-page-embed' %}';
+        endpoint += '?eventId=' + escape(config.eventId || '');
+        endpoint += '&dsn=' + escape(config.dsn || '');
+        if (config.userName) {
+          endpoint += '&name=' + escape(config.userName);
+        }
+        if (config.userEmail) {
+          endpoint += '&email=' + escape(config.userEmail);
+        }
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.async = true;
+        script.src = endpoint;
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(script);
+      })(document, window);
+      </script>
+      {% endscript %}
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% spaceless %}
+{% autoescape off %}
+# {{ title }}
+
+{{ text_description }}
+
+
+## Issue Details
+
+{{ group.title }}
+
+{{ link }}
+{% if unsubscribe_link %}
+
+Unsubscribe: {{ unsubscribe_link }}{% endif %}
+
+{% endautoescape %}
+{% endspaceless %}

@@ -1,0 +1,227 @@
+{
+  "event_id": "4fd3c90ceee3428883f9162752b5cebb",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "EncryptedSharedPreferences.java",
+              "filename": "EncryptedSharedPreferences.java",
+              "function": "create",
+              "module": "androidx.security.crypto.EncryptedSharedPreferences"
+            },
+            {
+              "abs_path": "EncryptedSharedPreferences.java",
+              "filename": "EncryptedSharedPreferences.java",
+              "function": "create",
+              "module": "androidx.security.crypto.EncryptedSharedPreferences"
+            },
+            {
+              "abs_path": "AndroidKeysetManager.java",
+              "filename": "AndroidKeysetManager.java",
+              "function": "build",
+              "module": "com.google.crypto.tink.integration.android.AndroidKeysetManager$Builder"
+            },
+            {
+              "abs_path": "AndroidKeysetManager.java",
+              "filename": "AndroidKeysetManager.java",
+              "function": "readOrGenerateNewKeyset",
+              "module": "com.google.crypto.tink.integration.android.AndroidKeysetManager$Builder"
+            },
+            {
+              "abs_path": "AndroidKeysetManager.java",
+              "filename": "AndroidKeysetManager.java",
+              "function": "read",
+              "module": "com.google.crypto.tink.integration.android.AndroidKeysetManager$Builder"
+            },
+            {
+              "function": "read",
+              "module": "com.google.crypto.tink.CleartextKeysetHandle"
+            },
+            {
+              "abs_path": "SharedPrefKeysetReader.java",
+              "filename": "SharedPrefKeysetReader.java",
+              "function": "read",
+              "module": "com.google.crypto.tink.integration.android.SharedPrefKeysetReader"
+            },
+            {
+              "abs_path": "Keyset.java",
+              "filename": "Keyset.java",
+              "function": "parseFrom",
+              "module": "com.google.crypto.tink.proto.Keyset"
+            },
+            {
+              "abs_path": "GeneratedMessageLite.java",
+              "filename": "GeneratedMessageLite.java",
+              "function": "parseFrom",
+              "module": "com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite"
+            },
+            {
+              "abs_path": "GeneratedMessageLite.java",
+              "filename": "GeneratedMessageLite.java",
+              "function": "dynamicMethod$37d2341b",
+              "module": "com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite"
+            },
+            {
+              "abs_path": "GeneratedMessageLite.java",
+              "filename": "GeneratedMessageLite.java",
+              "function": "parsePartialFrom",
+              "module": "com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite"
+            },
+            {
+              "abs_path": "GeneratedMessageLite.java",
+              "filename": "GeneratedMessageLite.java",
+              "function": "dynamicMethod$37d2341b",
+              "module": "com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite"
+            }
+          ]
+        },
+        "type": "InvalidProtocolBufferException",
+        "value": "Protocol message contained an invalid tag (zero)."
+      },
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            }
+          ]
+        },
+        "type": "InvocationTargetException"
+      },
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            }
+          ]
+        },
+        "type": "RuntimeException",
+        "value": "java.lang.reflect.InvocationTargetException"
+      }
+    ]
+  },
+  "platform": "java"
+}

@@ -1,0 +1,46 @@
+---
+created: '2024-12-17T22:50:27.260288+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "top-level",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "top-level",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "1effb24729ae4c43efa36b460511136a"
+    contributing component: stacktrace
+    component:
+      app*
+        stacktrace*
+          frame*
+            filename*
+              "foo.py"
+  system*
+    hash: "659ad79e2e70c822d30a53d7d889529e"
+    contributing component: stacktrace
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename*
+              "foo.py"
+          frame*
+            filename*
+              "bar.py"

@@ -1,0 +1,289 @@
+5,Neplatné volanie alebo neplatný argument procedúry
+6,Pretečenie
+7,Nedostatok pamäte
+9,Index je mimo rozsahu
+10,Pole je pevné alebo dočasne zamknuté
+11,Delenie nulou
+13,Rozdielne typy
+14,Nedostatok miesta v reťazci
+17,Požadovaná operácia sa nedá vykonať
+28,Nedostatok miesta v zásobníku
+35,Podprocedúra alebo funkcia sa nenašla
+48,Chyba pri načítavaní knižnice DLL
+51,Vnútorná chyba
+52,Nesprávny názov alebo nesprávne číslo súboru
+53,Súbor sa nenašiel
+54,Chybný režim súboru
+55,Súbor už je otvorený
+57,Vstupno-výstupná chyba zariadenia
+58,Súbor už existuje
+61,Disk je plný
+62,Vstup za koncom súboru
+67,Priveľa súborov
+68,Zariadenie nie je dostupné
+70,Prístup bol odmietnutý
+71,Disk nie je pripravený
+74,Nedá sa premenovať s použitím inej jednotky
+75,Chyba pri prístupe k ceste alebo k súboru
+76,Cesta sa nenašla
+91,Premenná objektu alebo bloku With nie je nastavená
+92,Cyklus For nie je inicializovaný
+94,Neplatné použitie konštanty Null
+322,Nemožno vytvoriť potrebný dočasný súbor
+424,Vyžaduje sa objekt
+429,Server automatizácie nemôže vytvoriť objekt
+430,Trieda nepodporuje automatizáciu
+432,Počas operácie automatizácie sa nenašiel názov súboru alebo triedy
+438,Objekt nepodporuje túto vlastnosť alebo metódu
+440,Chyba automatizácie
+445,Objekt nepodporuje túto akciu
+446,Objekt nepodporuje pomenované argumenty
+447,Objekt nepodporuje miestne nastavenia
+448,Pomenovaný argument sa nenašiel
+449,Argument nie je voliteľný
+450,Nesprávny  počet argumentov alebo nesprávne priradenie vlastností
+451,Objekt nie je kolekciou
+453,Zadaná funkcia knižnice DLL sa nedá nájsť
+458,Premenná používa typ automatizácie, ktorý nie je podporovaný jazykom JavaScript
+462,Vzdialený server neexistuje alebo nie je k dispozícii
+501,Premennej sa nedá priradiť hodnota
+502,Spracovanie objektu skriptom nie je bezpečné
+503,Inicializácia objektu nie je bezpečná
+504,Vytvorenie objektu nie je bezpečné
+507,Vyskytla sa výnimka
+1001,Nedostatok pamäte
+1002,Syntaktická chyba
+1003,Očakáva sa ':'
+1004,Očakáva sa ';'
+1005,Očakáva sa '('
+1006,Očakáva sa ')'
+1007,Očakáva sa ']'
+1008,Očakáva sa '{'
+1009,Očakáva sa '}'
+1010,Očakáva sa identifikátor
+1011,Očakáva sa '='
+1012,Očakáva sa '/'
+1013,Neplatné číslo
+1014,Neplatný znak
+1015,Neukončená reťazcová konštanta
+1016,Neukončený komentár
+1018,Príkaz 'return' mimo funkcie
+1019,Príkaz 'break' nemožno použiť mimo cyklu
+1020,Príkaz 'continue' nemožno použiť mimo cyklu
+1023,Očakáva sa hexadecimálna číslica
+1024,Očakáva sa 'while'
+1025,Návestie sa predefinovalo
+1026,Menovka sa nedá nájsť
+1027,'default' sa môže v príkaze 'switch' nachádzať len raz
+1028,Očakáva sa identifikátor, reťazec alebo číslo
+1029,Očakáva sa '@end'
+1030,Podmienená kompilácia je vypnutá
+1031,Očakáva sa konštanta
+1032,Očakáva sa '@'
+1033,Očakáva sa 'catch'
+1034,Očakáva sa 'var'
+1035,Za príkazom throw musí na tom istom zdrojovom riadku nasledovať výraz
+1037,Prehlásenia with nie sú v prísnom režime povolené
+1038,Duplikáty názvov formálnych parametrov nie sú povolené v prísnom režime
+1039,Osmičkové číselné explicitné hodnoty premennej a znaky ukončenia nie sú v prísnom režime povolené
+1041,Neplatné použitie výrazu eval v prísnom režime
+1042,Neplatné použitie argumentov v prísnom režime
+1045,Volanie funkcie odstránenia pre výraz v prísnom režime nie je povolené
+1046,Viac definícií vlastnosti nie je v prísnom režime povolených
+1047,Deklarácie funkcií nemôžu byť v prísnom režime vnorené v príkaze alebo bloku. Môžu sa zobraziť len na najvyššej úrovni alebo priamo v tele funkcie.
+1048,Používanie kľúčového slova ako identifikátora je neplatné.
+1049,Používanie budúceho vyhradeného slova ako identifikátora je neplatné.
+1050,Používanie budúceho vyhradeného slova ako identifikátora je neplatné. Názov identifikátora je vyhradený v prísnom režime.
+1051,Funkcie metódy Setter musia mať jeden argument
+4096,JavaScript – chyba kompilácie
+4097,JavaScript – chyba počas práce
+4098,Neznáma chyba počas práce
+5000,Nemožno priradiť hodnotu premennej 'this'
+5001,Očakáva sa číslo
+5002,Očakáva sa funkcia
+5003,K výsledku funkcie nemožno priradiť hodnotu
+5004,Objekt sa nedá indexovať
+5005,Očakáva sa reťazec
+5006,Očakáva sa objekt typu dátum
+5007,Očakáva sa objekt
+5008,Neplatná ľavá strana v priradení
+5009,Nedefinovaný identifikátor
+5010,Očakáva sa objekt typu boolean
+5011,Nemožno vykonať kód z uvoľneného skriptu
+5012,Očakáva sa člen objektu
+5013,Očakáva sa objekt VBArray
+5014,Očakáva sa objekt jazyka JavaScript
+5015,Očakáva sa objekt Enumerator
+5016,Očakáva sa objekt typu Regular Expression
+5017,Syntaktická chyba v regulárnom výraze
+5018,Neočakávaný kvantifikátor
+5019,Očakáva sa ']' v regulárnom výraze
+5020,Očakáva sa ')' v regulárnom výraze
+5021,Neplatný rozsah znakovej sady
+5022,Výnimka bola vygenerovaná, ale nebola zachytená
+5023,Funkcia neobsahuje platný objekt prototypu
+5024,Kódované URI obsahuje neplatný znak
+5025,Dekódované URI nemá platné kódovanie
+5026,Počet desatinných miest je mimo rozsahu
+5027,Presnosť je mimo rozsahu
+5028,Očakáva sa objekt typu Array alebo argumenty
+5029,Dĺžka poľa musí byť konečné celé kladné číslo
+5030,Dĺžke poľa musí byť priradené konečné celé kladné číslo
+5031,Očakáva sa objekt typu Array
+5034,Zacyklený odkaz v argumente hodnoty nie je podporovaný
+5035,Neplatný argument náhrady
+5038,Zoznam argumentov je príliš dlhý a nedá sa použiť
+5039,Opakovaná deklarácia vlastnosti const
+5041,Člen objektu sa nedá konfigurovať
+5042,Nedefinovaná premenná v prísnom režime
+5043,Prístup k vlastnosti caller objektu funkcie alebo argumentov nie je v prísnom režime povolený.
+5044,Prístup k vlastnosti callee objektu argumentov nie je v prísnom režime povolený.
+5045,Priradenie k vlastnostiam určeným iba na čítanie nie je v prísnom režime povolené.
+5046,Nedá sa vytvoriť vlastnosť pre nerozšíriteľný objekt
+5047,Očakáva sa objekt
+5048,Očakáva sa objekt
+5049,Očakáva sa objekt
+5050,Očakáva sa objekt
+5051,Očakáva sa funkcia
+5052,Očakáva sa funkcia
+5053,Vlastnosť nemôže mať definované pristupovače zároveň s hodnotou
+5054,Parameter 'this' má hodnotu null alebo nie je definovaný
+5055,Očakáva sa objekt
+5056,Očakáva sa funkcia
+5057,Očakáva sa reťazec
+5058,Očakáva sa objekt typu boolean
+5059,Očakávaný dátum
+5060,Očakáva sa číslo
+5061,Očakáva sa objekt VBArray
+5062,Očakáva sa objekt jazyka JavaScript
+5063,Očakáva sa objekt Enumerator
+5064,Očakáva sa objekt RegExp
+5065,Neplatný argument funkcie
+5066,Očakáva sa objekt
+5067,Očakáva sa objekt jazyka JavaScript
+5068,Očakáva sa funkcia
+5069,Očakáva sa objekt VBArray
+5070,Očakáva sa objekt
+5071,Očakáva sa objekt
+5072,Neplatná vlastnosť length
+5073,Očakáva sa pole alebo objekt argumentov
+5074,Neplatný operand
+5075,Neplatný operand
+5076,Neplatný popisovač vlastnosti
+5077,Vlastnosť sa nepodarilo definovať: objekt nie je rozšíriteľný
+5078,Nie je možné predefinovať nekonfigurovateľnú vlastnosť
+5079,Nie je možné upraviť nezapisovateľnú vlastnosť
+5080,Nie je možné upraviť vlastnosť: vlastnosť length nie je zapisovateľná
+5081,Vlastnosť nie je možné definovať
+5082,Argument konštruktora zadaného poľa je neplatný.
+5083,„toto“ nie je objekt zadaného poľa.
+5084,Neplatný posun alebo neplatná dĺžka pri vytváraní zadaného poľa
+5085,Neplatná počiatočná alebo koncová hodnota v metóde podpolí zadaných polí
+5086,Neplatný zdroj v množine zadaných polí
+5087,„toto“ nie je objekt knižnice DataView
+5088,Neplatné argumenty v knižnici DataView
+5089,Prístup k operácii knižnice DataView prekročil zadanú dĺžku medzipamäte.
+5090,Neplatné argumenty v knižnici DataView
+5091,neplatný podpis funkcie
+5092,neplatný podpis vlastnosti
+5093,neplatný typ vstupného parametra
+5094,neplatný výstupný parameter
+5095,Prístup k vlastnosti arguments funkcie nie je v prísnom režime povolený.
+5096,Očakáva sa kontrolovateľný objekt.
+5097,Argument sa nepodarilo skonvertovať na typ char
+5098,Argument sa nepodarilo skonvertovať na typ GUID
+5099,Očakáva sa parameter IInspectable
+5100,Objekt sa nepodarilo skonvertovať na štruktúru: objektu chýba očakávaná vlastnosť
+5101,Neznámy typ
+5102,Funkcia bola vyvolaná pomocou príliš malého množstva argumentov
+5103,Typ nemožno zostaviť
+5104,Hodnotu sa nepodarilo skonvertovať na parameter PropertyValue: typ nie je podporovaný parametrom PropertyValue
+5105,Hodnotu sa nepodarilo skonvertovať na parameter IInspectable: typ nie je podporovaný parametrom IInspectable
+5106,Dátum sa nepodarilo skonvertovať na parameter Windows.Foundation.DateTime: hodnota mimo platného rozsahu
+5107,Hodnotu sa nepodarilo skonvertovať na parameter Windows.Foundation.TimeSpan: hodnota mimo platného rozsahu
+5108,Neplatný prístup k už uvoľnenému kontrolovateľnému objektu
+5109,Nie je možné uvoľniť už uvoľnený kontrolovateľný objekt
+5110,„toto“ nie je očakávaného typu
+5111,Bola zadaná nepovolená dĺžka a veľkosť poľa
+5112,Pri získavaní informácií o metaúdajoch sa vyskytla neočakávaná chyba
+5200,Stav je „chyba“, ale metóda getResults nevrátila chybu
+5201,Do dokončeného obslužného programu sa odovzdal chýbajúci alebo neplatný parameter stavu
+5202,Do dokončeného obslužného programu sa odovzdal chýbajúci alebo neplatný parameter odosielateľa
+6000,Nekonečno
+6001,-Nekonečno
+10438,Objekt nepodporuje vlastnosť alebo metódu %s
+10449,Argument pre funkciu %s nie je voliteľný
+15001,%s nie je číslo
+15002,%s nie je funkcia
+15004,%s nie je indexovateľný objekt
+15005,%s nie je reťazec
+15006,%s nie je objekt typu dátum
+15007,%s má hodnotu null alebo nie je objekt
+15008,Nemožno priradiť hodnotu k objektu %s
+15009,Objekt %s nie je definovaný
+15010,%s nie je objekt typu boolean
+15012,%s sa nedá odstrániť
+15013,%s nie je objekt typu VBArray
+15014,%s nie je objekt jazyka JavaScript
+15015,%s nie je objekt vymenovaného typu
+15016,%s nie je objekt typu výraz
+15028,%s nie je objekt typu Array ani argument
+15031,%s nie je objekt typu Array
+15036,Atribút %s na popisovači vlastnosti tohto objektu nie je možné nastaviť na hodnotu pravda
+15037,Atribút %s na popisovači vlastnosti tohto objektu nie je možné nastaviť na hodnotu nepravda
+15039,Opakovaná deklarácia konštanty %s
+15041,Volanie funkcie odstránenia pre funkciu %s nie je v prísnom režime povolené.
+15047,Nemožno nastaviť vlastnosť %s nedefinovaného odkazu alebo odkazu s hodnotou null
+15048,Nemožno získať vlastnosť %s nedefinovaného odkazu alebo odkazu s hodnotou null
+15049,Nemožno odstrániť vlastnosť %s nedefinovaného odkazu alebo odkazu s hodnotou null
+15050,Nedá sa pristupovať k vlastnosti %s: typ VarDate nepodporuje vlastnosti definované používateľom
+15051,Hodnota vlastnosti %s nie je objektom typu Funkcia
+15052,Hodnota vlastnosti %s je null alebo nie je definovaná, a nie je objektom typu Funkcia
+15054,%s: parameter 'this' má hodnotu null alebo nie je definovaný
+15055,%s: parameter 'this' nie je objektom
+15056,%s: parameter 'this' nie je objektom typu Funkcia
+15057,%s: parameter 'this' nie je objektom typu Reťazec
+15058,%s: parameter 'this' nie je booleovským objektom
+15059,%s: parameter 'this' nie je objektom typu Dátum
+15060,%s: parameter 'this' nie je nie je objektom typu Číslo
+15061,%s: parameter 'this' nie je objektom VBArray
+15062,%s: parameter 'this' nie je objektom jazyka JavaScript
+15063,%s: parameter 'this' nie je objektom vymenovaného typu
+15064,%s: parameter 'this' nie je nie je objektom RegExp
+15065,%s: neplatný argument
+15066,%s: argument nie je objektom
+15067,%s: argument nie je objektom jazyka JavaScript
+15068,%s: argument nie je objektom typu Funkcia
+15069,%s: argument nie je objektom VBArray
+15070,%s: argument má hodnotu null alebo nie je definovaný
+15071,%s: argument nie je objektom a nemá hodnotu null
+15072,%s: argument nemá platnú vlastnosť length
+15073,%s: očakáva sa pole alebo objekt argumentov
+15074,Neplatný operand pre parameter %s: očakáva sa objekt
+15075,Neplatný operand pre parameter %s: očakáva sa funkcia
+15076,Neplatný popisovač vlastnosti %s
+15077,Nie je možné definovať vlastnosť %s: objekt nie je rozšíriteľný
+15078,Nie je možné predefinovať nekonfigurovateľnú vlastnosť %s
+15079,Nie je možné upraviť nezapisovateľnú vlastnosť %s
+15080,Nie je možné upraviť vlastnosť %s: vlastnosť length nie je zapisovateľná
+15081,Nie je možné definovať vlastnosť %s
+15088,Nie je zadaný požadovaný argument %s v metóde knižnice DataView.
+15090,Argument konštruktora knižnice DataView %s je neplatný.
+15091,Podpis funkcie %s je neplatný a funkciu nemožno volať.
+15092,Podpis vlastnosti %s je neplatný a vlastnosť je neprístupná.
+15093,Trieda modulu runtime %s, ktorej predvoleným rozhraním je Windows.Foundation.IPropertyValue, nie je podporovaná ako typ vstupného parametra.
+15094,Objekt s rozhraním Windows.Foundation.IPropertyValue a názvom triedy modulu runtime %s nie je podporovaný ako výstupný parameter.
+15096,%s: „toto“ nie je kontrolovateľný objekt
+15097,%s: argument sa nepodarilo skonvertovať na typ char
+15098,%s: argument sa nepodarilo skonvertovať na typ GUID
+15099,%s: vrátenú hodnotu sa nepodarilo skonvertovať na parameter IInspectable
+15100,Objekt sa nepodarilo skonvertovať na štruktúru: objektu chýba očakávaná vlastnosť %s
+15101,Typ %s sa nenašiel
+15102,%s: funkcia vyvolaná pomocou príliš malého množstva argumentov
+15103,%s: typ nemožno zostaviť
+15104,Hodnotu sa nepodarilo sa skonvertovať na parameter PropertyValue: %s – nepodporované parametrom PropertyValue
+15105,Hodnotu sa nepodarilo sa skonvertovať na parameter IInspectable: %s – nepodporované parametrom IInspectable
+15108,%s: Kontrolovateľný objekt „toto“ je uvoľnený a nemožno k nemu získať prístup
+15110,„toto“ nie je očakávaného typu: %s
+15112,%s: pri získavaní informácií o metaúdajoch sa vyskytla neočakávaná chyba
+32812,Zadaný dátum nie je dostupný v kalendári aktuálneho národného prostredia

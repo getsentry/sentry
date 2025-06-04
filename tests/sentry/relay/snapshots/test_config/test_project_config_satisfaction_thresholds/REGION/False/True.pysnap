@@ -1,0 +1,38 @@
+---
+created: '2024-05-16T11:16:16.909350+00:00'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 2000
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 500
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction

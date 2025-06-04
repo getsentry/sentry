@@ -1,0 +1,41 @@
+{
+  "version": "1",
+  "environment": "testing",
+  "event_id": "961d6b96017644db895eafd391682003",
+  "profile_id": "017d59c6a6474ac3bdf59f57f1c451eb",
+  "platform": "javascript",
+  "release": null,
+  "timestamp": "2023-11-01T15:27:15.081230Z",
+  "transaction_id": "9789498b-6970-4dda-b2a1-f9cb91d1a445",
+  "trace_id": "809ff2c0-e185-4c21-8f21-6a6fef009352",
+  "transaction_name": "test_transaction",
+  "profile": {
+    "samples": [
+      {
+        "stack_id": 0,
+        "elapsed_since_start_ns": 1,
+        "thread_id": 1
+      },
+      {
+        "stack_id": 0,
+        "elapsed_since_start_ns": 2,
+        "thread_id": 1
+      }
+    ],
+    "stacks": [
+      [
+        0
+      ]
+    ],
+    "frames": [
+      {
+        "abs_path": "http://example.com/embedded.js",
+        "filename": "file.min.js",
+        "lineno": 1,
+        "colno": 39
+      }
+    ],
+    "thread_metadata": {},
+    "queue_metadata": {}
+  }
+}

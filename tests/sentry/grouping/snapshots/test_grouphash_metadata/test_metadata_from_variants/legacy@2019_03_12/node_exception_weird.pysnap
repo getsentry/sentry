@@ -1,0 +1,123 @@
+---
+created: '2024-12-17T22:50:05.465319+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "bc6bc0f8bfa8a2fe5f0e4034384bfec1"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     */"
+            frame*
+              module*
+                "onunhandledrejection.ts"
+              function*
+                "null.<anonymous>"
+            frame*
+              module*
+                "hub.ts"
+              context-line*
+                "    if (maxBreadcrumbs <= 0) {"
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     * @returns Scope, the new cloned scope"
+            frame*
+              module*
+                "baseclient.ts"
+              context-line*
+                "    promisedEvent"
+            frame*
+              module*
+                "backend.ts"
+              function*
+                "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
+          type*
+            "Error"
+  system*
+    hash: "6a3275e56067560bf20cb311f724f897"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     */"
+            frame*
+              module*
+                "onunhandledrejection.ts"
+              function*
+                "null.<anonymous>"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "        return fn.apply(this, arguments);"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "          })();"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "                return specificMockImpl.apply(this, arguments);"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "        return original.apply(this, arguments);"
+            frame*
+              module*
+                "hub.ts"
+              context-line*
+                "    if (maxBreadcrumbs <= 0) {"
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     * @returns Scope, the new cloned scope"
+            frame*
+              module*
+                "baseclient.ts"
+              context-line*
+                "    promisedEvent"
+            frame*
+              module*
+                "backend.ts"
+              function*
+                "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
+          type*
+            "Error"

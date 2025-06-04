@@ -1,0 +1,94 @@
+{
+  "event_id": "91161f6c8dbe4618920ab598db945f0c",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x00000001a1e39ef0"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 2716049136,
+              "exception": 6,
+              "name": "EXC_BREAKPOINT",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGTRAP",
+              "number": 5
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF$VARIANT$armv81",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "dispatch_group_leave$VARIANT$armv81",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "dispatch_group_leave$VARIANT$armv81.cold.1",
+              "package": "libdispatch.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BREAKPOINT",
+        "value": "Exception 6, Code 2716049136, Subcode 8"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

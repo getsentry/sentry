@@ -1,0 +1,13 @@
+# Regression
+
+Sentry marked PROJECT-1 as a regression
+
+
+## Issue Details
+
+goose smiling gobbler sterling feline
+
+http://testserver/organizations/organization/issues/1/?referrer=regression_activity-email&notification_uuid=6a372642-0ffc-43c6-b0d3-7ce2752f38a9
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

@@ -1,0 +1,26 @@
+[
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/version/10000",
+    "id": "10000",
+    "name": "v1",
+    "archived": false,
+    "released": false,
+    "projectId": 10000
+  },
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/version/10001",
+    "id": "10001",
+    "name": "v2",
+    "archived": false,
+    "released": false,
+    "projectId": 10000
+  },
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/version/10002",
+    "id": "10002",
+    "name": "v3",
+    "archived": false,
+    "released": false,
+    "projectId": 10000
+  }
+]

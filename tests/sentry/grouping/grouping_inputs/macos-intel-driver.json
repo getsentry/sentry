@@ -1,0 +1,443 @@
+{
+  "event_id": "0daa84443c614a078f751a7228e5ceb6",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "start",
+              "module": null,
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "start",
+              "module": null,
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "-[NSApplication run]",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_DPSNextEvent",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_BlockUntilNextEventMatchingListInModeWithFilter",
+              "module": null,
+              "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "ReceiveNextEventCommon",
+              "module": null,
+              "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "RunCurrentEventLoopInMode",
+              "module": null,
+              "package": "/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "module": null,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "module": null,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "module": null,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "module": null,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "module": null,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "__NSThreadPerformPerform",
+              "module": null,
+              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "-[NSView displayIfNeeded]",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "-[_NSOpenGLViewBackingLayer display]",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CGLTexImageIOSurface2D",
+              "module": null,
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CGLDescribeRenderer",
+              "module": null,
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gliSetInteger",
+              "module": null,
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gldFlushObject",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "intelSubmitCommands",
+              "module": null,
+              "package": "/System/Library/Extensions/AppleIntelICLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelICLGraphicsGLDriver"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "IntelCommandBuffer::getNew",
+              "module": null,
+              "package": "/System/Library/Extensions/AppleIntelICLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelICLGraphicsGLDriver"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusSubmitDataBuffers",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusKillClientExt",
+              "module": null,
+              "package": "/System/Library/Extensions/AppleIntelICLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelICLGraphicsGLDriver"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusGenerateCrashLog",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusGenerateCrashLog.cold.1",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "abort",
+              "module": null,
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": null,
+              "module": null,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_sigtramp",
+              "module": null,
+              "package": "/usr/lib/system/libsystem_platform.dylib"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "NSRunAlertPanel",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "_NSTryRunModal",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CA::Transaction::commit",
+              "module": null,
+              "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CA::Context::commit_transaction",
+              "module": null,
+              "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CA::Layer::display_if_needed",
+              "module": null,
+              "package": "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "-[_NSOpenGLViewBackingLayer display]",
+              "module": null,
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "function": "<stripped application code>"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CGLTexImageIOSurface2D",
+              "module": null,
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "CGLDescribeRenderer",
+              "module": null,
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gliSetInteger",
+              "module": null,
+              "package": "/System/Library/Frameworks/OpenGL.framework/Versions/A/Resources/GLEngine.bundle/GLEngine"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gldFlushObject",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "intelSubmitCommands",
+              "module": null,
+              "package": "/System/Library/Extensions/AppleIntelICLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelICLGraphicsGLDriver"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "IntelCommandBuffer::getNew",
+              "module": null,
+              "package": "/System/Library/Extensions/AppleIntelICLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelICLGraphicsGLDriver"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusSubmitDataBuffers",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusKillClientExt",
+              "module": null,
+              "package": "/System/Library/Extensions/AppleIntelICLGraphicsGLDriver.bundle/Contents/MacOS/AppleIntelICLGraphicsGLDriver"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusGenerateCrashLog",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "gpusGenerateCrashLog.cold.1",
+              "module": null,
+              "package": "/System/Library/PrivateFrameworks/GPUSupport.framework/Versions/A/Libraries/libGPUSupportMercury.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "abort",
+              "module": null,
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "abs_path": null,
+              "data": {},
+              "filename": null,
+              "function": "__pthread_kill",
+              "module": null,
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "0x00000000 / 0x00000000",
+        "value": "Fatal Error: 0x00000000 / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}

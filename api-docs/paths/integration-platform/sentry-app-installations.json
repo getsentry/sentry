@@ -1,0 +1,87 @@
+{
+  "get": {
+    "tags": ["Integration"],
+    "description": "Return a list of integration platform installations for a given organization.",
+    "operationId": "List an Organization's Integration Platform Installations",
+    "parameters": [
+      {
+        "name": "organization_id_or_slug",
+        "in": "path",
+        "description": "The organization short name.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["app", "organization", "uuid", "status"],
+                "properties": {
+                  "app": {
+                    "type": "object",
+                    "required": ["uuid", "slug"],
+                    "properties": {
+                      "uuid": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "organization": {
+                    "type": "object",
+                    "required": ["slug"],
+                    "properties": {
+                      "slug": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "uuid": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "example": [
+              {
+                "app": {
+                  "uuid": "a9988ad6-meow-4905-bb93-f7cbf4c96bbb",
+                  "slug": "cat-75c19a"
+                },
+                "organization": {
+                  "slug": "sentry"
+                },
+                "uuid": "01635075-m30w-4f96-8fc8-ff9680780a13",
+                "status": "installed"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org:read", "org:integrations"]
+      }
+    ]
+  }
+}

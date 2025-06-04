@@ -1,0 +1,9 @@
+Setup Two-Factor Authentication
+
+The {{ organization.name|title }} organization now requires all members to enable
+two-factor authentication. Effective immediately, you will be unable to access
+this organization or receive its notifications until you enable at least
+one form of 2FA.
+
+Enable 2FA to reinstate your access and settings:
+{{ url }}

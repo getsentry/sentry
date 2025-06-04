@@ -1,0 +1,94 @@
+---
+created: '2024-12-17T22:50:03.287017+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "60443ca22b22a43806f4358109278791"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "dispatchInteractiveEvent"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "interactiveUpdates"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "interactiveUpdates$1"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "performSyncWork"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "performWork"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "performWorkOnRoot"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "renderRoot"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "replayUnitOfWork"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "invokeGuardedCallback"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "Object.invokeGuardedCallbackDev"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js"
+              function*
+                "HTMLUnknownElement.sentryWrapped"
+            frame*
+              filename*
+                "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+              function*
+                "HTMLUnknownElement.callCallback"
+          type*
+            "ReferenceError"

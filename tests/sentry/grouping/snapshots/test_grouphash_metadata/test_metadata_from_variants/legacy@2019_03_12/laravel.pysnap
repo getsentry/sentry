@@ -1,0 +1,284 @@
+---
+created: '2024-12-17T22:50:04.206654+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "89037a724fe48e9f6144c3a14e182b9c"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "/server.php"
+              context-line*
+                "require_once __DIR__.'/public/index.php';"
+            frame*
+              filename*
+                "/public/index.php"
+              context-line*
+                "    $request = Illuminate\\Http\\Request::capture()"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php"
+              context-line*
+                "            $response = $this->sendRequestThroughRouter($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php"
+              context-line*
+                "                    ->then($this->dispatchToRouter());"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "        return $pipeline($this->passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/fideloper/proxy/src/TrustProxies.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                return $destination($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php"
+              context-line*
+                "            return $this->router->dispatch($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Router.php"
+              context-line*
+                "        return $this->dispatchToRoute($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Router.php"
+              context-line*
+                "        return $this->runRoute($request, $this->findRoute($request));"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Router.php"
+              context-line*
+                "            $this->runRouteWithinStack($route, $request)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Router.php"
+              context-line*
+                "                        });"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "        return $pipeline($this->passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php"
+              context-line*
+                "        return $this->encrypt($next($this->decrypt($request)));"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php"
+              context-line*
+                "        $response = $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php"
+              context-line*
+                "            $response = $next($request), $session"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php"
+              context-line*
+                "            return tap($next($request), function ($response) use ($request) {"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php"
+              context-line*
+                "        return $next($request);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                return $destination($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Router.php"
+              context-line*
+                "                                $request, $route->run()"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Route.php"
+              context-line*
+                "            return $this->runCallable();"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Route.php"
+              context-line*
+                "            $this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
+            frame*
+              filename*
+                "/routes/web.php"
+              context-line*
+                "    throw new Exception('LARAVEL TEST');"
+          type*
+            "Exception"

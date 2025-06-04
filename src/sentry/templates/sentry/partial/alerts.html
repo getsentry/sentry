@@ -1,0 +1,101 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block css %}
+{% if show_login_banner or show_partner_login_banner %}
+<style type="text/css">
+  .alert-banner {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    display: flex;
+    justify-content: center;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+
+  .alert-message {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    line-height: 1.5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    flex-grow: 1;
+    font-size: 16px;
+    font-family: Rubik;
+  }
+
+  /* Default alert banner color */
+  .alert-banner.default {
+    background: rgb(255, 219, 74);
+  }
+
+  /* Partner login banner color */
+  .alert-banner.partner {
+    background: #6c5fc7;
+    color: white;
+  }
+
+  @media only screen and (max-width: 1025px) {
+    .alert-banner.default {
+      display: none;
+    }
+  }
+</style>
+{% endif %}
+{% endblock %}
+
+<div id="blk_alerts" class="messages-container"></div>
+<div id="blk_indicators"></div>
+
+{% script %}
+<script>
+  window.__onSentryInit = window.__onSentryInit || [];
+  window.__onSentryInit.push({
+    name: 'renderReact',
+    component: 'SystemAlerts',
+    container: '#blk_alerts',
+    props: {
+      className: 'alert-list',
+    },
+  });
+  window.__onSentryInit.push({
+    name: 'renderReact ',
+    component: 'Indicators',
+    container: '#blk_indicators',
+    props: {
+      className: 'indicators-container',
+    },
+  });
+</script>
+{% endscript %}
+
+
+{% if messages %}
+  <div id="messages" class="messages-container">
+    {% for message in messages %}
+        {% with message.tags|split:" " as message_tags %}
+          <div class="alert{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
+            <div class="container">
+              <a class="close" data-dismiss="alert">×</a>
+              <span class="icon"></span>
+              {{ message|linebreaks }}
+            </div>
+          </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+  {% elif show_partner_login_banner %}
+  <div class="alert-banner partner">
+    <div class="alert-message">
+      Complete your registration by checking your inbox for our email and following the sign-in link.
+    </div>
+  </div>
+  {% elif show_login_banner %}
+  <div class="alert-banner default">
+    <div class="alert-message">
+      Join our live full-stack debugging workshop on June 10th. &nbsp<a target="_blank" href="https://sentry.io/resources/sentry-build/">RSVP</a>
+    </div>
+  </div>
+{% endif %}

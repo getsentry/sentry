@@ -1,0 +1,122 @@
+---
+created: '2024-05-16T11:16:16.589179+00:00'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 2400
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 600
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 1600
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 400
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 1200
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 300
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction

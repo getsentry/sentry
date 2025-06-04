@@ -1,0 +1,39 @@
+---
+created: '2024-12-17T22:50:02.886386+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "client_fingerprint": "['{{ default }}', 'dogs are great']",
+  "fingerprint": "['{{ default }}', 'dogs are great']",
+  "fingerprint_source": "client",
+  "is_hybrid_fingerprint": true,
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "True"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "c5578778212497f1ff3435405e2a4a98"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          type*
+            "FailedToFetchError"
+          value*
+            "FailedToFetchError: Maisey can't see the ball anymore :-("
+    info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+    values: ["{{ default }}","dogs are great"]

@@ -1,0 +1,9 @@
+We have samples!
+
+We've collected {{ num_samples }} samples for the following search query:
+`{{ query }}`
+
+We'll stop giving special priority to samples for your query once we collected 100 samples matching your query or 48 hours have passed from rule creation.
+
+View samples here:
+{{ discover_link|safe }}

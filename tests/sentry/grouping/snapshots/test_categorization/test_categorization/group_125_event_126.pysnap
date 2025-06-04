@@ -1,0 +1,46 @@
+---
+created: '2021-03-29T19:59:54.641082Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS / 0x00000032:Fatal Error: EXC_BAD_ACCESS / 0x00000032 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                  functional  std::__1::function<T>::operator() category=indirection
+                                  functional  std::__1::__function::__value_func<T>::operator() category=indirection
+                                  functional  std::__1::__function::__func<T>::operator() category=indirection
+                                  functional  std::__1::__function::__alloc_func<T>::operator() category=indirection
+                           __functional_base  std::__1::__invoke_void_return_wrapper<T>::__call<T> category=internals
+                                 type_traits  std::__1::__invoke<T> category=internals
+                          Src/Initialize.cpp  MZ::`anonymous namespace'::lambda::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/CoreFoundation.  CFBundleGetFunctionPointerForName category=indirection
+  /System/Library/Frameworks/CoreFoundation.  _CFBundleLoadExecutableAndReturnError category=internals
+  /System/Library/Frameworks/CoreFoundation.  _CFBundleDlfcnLoadBundle category=internals
+               /usr/lib/system/libdyld.dylib  dlopen category=load
+                               /usr/lib/dyld  dlopen_internal category=internals
+                               /usr/lib/dyld  dyld::link category=internals
+                               /usr/lib/dyld  ImageLoader::link category=internals
+                               /usr/lib/dyld  ImageLoader::recursiveRebase category=internals
+                               /usr/lib/dyld  ImageLoaderMachOCompressed::rebase category=internals

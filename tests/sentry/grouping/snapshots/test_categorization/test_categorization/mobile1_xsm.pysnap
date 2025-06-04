@@ -1,0 +1,29 @@
+---
+created: '2021-03-29T22:02:39.690756Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+                         /system/lib/libc.so  ??? category=internals
+                         /system/lib/libc.so  ??? category=internals
+                                              std::__ndk1::__thread_proxy<T> category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              std::__ndk1::__function::__func<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                       /system/lib/libEGL.so  eglSwapBuffersWithDamageKHR category=gl
+             /vendor/lib/egl/libGLES_mali.so  eglp_swap_buffers category=internals
+             /vendor/lib/egl/libGLES_mali.so  ??? category=internals
+             /vendor/lib/egl/libGLES_mali.so  ??? category=internals
+             /vendor/lib/egl/libGLES_mali.so  ??? category=internals
+                       /system/lib/libgui.so  android::Surface::queueBuffer category=internals
+                       /system/lib/libgui.so  android::ProducerFrameEventHistory::updateSignalTimes category=internals
+                        /system/lib/libui.so  android::FenceTimeline::updateSignalTimes category=internals
+                        /system/lib/libui.so  android::FenceTime::getSignalTime category=internals
+                        /system/lib/libui.so  android::Fence::getSignalTime category=internals
+                      /system/lib/libsync.so  sync_fence_info category=internals

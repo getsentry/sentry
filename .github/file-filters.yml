@@ -1,0 +1,102 @@
+# This is used by the action https://github.com/dorny/paths-filter
+
+sentry_specific_workflow: &sentry_specific_workflow
+  - added|modified: '.github/workflows/frontend.yml'
+sentry_specific_test_files: &sentry_specific_test_files
+  - added|modified: 'tests/js/**/*'
+  - added|deleted|modified: 'fixtures/search-syntax/**/*'
+
+# Provides list of changed files to test (jest)
+# getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
+testable_modified: &testable_modified
+  - added|modified: 'package.json'
+  - added|modified: 'static/**/*.[tj]{s,sx}'
+  - *sentry_specific_test_files
+
+# Trigger for when we must run full tests (jest)
+testable_rules_changed: &testable_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'jest.config.ts'
+
+# Trigger whether to run tsc or not
+# There's no "rules_changed" for this, because we run it for all files always
+# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
+typecheckable_rules_changed: &typecheckable_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
+
+# Trigger to apply the 'Scope: Frontend' label to PRs
+frontend_all: &frontend_all
+  - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'static/**/*.{less,json,yml,md}'
+  - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
+
+# Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+backend_dependencies: &backend_dependencies
+  - 'requirements-*.txt'
+
+backend_build_changes: &backend_build_changes
+  - '.github/workflows/backend.yml'
+  - '.github/actions/collect-test-data/**'
+  - '.pre-commit-config.yaml'
+  - 'Makefile'
+  - 'pyproject.toml'
+
+# `backend_src` filters on files that are backend changes excluding
+# changes to the tests/ directory and changes to typescript related config files.
+# If you want to filter on *all* backend files, use the `backend_all` filter.
+backend_src: &backend_src
+  - *backend_build_changes
+  - *backend_dependencies
+  - '!(tests)/**/*.py'
+  - '**/*.sh'
+  - '**/*.pysnap'
+  - 'src/sentry/!(static)/**'
+  - 'src/sentry_plugins/**/*.html'
+  - 'migrations_lockfile.txt'
+  - 'config/**/!(tsconfig)*'
+  - 'fixtures/search-syntax/**/*'
+
+backend_all: &backend_all
+  - *backend_src
+  - '**/*.py'
+  - '**/*.pyi'
+  - 'devservices/**'
+  # If action.yaml is changed, all workflows that call file-filters.yml and expect
+  # the backend_all output should be triggered.
+  # For instance, acceptance.yml expects steps.changes.outputs.backend_all for the
+  # dorny/paths-filter step and it runs the setup-sentry action.
+  - '.github/actions/setup-sentry/action.yml'
+
+# This is the ultimate controller for acceptance.yml
+acceptance: &acceptance
+  - *frontend_all
+  - *backend_all
+  - '.github/workflows/acceptance.yml'
+  - '.github/actions/collect-test-data/**'
+
+api_docs: &api_docs
+  - *backend_all
+  - 'api-docs/**'
+  - 'tests/apidocs/**'
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend_all
+  - *api_docs
+  - 'devservices/**'
+
+migrations_added:
+  - added:
+      - 'src/sentry/**/migrations/*'
+
+# These files will trigger our workflow to check if lockfile
+# updates are needed
+migration_lockfile:
+  - *backend_dependencies
+  - '**/*.py'
+  - .github/workflows/check-if-migration-is-required.yml
+  - .github/workflows/scripts/migration-check.sh

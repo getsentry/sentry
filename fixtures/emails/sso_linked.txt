@@ -1,0 +1,7 @@
+Dummy Single Sign-On has been configured for the My Company organization.
+
+Link your Sentry account to enable signing on with your Dummy account by visiting the following url:
+
+
+
+SSO link request invoked by foo@example.com

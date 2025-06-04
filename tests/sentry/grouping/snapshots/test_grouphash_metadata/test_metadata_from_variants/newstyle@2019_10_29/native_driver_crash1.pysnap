@@ -1,0 +1,50 @@
+---
+created: '2024-12-17T22:50:25.601014+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "a6befffdc310c28b165bbceb1c0f59a8"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "CUseCountedObject<T>::UCDestroy"
+            frame*
+              function*
+                "destructor'"
+            frame*
+              function*
+                "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
+            frame*
+              function*
+                "CContext::LUCBeginLayerDestruction"
+            frame*
+              function*
+                "NDXGI::CDevice::DestroyDriverInstance"
+            frame*
+              function*
+                "OpenAdapter10"

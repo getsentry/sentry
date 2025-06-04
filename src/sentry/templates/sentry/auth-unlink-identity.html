@@ -1,0 +1,29 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_assets %}
+
+{% block title %}{% trans "Unlink Identity" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+<form class="form-stacked" action="" method="post">
+  {% csrf_token %}
+
+  <div class="align-center">
+    <img src="{% asset_url "sentry" "images/logos/default-organization-logo.png" %}" class="org-avatar">
+
+    <h3>{{ organization.name }}</h3>
+  </div>
+
+  <div class="align-center">
+    <p>Confirm that you'd like to unlink your {{ provider.name }} identity from your Sentry account.</p>
+
+    <p>
+      <button type="submit" class="btn btn-default btn-login-{{ provider.key }}">
+        <span class="provider-logo {{ provider.key }}"></span> Unlink from {{ provider.name }}
+      </button>
+    </p>
+  </div>
+</form>
+{% endblock %}

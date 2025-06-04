@@ -1,0 +1,10 @@
+{% extends "sentry/emails/issue_alert_base.html" %}
+
+{% block stacktrace %}
+    {% for label, html, _ in interfaces %}
+    <div class="interface">
+      <h3 class="title">{{ label }}</h3>
+      {{ html }}
+    </div>
+    {% endfor %}
+{% endblock %}

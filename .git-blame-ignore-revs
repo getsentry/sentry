@@ -1,0 +1,98 @@
+# Since version 2.23 (released in August 2019), git-blame has a feature
+# to ignore or bypass certain commits.
+#
+# This file contains a list of commits that are not likely what you
+# are looking for in a blame, such as mass reformatting or renaming.
+
+# ref(py3): pre-commit upgrade + sweeping rerun + __future__ removals (#23197)
+658504a9b2cab9b2c2578cd2e0f474817819a7f9
+
+# chore: blacken take 2 (#14360)
+95767d455b8004ec4b4c5026d84b64b6348e6d37
+
+# ci: upgrade, apply, and require pre-commit (#18176)
+f952fedefe679d632077a2b334a913e9e68cfd91
+
+# feat(lint): Update prettier (#16505)
+# Required to properly support nullish coalescence operator and optional chaining.
+# https://github.com/getsentry/sentry/pull/16505
+75bd65eef51a75c7f8db3af9ed71188b89d17fb2
+
+# build(prettier): Upgrade prettier to 1.16.4 #10703
+# https://github.com/getsentry/sentry/pull/10703
+d467e8894478662e0ceee9b5137be4ee6620b60d
+
+# lint: Prettier catalogs.json #11131
+# https://github.com/getsentry/sentry/pull/11131
+69c3284fff26f5db7da7f96bb72b0f3732d4a867
+
+# chore: Run prettier on .eslintrc #10433
+# https://github.com/getsentry/sentry/pull/10433
+a2df8eab9b802966c8af6d0d61e6f97b5fbd3882
+
+# build(prettier): Upgrade prettier to 1.7.4 #6459
+# https://github.com/getsentry/sentry/pull/6459
+652a90266d98b1e74f3617c92aa8c1461e76b58d
+
+# Upgrade Prettier to 1.2.2, enable --jsx-bracket-same-line=true #5278
+# https://github.com/getsentry/sentry/pull/5278
+9ca15377ca03d474e2714802fc2b9a37e7b6e174
+
+# Add prettier to lint engine, prettify existing files #5247
+# https://github.com/getsentry/sentry/pull/5247
+49efa19a2fbd37a0b87e0aed234ea8fdae11dd5e
+
+# run prettier over jsx files to make escaping unnecessary #5340
+# https://github.com/getsentry/sentry/pull/5340
+f736793749a7e0a120a3d5f8630959864e553adb
+
+# chore: Prefer const
+# https://github.com/getsentry/sentry/pull/11862
+84747dbbabc7e974711c175232ddf71f6194edb6
+
+# chore(eslint): Use shortform boolean jsx attributes (#14950)
+# https://github.com/getsentry/sentry/pull/14950
+3b94d4d576cd74c43f80d113ac6e6ed09644efe4
+
+# chore(prettier): Apply prettier 2.1 (#21605)
+032754739fd210e1d12c076bad4ce8093cbae574
+
+# https://github.com/getsentry/sentry/pull/22104
+# build(eslint): Add `simple-import-sort` eslint plugin #22104
+b8bf85948d4c4832c60ab31e9f1a5a3c39fd53cf
+
+# https://github.com/getsentry/sentry/pull/30178
+# the below are all changing import alias `app` to `sentry`
+816acaa36cffc042f7f0434434882e9232805ee2
+654fae1b23f20ed765977ccc5d037675b901c5f4
+bdb9c9d3a26fc8a3b73d47776bb5d3009947b46d
+04b705571c2045718a4ef297128145436d061914
+dcbd3b621ebb4660c42fe207dd4fc4094dd2bddd
+1661de6b7b3a4f35fa48f8998437f92b96d1550f
+98b8f571e16cf9f089bab42212ff610e66152b07
+a0f7dbbe7ccb3ca0b286d4ab4d83a5f2594d0b7d
+
+# ref: upgrade to black stable (#34177)
+cf018ef83b999b5287d1fde7ea523d56d09a228d
+
+# ref(ui) Move forms out of views/settings/components (#31785)
+8be17116a26dcc3b2b5d70565f9f9cfbe4c54aca
+
+# build: replace prettier with biome (#62054)
+31aac1b9b0d24eda9c5aef67259bc24dedb94d95
+
+# build: Addition of typescript-eslint/consistent-type-imports rule (#63543)
+527914ee8dab6b8a7c1c8e3ed9f25dc633f43640
+
+# Revert "Revert "ref: enable pyupgrade --py311-plus (#64363)""  (#64380)
+eb55184602940adb1fc09a9c0e33515cac92c7d8
+# Revert "ref: enable pyupgrade --py311-plus (#64363)"
+6fc6ffc848f645a0abf1915a337dc67231548750
+# ref: enable pyupgrade --py311-plus (#64363)
+28f5037299c366879d6f1d0572e907919383d27f
+# ref: pep 604 pyupgrade --py311-plus changes (#64349)
+7a00c559245d9a7fc4cd944723753434aad53155
+# ref: pep 585 pyupgrade --py311-plus changes (#64275)
+c8a00d1cf64a349276060458ca51dab9e2538f3e
+# ref: perform non-typing --py311-plus pyupgrades (#64164)
+b5e15e8611ff64f8d4e2cde8365f92f7769c9c20

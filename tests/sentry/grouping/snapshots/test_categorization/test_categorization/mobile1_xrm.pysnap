@@ -1,0 +1,24 @@
+---
+created: '2021-08-03T15:05:52.560055Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGTRAP:Trap (thread_id:_, crashed:_)
+                                              stripped_application_code
+  /apex/com.android.runtime/lib64/bionic/lib  ??? category=internals
+  /apex/com.android.runtime/lib64/bionic/lib  ??? category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::ThreadPoolWorker::Callback category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::ThreadPoolWorker::Run category=internals
+   /apex/com.android.runtime/lib64/libart.so  ??? category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::jit::Jit::CompileMethod category=runtime
+  /apex/com.android.runtime/lib64/libart-com  art::jit::JitCompiler::CompileMethod category=internals
+  /apex/com.android.runtime/lib64/libart-com  art::OptimizingCompiler::JitCompile category=indirection
+   /apex/com.android.runtime/lib64/libart.so  art::jit::JitCodeCache::ReserveData category=runtime
+   /apex/com.android.runtime/lib64/libart.so  art::jit::JitCodeCache::GarbageCollectCache category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::jit::JitCodeCache::DoCollection category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::jit::JitCodeCache::RemoveUnmarkedCode category=internals
+   /apex/com.android.runtime/lib64/libart.so  art::jit::JitCodeCache::FreeAllMethodHeaders category=internals
+   /apex/com.android.runtime/lib64/libart.so  ??? category=internals
+  /apex/com.android.runtime/lib64/bionic/lib  mprotect category=internals

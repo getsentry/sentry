@@ -1,0 +1,75 @@
+{
+  "definitions": {
+    "active": {
+      "type": "boolean"
+    },
+    "userName": {
+      "type": "string"
+    },
+    "schemas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "object",
+      "properties": {
+        "givenName": {
+          "type": "string"
+        },
+        "familyName": {
+          "type": "string"
+        }
+      }
+    },
+    "emails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "resourceType": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "User": {
+    "type": "object",
+    "required": [
+      "schemas",
+      "id",
+      "active",
+      "userName",
+      "name",
+      "meta",
+      "emails"
+    ],
+    "properties": {
+      "schemas": { "$ref": "#/definitions/schemas" },
+      "id": {
+        "type": "string"
+      },
+      "active": { "$ref": "#/definitions/active" },
+      "userName": { "$ref": "#/definitions/userName" },
+      "name": { "$ref": "#/definitions/name" },
+      "meta": { "$ref": "#/definitions/meta" },
+      "emails": { "$ref": "#/definitions/emails" }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.ci.json",
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "jsx": "react"
+    }
+  }
+}

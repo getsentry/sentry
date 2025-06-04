@@ -1,0 +1,23 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+</head>
+<body>
+  {% script %}
+  <script>
+  // sends message to window that opened this popup if user is authenticated and closes the window
+
+  (function checkAuthChange() {
+    var loggedIn = '{{ logged_in }}';
+    if (window.opener && loggedIn === 'True') {
+      window.opener.postMessage('user_authenticated', '{% system_origin %}');
+    }
+    window.close();
+  })();
+  </script>
+  {% endscript %}
+</body>
+</html>

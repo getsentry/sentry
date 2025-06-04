@@ -1,0 +1,132 @@
+{
+  "event_id": "85aede31fe5b4ca29eabedc2a928335a",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "/main/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "filename": "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "function": "boost::thread::start_thread_noexcept",
+              "package": "boost_threads.framework/Versions/A/boost_threads"
+            },
+            {
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "abs_path": "/main/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "filename": "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp",
+              "function": "boost::`anonymous namespace'::thread_proxy",
+              "package": "boost_threads.framework/Versions/A/boost_threads"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "abccore.framework/Versions/A/abccore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/thread/thread_time.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/thread/thread_time.hpp",
+              "function": "boost::get_system_time",
+              "package": "abccore.framework/Versions/A/abccore"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/date_time/microsec_time_clock.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/date_time/microsec_time_clock.hpp",
+              "function": "boost::date_time::microsec_clock<T>::universal_time",
+              "package": "abccore.framework/Versions/A/abccore"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/date_time/microsec_time_clock.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/date_time/microsec_time_clock.hpp",
+              "function": "boost::date_time::microsec_clock<T>::create_time",
+              "package": "abccore.framework/Versions/A/abccore"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/date_time/c_time.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/date_time/c_time.hpp",
+              "function": "boost::date_time::c_time::gmtime",
+              "package": "abccore.framework/Versions/A/abccore"
+            },
+            {
+              "function": "gmtsub",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "notify_check_tz",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "notify_check",
+              "package": "/usr/lib/system/libsystem_notify.dylib"
+            },
+            {
+              "function": "notify_monitor_file",
+              "package": "/usr/lib/system/libsystem_notify.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "_sigtramp",
+              "package": "/usr/lib/system/libsystem_platform.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "OSAtomicDequeue",
+              "package": "/usr/lib/system/libsystem_platform.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "value": "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      }
+    ]
+  },
+  "platform": "native"
+}

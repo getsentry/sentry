@@ -1,0 +1,197 @@
+---
+created: '2024-12-17T22:50:02.700731+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "client_fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint": "['{{ default }}', 'soft-timelimit-exceeded']",
+  "fingerprint_source": "server_custom_rule",
+  "is_hybrid_fingerprint": true,
+  "matched_fingerprinting_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "True"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "12f8483a96ef9ed502d804b62eaa9f26"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.tasks.base"
+              context-line*
+                "                result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.tasks.store"
+              context-line*
+                "    return _do_process_event(cache_key, start_time, event_id, process_event)"
+            frame*
+              module*
+                "sentry.tasks.store"
+              context-line*
+                "    new_data = process_stacktraces(data)"
+            frame*
+              module*
+                "sentry.stacktraces"
+              context-line*
+                "            if processor.preprocess_step(processing_task):"
+            frame*
+              module*
+                "sentry.lang.native.plugin"
+              context-line*
+                "            referenced_images=referenced_images,"
+            frame*
+              module*
+                "sentry.lang.native.symbolizer"
+              context-line*
+                "                with_conversion_errors=True)"
+            frame*
+              module*
+                "sentry.models.debugfile"
+              context-line*
+                "        symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
+            frame*
+              module*
+                "sentry.models.debugfile"
+              context-line*
+                "                model.cache_file.save_to(cachefile_path)"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "                                       delete=False).detach_tempfile()"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "            delete=delete"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "            self._prefetch(prefetch_to, delete)"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "                exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+          type*
+            "SoftTimeLimitExceeded"
+    info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
+    values: ["{{ default }}","soft-timelimit-exceeded"]
+  system*
+    hash: "2105fd0d38b9aff20e44d2597d3a776b"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.tasks.base"
+              context-line*
+                "                result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.tasks.store"
+              context-line*
+                "    return _do_process_event(cache_key, start_time, event_id, process_event)"
+            frame*
+              module*
+                "sentry.tasks.store"
+              context-line*
+                "    new_data = process_stacktraces(data)"
+            frame*
+              module*
+                "sentry.stacktraces"
+              context-line*
+                "            if processor.preprocess_step(processing_task):"
+            frame*
+              module*
+                "sentry.lang.native.plugin"
+              context-line*
+                "            referenced_images=referenced_images,"
+            frame*
+              module*
+                "sentry.lang.native.symbolizer"
+              context-line*
+                "                with_conversion_errors=True)"
+            frame*
+              module*
+                "sentry.models.debugfile"
+              context-line*
+                "        symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
+            frame*
+              module*
+                "sentry.models.debugfile"
+              context-line*
+                "                model.cache_file.save_to(cachefile_path)"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "                                       delete=False).detach_tempfile()"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "            delete=delete"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "            self._prefetch(prefetch_to, delete)"
+            frame*
+              module*
+                "sentry.models.file"
+              context-line*
+                "                exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+            frame*
+              module*
+                "concurrent.futures._base"
+              context-line*
+                "        self.shutdown(wait=True)"
+            frame*
+              module*
+                "concurrent.futures.thread"
+              context-line*
+                "                t.join(sys.maxint)"
+            frame*
+              module*
+                "threading"
+              context-line*
+                "                    self.__block.wait(delay)"
+            frame*
+              module*
+                "threading"
+              context-line*
+                "                    _sleep(delay)"
+            frame*
+              module*
+                "billiard.pool"
+              context-line*
+                "    raise SoftTimeLimitExceeded()"
+          type*
+            "SoftTimeLimitExceeded"
+    info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
+    values: ["{{ default }}","soft-timelimit-exceeded"]

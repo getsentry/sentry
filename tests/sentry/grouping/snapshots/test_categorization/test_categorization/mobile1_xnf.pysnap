@@ -1,0 +1,258 @@
+---
+created: '2021-08-06T16:25:45.079729Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+StackOverflowError:stack size 8MB (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+  android.app.servertransaction.TransactionE  execute category=std
+  android.app.servertransaction.TransactionE  executeLifecycleState category=internals
+  android.app.servertransaction.TransactionE  cycleToPath category=internals
+  android.app.servertransaction.TransactionE  performLifecycleSequence category=internals
+                  android.app.ActivityThread  handleStopActivity category=internals
+                  android.app.ActivityThread  performStopActivityInner category=internals
+                  android.app.ActivityThread  callActivityOnStop category=internals
+                        android.app.Activity  performStop category=internals
+                 android.app.Instrumentation  callActivityOnStop category=internals
+                                              stripped_application_code
+    androidx.appcompat.app.AppCompatActivity  onStop category=std
+      androidx.fragment.app.FragmentActivity  onStop category=internals
+                     androidx.fragment.app.v  o category=internals
+                     androidx.fragment.app.v  d category=internals
+                     androidx.fragment.app.v  a category=internals
+                     androidx.fragment.app.v  h category=internals
+                     androidx.fragment.app.v  g category=internals
+                     androidx.fragment.app.v  a category=internals
+                    androidx.fragment.app.ah  i category=internals
+              androidx.fragment.app.Fragment  performStop category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                     android.widget.TextView  setText category=ui
+                     android.widget.TextView  setText category=internals
+                     android.widget.TextView  setText category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  sendAfterTextChanged category=internals
+       android.widget.TextView$ChangeWatcher  afterTextChanged category=internals
+                     android.widget.TextView  sendAfterTextChanged category=internals
+                                              stripped_application_code
+         android.text.SpannableStringBuilder  replace category=ui
+         android.text.SpannableStringBuilder  replace category=internals
+         android.text.SpannableStringBuilder  replace category=internals
+       android.widget.Editor$UndoInputFilter  filter category=internals
+       android.widget.Editor$UndoInputFilter  handleEdit category=internals
+       android.widget.Editor$UndoInputFilter  recordEdit category=internals
+         android.widget.Editor$EditOperation  forceMergeWith category=internals
+         android.widget.Editor$EditOperation  modifyText category=internals
+                     android.widget.TextView  semSetSelection category=internals
+                     android.widget.TextView  semSetSelection category=internals
+                      android.text.Selection  setSelection category=internals
+                      android.text.Selection  setSelection category=internals
+                             java.lang.Class  isInstance category=std

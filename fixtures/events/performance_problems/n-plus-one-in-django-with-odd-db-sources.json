@@ -1,0 +1,612 @@
+{
+  "event_id": "fa466ecb1a0b46938340e06eafbbb8dc",
+  "project": 6083187,
+  "release": null,
+  "dist": null,
+  "platform": "python",
+  "message": "",
+  "datetime": "2022-09-14T22:49:00.808026+00:00",
+  "tags": [
+    ["browser", "Chrome 104.0.0"],
+    ["browser.name", "Chrome"],
+    ["client_os", "Mac OS X 10.15.7"],
+    ["client_os.name", "Mac OS X"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "production"],
+    ["http.status_code", "200"],
+    ["level", "info"],
+    ["runtime", "CPython 3.8.9"],
+    ["runtime.name", "CPython"],
+    ["user", "id:1"],
+    ["server_name", "MBP.localdomain"],
+    ["transaction", "/"],
+    ["url", "http://127.0.0.1:8000/"]
+  ],
+  "_metrics": {"bytes.ingested.event": 18077, "bytes.stored.event": 21373},
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": {"value": 5.081892, "unit": "millisecond"},
+      "total.time": {"value": 4956.633807, "unit": "millisecond"}
+    }
+  },
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "104.0.0", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "runtime": {
+      "name": "CPython",
+      "version": "3.8.9",
+      "build": "3.8.9 (default, Apr 13 2022, 08:48:07) \n[Clang 13.1.6 (clang-1316.0.21.2.5)]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "span_id": "91e353e80430866b",
+      "op": "http.server",
+      "status": "ok",
+      "exclusive_time": 1.48201,
+      "client_sample_rate": 1.0,
+      "hash": "6666cd76f9695646",
+      "type": "trace"
+    }
+  },
+  "culprit": "/",
+  "environment": "production",
+  "extra": {"sys.argv": ["manage.py", "runserver"]},
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "ingest_path": [
+    {"version": "22.8.0", "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"}
+  ],
+  "key_id": "1906053",
+  "level": "info",
+  "location": "/",
+  "logger": "",
+  "metadata": {"location": "/", "title": "/"},
+  "nodestore_insert": 1663195742.769056,
+  "received": 1663195741.108548,
+  "request": {
+    "url": "http://127.0.0.1:8000/",
+    "method": "GET",
+    "cookies": [
+      ["csrftoken", "gN03IyBy4YO5VigHUI2yTFAINgEeo4hv"],
+      ["sessionid", "jhf1jnn0i1ojox384sn90txya1mxtt0z"]
+    ],
+    "headers": [
+      [
+        "Accept",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+      ],
+      ["Accept-Encoding", "gzip, deflate, br"],
+      ["Accept-Language", "en-CA,en;q=0.9"],
+      ["Connection", "keep-alive"],
+      ["Content-Length", ""],
+      ["Content-Type", "text/plain"],
+      ["Host", "127.0.0.1:8000"],
+      ["Purpose", "prefetch"],
+      [
+        "Sec-Ch-Ua",
+        "\"Chromium\";v=\"104\", \" Not A;Brand\";v=\"99\", \"Google Chrome\";v=\"104\""
+      ],
+      ["Sec-Ch-Ua-Mobile", "?0"],
+      ["Sec-Ch-Ua-Platform", "\"macOS\""],
+      ["Sec-Fetch-Dest", "document"],
+      ["Sec-Fetch-Mode", "navigate"],
+      ["Sec-Fetch-Site", "none"],
+      ["Sec-Fetch-User", "?1"],
+      ["Upgrade-Insecure-Requests", "1"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36"
+      ]
+    ],
+    "env": {
+      "REMOTE_ADDR": "127.0.0.1",
+      "SERVER_NAME": "1.0.0.127.in-addr.arpa",
+      "SERVER_PORT": "8000"
+    },
+    "inferred_content_type": "text/plain"
+  },
+  "sdk": {
+    "name": "sentry.python",
+    "version": "1.9.8",
+    "integrations": [
+      "argv",
+      "atexit",
+      "dedupe",
+      "django",
+      "excepthook",
+      "logging",
+      "modules",
+      "redis",
+      "stdlib",
+      "threading"
+    ],
+    "packages": [{"name": "pypi:sentry-sdk", "version": "1.9.8"}]
+  },
+  "span_grouping_config": {"id": "default:2021-08-25"},
+  "spans": [
+    {
+      "timestamp": 1663195740.807874,
+      "start_timestamp": 1663195738.306634,
+      "exclusive_time": 44.380903,
+      "description": "debug_toolbar.middleware.DebugToolbarMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "a869387a5f42704f",
+      "parent_span_id": "91e353e80430866b",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "debug_toolbar.middleware.DebugToolbarMiddleware.__call__",
+        "django.middleware_name": "debug_toolbar.middleware.DebugToolbarMiddleware"
+      },
+      "hash": "14bc8f1ef5114f3a",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.765345,
+      "start_timestamp": 1663195738.308486,
+      "exclusive_time": 0.278235,
+      "description": "django.middleware.security.SecurityMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "91297dbf8a92c5e7",
+      "parent_span_id": "a869387a5f42704f",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.security.SecurityMiddleware"
+      },
+      "hash": "0f43fb6f6e01ca52",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.765303,
+      "start_timestamp": 1663195738.308722,
+      "exclusive_time": 0.257015,
+      "description": "django.contrib.sessions.middleware.SessionMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "84f00da69640f34e",
+      "parent_span_id": "91297dbf8a92c5e7",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.contrib.sessions.middleware.SessionMiddleware"
+      },
+      "hash": "3dc5dd68b38e1730",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.76524,
+      "start_timestamp": 1663195738.308916,
+      "exclusive_time": 0.294685,
+      "description": "django.middleware.common.CommonMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "b3e2b7fc56854bf8",
+      "parent_span_id": "84f00da69640f34e",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.common.CommonMiddleware"
+      },
+      "hash": "424c6ae1641f0f0e",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.765191,
+      "start_timestamp": 1663195738.309162,
+      "exclusive_time": 2.046347,
+      "description": "django.middleware.csrf.CsrfViewMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "8922e3a46b832fdd",
+      "parent_span_id": "b3e2b7fc56854bf8",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.csrf.CsrfViewMiddleware"
+      },
+      "hash": "d5da18d7274b34a1",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.765024,
+      "start_timestamp": 1663195738.311041,
+      "exclusive_time": 0.202894,
+      "description": "django.contrib.auth.middleware.AuthenticationMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "816791355b64b55b",
+      "parent_span_id": "8922e3a46b832fdd",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.contrib.auth.middleware.AuthenticationMiddleware"
+      },
+      "hash": "ac72fc0a4f5fe381",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.765004,
+      "start_timestamp": 1663195738.311224,
+      "exclusive_time": 0.300884,
+      "description": "django.contrib.messages.middleware.MessageMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "b3c64b33c3fe1aa8",
+      "parent_span_id": "816791355b64b55b",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.contrib.messages.middleware.MessageMiddleware"
+      },
+      "hash": "ac1468d8e11a0553",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.764961,
+      "start_timestamp": 1663195738.311482,
+      "exclusive_time": 3.108024,
+      "description": "django.middleware.clickjacking.XFrameOptionsMiddleware.__call__",
+      "op": "django.middleware",
+      "span_id": "85a9b78f69b6f3c9",
+      "parent_span_id": "b3c64b33c3fe1aa8",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.utils.deprecation.MiddlewareMixin.__call__",
+        "django.middleware_name": "django.middleware.clickjacking.XFrameOptionsMiddleware"
+      },
+      "hash": "d8681423cab4275f",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.311769,
+      "start_timestamp": 1663195738.31171,
+      "exclusive_time": 0.059128,
+      "description": "django.middleware.csrf.CsrfViewMiddleware.process_view",
+      "op": "django.middleware",
+      "span_id": "bab37ad72da2a632",
+      "parent_span_id": "85a9b78f69b6f3c9",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "tags": {
+        "django.function_name": "django.middleware.csrf.CsrfViewMiddleware.process_view",
+        "django.middleware_name": "django.middleware.csrf.CsrfViewMiddleware"
+      },
+      "hash": "e853d2eb7fb9ebb0",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.314627,
+      "start_timestamp": 1663195738.314149,
+      "exclusive_time": 0.47803,
+      "description": "index",
+      "op": "django.view",
+      "span_id": "8840687362878546",
+      "parent_span_id": "85a9b78f69b6f3c9",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "6a992d5529f459a4",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.764802,
+      "start_timestamp": 1663195738.314968,
+      "exclusive_time": 2444.751978,
+      "description": "[expense/reports_list.html, ...]",
+      "op": "django.template.render",
+      "span_id": "81a4b462bdc5c764",
+      "parent_span_id": "85a9b78f69b6f3c9",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "data": {
+        "context": {
+          "is_paginated": false,
+          "object_list": "<QuerySet [<Reports: Reports object (1)>, <Reports: Reports object (2)>, <Reports: Reports object (3)>, <Reports: Reports object (4)>, <Reports: Reports object (5)>, <Reports: Reports object (6)>, <Reports: Reports object (7)>, <Reports: Reports object (8)>, <Reports: Reports object (9)>, <Reports: Reports object (10)>]>",
+          "page_obj": null,
+          "paginator": null,
+          "reports": "<QuerySet [<Reports: Reports object (1)>, <Reports: Reports object (2)>, <Reports: Reports object (3)>, <Reports: Reports object (4)>, <Reports: Reports object (5)>, <Reports: Reports object (6)>, <Reports: Reports object (7)>, <Reports: Reports object (8)>, <Reports: Reports object (9)>, <Reports: Reports object (10)>]>",
+          "view": "<expense.views.ReportsList object at 0x105554970>"
+        }
+      },
+      "hash": "9b20591533d73ba2",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.318752,
+      "start_timestamp": 1663195738.317819,
+      "exclusive_time": 0.932932,
+      "description": "connect",
+      "op": "db",
+      "span_id": "9af58ee18be0a754",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "b640a0ce465fa2a4",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.320147,
+      "start_timestamp": 1663195738.319167,
+      "exclusive_time": 0.980139,
+      "description": "SELECT \"django_session\".\"session_key\", \"django_session\".\"session_data\", \"django_session\".\"expire_date\" FROM \"django_session\" WHERE (\"django_session\".\"expire_date\" > %s AND \"django_session\".\"session_key\" = %s) LIMIT 21",
+      "op": "db",
+      "span_id": "814f9ac67e3d943c",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "18b006f58ddafd89",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.325483,
+      "start_timestamp": 1663195738.325057,
+      "exclusive_time": 0.426054,
+      "description": "SELECT \"auth_user\".\"id\", \"auth_user\".\"password\", \"auth_user\".\"last_login\", \"auth_user\".\"is_superuser\", \"auth_user\".\"username\", \"auth_user\".\"first_name\", \"auth_user\".\"last_name\", \"auth_user\".\"email\", \"auth_user\".\"is_staff\", \"auth_user\".\"is_active\", \"auth_user\".\"date_joined\" FROM \"auth_user\" WHERE \"auth_user\".\"id\" = %s LIMIT 21",
+      "op": "db",
+      "span_id": "b1080b204700a3cd",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "462084c8f6a7e8b1",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.329525,
+      "start_timestamp": 1663195738.329332,
+      "exclusive_time": 0.19288,
+      "description": "SELECT \"expense_reports\".\"id\", \"expense_reports\".\"name\", \"expense_reports\".\"submitted_date\" FROM \"expense_reports\"",
+      "op": "db",
+      "span_id": "99797d06e2fa9750",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "82c7b42d79b4304a",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.339368,
+      "start_timestamp": 1663195738.339078,
+      "exclusive_time": 0.290155,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "9c7876a6d7a26c72",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195738.453634,
+      "start_timestamp": 1663195738.453518,
+      "exclusive_time": 0.11611,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b31f67541d38ad0c",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.452606,
+      "start_timestamp": 1663195739.452453,
+      "exclusive_time": 0.153064,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "aff9d1545b41f1de",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.467267,
+      "start_timestamp": 1663195739.467172,
+      "exclusive_time": 0.095129,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "86a56025d94edb85",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.607995,
+      "start_timestamp": 1663195739.607885,
+      "exclusive_time": 0.11015,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b5e340041cfc2532",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.620096,
+      "start_timestamp": 1663195739.620004,
+      "exclusive_time": 0.09203,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b77a0b154e782baa",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.750673,
+      "start_timestamp": 1663195739.750574,
+      "exclusive_time": 0.098944,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "9c46a977962d6ed1",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.764664,
+      "start_timestamp": 1663195739.764556,
+      "exclusive_time": 0.108003,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b03da8752eeddebe",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.878627,
+      "start_timestamp": 1663195739.878492,
+      "exclusive_time": 0.134945,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "8c173716d4c7e41b",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195739.892454,
+      "start_timestamp": 1663195739.892342,
+      "exclusive_time": 0.111818,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b4e6f90c66e90238",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.025263,
+      "start_timestamp": 1663195740.025149,
+      "exclusive_time": 0.113965,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "987affc4f2faa24b",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.037331,
+      "start_timestamp": 1663195740.037219,
+      "exclusive_time": 0.112057,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b7d323b4f5f8b2b0",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.176002,
+      "start_timestamp": 1663195740.17587,
+      "exclusive_time": 0.132084,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "a4f0a57410b61072",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.188801,
+      "start_timestamp": 1663195740.188691,
+      "exclusive_time": 0.11015,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "a6120e2d88c86ea4",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.323694,
+      "start_timestamp": 1663195740.323558,
+      "exclusive_time": 0.135898,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "a87019f03438311e",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.33722,
+      "start_timestamp": 1663195740.337097,
+      "exclusive_time": 0.123024,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "b5487ad7228cfd6e",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.476865,
+      "start_timestamp": 1663195740.476736,
+      "exclusive_time": 0.128985,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "bc44d59a63a4115c",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.491183,
+      "start_timestamp": 1663195740.49102,
+      "exclusive_time": 0.163078,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "84b05df439e4a6ee",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.634046,
+      "start_timestamp": 1663195740.633926,
+      "exclusive_time": 0.120163,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "be85dffe4a9a3120",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1663195740.644113,
+      "start_timestamp": 1663195740.644013,
+      "exclusive_time": 0.100135,
+      "description": "SELECT \"expense_expenses\".\"id\", \"expense_expenses\".\"report_id\", \"expense_expenses\".\"amount\" FROM \"expense_expenses\" WHERE \"expense_expenses\".\"report_id\" = %s",
+      "op": "db",
+      "span_id": "a3c381b1952dd7fb",
+      "parent_span_id": "81a4b462bdc5c764",
+      "trace_id": "1ff88d56726043f682aca14369975547",
+      "hash": "8f777f043e763204",
+      "same_process_as_parent": true
+    }
+  ],
+  "start_timestamp": 1663195738.305304,
+  "timestamp": 1663195740.808026,
+  "title": "/",
+  "transaction": "/",
+  "transaction_info": {"source": "route"},
+  "type": "transaction",
+  "user": {
+    "id": "1",
+    "email": "user@example.com",
+    "ip_address": "127.0.0.1",
+    "username": "user"
+  },
+  "version": "7"
+}

@@ -1,0 +1,36 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "SAML2 Setup" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<h3>Map Identity Provider Attributes</h3>
+
+<form action="" method="post" class="form-stacked">
+  {% csrf_token %}
+  <input type="hidden" name="provider" value="saml2" />
+
+  <p>
+    Configure the mapping of IdP attribute keys. Consult your Identity
+    Provider's documentation for the appropriate keys.
+  </p>
+
+  {{ form|as_crispy_errors }}
+
+  {% for field in form %}
+      {{ field|as_crispy_field }}
+  {% endfor %}
+
+  <fieldset class="form-actions">
+    <button
+      type="submit"
+      class="btn btn-primary"
+      name="save_mappings" value="url">{% trans "Save Attributes" %}</button>
+  </fieldset>
+</form>
+{% endblock %}

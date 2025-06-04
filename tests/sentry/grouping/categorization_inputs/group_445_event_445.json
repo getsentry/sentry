@@ -1,0 +1,162 @@
+{
+  "event_id": "4312b7fd0faf4da18456eeef13fb55f4",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "d:\\agent\\_work\\4\\s\\src\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl",
+              "filename": "exe_common.inl",
+              "function": "invoke_main"
+            },
+            {
+              "filename": "WinMain.cpp",
+              "function": "wWinMain"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::{ctor}"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::_Reallocate_for"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.25.28610\\include\\functional",
+              "filename": "functional",
+              "function": "std::_Func_class<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "DispatchMessageWorker",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "function": "UserCallWinProcCheckWow",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "filename": "function_template.hpp",
+              "function": "boost::function0<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "d:\\agent\\_work\\1\\s\\src\\vctools\\crt\\vcruntime\\src\\misc\\purevirt.cpp",
+              "filename": "purevirt.cpp",
+              "function": "_purecall",
+              "package": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll"
+            },
+            {
+              "function": "abort",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "raise",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "filename": "crashpad_client_win.cc",
+              "function": "crashpad::`anonymous namespace'::HandleAbortSignal"
+            }
+          ]
+        },
+        "type": "0x40000015 / 0x00000001",
+        "value": "Fatal Error: 0x40000015 / 0x00000001"
+      }
+    ]
+  },
+  "platform": "native"
+}

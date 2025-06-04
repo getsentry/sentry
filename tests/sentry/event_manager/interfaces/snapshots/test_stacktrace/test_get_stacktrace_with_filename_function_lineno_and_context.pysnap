@@ -1,0 +1,22 @@
+---
+created: '2019-03-14T17:12:36.644428Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_stacktrace.py
+---
+errors: null
+get_stacktrace: "Stacktrace (most recent call last):\n\n  File \"foo\", line 3, in\
+  \ biz\n    def foo(r):\n  File \"bar\", line 5, in baz\n    return None"
+to_json:
+  frames:
+  - abs_path: foo
+    context_line: '  def foo(r):'
+    filename: foo
+    function: biz
+    lineno: 3
+  - abs_path: bar
+    context_line: '    return None'
+    filename: bar
+    function: baz
+    lineno: 5
+to_string: "Stacktrace (most recent call last):\n\n  File \"foo\", line 3, in biz\n\
+  \    def foo(r):\n  File \"bar\", line 5, in baz\n    return None"

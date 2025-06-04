@@ -1,0 +1,44 @@
+{
+  "event_id": "d8b08f4e779a4851823a5455dea6db7c",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/system/framework/arm64/boot-framework.oat"
+            },
+            {
+              "package": "/system/lib64/libandroid_runtime.so"
+            },
+            {
+              "function": "android::SurfaceControl::getHandle",
+              "package": "/system/lib64/libgui.so"
+            },
+            {
+              "function": "pthread_mutex_lock",
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

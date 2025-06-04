@@ -1,0 +1,2674 @@
+{
+  "exporter": "specto.dev",
+  "name": "6191083-1.1.0-2-android-MainActivity-d09a42287b9e45a49d127ba0a1dbbb4b",
+  "metadata":{},
+  "measures":{},
+  "profiles": [
+    {
+      "endValue": 123546000,
+      "events": [
+        {"type": "O", "frame": 227, "at": 17847000},
+        {"type": "O", "frame": 149, "at": 17847000},
+        {"type": "O", "frame": 33, "at": 17847000},
+        {"type": "O", "frame": 199, "at": 17847000},
+        {"type": "O", "frame": 126, "at": 17847000},
+        {"type": "O", "frame": 124, "at": 17847000},
+        {"type": "O", "frame": 91, "at": 17847000},
+        {"type": "O", "frame": 52, "at": 17847000},
+        {"type": "O", "frame": 53, "at": 17847000},
+        {"type": "O", "frame": 120, "at": 17847000},
+        {"type": "O", "frame": 202, "at": 17847000},
+        {"type": "O", "frame": 200, "at": 17847000},
+        {"type": "O", "frame": 47, "at": 17847000},
+        {"type": "O", "frame": 214, "at": 17847000},
+        {"type": "O", "frame": 215, "at": 17847000},
+        {"type": "O", "frame": 270, "at": 17847000},
+        {"type": "O", "frame": 246, "at": 17847000},
+        {"type": "O", "frame": 247, "at": 17847000},
+        {"type": "O", "frame": 137, "at": 17847000},
+        {"type": "O", "frame": 138, "at": 17847000},
+        {"type": "O", "frame": 132, "at": 17847000},
+        {"type": "O", "frame": 135, "at": 17847000},
+        {"type": "O", "frame": 143, "at": 17847000},
+        {"type": "O", "frame": 251, "at": 17847000},
+        {"type": "O", "frame": 250, "at": 17847000},
+        {"type": "C", "frame": 250, "at": 21527000},
+        {"type": "C", "frame": 251, "at": 21527000},
+        {"type": "C", "frame": 143, "at": 21527000},
+        {"type": "O", "frame": 139, "at": 21527000},
+        {"type": "O", "frame": 140, "at": 21527000},
+        {"type": "O", "frame": 157, "at": 21527000},
+        {"type": "O", "frame": 134, "at": 21527000},
+        {"type": "O", "frame": 133, "at": 21527000},
+        {"type": "O", "frame": 32, "at": 21527000},
+        {"type": "O", "frame": 31, "at": 21527000},
+        {"type": "O", "frame": 176, "at": 21527000},
+        {"type": "O", "frame": 177, "at": 21527000},
+        {"type": "O", "frame": 178, "at": 21527000},
+        {"type": "O", "frame": 173, "at": 21527000},
+        {"type": "O", "frame": 161, "at": 21527000},
+        {"type": "O", "frame": 151, "at": 21527000},
+        {"type": "O", "frame": 150, "at": 21527000},
+        {"type": "O", "frame": 145, "at": 21527000},
+        {"type": "O", "frame": 144, "at": 21527000},
+        {"type": "O", "frame": 165, "at": 21527000},
+        {"type": "O", "frame": 163, "at": 21527000},
+        {"type": "O", "frame": 164, "at": 21527000},
+        {"type": "O", "frame": 160, "at": 21527000},
+        {"type": "O", "frame": 225, "at": 21527000},
+        {"type": "O", "frame": 226, "at": 21527000},
+        {"type": "C", "frame": 226, "at": 24815000},
+        {"type": "C", "frame": 225, "at": 24815000},
+        {"type": "C", "frame": 160, "at": 24815000},
+        {"type": "C", "frame": 164, "at": 24815000},
+        {"type": "C", "frame": 163, "at": 24815000},
+        {"type": "C", "frame": 165, "at": 24815000},
+        {"type": "C", "frame": 144, "at": 24815000},
+        {"type": "C", "frame": 145, "at": 24815000},
+        {"type": "C", "frame": 150, "at": 24815000},
+        {"type": "O", "frame": 58, "at": 24815000},
+        {"type": "O", "frame": 64, "at": 24815000},
+        {"type": "O", "frame": 71, "at": 24815000},
+        {"type": "O", "frame": 206, "at": 24815000},
+        {"type": "O", "frame": 204, "at": 24815000},
+        {"type": "C", "frame": 204, "at": 28142000},
+        {"type": "C", "frame": 206, "at": 28142000},
+        {"type": "C", "frame": 71, "at": 28142000},
+        {"type": "C", "frame": 64, "at": 28142000},
+        {"type": "C", "frame": 58, "at": 28142000},
+        {"type": "O", "frame": 156, "at": 28142000},
+        {"type": "O", "frame": 147, "at": 28142000},
+        {"type": "O", "frame": 146, "at": 28142000},
+        {"type": "O", "frame": 148, "at": 28142000},
+        {"type": "O", "frame": 166, "at": 28142000},
+        {"type": "O", "frame": 225, "at": 28142000},
+        {"type": "O", "frame": 226, "at": 28142000},
+        {"type": "C", "frame": 226, "at": 31464000},
+        {"type": "C", "frame": 225, "at": 31464000},
+        {"type": "C", "frame": 166, "at": 31464000},
+        {"type": "C", "frame": 148, "at": 31464000},
+        {"type": "C", "frame": 146, "at": 31464000},
+        {"type": "C", "frame": 147, "at": 31464000},
+        {"type": "C", "frame": 156, "at": 31464000},
+        {"type": "C", "frame": 151, "at": 31464000},
+        {"type": "C", "frame": 161, "at": 31464000},
+        {"type": "C", "frame": 173, "at": 31464000},
+        {"type": "C", "frame": 178, "at": 31464000},
+        {"type": "C", "frame": 177, "at": 31464000},
+        {"type": "C", "frame": 176, "at": 31464000},
+        {"type": "C", "frame": 31, "at": 31464000},
+        {"type": "C", "frame": 32, "at": 31464000},
+        {"type": "C", "frame": 133, "at": 31464000},
+        {"type": "C", "frame": 134, "at": 31464000},
+        {"type": "C", "frame": 157, "at": 31464000},
+        {"type": "C", "frame": 140, "at": 31464000},
+        {"type": "C", "frame": 139, "at": 31464000},
+        {"type": "C", "frame": 135, "at": 31464000},
+        {"type": "C", "frame": 132, "at": 31464000},
+        {"type": "O", "frame": 142, "at": 31464000},
+        {"type": "O", "frame": 141, "at": 31464000},
+        {"type": "O", "frame": 142, "at": 31464000},
+        {"type": "O", "frame": 141, "at": 31464000},
+        {"type": "O", "frame": 132, "at": 31464000},
+        {"type": "O", "frame": 135, "at": 31464000},
+        {"type": "O", "frame": 143, "at": 31464000},
+        {"type": "O", "frame": 251, "at": 31464000},
+        {"type": "O", "frame": 250, "at": 31464000},
+        {"type": "O", "frame": 259, "at": 31464000},
+        {"type": "O", "frame": 258, "at": 31464000},
+        {"type": "O", "frame": 233, "at": 38038000},
+        {"type": "O", "frame": 234, "at": 38038000},
+        {"type": "O", "frame": 171, "at": 38038000},
+        {"type": "O", "frame": 172, "at": 38038000},
+        {"type": "O", "frame": 168, "at": 38038000},
+        {"type": "O", "frame": 151, "at": 38038000},
+        {"type": "O", "frame": 77, "at": 38038000},
+        {"type": "O", "frame": 78, "at": 38038000},
+        {"type": "O", "frame": 69, "at": 38038000},
+        {"type": "O", "frame": 275, "at": 38038000},
+        {"type": "O", "frame": 192, "at": 38038000},
+        {"type": "O", "frame": 193, "at": 38038000},
+        {"type": "O", "frame": 118, "at": 38038000},
+        {"type": "O", "frame": 105, "at": 38038000},
+        {"type": "O", "frame": 116, "at": 38038000},
+        {"type": "O", "frame": 100, "at": 38038000},
+        {"type": "O", "frame": 102, "at": 38038000},
+        {"type": "O", "frame": 101, "at": 38038000},
+        {"type": "O", "frame": 76, "at": 38038000},
+        {"type": "O", "frame": 68, "at": 38038000},
+        {"type": "O", "frame": 191, "at": 38038000},
+        {"type": "O", "frame": 189, "at": 38038000},
+        {"type": "C", "frame": 189, "at": 43363000},
+        {"type": "C", "frame": 191, "at": 43363000},
+        {"type": "C", "frame": 68, "at": 43363000},
+        {"type": "C", "frame": 76, "at": 43363000},
+        {"type": "C", "frame": 101, "at": 43363000},
+        {"type": "C", "frame": 102, "at": 43363000},
+        {"type": "C", "frame": 100, "at": 43363000},
+        {"type": "C", "frame": 116, "at": 43363000},
+        {"type": "C", "frame": 105, "at": 43363000},
+        {"type": "C", "frame": 118, "at": 43363000},
+        {"type": "C", "frame": 193, "at": 43363000},
+        {"type": "C", "frame": 192, "at": 43363000},
+        {"type": "C", "frame": 275, "at": 43363000},
+        {"type": "C", "frame": 69, "at": 43363000},
+        {"type": "C", "frame": 78, "at": 43363000},
+        {"type": "C", "frame": 77, "at": 43363000},
+        {"type": "C", "frame": 151, "at": 43363000},
+        {"type": "C", "frame": 168, "at": 43363000},
+        {"type": "C", "frame": 172, "at": 43363000},
+        {"type": "C", "frame": 171, "at": 43363000},
+        {"type": "O", "frame": 240, "at": 43363000},
+        {"type": "O", "frame": 255, "at": 43363000},
+        {"type": "C", "frame": 255, "at": 46644000},
+        {"type": "C", "frame": 240, "at": 46644000},
+        {"type": "C", "frame": 234, "at": 49898000},
+        {"type": "C", "frame": 233, "at": 49898000},
+        {"type": "C", "frame": 258, "at": 49898000},
+        {"type": "C", "frame": 259, "at": 49898000},
+        {"type": "C", "frame": 250, "at": 49898000},
+        {"type": "C", "frame": 251, "at": 49898000},
+        {"type": "C", "frame": 143, "at": 49898000},
+        {"type": "O", "frame": 57, "at": 49898000},
+        {"type": "O", "frame": 64, "at": 49898000},
+        {"type": "O", "frame": 71, "at": 49898000},
+        {"type": "O", "frame": 62, "at": 49898000},
+        {"type": "C", "frame": 62, "at": 53236000},
+        {"type": "C", "frame": 71, "at": 53236000},
+        {"type": "C", "frame": 64, "at": 53236000},
+        {"type": "C", "frame": 57, "at": 53236000},
+        {"type": "O", "frame": 143, "at": 53236000},
+        {"type": "O", "frame": 251, "at": 53236000},
+        {"type": "O", "frame": 250, "at": 53236000},
+        {"type": "O", "frame": 259, "at": 53236000},
+        {"type": "O", "frame": 258, "at": 53236000},
+        {"type": "O", "frame": 233, "at": 53236000},
+        {"type": "O", "frame": 234, "at": 53236000},
+        {"type": "O", "frame": 171, "at": 53236000},
+        {"type": "O", "frame": 172, "at": 53236000},
+        {"type": "O", "frame": 168, "at": 53236000},
+        {"type": "O", "frame": 169, "at": 53236000},
+        {"type": "O", "frame": 75, "at": 53236000},
+        {"type": "O", "frame": 74, "at": 53236000},
+        {"type": "O", "frame": 115, "at": 53236000},
+        {"type": "C", "frame": 115, "at": 56664000},
+        {"type": "C", "frame": 74, "at": 56664000},
+        {"type": "C", "frame": 75, "at": 56664000},
+        {"type": "C", "frame": 169, "at": 56664000},
+        {"type": "O", "frame": 151, "at": 56664000},
+        {"type": "O", "frame": 154, "at": 56664000},
+        {"type": "O", "frame": 235, "at": 56664000},
+        {"type": "O", "frame": 155, "at": 56664000},
+        {"type": "O", "frame": 106, "at": 56664000},
+        {"type": "O", "frame": 103, "at": 56664000},
+        {"type": "C", "frame": 103, "at": 59940000},
+        {"type": "C", "frame": 106, "at": 59940000},
+        {"type": "C", "frame": 155, "at": 59940000},
+        {"type": "C", "frame": 235, "at": 59940000},
+        {"type": "C", "frame": 154, "at": 59940000},
+        {"type": "C", "frame": 151, "at": 59940000},
+        {"type": "C", "frame": 168, "at": 59940000},
+        {"type": "C", "frame": 172, "at": 59940000},
+        {"type": "C", "frame": 171, "at": 59940000},
+        {"type": "C", "frame": 234, "at": 59940000},
+        {"type": "C", "frame": 233, "at": 59940000},
+        {"type": "C", "frame": 258, "at": 59940000},
+        {"type": "C", "frame": 259, "at": 59940000},
+        {"type": "C", "frame": 250, "at": 59940000},
+        {"type": "C", "frame": 251, "at": 59940000},
+        {"type": "C", "frame": 143, "at": 59940000},
+        {"type": "O", "frame": 57, "at": 59940000},
+        {"type": "O", "frame": 159, "at": 59940000},
+        {"type": "C", "frame": 159, "at": 63162000},
+        {"type": "C", "frame": 57, "at": 63162000},
+        {"type": "O", "frame": 143, "at": 63162000},
+        {"type": "O", "frame": 251, "at": 63162000},
+        {"type": "O", "frame": 250, "at": 63162000},
+        {"type": "O", "frame": 259, "at": 63162000},
+        {"type": "O", "frame": 258, "at": 63162000},
+        {"type": "O", "frame": 233, "at": 63162000},
+        {"type": "O", "frame": 234, "at": 63162000},
+        {"type": "O", "frame": 171, "at": 63162000},
+        {"type": "O", "frame": 172, "at": 63162000},
+        {"type": "O", "frame": 168, "at": 63162000},
+        {"type": "O", "frame": 170, "at": 63162000},
+        {"type": "C", "frame": 170, "at": 66377000},
+        {"type": "O", "frame": 152, "at": 66377000},
+        {"type": "C", "frame": 152, "at": 69615000},
+        {"type": "O", "frame": 151, "at": 69615000},
+        {"type": "O", "frame": 44, "at": 69615000},
+        {"type": "O", "frame": 96, "at": 69615000},
+        {"type": "O", "frame": 60, "at": 69615000},
+        {"type": "O", "frame": 59, "at": 69615000},
+        {"type": "O", "frame": 88, "at": 69615000},
+        {"type": "O", "frame": 87, "at": 69615000},
+        {"type": "O", "frame": 46, "at": 69615000},
+        {"type": "O", "frame": 83, "at": 69615000},
+        {"type": "O", "frame": 84, "at": 69615000},
+        {"type": "O", "frame": 45, "at": 69615000},
+        {"type": "O", "frame": 112, "at": 69615000},
+        {"type": "O", "frame": 113, "at": 69615000},
+        {"type": "O", "frame": 90, "at": 69615000},
+        {"type": "O", "frame": 7, "at": 69615000},
+        {"type": "O", "frame": 8, "at": 69615000},
+        {"type": "O", "frame": 9, "at": 69615000},
+        {"type": "C", "frame": 9, "at": 72889000},
+        {"type": "C", "frame": 8, "at": 72889000},
+        {"type": "C", "frame": 7, "at": 72889000},
+        {"type": "C", "frame": 90, "at": 72889000},
+        {"type": "C", "frame": 113, "at": 72889000},
+        {"type": "C", "frame": 112, "at": 72889000},
+        {"type": "O", "frame": 89, "at": 72889000},
+        {"type": "O", "frame": 90, "at": 72889000},
+        {"type": "O", "frame": 86, "at": 72889000},
+        {"type": "O", "frame": 85, "at": 72889000},
+        {"type": "O", "frame": 183, "at": 72889000},
+        {"type": "O", "frame": 111, "at": 72889000},
+        {"type": "O", "frame": 110, "at": 72889000},
+        {"type": "O", "frame": 18, "at": 72889000},
+        {"type": "C", "frame": 18, "at": 76233000},
+        {"type": "C", "frame": 110, "at": 76233000},
+        {"type": "C", "frame": 111, "at": 76233000},
+        {"type": "C", "frame": 183, "at": 76233000},
+        {"type": "C", "frame": 85, "at": 76233000},
+        {"type": "C", "frame": 86, "at": 76233000},
+        {"type": "C", "frame": 90, "at": 76233000},
+        {"type": "C", "frame": 89, "at": 76233000},
+        {"type": "C", "frame": 45, "at": 76233000},
+        {"type": "C", "frame": 84, "at": 76233000},
+        {"type": "C", "frame": 83, "at": 76233000},
+        {"type": "C", "frame": 46, "at": 76233000},
+        {"type": "C", "frame": 87, "at": 76233000},
+        {"type": "C", "frame": 88, "at": 76233000},
+        {"type": "C", "frame": 59, "at": 76233000},
+        {"type": "C", "frame": 60, "at": 76233000},
+        {"type": "C", "frame": 96, "at": 76233000},
+        {"type": "C", "frame": 44, "at": 76233000},
+        {"type": "O", "frame": 77, "at": 76233000},
+        {"type": "O", "frame": 78, "at": 76233000},
+        {"type": "O", "frame": 69, "at": 76233000},
+        {"type": "O", "frame": 275, "at": 76233000},
+        {"type": "O", "frame": 192, "at": 76233000},
+        {"type": "O", "frame": 193, "at": 76233000},
+        {"type": "O", "frame": 97, "at": 76233000},
+        {"type": "O", "frame": 73, "at": 76233000},
+        {"type": "O", "frame": 72, "at": 76233000},
+        {"type": "O", "frame": 61, "at": 76233000},
+        {"type": "O", "frame": 70, "at": 76233000},
+        {"type": "C", "frame": 70, "at": 79501000},
+        {"type": "C", "frame": 61, "at": 79501000},
+        {"type": "C", "frame": 72, "at": 79501000},
+        {"type": "C", "frame": 73, "at": 79501000},
+        {"type": "C", "frame": 97, "at": 79501000},
+        {"type": "C", "frame": 193, "at": 79501000},
+        {"type": "C", "frame": 192, "at": 79501000},
+        {"type": "C", "frame": 275, "at": 79501000},
+        {"type": "C", "frame": 69, "at": 79501000},
+        {"type": "C", "frame": 78, "at": 79501000},
+        {"type": "C", "frame": 77, "at": 79501000},
+        {"type": "C", "frame": 151, "at": 79501000},
+        {"type": "C", "frame": 168, "at": 79501000},
+        {"type": "C", "frame": 172, "at": 79501000},
+        {"type": "C", "frame": 171, "at": 79501000},
+        {"type": "C", "frame": 234, "at": 79501000},
+        {"type": "C", "frame": 233, "at": 79501000},
+        {"type": "C", "frame": 258, "at": 79501000},
+        {"type": "C", "frame": 259, "at": 79501000},
+        {"type": "C", "frame": 250, "at": 79501000},
+        {"type": "C", "frame": 251, "at": 79501000},
+        {"type": "C", "frame": 143, "at": 79501000},
+        {"type": "C", "frame": 135, "at": 79501000},
+        {"type": "C", "frame": 132, "at": 79501000},
+        {"type": "C", "frame": 141, "at": 79501000},
+        {"type": "C", "frame": 142, "at": 79501000},
+        {"type": "C", "frame": 141, "at": 79501000},
+        {"type": "C", "frame": 142, "at": 79501000},
+        {"type": "C", "frame": 138, "at": 79501000},
+        {"type": "C", "frame": 137, "at": 79501000},
+        {"type": "C", "frame": 247, "at": 79501000},
+        {"type": "C", "frame": 246, "at": 79501000},
+        {"type": "O", "frame": 13, "at": 79501000},
+        {"type": "O", "frame": 14, "at": 79501000},
+        {"type": "O", "frame": 35, "at": 79501000},
+        {"type": "O", "frame": 41, "at": 79501000},
+        {"type": "O", "frame": 41, "at": 79501000},
+        {"type": "O", "frame": 43, "at": 79501000},
+        {"type": "C", "frame": 43, "at": 82781000},
+        {"type": "C", "frame": 41, "at": 82781000},
+        {"type": "C", "frame": 41, "at": 82781000},
+        {"type": "C", "frame": 35, "at": 82781000},
+        {"type": "C", "frame": 14, "at": 82781000},
+        {"type": "C", "frame": 13, "at": 82781000},
+        {"type": "O", "frame": 272, "at": 82781000},
+        {"type": "O", "frame": 252, "at": 82781000},
+        {"type": "O", "frame": 249, "at": 82781000},
+        {"type": "O", "frame": 248, "at": 82781000},
+        {"type": "O", "frame": 230, "at": 82781000},
+        {"type": "O", "frame": 228, "at": 82781000},
+        {"type": "O", "frame": 231, "at": 82781000},
+        {"type": "O", "frame": 229, "at": 82781000},
+        {"type": "O", "frame": 277, "at": 82781000},
+        {"type": "C", "frame": 277, "at": 85989000},
+        {"type": "O", "frame": 180, "at": 85989000},
+        {"type": "O", "frame": 179, "at": 85989000},
+        {"type": "O", "frame": 181, "at": 85989000},
+        {"type": "O", "frame": 276, "at": 85989000},
+        {"type": "O", "frame": 212, "at": 85989000},
+        {"type": "O", "frame": 114, "at": 85989000},
+        {"type": "O", "frame": 225, "at": 85989000},
+        {"type": "O", "frame": 226, "at": 85989000},
+        {"type": "C", "frame": 226, "at": 89206000},
+        {"type": "C", "frame": 225, "at": 89206000},
+        {"type": "C", "frame": 114, "at": 89206000},
+        {"type": "C", "frame": 212, "at": 89206000},
+        {"type": "C", "frame": 276, "at": 89206000},
+        {"type": "C", "frame": 181, "at": 89206000},
+        {"type": "C", "frame": 179, "at": 89206000},
+        {"type": "C", "frame": 180, "at": 89206000},
+        {"type": "C", "frame": 229, "at": 89206000},
+        {"type": "C", "frame": 231, "at": 89206000},
+        {"type": "C", "frame": 228, "at": 89206000},
+        {"type": "C", "frame": 230, "at": 89206000},
+        {"type": "O", "frame": 136, "at": 89206000},
+        {"type": "O", "frame": 137, "at": 89206000},
+        {"type": "O", "frame": 138, "at": 89206000},
+        {"type": "O", "frame": 132, "at": 89206000},
+        {"type": "O", "frame": 135, "at": 89206000},
+        {"type": "O", "frame": 133, "at": 89206000},
+        {"type": "O", "frame": 32, "at": 89206000},
+        {"type": "O", "frame": 31, "at": 89206000},
+        {"type": "C", "frame": 31, "at": 93926000},
+        {"type": "C", "frame": 32, "at": 93926000},
+        {"type": "C", "frame": 133, "at": 93926000},
+        {"type": "C", "frame": 135, "at": 93926000},
+        {"type": "C", "frame": 132, "at": 93926000},
+        {"type": "O", "frame": 142, "at": 93926000},
+        {"type": "O", "frame": 141, "at": 93926000},
+        {"type": "O", "frame": 132, "at": 93926000},
+        {"type": "O", "frame": 135, "at": 93926000},
+        {"type": "O", "frame": 133, "at": 93926000},
+        {"type": "O", "frame": 32, "at": 93926000},
+        {"type": "O", "frame": 31, "at": 93926000},
+        {"type": "O", "frame": 243, "at": 93926000},
+        {"type": "C", "frame": 243, "at": 98291000},
+        {"type": "C", "frame": 31, "at": 98291000},
+        {"type": "C", "frame": 32, "at": 98291000},
+        {"type": "C", "frame": 133, "at": 98291000},
+        {"type": "C", "frame": 135, "at": 98291000},
+        {"type": "C", "frame": 132, "at": 98291000},
+        {"type": "O", "frame": 142, "at": 98291000},
+        {"type": "O", "frame": 141, "at": 98291000},
+        {"type": "O", "frame": 132, "at": 98291000},
+        {"type": "O", "frame": 135, "at": 98291000},
+        {"type": "O", "frame": 133, "at": 98291000},
+        {"type": "O", "frame": 32, "at": 98291000},
+        {"type": "O", "frame": 31, "at": 98291000},
+        {"type": "O", "frame": 264, "at": 101654000},
+        {"type": "O", "frame": 265, "at": 101654000},
+        {"type": "O", "frame": 267, "at": 101654000},
+        {"type": "O", "frame": 266, "at": 101654000},
+        {"type": "O", "frame": 236, "at": 101654000},
+        {"type": "O", "frame": 174, "at": 101654000},
+        {"type": "O", "frame": 175, "at": 101654000},
+        {"type": "O", "frame": 167, "at": 101654000},
+        {"type": "O", "frame": 151, "at": 101654000},
+        {"type": "O", "frame": 77, "at": 101654000},
+        {"type": "O", "frame": 78, "at": 101654000},
+        {"type": "O", "frame": 69, "at": 101654000},
+        {"type": "O", "frame": 275, "at": 101654000},
+        {"type": "O", "frame": 192, "at": 101654000},
+        {"type": "O", "frame": 193, "at": 101654000},
+        {"type": "O", "frame": 187, "at": 101654000},
+        {"type": "O", "frame": 188, "at": 101654000},
+        {"type": "O", "frame": 184, "at": 101654000},
+        {"type": "O", "frame": 79, "at": 101654000},
+        {"type": "O", "frame": 81, "at": 101654000},
+        {"type": "O", "frame": 82, "at": 101654000},
+        {"type": "O", "frame": 119, "at": 101654000},
+        {"type": "O", "frame": 117, "at": 101654000},
+        {"type": "O", "frame": 76, "at": 101654000},
+        {"type": "O", "frame": 68, "at": 101654000},
+        {"type": "O", "frame": 191, "at": 101654000},
+        {"type": "O", "frame": 186, "at": 101654000},
+        {"type": "O", "frame": 185, "at": 101654000},
+        {"type": "O", "frame": 94, "at": 101654000},
+        {"type": "O", "frame": 95, "at": 101654000},
+        {"type": "O", "frame": 182, "at": 101654000},
+        {"type": "C", "frame": 182, "at": 106424000},
+        {"type": "C", "frame": 95, "at": 106424000},
+        {"type": "C", "frame": 94, "at": 106424000},
+        {"type": "C", "frame": 185, "at": 106424000},
+        {"type": "C", "frame": 186, "at": 106424000},
+        {"type": "C", "frame": 191, "at": 106424000},
+        {"type": "C", "frame": 68, "at": 106424000},
+        {"type": "C", "frame": 76, "at": 106424000},
+        {"type": "C", "frame": 117, "at": 106424000},
+        {"type": "C", "frame": 119, "at": 106424000},
+        {"type": "C", "frame": 82, "at": 106424000},
+        {"type": "C", "frame": 81, "at": 106424000},
+        {"type": "C", "frame": 79, "at": 106424000},
+        {"type": "C", "frame": 184, "at": 106424000},
+        {"type": "C", "frame": 188, "at": 106424000},
+        {"type": "C", "frame": 187, "at": 106424000},
+        {"type": "C", "frame": 193, "at": 106424000},
+        {"type": "C", "frame": 192, "at": 106424000},
+        {"type": "C", "frame": 275, "at": 106424000},
+        {"type": "C", "frame": 69, "at": 106424000},
+        {"type": "C", "frame": 78, "at": 106424000},
+        {"type": "C", "frame": 77, "at": 106424000},
+        {"type": "C", "frame": 151, "at": 106424000},
+        {"type": "C", "frame": 167, "at": 106424000},
+        {"type": "C", "frame": 175, "at": 106424000},
+        {"type": "C", "frame": 174, "at": 106424000},
+        {"type": "C", "frame": 236, "at": 106424000},
+        {"type": "C", "frame": 266, "at": 106424000},
+        {"type": "C", "frame": 267, "at": 106424000},
+        {"type": "C", "frame": 265, "at": 106424000},
+        {"type": "C", "frame": 264, "at": 106424000},
+        {"type": "O", "frame": 260, "at": 106424000},
+        {"type": "O", "frame": 261, "at": 106424000},
+        {"type": "O", "frame": 254, "at": 106424000},
+        {"type": "O", "frame": 232, "at": 106424000},
+        {"type": "O", "frame": 262, "at": 106424000},
+        {"type": "O", "frame": 263, "at": 106424000},
+        {"type": "O", "frame": 273, "at": 106424000},
+        {"type": "O", "frame": 54, "at": 106424000},
+        {"type": "O", "frame": 65, "at": 106424000},
+        {"type": "O", "frame": 66, "at": 106424000},
+        {"type": "O", "frame": 69, "at": 106424000},
+        {"type": "O", "frame": 275, "at": 106424000},
+        {"type": "O", "frame": 192, "at": 106424000},
+        {"type": "O", "frame": 193, "at": 106424000},
+        {"type": "O", "frame": 187, "at": 106424000},
+        {"type": "O", "frame": 188, "at": 106424000},
+        {"type": "O", "frame": 184, "at": 106424000},
+        {"type": "O", "frame": 79, "at": 106424000},
+        {"type": "O", "frame": 81, "at": 106424000},
+        {"type": "O", "frame": 82, "at": 106424000},
+        {"type": "O", "frame": 107, "at": 106424000},
+        {"type": "O", "frame": 104, "at": 106424000},
+        {"type": "O", "frame": 80, "at": 106424000},
+        {"type": "O", "frame": 81, "at": 106424000},
+        {"type": "O", "frame": 82, "at": 106424000},
+        {"type": "O", "frame": 109, "at": 106424000},
+        {"type": "O", "frame": 108, "at": 106424000},
+        {"type": "O", "frame": 196, "at": 106424000},
+        {"type": "O", "frame": 197, "at": 106424000},
+        {"type": "O", "frame": 98, "at": 106424000},
+        {"type": "O", "frame": 194, "at": 106424000},
+        {"type": "O", "frame": 195, "at": 106424000},
+        {"type": "O", "frame": 198, "at": 106424000},
+        {"type": "C", "frame": 198, "at": 110329000},
+        {"type": "C", "frame": 195, "at": 110329000},
+        {"type": "C", "frame": 194, "at": 110329000},
+        {"type": "C", "frame": 98, "at": 110329000},
+        {"type": "C", "frame": 197, "at": 110329000},
+        {"type": "C", "frame": 196, "at": 110329000},
+        {"type": "C", "frame": 108, "at": 110329000},
+        {"type": "C", "frame": 109, "at": 110329000},
+        {"type": "C", "frame": 82, "at": 110329000},
+        {"type": "C", "frame": 81, "at": 110329000},
+        {"type": "C", "frame": 80, "at": 110329000},
+        {"type": "C", "frame": 104, "at": 110329000},
+        {"type": "C", "frame": 107, "at": 110329000},
+        {"type": "C", "frame": 82, "at": 110329000},
+        {"type": "C", "frame": 81, "at": 110329000},
+        {"type": "C", "frame": 79, "at": 110329000},
+        {"type": "C", "frame": 184, "at": 110329000},
+        {"type": "C", "frame": 188, "at": 110329000},
+        {"type": "C", "frame": 187, "at": 110329000},
+        {"type": "C", "frame": 193, "at": 110329000},
+        {"type": "C", "frame": 192, "at": 110329000},
+        {"type": "C", "frame": 275, "at": 110329000},
+        {"type": "C", "frame": 69, "at": 110329000},
+        {"type": "C", "frame": 66, "at": 110329000},
+        {"type": "C", "frame": 65, "at": 110329000},
+        {"type": "C", "frame": 54, "at": 110329000},
+        {"type": "C", "frame": 273, "at": 110329000},
+        {"type": "C", "frame": 263, "at": 110329000},
+        {"type": "C", "frame": 262, "at": 110329000},
+        {"type": "C", "frame": 232, "at": 110329000},
+        {"type": "C", "frame": 254, "at": 110329000},
+        {"type": "C", "frame": 261, "at": 110329000},
+        {"type": "C", "frame": 260, "at": 110329000},
+        {"type": "C", "frame": 31, "at": 110329000},
+        {"type": "C", "frame": 32, "at": 110329000},
+        {"type": "C", "frame": 133, "at": 110329000},
+        {"type": "C", "frame": 135, "at": 110329000},
+        {"type": "C", "frame": 132, "at": 110329000},
+        {"type": "C", "frame": 141, "at": 110329000},
+        {"type": "C", "frame": 142, "at": 110329000},
+        {"type": "C", "frame": 141, "at": 110329000},
+        {"type": "C", "frame": 142, "at": 110329000},
+        {"type": "C", "frame": 138, "at": 110329000},
+        {"type": "C", "frame": 137, "at": 110329000},
+        {"type": "C", "frame": 136, "at": 110329000},
+        {"type": "O", "frame": 256, "at": 110329000},
+        {"type": "O", "frame": 33, "at": 110329000},
+        {"type": "O", "frame": 162, "at": 110329000},
+        {"type": "O", "frame": 162, "at": 110329000},
+        {"type": "O", "frame": 162, "at": 110329000},
+        {"type": "O", "frame": 153, "at": 110329000},
+        {"type": "O", "frame": 156, "at": 110329000},
+        {"type": "O", "frame": 147, "at": 110329000},
+        {"type": "C", "frame": 147, "at": 113743000},
+        {"type": "C", "frame": 156, "at": 113743000},
+        {"type": "C", "frame": 153, "at": 113743000},
+        {"type": "C", "frame": 162, "at": 113743000},
+        {"type": "C", "frame": 162, "at": 113743000},
+        {"type": "C", "frame": 162, "at": 113743000},
+        {"type": "C", "frame": 33, "at": 113743000},
+        {"type": "C", "frame": 256, "at": 113743000},
+        {"type": "C", "frame": 248, "at": 113743000},
+        {"type": "O", "frame": 242, "at": 113743000},
+        {"type": "O", "frame": 245, "at": 113743000},
+        {"type": "O", "frame": 244, "at": 113743000},
+        {"type": "O", "frame": 268, "at": 113743000},
+        {"type": "O", "frame": 237, "at": 113743000},
+        {"type": "O", "frame": 238, "at": 113743000},
+        {"type": "O", "frame": 239, "at": 113743000},
+        {"type": "O", "frame": 241, "at": 113743000},
+        {"type": "O", "frame": 253, "at": 113743000},
+        {"type": "O", "frame": 56, "at": 113743000},
+        {"type": "O", "frame": 63, "at": 113743000},
+        {"type": "O", "frame": 71, "at": 113743000},
+        {"type": "O", "frame": 206, "at": 113743000},
+        {"type": "O", "frame": 204, "at": 113743000},
+        {"type": "C", "frame": 204, "at": 116981000},
+        {"type": "C", "frame": 206, "at": 116981000},
+        {"type": "C", "frame": 71, "at": 116981000},
+        {"type": "C", "frame": 63, "at": 116981000},
+        {"type": "C", "frame": 56, "at": 116981000},
+        {"type": "C", "frame": 253, "at": 116981000},
+        {"type": "C", "frame": 241, "at": 116981000},
+        {"type": "C", "frame": 239, "at": 116981000},
+        {"type": "C", "frame": 238, "at": 116981000},
+        {"type": "C", "frame": 237, "at": 116981000},
+        {"type": "C", "frame": 268, "at": 116981000},
+        {"type": "C", "frame": 244, "at": 116981000},
+        {"type": "C", "frame": 245, "at": 116981000},
+        {"type": "C", "frame": 242, "at": 116981000},
+        {"type": "C", "frame": 249, "at": 116981000},
+        {"type": "C", "frame": 252, "at": 116981000},
+        {"type": "C", "frame": 272, "at": 116981000},
+        {"type": "C", "frame": 270, "at": 116981000},
+        {"type": "C", "frame": 215, "at": 116981000},
+        {"type": "C", "frame": 214, "at": 116981000},
+        {"type": "C", "frame": 47, "at": 116981000},
+        {"type": "C", "frame": 200, "at": 116981000},
+        {"type": "O", "frame": 201, "at": 116981000},
+        {"type": "O", "frame": 67, "at": 116981000},
+        {"type": "O", "frame": 190, "at": 116981000},
+        {"type": "O", "frame": 207, "at": 116981000},
+        {"type": "O", "frame": 205, "at": 116981000},
+        {"type": "O", "frame": 208, "at": 116981000},
+        {"type": "O", "frame": 93, "at": 116981000},
+        {"type": "O", "frame": 99, "at": 116981000},
+        {"type": "C", "frame": 99, "at": 120182000},
+        {"type": "C", "frame": 93, "at": 120182000},
+        {"type": "C", "frame": 208, "at": 120182000},
+        {"type": "C", "frame": 205, "at": 120182000},
+        {"type": "C", "frame": 207, "at": 120182000},
+        {"type": "C", "frame": 190, "at": 120182000},
+        {"type": "C", "frame": 67, "at": 120182000},
+        {"type": "C", "frame": 201, "at": 120182000},
+        {"type": "C", "frame": 202, "at": 120182000},
+        {"type": "C", "frame": 120, "at": 120182000},
+        {"type": "C", "frame": 53, "at": 120182000},
+        {"type": "O", "frame": 50, "at": 120182000},
+        {"type": "O", "frame": 49, "at": 120182000},
+        {"type": "O", "frame": 51, "at": 120182000},
+        {"type": "O", "frame": 203, "at": 120182000},
+        {"type": "O", "frame": 216, "at": 120182000},
+        {"type": "O", "frame": 220, "at": 120182000},
+        {"type": "O", "frame": 219, "at": 120182000},
+        {"type": "O", "frame": 128, "at": 120182000},
+        {"type": "O", "frame": 129, "at": 120182000},
+        {"type": "O", "frame": 130, "at": 120182000},
+        {"type": "O", "frame": 127, "at": 120182000},
+        {"type": "O", "frame": 122, "at": 120182000},
+        {"type": "O", "frame": 123, "at": 120182000},
+        {"type": "O", "frame": 121, "at": 120182000},
+        {"type": "O", "frame": 223, "at": 120182000},
+        {"type": "O", "frame": 131, "at": 120182000},
+        {"type": "O", "frame": 26, "at": 120182000},
+        {"type": "C", "frame": 26, "at": 123546000},
+        {"type": "C", "frame": 131, "at": 123546000},
+        {"type": "C", "frame": 223, "at": 123546000},
+        {"type": "C", "frame": 121, "at": 123546000},
+        {"type": "C", "frame": 123, "at": 123546000},
+        {"type": "C", "frame": 122, "at": 123546000},
+        {"type": "C", "frame": 127, "at": 123546000},
+        {"type": "C", "frame": 130, "at": 123546000},
+        {"type": "C", "frame": 129, "at": 123546000},
+        {"type": "C", "frame": 128, "at": 123546000},
+        {"type": "C", "frame": 219, "at": 123546000},
+        {"type": "C", "frame": 220, "at": 123546000},
+        {"type": "C", "frame": 216, "at": 123546000},
+        {"type": "O", "frame": 48, "at": 123546000},
+        {"type": "O", "frame": 271, "at": 123546000},
+        {"type": "O", "frame": 213, "at": 123546000},
+        {"type": "O", "frame": 210, "at": 123546000},
+        {"type": "O", "frame": 209, "at": 123546000},
+        {"type": "O", "frame": 55, "at": 123546000},
+        {"type": "O", "frame": 211, "at": 123546000},
+        {"type": "O", "frame": 158, "at": 123546000},
+        {"type": "O", "frame": 257, "at": 123546000},
+        {"type": "O", "frame": 92, "at": 123546000},
+        {"type": "O", "frame": 224, "at": 123546000},
+        {"type": "C", "frame": 224, "at": 123546000},
+        {"type": "C", "frame": 92, "at": 123546000},
+        {"type": "C", "frame": 257, "at": 123546000},
+        {"type": "C", "frame": 158, "at": 123546000},
+        {"type": "C", "frame": 211, "at": 123546000},
+        {"type": "C", "frame": 55, "at": 123546000},
+        {"type": "C", "frame": 209, "at": 123546000},
+        {"type": "C", "frame": 210, "at": 123546000},
+        {"type": "C", "frame": 213, "at": 123546000},
+        {"type": "C", "frame": 271, "at": 123546000},
+        {"type": "C", "frame": 48, "at": 123546000},
+        {"type": "C", "frame": 203, "at": 123546000},
+        {"type": "C", "frame": 51, "at": 123546000},
+        {"type": "C", "frame": 49, "at": 123546000},
+        {"type": "C", "frame": 50, "at": 123546000},
+        {"type": "C", "frame": 52, "at": 123546000},
+        {"type": "C", "frame": 91, "at": 123546000},
+        {"type": "C", "frame": 124, "at": 123546000},
+        {"type": "C", "frame": 126, "at": 123546000},
+        {"type": "C", "frame": 199, "at": 123546000},
+        {"type": "C", "frame": 33, "at": 123546000},
+        {"type": "C", "frame": 149, "at": 123546000},
+        {"type": "C", "frame": 227, "at": 123546000}
+      ],
+      "name": "main (tid 3740)",
+      "startValue": 17847000,
+      "threadID": 3740,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 17926000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 17926000},
+        {"type": "O", "frame": 34, "at": 17926000},
+        {"type": "O", "frame": 38, "at": 17926000},
+        {"type": "O", "frame": 37, "at": 17926000},
+        {"type": "O", "frame": 22, "at": 17926000},
+        {"type": "O", "frame": 23, "at": 17926000},
+        {"type": "O", "frame": 24, "at": 17926000},
+        {"type": "C", "frame": 24, "at": 17926000},
+        {"type": "C", "frame": 23, "at": 17926000},
+        {"type": "C", "frame": 22, "at": 17926000},
+        {"type": "C", "frame": 37, "at": 17926000},
+        {"type": "C", "frame": 38, "at": 17926000},
+        {"type": "C", "frame": 34, "at": 17926000},
+        {"type": "C", "frame": 30, "at": 17926000}
+      ],
+      "name": "FinalizerWatchdogDaemon (tid 3824)",
+      "startValue": 17926000,
+      "threadID": 3824,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 17939000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 17939000},
+        {"type": "O", "frame": 34, "at": 17939000},
+        {"type": "O", "frame": 40, "at": 17939000},
+        {"type": "O", "frame": 22, "at": 17939000},
+        {"type": "O", "frame": 23, "at": 17939000},
+        {"type": "O", "frame": 24, "at": 17939000},
+        {"type": "C", "frame": 24, "at": 17939000},
+        {"type": "C", "frame": 23, "at": 17939000},
+        {"type": "C", "frame": 22, "at": 17939000},
+        {"type": "C", "frame": 40, "at": 17939000},
+        {"type": "C", "frame": 34, "at": 17939000},
+        {"type": "C", "frame": 30, "at": 17939000}
+      ],
+      "name": "ReferenceQueueDaemon (tid 3819)",
+      "startValue": 17939000,
+      "threadID": 3819,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 17961000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 17961000},
+        {"type": "O", "frame": 34, "at": 17961000},
+        {"type": "O", "frame": 39, "at": 17961000},
+        {"type": "O", "frame": 42, "at": 17961000},
+        {"type": "C", "frame": 42, "at": 17961000},
+        {"type": "C", "frame": 39, "at": 17961000},
+        {"type": "C", "frame": 34, "at": 17961000},
+        {"type": "C", "frame": 30, "at": 17961000}
+      ],
+      "name": "HeapTaskDaemon (tid 3818)",
+      "startValue": 17961000,
+      "threadID": 3818,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 17986000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 17986000},
+        {"type": "O", "frame": 34, "at": 17986000},
+        {"type": "O", "frame": 36, "at": 17986000},
+        {"type": "O", "frame": 0, "at": 17986000},
+        {"type": "O", "frame": 1, "at": 17986000},
+        {"type": "O", "frame": 23, "at": 17986000},
+        {"type": "O", "frame": 24, "at": 17986000},
+        {"type": "C", "frame": 24, "at": 17986000},
+        {"type": "C", "frame": 23, "at": 17986000},
+        {"type": "C", "frame": 1, "at": 17986000},
+        {"type": "C", "frame": 0, "at": 17986000},
+        {"type": "C", "frame": 36, "at": 17986000},
+        {"type": "C", "frame": 34, "at": 17986000},
+        {"type": "C", "frame": 30, "at": 17986000}
+      ],
+      "name": "FinalizerDaemon (tid 3823)",
+      "startValue": 17986000,
+      "threadID": 3823,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18015000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 18015000},
+        {"type": "O", "frame": 15, "at": 18015000},
+        {"type": "O", "frame": 17, "at": 18015000},
+        {"type": "O", "frame": 16, "at": 18015000},
+        {"type": "O", "frame": 19, "at": 18015000},
+        {"type": "O", "frame": 5, "at": 18015000},
+        {"type": "O", "frame": 2, "at": 18015000},
+        {"type": "O", "frame": 25, "at": 18015000},
+        {"type": "C", "frame": 25, "at": 18015000},
+        {"type": "C", "frame": 2, "at": 18015000},
+        {"type": "C", "frame": 5, "at": 18015000},
+        {"type": "C", "frame": 19, "at": 18015000},
+        {"type": "C", "frame": 16, "at": 18015000},
+        {"type": "C", "frame": 17, "at": 18015000},
+        {"type": "C", "frame": 15, "at": 18015000},
+        {"type": "C", "frame": 30, "at": 18015000}
+      ],
+      "name": "SentryHostnameCache-0 (tid 3886)",
+      "startValue": 18015000,
+      "threadID": 3886,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18031000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 18031000},
+        {"type": "O", "frame": 15, "at": 18031000},
+        {"type": "O", "frame": 17, "at": 18031000},
+        {"type": "O", "frame": 16, "at": 18031000},
+        {"type": "O", "frame": 20, "at": 18031000},
+        {"type": "O", "frame": 21, "at": 18031000},
+        {"type": "O", "frame": 6, "at": 18031000},
+        {"type": "O", "frame": 3, "at": 18031000},
+        {"type": "O", "frame": 25, "at": 18031000},
+        {"type": "C", "frame": 25, "at": 18031000},
+        {"type": "C", "frame": 3, "at": 18031000},
+        {"type": "C", "frame": 6, "at": 18031000},
+        {"type": "C", "frame": 21, "at": 18031000},
+        {"type": "C", "frame": 20, "at": 18031000},
+        {"type": "C", "frame": 16, "at": 18031000},
+        {"type": "C", "frame": 17, "at": 18031000},
+        {"type": "C", "frame": 15, "at": 18031000},
+        {"type": "C", "frame": 30, "at": 18031000}
+      ],
+      "name": "pool-2-thread-1 (tid 3890)",
+      "startValue": 18031000,
+      "threadID": 3890,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18257000,
+      "events": [
+        {"type": "O", "frame": 279, "at": 18257000},
+        {"type": "O", "frame": 27, "at": 18257000},
+        {"type": "O", "frame": 28, "at": 18257000},
+        {"type": "O", "frame": 29, "at": 18257000},
+        {"type": "C", "frame": 29, "at": 18257000},
+        {"type": "C", "frame": 28, "at": 18257000},
+        {"type": "C", "frame": 27, "at": 18257000},
+        {"type": "C", "frame": 279, "at": 18257000}
+      ],
+      "name": "|ANR-WatchDog| (tid 3898)",
+      "startValue": 18257000,
+      "threadID": 3898,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18269000,
+      "events": [
+        {"type": "O", "frame": 218, "at": 18269000},
+        {"type": "O", "frame": 217, "at": 18269000},
+        {"type": "C", "frame": 217, "at": 18269000},
+        {"type": "C", "frame": 218, "at": 18269000}
+      ],
+      "name": "FileObserver (tid 3893)",
+      "startValue": 18269000,
+      "threadID": 3893,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18280000,
+      "events": [
+        {"type": "O", "frame": 11, "at": 18280000},
+        {"type": "O", "frame": 10, "at": 18280000},
+        {"type": "O", "frame": 22, "at": 18280000},
+        {"type": "O", "frame": 23, "at": 18280000},
+        {"type": "O", "frame": 24, "at": 18280000},
+        {"type": "C", "frame": 24, "at": 18280000},
+        {"type": "C", "frame": 23, "at": 18280000},
+        {"type": "C", "frame": 22, "at": 18280000},
+        {"type": "C", "frame": 10, "at": 18280000},
+        {"type": "C", "frame": 11, "at": 18280000}
+      ],
+      "name": "Timer-0 (tid 3899)",
+      "startValue": 18280000,
+      "threadID": 3899,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18291000,
+      "events": [
+        {"type": "O", "frame": 125, "at": 18291000},
+        {"type": "O", "frame": 126, "at": 18291000},
+        {"type": "O", "frame": 222, "at": 18291000},
+        {"type": "O", "frame": 221, "at": 18291000},
+        {"type": "C", "frame": 221, "at": 18291000},
+        {"type": "C", "frame": 222, "at": 18291000},
+        {"type": "C", "frame": 126, "at": 18291000},
+        {"type": "C", "frame": 125, "at": 18291000}
+      ],
+      "name": "LeakCanary-Heap-Dump (tid 3904)",
+      "startValue": 18291000,
+      "threadID": 3904,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 18335000,
+      "events": [
+        {"type": "O", "frame": 269, "at": 18335000},
+        {"type": "O", "frame": 15, "at": 18335000},
+        {"type": "O", "frame": 17, "at": 18335000},
+        {"type": "O", "frame": 16, "at": 18335000},
+        {"type": "O", "frame": 20, "at": 18335000},
+        {"type": "O", "frame": 21, "at": 18335000},
+        {"type": "O", "frame": 6, "at": 18335000},
+        {"type": "O", "frame": 3, "at": 18335000},
+        {"type": "O", "frame": 25, "at": 18335000},
+        {"type": "C", "frame": 25, "at": 18335000},
+        {"type": "C", "frame": 3, "at": 18335000},
+        {"type": "C", "frame": 6, "at": 18335000},
+        {"type": "C", "frame": 21, "at": 18335000},
+        {"type": "C", "frame": 20, "at": 18335000},
+        {"type": "C", "frame": 16, "at": 18335000},
+        {"type": "C", "frame": 17, "at": 18335000},
+        {"type": "C", "frame": 15, "at": 18335000},
+        {"type": "C", "frame": 269, "at": 18335000}
+      ],
+      "name": "plumber-android-leaks (tid 3906)",
+      "startValue": 18335000,
+      "threadID": 3906,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 120295000,
+      "events": [
+        {"type": "O", "frame": 125, "at": 120295000},
+        {"type": "O", "frame": 126, "at": 120295000},
+        {"type": "O", "frame": 222, "at": 120295000},
+        {"type": "O", "frame": 221, "at": 120295000},
+        {"type": "C", "frame": 221, "at": 120295000},
+        {"type": "C", "frame": 222, "at": 120295000},
+        {"type": "C", "frame": 126, "at": 120295000},
+        {"type": "C", "frame": 125, "at": 120295000}
+      ],
+      "name": "FrameMetricsAggregator (tid 3930)",
+      "startValue": 120295000,
+      "threadID": 3930,
+      "type": "evented",
+      "unit": "nanoseconds"
+    },
+    {
+      "endValue": 123613000,
+      "events": [
+        {"type": "O", "frame": 30, "at": 123613000},
+        {"type": "O", "frame": 15, "at": 123613000},
+        {"type": "O", "frame": 17, "at": 123613000},
+        {"type": "O", "frame": 12, "at": 123613000},
+        {"type": "O", "frame": 4, "at": 123613000},
+        {"type": "O", "frame": 281, "at": 123613000},
+        {"type": "O", "frame": 280, "at": 123613000},
+        {"type": "O", "frame": 274, "at": 123613000},
+        {"type": "O", "frame": 278, "at": 123613000},
+        {"type": "C", "frame": 278, "at": 123613000},
+        {"type": "C", "frame": 274, "at": 123613000},
+        {"type": "C", "frame": 280, "at": 123613000},
+        {"type": "C", "frame": 281, "at": 123613000},
+        {"type": "C", "frame": 4, "at": 123613000},
+        {"type": "C", "frame": 12, "at": 123613000},
+        {"type": "C", "frame": 17, "at": 123613000},
+        {"type": "C", "frame": 15, "at": 123613000},
+        {"type": "C", "frame": 30, "at": 123613000}
+      ],
+      "name": "SentryAsyncConnection-0 (tid 3931)",
+      "startValue": 123613000,
+      "threadID": 3931,
+      "type": "evented",
+      "unit": "nanoseconds"
+    }
+  ],
+  "$schema": "https://www.speedscope.app/file-format-schema.json",
+  "shared": {
+    "frames": [
+      {
+        "file": "ReferenceQueue.java",
+        "image": "java.lang.ref",
+        "is_application": false,
+        "name": "java.lang.ref.ReferenceQueue.remove(): Reference"
+      },
+      {
+        "file": "ReferenceQueue.java",
+        "image": "java.lang.ref",
+        "is_application": false,
+        "name": "java.lang.ref.ReferenceQueue.remove(long): Reference"
+      },
+      {
+        "file": "LockSupport.java",
+        "image": "java.util.concurrent.locks",
+        "is_application": false,
+        "name": "java.util.concurrent.locks.LockSupport.park(Object)"
+      },
+      {
+        "file": "LockSupport.java",
+        "image": "java.util.concurrent.locks",
+        "is_application": false,
+        "name": "java.util.concurrent.locks.LockSupport.parkNanos(Object, long)"
+      },
+      {
+        "file": "Executors.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.Executors$RunnableAdapter.call(): Object"
+      },
+      {
+        "file": "AbstractQueuedSynchronizer.java",
+        "image": "java.util.concurrent.locks",
+        "is_application": false,
+        "name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await()"
+      },
+      {
+        "file": "AbstractQueuedSynchronizer.java",
+        "image": "java.util.concurrent.locks",
+        "is_application": false,
+        "name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(long): long"
+      },
+      {
+        "file": "HashMap.java",
+        "image": "java.util",
+        "is_application": false,
+        "name": "java.util.HashMap.put(Object, Object): Object"
+      },
+      {
+        "file": "HashMap.java",
+        "image": "java.util",
+        "is_application": false,
+        "name": "java.util.HashMap.putVal(int, Object, Object, boolean, boolean): Object"
+      },
+      {
+        "file": "HashMap.java",
+        "image": "java.util",
+        "is_application": false,
+        "name": "java.util.HashMap.resize(): HashMap$Node[]"
+      },
+      {
+        "file": "Timer.java",
+        "image": "java.util",
+        "is_application": false,
+        "name": "java.util.TimerThread.mainLoop()"
+      },
+      {
+        "file": "Timer.java",
+        "image": "java.util",
+        "is_application": false,
+        "name": "java.util.TimerThread.run()"
+      },
+      {
+        "file": "FutureTask.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.FutureTask.run()"
+      },
+      {
+        "file": "FileOutputStream.java",
+        "image": "java.io",
+        "is_application": false,
+        "name": "java.io.FileOutputStream(File)"
+      },
+      {
+        "file": "FileOutputStream.java",
+        "image": "java.io",
+        "is_application": false,
+        "name": "java.io.FileOutputStream(File, boolean)"
+      },
+      {
+        "file": "ThreadPoolExecutor.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.ThreadPoolExecutor$Worker.run()"
+      },
+      {
+        "file": "ThreadPoolExecutor.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.ThreadPoolExecutor.getTask(): Runnable"
+      },
+      {
+        "file": "ThreadPoolExecutor.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor$Worker)"
+      },
+      {
+        "file": "Arrays.java",
+        "image": "java.util",
+        "is_application": false,
+        "name": "java.util.Arrays$ArrayList.get(int): Object"
+      },
+      {
+        "file": "LinkedBlockingQueue.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.LinkedBlockingQueue.take(): Object"
+      },
+      {
+        "file": "ScheduledThreadPoolExecutor.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(): Object"
+      },
+      {
+        "file": "ScheduledThreadPoolExecutor.java",
+        "image": "java.util.concurrent",
+        "is_application": false,
+        "name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(): RunnableScheduledFuture"
+      },
+      {
+        "file": "Object.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Object.wait()"
+      },
+      {
+        "file": "Object.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Object.wait(long)"
+      },
+      {
+        "file": "Object.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Object.wait(long, int)"
+      },
+      {
+        "file": "Unsafe.java",
+        "image": "sun.misc",
+        "is_application": true,
+        "name": "sun.misc.Unsafe.park(boolean, long)"
+      },
+      {
+        "file": "String.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.String.hashCode(): int"
+      },
+      {
+        "file": "Thread.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Thread.sleep(long)"
+      },
+      {
+        "file": "Thread.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Thread.sleep(long, int)"
+      },
+      {
+        "file": "Thread.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Thread.sleep(Object, long, int)"
+      },
+      {
+        "file": "Thread.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Thread.run()"
+      },
+      {
+        "file": "Constructor.java",
+        "image": "java.lang.reflect",
+        "is_application": false,
+        "name": "java.lang.reflect.Constructor.newInstance0(Object[]): Object"
+      },
+      {
+        "file": "Constructor.java",
+        "image": "java.lang.reflect",
+        "is_application": false,
+        "name": "java.lang.reflect.Constructor.newInstance(Object[]): Object"
+      },
+      {
+        "file": "Method.java",
+        "image": "java.lang.reflect",
+        "is_application": false,
+        "name": "java.lang.reflect.Method.invoke(Object, Object[]): Object"
+      },
+      {
+        "file": "Daemons.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Daemons$Daemon.run()"
+      },
+      {
+        "file": "IoUtils.java",
+        "image": "libcore.io",
+        "is_application": true,
+        "name": "libcore.io.IoUtils.setFdOwner(FileDescriptor, Object)"
+      },
+      {
+        "file": "Daemons.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Daemons$FinalizerDaemon.runInternal()"
+      },
+      {
+        "file": "Daemons.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(): boolean"
+      },
+      {
+        "file": "Daemons.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal()"
+      },
+      {
+        "file": "Daemons.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Daemons$HeapTaskDaemon.runInternal()"
+      },
+      {
+        "file": "Daemons.java",
+        "image": "java.lang",
+        "is_application": false,
+        "name": "java.lang.Daemons$ReferenceQueueDaemon.runInternal()"
+      },
+      {
+        "file": "ForwardingOs.java",
+        "image": "libcore.io",
+        "is_application": true,
+        "name": "libcore.io.ForwardingOs.android_fdsan_exchange_owner_tag(FileDescriptor, long, long)"
+      },
+      {
+        "file": "VMRuntime.java",
+        "image": "dalvik.system",
+        "is_application": true,
+        "name": "dalvik.system.VMRuntime.runHeapTasks()"
+      },
+      {
+        "file": "Linux.java",
+        "image": "libcore.io",
+        "is_application": true,
+        "name": "libcore.io.Linux.android_fdsan_exchange_owner_tag(FileDescriptor, long, long)"
+      },
+      {
+        "file": "AnimatorInflater.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.AnimatorInflater.loadStateListAnimator(Context, int): StateListAnimator"
+      },
+      {
+        "file": "AnimatorSet.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.AnimatorSet$Node.clone(): AnimatorSet$Node"
+      },
+      {
+        "file": "StateListAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.StateListAnimator.clone(): StateListAnimator"
+      },
+      {
+        "file": "Instrumentation.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Instrumentation.callActivityOnCreate(Activity, Bundle)"
+      },
+      {
+        "file": "Instrumentation.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Instrumentation.callActivityOnPostCreate(Activity, Bundle)"
+      },
+      {
+        "file": "TransactionExecutor.java",
+        "image": "android.app.servertransaction",
+        "is_application": false,
+        "name": "android.app.servertransaction.TransactionExecutor.cycleToPath(ActivityThread$ActivityClientRecord, int, boolean, ClientTransaction)"
+      },
+      {
+        "file": "TransactionExecutor.java",
+        "image": "android.app.servertransaction",
+        "is_application": false,
+        "name": "android.app.servertransaction.TransactionExecutor.executeLifecycleState(ClientTransaction)"
+      },
+      {
+        "file": "TransactionExecutor.java",
+        "image": "android.app.servertransaction",
+        "is_application": false,
+        "name": "android.app.servertransaction.TransactionExecutor.performLifecycleSequence(ActivityThread$ActivityClientRecord, IntArray, ClientTransaction)"
+      },
+      {
+        "file": "TransactionExecutor.java",
+        "image": "android.app.servertransaction",
+        "is_application": false,
+        "name": "android.app.servertransaction.TransactionExecutor.execute(ClientTransaction)"
+      },
+      {
+        "file": "TransactionExecutor.java",
+        "image": "android.app.servertransaction",
+        "is_application": false,
+        "name": "android.app.servertransaction.TransactionExecutor.executeCallbacks(ClientTransaction)"
+      },
+      {
+        "file": "Context.java",
+        "image": "android.content",
+        "is_application": false,
+        "name": "android.content.Context.getDrawable(int): Drawable"
+      },
+      {
+        "file": "Context.java",
+        "image": "android.content",
+        "is_application": false,
+        "name": "android.content.Context.getSystemService(Class): Object"
+      },
+      {
+        "file": "Context.java",
+        "image": "android.content",
+        "is_application": false,
+        "name": "android.content.Context.obtainStyledAttributes(int, int[]): TypedArray"
+      },
+      {
+        "file": "Context.java",
+        "image": "android.content",
+        "is_application": false,
+        "name": "android.content.Context.obtainStyledAttributes(AttributeSet, int[]): TypedArray"
+      },
+      {
+        "file": "Context.java",
+        "image": "android.content",
+        "is_application": false,
+        "name": "android.content.Context.obtainStyledAttributes(AttributeSet, int[], int, int): TypedArray"
+      },
+      {
+        "file": "ConstantState.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ConstantState.newInstance(Resources): Object"
+      },
+      {
+        "file": "ConstantState.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ConstantState.newInstance(Resources, Resources$Theme): Object"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources$Theme.getKey(): Resources$ThemeKey"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources$Theme.getResources(): Resources"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources$Theme.obtainStyledAttributes(int, int[]): TypedArray"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources$Theme.obtainStyledAttributes(AttributeSet, int[], int, int): TypedArray"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources.getDrawable(int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources.getDrawableForDensity(int, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources.getSizeConfigurations(): Configuration[]"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources.loadColorStateList(TypedValue, int, Resources$Theme): ColorStateList"
+      },
+      {
+        "file": "Resources.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Resources.loadDrawable(TypedValue, int, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl$ThemeImpl.getKey(): Resources$ThemeKey"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl$ThemeImpl.obtainStyledAttributes(Resources$Theme, AttributeSet, int[], int, int): TypedArray"
+      },
+      {
+        "file": "ThemedResourceCache.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ThemedResourceCache.getThemedLocked(Resources$Theme, boolean): LongSparseArray"
+      },
+      {
+        "file": "ThemedResourceCache.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ThemedResourceCache.get(long, Resources$Theme): Object"
+      },
+      {
+        "file": "TypedArray.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.TypedArray.getValueAt(int, TypedValue): boolean"
+      },
+      {
+        "file": "TypedArray.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.TypedArray.getColor(int, int): int"
+      },
+      {
+        "file": "TypedArray.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.TypedArray.getColorStateList(int): ColorStateList"
+      },
+      {
+        "file": "TypedArray.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.TypedArray.getDrawable(int): Drawable"
+      },
+      {
+        "file": "TypedArray.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.TypedArray.getDrawableForDensity(int, int): Drawable"
+      },
+      {
+        "file": "Drawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.Drawable.createFromXmlForDensity(Resources, XmlPullParser, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "Drawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.Drawable.createFromXmlInner(Resources, XmlPullParser, AttributeSet, Resources$Theme): Drawable"
+      },
+      {
+        "file": "Drawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.Drawable.createFromXmlInnerForDensity(Resources, XmlPullParser, AttributeSet, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "DrawableInflater.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.DrawableInflater.inflateFromXmlForDensity(String, XmlPullParser, AttributeSet, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "AnimatorSet.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.AnimatorSet.clone(): Animator"
+      },
+      {
+        "file": "AnimatorSet.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.AnimatorSet.clone(): AnimatorSet"
+      },
+      {
+        "file": "PropertyValuesHolder.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.PropertyValuesHolder$FloatPropertyValuesHolder.clone(): PropertyValuesHolder$FloatPropertyValuesHolder"
+      },
+      {
+        "file": "PropertyValuesHolder.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.PropertyValuesHolder$FloatPropertyValuesHolder.clone(): PropertyValuesHolder"
+      },
+      {
+        "file": "StateListAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.StateListAnimator$StateListAnimatorConstantState.newInstance(): StateListAnimator"
+      },
+      {
+        "file": "StateListAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.StateListAnimator$StateListAnimatorConstantState.newInstance(): Object"
+      },
+      {
+        "file": "ValueAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.ValueAnimator.clone(): Animator"
+      },
+      {
+        "file": "ValueAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.ValueAnimator.clone(): ValueAnimator"
+      },
+      {
+        "file": "ActivityThread.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ActivityThread$H.handleMessage(Message)"
+      },
+      {
+        "file": "ContextImpl.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ContextImpl.getSystemService(String): Object"
+      },
+      {
+        "file": "WindowConfiguration.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.WindowConfiguration()"
+      },
+      {
+        "file": "ColorStateList.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ColorStateList.createFromXmlInner(Resources, XmlPullParser, AttributeSet, Resources$Theme): ColorStateList"
+      },
+      {
+        "file": "ColorStateList.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ColorStateList.inflate(Resources, XmlPullParser, AttributeSet, Resources$Theme)"
+      },
+      {
+        "file": "ConfigurationBoundResourceCache.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ConfigurationBoundResourceCache.getInstance(long, Resources, Resources$Theme): Object"
+      },
+      {
+        "file": "DrawableCache.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.DrawableCache.getInstance(long, Resources, Resources$Theme): Drawable"
+      },
+      {
+        "file": "ImageDecoder.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.ImageDecoder$InputStreamSource.createImageDecoder(boolean): ImageDecoder"
+      },
+      {
+        "file": "Rect.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.Rect()"
+      },
+      {
+        "file": "DrawableWrapper.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.DrawableWrapper.applyTheme(Resources$Theme)"
+      },
+      {
+        "file": "GradientDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.GradientDrawable.updateStateFromTypedArray(TypedArray)"
+      },
+      {
+        "file": "GradientDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.GradientDrawable.applyTheme(Resources$Theme)"
+      },
+      {
+        "file": "LayerDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.LayerDrawable.computeStackedPadding(Rect)"
+      },
+      {
+        "file": "LayerDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.LayerDrawable.inflateLayers(Resources, XmlPullParser, AttributeSet, Resources$Theme)"
+      },
+      {
+        "file": "LayerDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.LayerDrawable.applyTheme(Resources$Theme)"
+      },
+      {
+        "file": "LayerDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.LayerDrawable.getPadding(Rect): boolean"
+      },
+      {
+        "file": "LayerDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.LayerDrawable.inflate(Resources, XmlPullParser, AttributeSet, Resources$Theme)"
+      },
+      {
+        "file": "NinePatchDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.NinePatchDrawable.updateStateFromTypedArray(TypedArray)"
+      },
+      {
+        "file": "NinePatchDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.NinePatchDrawable.inflate(Resources, XmlPullParser, AttributeSet, Resources$Theme)"
+      },
+      {
+        "file": "FloatKeyframeSet.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.FloatKeyframeSet.clone(): FloatKeyframeSet"
+      },
+      {
+        "file": "FloatKeyframeSet.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.FloatKeyframeSet.clone(): Keyframes"
+      },
+      {
+        "file": "ObjectAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.ObjectAnimator.clone(): Animator"
+      },
+      {
+        "file": "ObjectAnimator.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.ObjectAnimator.clone(): ObjectAnimator"
+      },
+      {
+        "file": "IActivityTaskManager.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.IActivityTaskManager$Stub$Proxy.handleFreeformModeRequst(IBinder, int): int"
+      },
+      {
+        "file": "ActivityInfo.java",
+        "image": "android.content.pm",
+        "is_application": false,
+        "name": "android.content.pm.ActivityInfo.activityInfoConfigNativeToJava(int): int"
+      },
+      {
+        "file": "InsetDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.InsetDrawable.applyTheme(Resources$Theme)"
+      },
+      {
+        "file": "RippleDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.RippleDrawable.updateStateFromTypedArray(TypedArray)"
+      },
+      {
+        "file": "RippleDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.RippleDrawable.applyTheme(Resources$Theme)"
+      },
+      {
+        "file": "RippleDrawable.java",
+        "image": "android.graphics.drawable",
+        "is_application": false,
+        "name": "android.graphics.drawable.RippleDrawable.inflate(Resources, XmlPullParser, AttributeSet, Resources$Theme)"
+      },
+      {
+        "file": "LaunchActivityItem.java",
+        "image": "android.app.servertransaction",
+        "is_application": false,
+        "name": "android.app.servertransaction.LaunchActivityItem.execute(ClientTransactionHandler, IBinder, PendingTransactionActions)"
+      },
+      {
+        "file": "BaseBundle.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.BaseBundle.initializeFromParcelLocked(Parcel, boolean, boolean)"
+      },
+      {
+        "file": "BaseBundle.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.BaseBundle.getString(String): String"
+      },
+      {
+        "file": "BaseBundle.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.BaseBundle.unparcel()"
+      },
+      {
+        "file": "Handler.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.Handler.dispatchMessage(Message)"
+      },
+      {
+        "file": "HandlerThread.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.HandlerThread.run()"
+      },
+      {
+        "file": "Looper.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.Looper.loop()"
+      },
+      {
+        "file": "Settings.java",
+        "image": "android.provider",
+        "is_application": false,
+        "name": "android.provider.Settings$NameValueCache.getStringForUser(ContentResolver, String, int): String"
+      },
+      {
+        "file": "Settings.java",
+        "image": "android.provider",
+        "is_application": false,
+        "name": "android.provider.Settings$Global.getInt(ContentResolver, String): int"
+      },
+      {
+        "file": "Settings.java",
+        "image": "android.provider",
+        "is_application": false,
+        "name": "android.provider.Settings$Global.getString(ContentResolver, String): String"
+      },
+      {
+        "file": "Settings.java",
+        "image": "android.provider",
+        "is_application": false,
+        "name": "android.provider.Settings$Global.getStringForUser(ContentResolver, String, int): String"
+      },
+      {
+        "file": "ArrayMap.java",
+        "image": "android.util",
+        "is_application": false,
+        "name": "android.util.ArrayMap.append(Object, Object)"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.createViewFromTag(View, String, Context, AttributeSet): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.createView(Context, String, String, AttributeSet): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.createView(String, String, AttributeSet): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.createViewFromTag(View, String, Context, AttributeSet, boolean): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.inflate(int, ViewGroup): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.inflate(int, ViewGroup, boolean): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.inflate(XmlPullParser, ViewGroup, boolean): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.onCreateView(Context, View, String, AttributeSet): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.onCreateView(View, String, AttributeSet): View"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.rInflate(XmlPullParser, View, Context, AttributeSet, boolean)"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.rInflateChildren(XmlPullParser, View, AttributeSet, boolean)"
+      },
+      {
+        "file": "LayoutInflater.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.LayoutInflater.tryCreateView(View, String, Context, AttributeSet): View"
+      },
+      {
+        "file": "ViewConfiguration.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.ViewConfiguration(Context)"
+      },
+      {
+        "file": "ViewConfiguration.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.ViewConfiguration.get(Context): ViewConfiguration"
+      },
+      {
+        "file": "AccessibilityManager.java",
+        "image": "android.view.accessibility",
+        "is_application": false,
+        "name": "android.view.accessibility.AccessibilityManager(Context, IAccessibilityManager, int)"
+      },
+      {
+        "file": "AccessibilityManager.java",
+        "image": "android.view.accessibility",
+        "is_application": false,
+        "name": "android.view.accessibility.AccessibilityManager.getInstance(Context): AccessibilityManager"
+      },
+      {
+        "file": "AccessibilityManager.java",
+        "image": "android.view.accessibility",
+        "is_application": false,
+        "name": "android.view.accessibility.AccessibilityManager.tryConnectToServiceLocked(IAccessibilityManager)"
+      },
+      {
+        "file": "RuntimeInit.java",
+        "image": "com.android.internal.os",
+        "is_application": false,
+        "name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run()"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View(Context)"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View.getImportantForAutofill(): int"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View.makeOptionalFitsSystemWindows()"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View.setBackground(Drawable)"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View.setBackgroundDrawable(Drawable)"
+      },
+      {
+        "file": "View.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.View.setFlags(int, int)"
+      },
+      {
+        "file": "PhoneLayoutInflater.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.PhoneLayoutInflater.onCreateView(String, AttributeSet): View"
+      },
+      {
+        "file": "ContextThemeWrapper.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.ContextThemeWrapper.getSystemService(String): Object"
+      },
+      {
+        "file": "ContextThemeWrapper.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.ContextThemeWrapper.getTheme(): Resources$Theme"
+      },
+      {
+        "file": "IWindowManager.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.IWindowManager$Stub$Proxy.getWindowInsets(WindowManager$LayoutParams, int, Rect, Rect, DisplayCutout$ParcelableWrapper, InsetsState): boolean"
+      },
+      {
+        "file": "ViewGroup.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.ViewGroup(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "ViewGroup.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.ViewGroup.makeOptionalFitsSystemWindows()"
+      },
+      {
+        "file": "WindowManagerImpl.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.WindowManagerImpl.computeWindowInsets(Rect): WindowInsets"
+      },
+      {
+        "file": "WindowManagerImpl.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.WindowManagerImpl.getWindowInsetsFromServer(WindowManager$LayoutParams, Rect): WindowInsets"
+      },
+      {
+        "file": "WindowManagerImpl.java",
+        "image": "android.view",
+        "is_application": false,
+        "name": "android.view.WindowManagerImpl.getMaximumWindowMetrics(): WindowMetrics"
+      },
+      {
+        "file": "IAccessibilityManager.java",
+        "image": "android.view.accessibility",
+        "is_application": false,
+        "name": "android.view.accessibility.IAccessibilityManager$Stub$Proxy.addClient(IAccessibilityManagerClient, int): long"
+      },
+      {
+        "file": "ImageView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.ImageView(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "TextView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.TextView(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "TextView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.TextView.readTextAppearance(Context, TypedArray, TextView$TextAppearanceAttributes, boolean)"
+      },
+      {
+        "file": "TextView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.TextView.getDefaultEditable(): boolean"
+      },
+      {
+        "file": "Button.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.Button(Context, AttributeSet, int)"
+      },
+      {
+        "file": "Button.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.Button(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "FrameLayout.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.FrameLayout(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "ImageButton.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.ImageButton(Context, AttributeSet, int)"
+      },
+      {
+        "file": "ImageButton.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.ImageButton(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "ScrollView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.ScrollView(Context, AttributeSet)"
+      },
+      {
+        "file": "ScrollView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.ScrollView(Context, AttributeSet, int)"
+      },
+      {
+        "file": "ScrollView.java",
+        "image": "android.widget",
+        "is_application": false,
+        "name": "android.widget.ScrollView(Context, AttributeSet, int, int)"
+      },
+      {
+        "file": "DecorView.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.DecorView.drawableChanged()"
+      },
+      {
+        "file": "DecorView.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.DecorView.finishChanging()"
+      },
+      {
+        "file": "DecorView.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.DecorView.getResources(): Resources"
+      },
+      {
+        "file": "GrowingArrayUtils.java",
+        "image": "com.android.internal.util",
+        "is_application": false,
+        "name": "com.android.internal.util.GrowingArrayUtils.append(int[], int, int): int[]"
+      },
+      {
+        "file": "PropertyValuesHolder.java",
+        "image": "android.animation",
+        "is_application": false,
+        "name": "android.animation.PropertyValuesHolder.clone(): PropertyValuesHolder"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.createFromXmlForDensity(Resources, XmlPullParser, int, Resources$Theme, TypedValue, int): Drawable"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.loadComplexColorForCookie(Resources, TypedValue, int, Resources$Theme): ComplexColor"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.loadComplexColorFromName(Resources, Resources$Theme, TypedValue, int): ComplexColor"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.loadDrawableForCookie(Resources, TypedValue, int, int): Drawable"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.loadXmlDrawable(Resources, TypedValue, int, int, String): Drawable"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.obtainColorKey(int, TypedValue): long"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.getSizeConfigurations(): Configuration[]"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.loadColorStateList(Resources, TypedValue, int, Resources$Theme): ColorStateList"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.loadDrawable(Resources, TypedValue, int, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "ResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.ResourcesImpl.originalLoadDrawable(Resources, TypedValue, int, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "ImageDecoder.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.ImageDecoder.access$300(InputStream, boolean, boolean, ImageDecoder$Source): ImageDecoder"
+      },
+      {
+        "file": "ImageDecoder.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.ImageDecoder.createFromStream(InputStream, boolean, boolean, ImageDecoder$Source): ImageDecoder"
+      },
+      {
+        "file": "ImageDecoder.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.ImageDecoder.decodeBitmap(ImageDecoder$Source, ImageDecoder$OnHeaderDecodedListener): Bitmap"
+      },
+      {
+        "file": "ImageDecoder.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.ImageDecoder.decodeBitmapImpl(ImageDecoder$Source, ImageDecoder$OnHeaderDecodedListener): Bitmap"
+      },
+      {
+        "file": "ImageDecoder.java",
+        "image": "android.graphics",
+        "is_application": false,
+        "name": "android.graphics.ImageDecoder.nCreate(InputStream, byte[], boolean, ImageDecoder$Source): ImageDecoder"
+      },
+      {
+        "file": "ActivityThread.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ActivityThread.main(String[])"
+      },
+      {
+        "file": "ActivityThread.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ActivityThread.performLaunchActivity(ActivityThread$ActivityClientRecord, Intent): Activity"
+      },
+      {
+        "file": "ActivityThread.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ActivityThread.reportSizeConfigurations(ActivityThread$ActivityClientRecord)"
+      },
+      {
+        "file": "ActivityThread.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ActivityThread.handleLaunchActivity(ActivityThread$ActivityClientRecord, PendingTransactionActions, Intent): Activity"
+      },
+      {
+        "file": "ActivityThread.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.ActivityThread.handleStartActivity(IBinder, PendingTransactionActions)"
+      },
+      {
+        "file": "AssetManager.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.AssetManager.nativeApplyStyle(long, long, int, int, long, int[], long, long)"
+      },
+      {
+        "file": "AssetManager.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.AssetManager.nativeGetSizeConfigurations(long): Configuration[]"
+      },
+      {
+        "file": "AssetManager.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.AssetManager.applyStyle(long, int, int, XmlBlock$Parser, int[], long, long)"
+      },
+      {
+        "file": "AssetManager.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.AssetManager.getSizeConfigurations(): Configuration[]"
+      },
+      {
+        "file": "Configuration.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.Configuration()"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.getContentCaptureManager(): ContentCaptureManager"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.notifyContentCaptureManagerIfNeeded(int)"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.getSystemService(String): Object"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.getWindowingMode(): int"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.onPostCreate(Bundle)"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.performCreate(Bundle)"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.performCreate(Bundle, PersistableBundle)"
+      },
+      {
+        "file": "Activity.java",
+        "image": "android.app",
+        "is_application": false,
+        "name": "android.app.Activity.performStart(String)"
+      },
+      {
+        "file": "FileObserver.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.FileObserver$ObserverThread.observe(int)"
+      },
+      {
+        "file": "FileObserver.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.FileObserver$ObserverThread.run()"
+      },
+      {
+        "file": "GraphicsEnvironment.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.GraphicsEnvironment.shouldShowAngleInUseDialogBox(Context): boolean"
+      },
+      {
+        "file": "GraphicsEnvironment.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.GraphicsEnvironment.showAngleInUseDialogBox(Context)"
+      },
+      {
+        "file": "MessageQueue.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.MessageQueue.nativePollOnce(long, int)"
+      },
+      {
+        "file": "MessageQueue.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.MessageQueue.next(): Message"
+      },
+      {
+        "file": "Parcel.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.Parcel.readArrayMapInternal(ArrayMap, int, ClassLoader)"
+      },
+      {
+        "file": "StrictMode.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.StrictMode.vmIncorrectContextUseEnabled(): boolean"
+      },
+      {
+        "file": "BinderProxy.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.BinderProxy.transact(int, Parcel, Parcel, int): boolean"
+      },
+      {
+        "file": "BinderProxy.java",
+        "image": "android.os",
+        "is_application": false,
+        "name": "android.os.BinderProxy.transactNative(int, Parcel, Parcel, int): boolean"
+      },
+      {
+        "file": "ZygoteInit.java",
+        "image": "com.android.internal.os",
+        "is_application": false,
+        "name": "com.android.internal.os.ZygoteInit.main(String[])"
+      },
+      {
+        "file": "PhoneWindow.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.PhoneWindow.installDecor()"
+      },
+      {
+        "file": "PhoneWindow.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.PhoneWindow.generateLayout(DecorView): ViewGroup"
+      },
+      {
+        "file": "PhoneWindow.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.PhoneWindow.getDecorView(): View"
+      },
+      {
+        "file": "PhoneWindow.java",
+        "image": "com.android.internal.policy",
+        "is_application": false,
+        "name": "com.android.internal.policy.PhoneWindow.originalInstallDecor()"
+      },
+      {
+        "file": "AppCompatResources.java",
+        "image": "androidx.appcompat.content.res",
+        "is_application": false,
+        "name": "androidx.appcompat.content.res.AppCompatResources.getDrawable(Context, int): Drawable"
+      },
+      {
+        "file": "AppCompatButton.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatButton(Context, AttributeSet)"
+      },
+      {
+        "file": "AppCompatButton.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatButton(Context, AttributeSet, int)"
+      },
+      {
+        "file": "AppCompatButton.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatButton.setBackgroundDrawable(Drawable)"
+      },
+      {
+        "file": "AppCompatImageButton.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatImageButton(Context, AttributeSet, int)"
+      },
+      {
+        "file": "AppCompatTextView.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatTextView(Context)"
+      },
+      {
+        "file": "AppCompatTextView.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatTextView(Context, AttributeSet)"
+      },
+      {
+        "file": "AppCompatTextView.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatTextView(Context, AttributeSet, int)"
+      },
+      {
+        "file": "AppCompatBackgroundHelper.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatBackgroundHelper.loadFromAttributes(AttributeSet, int)"
+      },
+      {
+        "file": "AppCompatTextHelper.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.AppCompatTextHelper.loadFromAttributes(AttributeSet, int)"
+      },
+      {
+        "file": "ActionBarOverlayLayout.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ActionBarOverlayLayout.setWindowTitle(CharSequence)"
+      },
+      {
+        "file": "ActionBarContainer.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ActionBarContainer(Context, AttributeSet)"
+      },
+      {
+        "file": "ToolbarWidgetWrapper.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ToolbarWidgetWrapper.setTitleInt(CharSequence)"
+      },
+      {
+        "file": "ToolbarWidgetWrapper.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ToolbarWidgetWrapper.setWindowTitle(CharSequence)"
+      },
+      {
+        "file": "ActivityMainBinding.java",
+        "image": "io.sentry.samples.android.databinding",
+        "is_application": true,
+        "name": "io.sentry.samples.android.databinding.ActivityMainBinding.inflate(LayoutInflater): ActivityMainBinding"
+      },
+      {
+        "file": "ActivityMainBinding.java",
+        "image": "io.sentry.samples.android.databinding",
+        "is_application": true,
+        "name": "io.sentry.samples.android.databinding.ActivityMainBinding.inflate(LayoutInflater, ViewGroup, boolean): ActivityMainBinding"
+      },
+      {
+        "file": "AppCompatDelegateImpl.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatDelegateImpl.createSubDecor(): ViewGroup"
+      },
+      {
+        "file": "AppCompatDelegateImpl.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatDelegateImpl.ensureSubDecor()"
+      },
+      {
+        "file": "AppCompatDelegateImpl.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatDelegateImpl.createView(View, String, Context, AttributeSet): View"
+      },
+      {
+        "file": "AppCompatDelegateImpl.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatDelegateImpl.onCreateView(View, String, Context, AttributeSet): View"
+      },
+      {
+        "file": "AppCompatDelegateImpl.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatDelegateImpl.setContentView(View)"
+      },
+      {
+        "file": "TintTypedArray.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.TintTypedArray.obtainStyledAttributes(Context, int, int[]): TintTypedArray"
+      },
+      {
+        "file": "TintTypedArray.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.TintTypedArray.getDrawable(int): Drawable"
+      },
+      {
+        "file": "ViewCompat.java",
+        "image": "androidx.core.view",
+        "is_application": false,
+        "name": "androidx.core.view.ViewCompat.saveAttributeDataForStyleable(View, Context, int[], AttributeSet, TypedArray, int, int)"
+      },
+      {
+        "file": "ViewUtils.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ViewUtils.makeOptionalFitsSystemWindows(View)"
+      },
+      {
+        "file": "ContextThemeWrapper.java",
+        "image": "androidx.appcompat.view",
+        "is_application": false,
+        "name": "androidx.appcompat.view.ContextThemeWrapper.getSystemService(String): Object"
+      },
+      {
+        "file": "AppCompatViewInflater.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatViewInflater.createButton(Context, AttributeSet): AppCompatButton"
+      },
+      {
+        "file": "AppCompatViewInflater.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatViewInflater.createView(View, String, Context, AttributeSet, boolean, boolean, boolean, boolean): View"
+      },
+      {
+        "file": "ActionBarContextView.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ActionBarContextView(Context, AttributeSet)"
+      },
+      {
+        "file": "ActionBarContextView.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ActionBarContextView(Context, AttributeSet, int)"
+      },
+      {
+        "file": "ResourceManagerInternal.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ResourceManagerInternal.getDrawable(Context, int): Drawable"
+      },
+      {
+        "file": "ResourceManagerInternal.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.ResourceManagerInternal.getDrawable(Context, int, boolean): Drawable"
+      },
+      {
+        "file": "Toolbar.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.Toolbar(Context, AttributeSet)"
+      },
+      {
+        "file": "Toolbar.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.Toolbar(Context, AttributeSet, int)"
+      },
+      {
+        "file": "Toolbar.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.Toolbar.ensureNavButtonView()"
+      },
+      {
+        "file": "Toolbar.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.Toolbar.setNavigationContentDescription(CharSequence)"
+      },
+      {
+        "file": "Toolbar.java",
+        "image": "androidx.appcompat.widget",
+        "is_application": false,
+        "name": "androidx.appcompat.widget.Toolbar.setTitle(CharSequence)"
+      },
+      {
+        "file": "AndroidLeakFixes.kt",
+        "image": "leakcanary",
+        "is_application": true,
+        "name": "leakcanary.AndroidLeakFixes$Companion$backgroundExecutor$1$thread$1.run()"
+      },
+      {
+        "file": "MainActivity.java",
+        "image": "io.sentry.samples.android",
+        "is_application": true,
+        "name": "io.sentry.samples.android.MainActivity.onCreate(Bundle)"
+      },
+      {
+        "file": "AppCompatActivity.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatActivity.onPostCreate(Bundle)"
+      },
+      {
+        "file": "AppCompatActivity.java",
+        "image": "androidx.appcompat.app",
+        "is_application": false,
+        "name": "androidx.appcompat.app.AppCompatActivity.setContentView(View)"
+      },
+      {
+        "file": "ContextCompat.java",
+        "image": "androidx.core.content",
+        "is_application": false,
+        "name": "androidx.core.content.ContextCompat.getDrawable(Context, int): Drawable"
+      },
+      {
+        "file": "EnvelopeCache.java",
+        "image": "io.sentry.cache",
+        "is_application": true,
+        "name": "io.sentry.cache.EnvelopeCache.store(SentryEnvelope, Map)"
+      },
+      {
+        "file": "MiuiResourcesImpl.java",
+        "image": "android.content.res",
+        "is_application": false,
+        "name": "android.content.res.MiuiResourcesImpl.loadDrawable(Resources, TypedValue, int, int, Resources$Theme): Drawable"
+      },
+      {
+        "file": "MiuiMultiWindowUtils.java",
+        "image": "android.util",
+        "is_application": false,
+        "name": "android.util.MiuiMultiWindowUtils.updatewindowConfiguration(DecorView, Resources)"
+      },
+      {
+        "file": "MiuiInit.java",
+        "image": "miui.os",
+        "is_application": true,
+        "name": "miui.os.MiuiInit.getCutoutMode(String): int"
+      },
+      {
+        "file": "Objects.java",
+        "image": "io.sentry.util",
+        "is_application": true,
+        "name": "io.sentry.util.Objects.requireNonNull(Object, String): Object"
+      },
+      {
+        "file": "ANRWatchDog.java",
+        "image": "io.sentry.android.core",
+        "is_application": true,
+        "name": "io.sentry.android.core.ANRWatchDog.run()"
+      },
+      {
+        "file": "AsyncHttpTransport.java",
+        "image": "io.sentry.transport",
+        "is_application": true,
+        "name": "io.sentry.transport.AsyncHttpTransport$EnvelopeSender.flush(): TransportResult"
+      },
+      {
+        "file": "AsyncHttpTransport.java",
+        "image": "io.sentry.transport",
+        "is_application": true,
+        "name": "io.sentry.transport.AsyncHttpTransport$EnvelopeSender.run()"
+      }
+    ]
+  },
+  "duration_ns": 130766719
+}

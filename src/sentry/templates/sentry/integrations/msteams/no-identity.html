@@ -1,0 +1,14 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Microsoft Teams No Identities" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+  <div class="align-center">
+    <p>
+      {% trans "Your Microsoft Teams identity is not associated with this Sentry account." %}
+    </p>
+  </div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{
+  "event_id": "9feca6552cbc48a39201ba882b7e0c43",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "TppWorkerThread",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "TppWorkpExecuteCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "HTTP_THREAD_POOL::_StaticWorkItemCallback",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "HTTP_ASYNC_OVERLAPPED::OnWorkItem",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "WEBIO_REQUEST::OnIoComplete",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "HTTP_USER_REQUEST::OnSendRequest",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "HTTP_BASE_OBJECT::Dereference",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "destructor'",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "HTTP_USER_REQUEST::~HTTP_USER_REQUEST",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "destructor'",
+              "package": "C:\\WINDOWS\\SYSTEM32\\WINHTTP.dll"
+            },
+            {
+              "function": "RtlFreeHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "memset",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpFreeUserBlock",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpFreeUserBlockToHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlFreeHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpFreeHeapInternal",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpFreeHeap",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlEnterCriticalSection",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpEnterCriticalSectionContended",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpWaitOnCriticalSection",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpWaitOnAddress",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "RtlpOptimizeWaitOnAddressWaitList",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+      }
+    ]
+  },
+  "platform": "native"
+}

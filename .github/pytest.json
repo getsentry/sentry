@@ -1,0 +1,25 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "pytest",
+      "pattern": [
+        {
+          "regexp": "^____"
+        },
+        {
+          "regexp": "^(.*):(\\d+):\\sin\\s(.*)$",
+          "file": 1,
+          "line": 2
+        },
+        {
+          "regexp": "^\\s+.*"
+        },
+        {
+          "regexp": "^E\\s+(.*)$",
+          "message": 1,
+          "loop": true
+        }
+      ]
+    }
+  ]
+}

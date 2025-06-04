@@ -1,0 +1,37 @@
+---
+created: '2021-03-29T14:31:44.810971Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
+                                              stripped_application_code
+            C:\Windows\SYSTEM32\MSVCP140.dll  ??? category=internals
+               C:\Windows\SYSTEM32\ntdll.dll  RtlDispatchException category=indirection
+               C:\Windows\SYSTEM32\ntdll.dll  RtlpExecuteHandlerForException category=handler
+        C:\Windows\SYSTEM32\VCRUNTIME140.dll  __C_specific_handler category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  std::_Func_class<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  boost::bimaps::container_adaptor::associative_container_adaptor category=std
+  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_impl<T>::find<T> category=internals
+  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_find category=internals
+  C:\Program Files\Company\Example App 2020\  boost::multi_index::detail::ordered_index_find category=internals
+  C:\Program Files\Company\Example App 2020\  std::less<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code

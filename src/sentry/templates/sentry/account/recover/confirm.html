@@ -1,0 +1,24 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+    <h3>{% trans "Recover Account" %}</h3>
+
+    <p>{% trans "You have confirmed your email, and may now update your password below." %}</p>
+    <form method="POST" action="">
+        {% csrf_token %}
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+        	{{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Change Password" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

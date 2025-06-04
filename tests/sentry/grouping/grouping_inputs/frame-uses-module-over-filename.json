@@ -1,0 +1,12 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "foo.py",
+        "lineno": 1,
+        "module": "foo",
+        "filename": "foo.py"
+      }
+    ]
+  }
+}

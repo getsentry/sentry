@@ -1,0 +1,192 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "<redacted>",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib",
+              "in_app": false
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices",
+              "in_app": false
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF",
+              "package": "libdispatch.dylib",
+              "in_app": false
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib",
+              "in_app": false
+            },
+            {
+              "function": "_dispatch_call_block_and_release",
+              "package": "libdispatch.dylib",
+              "in_app": false
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "thunk for @escaping @callee_guaranteed () -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "partial apply for thunk for @callee_guaranteed () -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "thunk for @callee_guaranteed () -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "thunk for @escaping @callee_guaranteed () -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "@callee_guaranteed",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@guaranteed stripped_application_code) -> ()",
+              "package": "stripped_application_code",
+              "filename": "<compiler-generated>",
+              "abs_path": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            },
+            {
+              "function": "stripped_application_code",
+              "in_app": true
+            }
+          ]
+        },
+        "mechanism": {
+          "type": "NSError",
+          "meta": {
+            "ns_error": {
+              "code": 2,
+              "domain": "<redacted>"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

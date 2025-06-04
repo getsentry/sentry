@@ -1,0 +1,30 @@
+---
+created: '2024-12-17T22:50:04.660282+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "message"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "message"
+  }
+}
+---
+contributing variants:
+  default*
+    hash: "61490ee252f3d4dd5a19680dca2410d3"
+    contributing component: message
+    component:
+      default*
+        message*
+          "Error key1='Some_str123' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc) key5=\"double-quoted\" other_date=datetime.datetime(2023, 5, 3, 1, 10, tzinfo=d..."

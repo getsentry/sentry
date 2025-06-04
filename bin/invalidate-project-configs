@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+import click
+
+from sentry.runner import configure
+
+
+def validate_percentage(ctx, param, value):
+    if 1 <= value <= 100:
+        return value
+    raise click.BadParameter("percentage must be integer between 1 and 100")
+
+
+@click.command()
+@click.option(
+    "--percentage",
+    callback=validate_percentage,
+    default=100,
+    help="Percentage of orgs to invalidate. Only useful for testing this command.",
+)
+def invalidate_project_configs(percentage):
+    """Gradually evict existing project configs from redis and recompute them.
+
+    This can be used to speed up incident recovery, for example when faulty project configs
+    that cannot be read by Relay have been written to redis.
+
+    NOTE: This will increase load on the relay_config_bulk Celery queue.
+    """
+    configure()
+    from sentry.models.organization import Organization
+    from sentry.tasks.relay import schedule_invalidate_project_config
+    from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+    # NOTE: Instead of iterating over all projects, we could use redis.scan_iter()
+    # to evict only project configs that exist in redis.
+    queryset = Organization.objects.all().values_list("id", flat=True)
+    click.echo(f"Invalidating project configs for {percentage}% of orgs...")
+    for org_id in RangeQuerySetWrapperWithProgressBar(queryset, result_value_getter=lambda x: x):
+        if (org_id % 100) < percentage:
+            schedule_invalidate_project_config(
+                trigger="invalidate-all-orgs", organization_id=org_id, countdown=0
+            )
+
+
+if __name__ == "__main__":
+    invalidate_project_configs()

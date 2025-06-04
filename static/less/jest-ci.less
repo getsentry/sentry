@@ -1,0 +1,16 @@
+/* This is only used for CI, specifically for jest snapshots */
+@import url('./sentry.less');
+
+/* Disable animations */
+
+*,
+::before,
+::after {
+  animation-delay: -1ms !important;
+  animation-duration: 0ms !important;
+  animation-iteration-count: 1 !important;
+  background-attachment: initial !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}

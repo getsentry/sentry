@@ -1,0 +1,28 @@
+---
+created: '2021-03-29T22:02:38.821191Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+                       /system/lib64/libc.so  ??? category=internals
+                       /system/lib64/libc.so  ??? category=internals
+                                              std::__ndk1::__thread_proxy<T> category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              std::__ndk1::__function::__func<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /system/vendor/lib64/egl/libGLESv2_adreno.  glDrawElements category=gl
+  /system/vendor/lib64/egl/libESXGLESv2_adre  glDrawElements category=internals
+  /system/vendor/lib64/egl/libESXGLESv2_adre  EsxContext::DrawElementsInstanced category=internals
+  /system/vendor/lib64/egl/libESXGLESv2_adre  EsxContext::ValidateGfxState category=internals
+  /system/vendor/lib64/egl/libESXGLESv2_adre  A5xContext::HwValidateGfxState category=internals
+  /system/vendor/lib64/egl/libESXGLESv2_adre  A5xContext::ValidateState category=internals
+  /system/vendor/lib64/egl/libESXGLESv2_adre  A5xPipeline::WriteGfxPipeline category=internals
+  /system/vendor/lib64/egl/libESXGLESv2_adre  A5xPipeline::WriteGfxShaderRegs category=internals

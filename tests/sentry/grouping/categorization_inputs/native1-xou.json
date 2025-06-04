@@ -1,0 +1,46 @@
+{
+  "event_id": "e57b0212fe37438b90eb0cb4b4e2aef8",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "pthread_mutex_lock",
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / EXC_I386_GPFLT",
+        "value": "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+      }
+    ]
+  },
+  "platform": "native"
+}

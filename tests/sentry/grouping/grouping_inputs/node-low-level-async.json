@@ -1,0 +1,26 @@
+{
+  "platform": "node",
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "bad",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "processTicksAndRejections",
+              "module": "task_queues",
+              "filename": "node:internal/process/task_queues",
+              "abs_path": "node:internal/process/task_queues"
+            },
+            {
+              "function": "runMicrotasks",
+              "filename": "(webpack://builder_rest/src/api/AxiosInterceptor.js",
+              "abs_path": "(webpack://builder_rest/src/api/AxiosInterceptor.js"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

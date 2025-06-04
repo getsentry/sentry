@@ -1,0 +1,20 @@
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+<form action="" method="post">
+    {% csrf_token %}
+    {% if plugin %}
+    	<input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+    {% endif %}
+
+    {% include "sentry/partial/form_base.html" %}
+
+    <fieldset class="align-right">
+      {% if plugin.is_testable %}
+      <button type="submit" class="btn btn-default" name="action_test" {% if not plugin_is_configured %}disabled{% endif %}>{% trans "Test Configuration" %}</button>
+      {% endif %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" name="action_save">{% if submit_label %}{{ submit_label }}{% else %}{% trans "Save Changes" %}{% endif %}</button>
+      </div>
+    </fieldset>
+</form>

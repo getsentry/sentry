@@ -1,0 +1,163 @@
+{
+  "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+  "fields": {
+    "aggregateprogress": {
+      "progress": 0,
+      "total": 0
+    },
+    "aggregatetimeestimate": null,
+    "aggregatetimeoriginalestimate": null,
+    "aggregatetimespent": null,
+    "assignee": null,
+    "attachment": [],
+    "comment": {
+      "comments": [],
+      "maxResults": 0,
+      "startAt": 0,
+      "total": 0
+    },
+    "components": [],
+    "created": "2018-06-15T11:47:57.111-0700",
+    "creator": {
+      "accountId": "5ada5260ba41192e23d7c924",
+      "active": true,
+      "avatarUrls": {
+        "16x16": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=16&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D16%26noRedirect%3Dtrue",
+        "24x24": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=24&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D24%26noRedirect%3Dtrue",
+        "32x32": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=32&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D32%26noRedirect%3Dtrue",
+        "48x48": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=48&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D48%26noRedirect%3Dtrue"
+      },
+      "displayName": "Sentry",
+      "emailAddress": "example.io.jira@connect.atlassian.com",
+      "key": "addon_example.io.jira",
+      "name": "addon_example.io.jira",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/user?username=addon_example.io.jira",
+      "timeZone": "America/Los_Angeles"
+    },
+    "customfield_10000": null,
+    "customfield_10001": null,
+    "customfield_10002": null,
+    "customfield_10006": [],
+    "customfield_10007": "0|i000b3:",
+    "customfield_10008": null,
+    "customfield_10009": [],
+    "customfield_10010": null,
+    "customfield_10011": null,
+    "customfield_10012": null,
+    "customfield_10026": null,
+    "customfield_10027": null,
+    "customfield_10028": null,
+    "customfield_10100": null,
+    "customfield_10200": "{}",
+    "customfield_10400": null,
+    "customfield_10500": null,
+    "customfield_10600": null,
+    "customfield_10601": null,
+    "customfield_10602": null,
+    "customfield_10603": null,
+    "customfield_10604": null,
+    "customfield_10605": null,
+    "customfield_10701": null,
+    "customfield_10702": null,
+    "description": "example bug report",
+    "duedate": null,
+    "environment": null,
+    "fixVersions": [],
+    "issuelinks": [],
+    "issuetype": {
+      "avatarId": 10318,
+      "description": "A task that needs to be done.",
+      "iconUrl": "https://getsentry-dev.atlassian.net/secure/viewavatar?size=xsmall&avatarId=10318&avatarType=issuetype",
+      "id": "10200",
+      "name": "Task",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/issuetype/10200",
+      "subtask": false
+    },
+    "labels": [],
+    "lastViewed": null,
+    "priority": {
+      "iconUrl": "https://getsentry-dev.atlassian.net/images/icons/priorities/medium.svg",
+      "id": "3",
+      "name": "Medium",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/priority/3"
+    },
+    "progress": {
+      "progress": 0,
+      "total": 0
+    },
+    "project": {
+      "avatarUrls": {
+        "16x16": "https://getsentry-dev.atlassian.net/secure/projectavatar?size=xsmall&avatarId=10324",
+        "24x24": "https://getsentry-dev.atlassian.net/secure/projectavatar?size=small&avatarId=10324",
+        "32x32": "https://getsentry-dev.atlassian.net/secure/projectavatar?size=medium&avatarId=10324",
+        "48x48": "https://getsentry-dev.atlassian.net/secure/projectavatar?avatarId=10324"
+      },
+      "id": "10100",
+      "key": "SEN",
+      "name": "sentry",
+      "projectTypeKey": "software",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/project/10100"
+    },
+    "reporter": {
+      "accountId": "557058:2b9b2878-fb9d-48b2-a166-86c179604206",
+      "active": true,
+      "avatarUrls": {
+        "16x16": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=16&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D16%26noRedirect%3Dtrue",
+        "24x24": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=24&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D24%26noRedirect%3Dtrue",
+        "32x32": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=32&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D32%26noRedirect%3Dtrue",
+        "48x48": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=48&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D48%26noRedirect%3Dtrue"
+      },
+      "displayName": "Jess MacQueen",
+      "emailAddress": "jess@sentry.io",
+      "key": "admin",
+      "name": "admin",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/user?username=admin",
+      "timeZone": "America/Los_Angeles"
+    },
+    "resolution": null,
+    "resolutiondate": null,
+    "security": null,
+    "status": {
+      "description": "",
+      "iconUrl": "https://getsentry-dev.atlassian.net/",
+      "id": "10100",
+      "name": "To Do",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10100",
+      "statusCategory": {
+        "colorName": "blue-gray",
+        "id": 2,
+        "key": "new",
+        "name": "To Do",
+        "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/2"
+      }
+    },
+    "subtasks": [],
+    "summary": "example summary",
+    "timeestimate": null,
+    "timeoriginalestimate": null,
+    "timespent": null,
+    "timetracking": {},
+    "updated": "2018-06-28T14:12:29.014-0700",
+    "versions": [],
+    "votes": {
+      "hasVoted": false,
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/issue/SEN-5/votes",
+      "votes": 0
+    },
+    "watches": {
+      "isWatching": true,
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/issue/SEN-5/watchers",
+      "watchCount": 1
+    },
+    "worklog": {
+      "maxResults": 20,
+      "startAt": 0,
+      "total": 0,
+      "worklogs": []
+    },
+    "workratio": -1
+  },
+  "id": "10305",
+  "key": "SEN-5",
+  "self": "https://getsentry-dev.atlassian.net/rest/api/2/issue/10305"
+}

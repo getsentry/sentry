@@ -1,0 +1,10 @@
+model-manifest.json binary
+tests/js/test-balancer/jest-balance.json binary
+
+# these files are too minified for useful code review or `git grep`:
+*.svg binary
+*.js.map binary
+*.min.js binary
+src/sentry/static/sentry/vendor/* binary
+fixtures/integration-docs/*.json binary
+api-docs/paths/events/*.json binary

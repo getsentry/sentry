@@ -1,0 +1,21 @@
+{% extends "sentry/emails/base.html" %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block main %}
+<h3>Finish Onboarding</h3>
+
+<p>Hey {{ recipient_name }},</p>
+
+<p>
+  Before you get started fixing all your broken and slow code, we need a few more details
+  about your {{ platforms }} project{{num_platforms|pluralize}}. Click the button below
+  when you're back at your computer to complete the set up for
+  <strong>{{ organization_name }}</strong>.
+</p>
+
+<p>
+  <a href="{% onboarding_link %}" class="btn">Finish Onboarding</a>
+</p>
+
+{% endblock %}

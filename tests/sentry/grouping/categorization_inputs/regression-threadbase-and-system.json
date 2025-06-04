@@ -1,0 +1,60 @@
+{
+  "event_id": "b3f3459f9c964e97bb0d168583e97053",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "__start_thread",
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "function": "__pthread_start",
+              "package": "/system/lib/libc.so",
+              "raw_function": "__pthread_start(void*)"
+            },
+            {
+              "function": "art::ThreadPoolWorker::Callback",
+              "package": "/system/lib/libart.so",
+              "raw_function": "art::ThreadPoolWorker::Callback(void*)"
+            },
+            {
+              "function": "art::ThreadPoolWorker::Run",
+              "package": "/system/lib/libart.so",
+              "raw_function": "art::ThreadPoolWorker::Run()"
+            },
+            {
+              "function": "art::ThreadPool::GetTask",
+              "package": "/system/lib/libart.so",
+              "raw_function": "art::ThreadPool::GetTask(art::Thread*)"
+            },
+            {
+              "function": "art::ConditionVariable::WaitHoldingLocks",
+              "package": "/system/lib/libart.so",
+              "raw_function": "art::ConditionVariable::WaitHoldingLocks(art::Thread*)"
+            },
+            {
+              "function": "syscall",
+              "package": "/system/lib/libc.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

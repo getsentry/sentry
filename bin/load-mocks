@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+from django.conf import settings
+
+from sentry.utils import mockdata
+
+if __name__ == "__main__":
+    settings.CELERY_ALWAYS_EAGER = True
+
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("--events", default=1, type=int, help="number of events to generate")
+    parser.add_option(
+        "--skip-default-setup",
+        default=False,
+        action="store_true",
+        help="Skips creating the default project, teams and timeseries, useful when only loading specific transactions",
+    )
+    parser.add_option(
+        "--extra-events",
+        default=False,
+        action="store_true",
+        help="add multiple events for each error group",
+    )
+    parser.add_option(
+        "--load-trends",
+        default=False,
+        action="store_true",
+        help="load multiple transactions for each id to show trends",
+    )
+    parser.add_option(
+        "--load-performance-issues",
+        default=False,
+        action="store_true",
+        help="load transactions with performance issues, still needs options/flags on for issues to appear.",
+    )
+    parser.add_option(
+        "--slow",
+        default=False,
+        action="store_true",
+        help="sleep between each transaction to let clickhouse rest",
+    )
+
+    (options, args) = parser.parse_args()
+
+    try:
+        mockdata.main(
+            skip_default_setup=options.skip_default_setup,
+            num_events=options.events,
+            extra_events=options.extra_events,
+            load_trends=options.load_trends,
+            load_performance_issues=options.load_performance_issues,
+            slow=options.slow,
+        )
+    except Exception:
+        # Avoid reporting any issues recursively back into Sentry
+        import sys
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)

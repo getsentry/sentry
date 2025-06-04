@@ -1,0 +1,350 @@
+{
+  "title": "Feature",
+  "type": "object",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "description": "The feature name.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "owner": {
+      "title": "Owner",
+      "description": "The owner of this feature. Either an email address or team name, preferably.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "segments": {
+      "title": "Segments",
+      "description": "The list of segments to evaluate for the feature. An empty list will always evaluate to False.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Segment"
+      }
+    },
+    "enabled": {
+      "title": "Enabled",
+      "description": "Whether or not the feature is enabled.",
+      "default": true,
+      "type": "boolean"
+    },
+    "created_at": {
+      "title": "Created At",
+      "description": "The datetime when this feature was created.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?)?$"
+    }
+  },
+  "required": ["name", "owner", "segments", "created_at"],
+  "definitions": {
+    "InCondition": {
+      "title": "InCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "in",
+          "enum": ["in"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "required": ["property", "value"]
+    },
+    "NotInCondition": {
+      "title": "NotInCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "not_in",
+          "enum": ["not_in"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "required": ["property", "value"]
+    },
+    "ContainsCondition": {
+      "title": "ContainsCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "contains",
+          "enum": ["contains"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["property", "value"]
+    },
+    "NotContainsCondition": {
+      "title": "NotContainsCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "not_contains",
+          "enum": ["not_contains"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["property", "value"]
+    },
+    "EqualsCondition": {
+      "title": "EqualsCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "equals",
+          "enum": ["equals"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "required": ["property", "value"]
+    },
+    "NotEqualsCondition": {
+      "title": "NotEqualsCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "not_equals",
+          "enum": ["not_equals"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "required": ["property", "value"]
+    },
+    "Segment": {
+      "title": "Segment",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "A brief description or identifier for the segment",
+          "minLength": 1,
+          "type": "string"
+        },
+        "conditions": {
+          "title": "Conditions",
+          "description": "The list of conditions that the segment must be matched in order for this segment to be active",
+          "type": "array",
+          "items": {
+            "discriminator": {
+              "propertyName": "operator",
+              "mapping": {
+                "in": "#/definitions/InCondition",
+                "not_in": "#/definitions/NotInCondition",
+                "contains": "#/definitions/ContainsCondition",
+                "not_contains": "#/definitions/NotContainsCondition",
+                "equals": "#/definitions/EqualsCondition",
+                "not_equals": "#/definitions/NotEqualsCondition"
+              }
+            },
+            "oneOf": [
+              {
+                "$ref": "#/definitions/InCondition"
+              },
+              {
+                "$ref": "#/definitions/NotInCondition"
+              },
+              {
+                "$ref": "#/definitions/ContainsCondition"
+              },
+              {
+                "$ref": "#/definitions/NotContainsCondition"
+              },
+              {
+                "$ref": "#/definitions/EqualsCondition"
+              },
+              {
+                "$ref": "#/definitions/NotEqualsCondition"
+              }
+            ]
+          }
+        },
+        "rollout": {
+          "title": "Rollout",
+          "description": "\n        Rollout rate controls how many buckets will be granted a feature when this segment matches.\n\n        Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`\n        to determine bucket membership consistently over time.\n        ",
+          "default": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["name", "conditions"]
+    }
+  }
+}

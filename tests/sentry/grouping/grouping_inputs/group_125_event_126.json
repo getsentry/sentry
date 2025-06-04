@@ -1,0 +1,163 @@
+{
+  "event_id": "93ed7a619840481d9d515d982ee90dec",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::function<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::__function::__value_func<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::__function::__func<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::__function::__alloc_func<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__functional_base",
+              "filename": "__functional_base",
+              "function": "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/type_traits",
+              "filename": "type_traits",
+              "function": "std::__1::__invoke<T>"
+            },
+            {
+              "filename": "Src/Initialize.cpp",
+              "function": "MZ::`anonymous namespace'::lambda::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFBundleGetFunctionPointerForName",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "_CFBundleLoadExecutableAndReturnError",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "_CFBundleDlfcnLoadBundle",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+            },
+            {
+              "function": "dlopen",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "dlopen_internal",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "dyld::link",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoader::link",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoader::recursiveRebase",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoaderMachOCompressed::rebase",
+              "package": "/usr/lib/dyld"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / 0x00000032",
+        "value": "Fatal Error: EXC_BAD_ACCESS / 0x00000032"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,11 @@
+Unable to Fetch Commits
+-----------------------
+
+We were unable to fetch the commit log for your release ({{ release.version }}) for repository ({{ repo.name }}) in the ({{ release.organization.slug }}) organization due to the following error:
+
+{{ error_message }}
+
+Troubleshooting &amp; References
+
+https://sentry.zendesk.com/hc/en-us/articles/23968845267739-Why-am-I-receiving-the-email-Unable-to-Fetch-Commits
+https://docs.sentry.io/product/releases/setup/

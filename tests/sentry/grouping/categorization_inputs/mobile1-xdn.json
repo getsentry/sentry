@@ -1,0 +1,126 @@
+{
+  "event_id": "66507837eea14aa10a28535d6c6075cb",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "package": "/system/bin/app_process"
+            },
+            {
+              "function": "__libc_init",
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/bin/app_process"
+            },
+            {
+              "function": "android::AndroidRuntime::start",
+              "package": "/system/lib/libandroid_runtime.so"
+            },
+            {
+              "package": "/system/lib/libandroid_runtime.so"
+            },
+            {
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmCallMethodV",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmInterpret",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmMterpStd",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmInvokeMethod",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmInterpret",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmMterpStd",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmCallJNIMethod",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "dvmPlatformInvoke",
+              "package": "/system/lib/libdvm.so"
+            },
+            {
+              "function": "SkCanvas::drawRectCoords",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "SkCanvas::drawRect",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "SkDraw::drawRect",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "SkScan::FillRect",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "SkScan::FillRect",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "SkScan::FillIRect",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "SkARGB32_Blitter::blitRect",
+              "package": "/system/lib/libskia.so"
+            },
+            {
+              "function": "Color32_arm_neon",
+              "package": "/system/lib/libskia.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

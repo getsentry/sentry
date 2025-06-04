@@ -1,0 +1,389 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+from datetime import timedelta
+from uuid import uuid4
+
+from django.conf import settings
+from django.db.models import F
+from django.utils import timezone
+
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.utils.samples import create_trace, generate_user, random_normal
+
+
+def main(slow=False):
+    project_names = {"Ludic Science", "Earth", "Fire", "Wind", "Water", "Heart"}
+    project_map = {}
+
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        org = Organization.get_default()
+        print(f"Mocking org {org.name}")  # NOQA
+    else:
+        print("Mocking org {}".format("Default"))  # NOQA
+        org, _ = Organization.objects.get_or_create(slug="default")
+
+    for project_name in project_names:
+        print(f"  > Mocking project {project_name}")  # NOQA
+        project, _ = Project.objects.get_or_create(
+            name=project_name,
+            defaults={
+                "organization": org,
+                "first_event": timezone.now(),
+                "flags": Project.flags.has_releases,
+            },
+        )
+        project_map[project_name] = project
+        if not project.first_event:
+            project.update(first_event=project.date_added)
+        if not project.flags.has_releases:
+            project.update(flags=F("flags").bitor(Project.flags.has_releases))
+        if not project.flags.has_transactions:
+            project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+    mobile_project = project_map["Ludic Science"]
+    frontend_project = project_map["Fire"]
+    backend_project = project_map["Earth"]
+    service_projects = [
+        project_map["Wind"],
+        project_map["Water"],
+        project_map["Heart"],
+    ]
+
+    timestamp = timezone.now()
+
+    print(f"    > Loading normal trace")  # NOQA
+    # Normal trace
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/plants/:plantId/",
+            "frontend": True,
+            "errors": 1,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/plants/",
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/products/all/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.create_invoice",
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    print(f"    > Loading normal trace, but with performance issue")  # NOQA
+    # Normal trace
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/plants/:plantId/",
+            "frontend": True,
+            "errors": 1,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/plants/",
+                    "performance_issues": ["n+1"],
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/products/all/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.create_invoice",
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    print(f"    > Loading mobile trace")  # NOQA
+    # Normal trace
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": mobile_project,
+            "transaction": "MainActivity",
+            "mobile": True,
+            "errors": 1,
+            "performance_issues": ["db-main-thread"],
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/plants/",
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/products/all/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.create_invoice",
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    print(f"    > Loading orphan data")  # NOQA
+    # Trace only with orphans
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        uuid4().hex[:16],
+        {
+            "project": frontend_project,
+            "transaction": "/orphans/:orphanId/",
+            "frontend": True,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/orphans/",
+                    "errors": 1,
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/orphans/all/",
+                            "errors": 1,
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/orphan/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.invoice_orphans",
+                            "errors": 1,
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    print(f"    > Loading trace with many siblings")  # NOQA
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/siblings/:count/",
+            "frontend": True,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": f"/api/sibling_{i}/",
+                    "children": [],
+                }
+                for i in range(15)
+            ],
+        },
+    )
+    print(f"    > Loading trace with many roots")  # NOQA
+    trace_id = uuid4().hex
+    for _ in range(15):
+        create_trace(
+            slow,
+            timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+            timestamp,
+            generate_user(),
+            trace_id,
+            None,
+            {
+                "project": frontend_project,
+                "transaction": "/multiple-root/:root/",
+                "frontend": True,
+                "children": [
+                    {
+                        "project": backend_project,
+                        "transaction": "/multiple-root/child/",
+                        "children": [],
+                    }
+                ],
+            },
+        )
+
+    print(f"    > Loading chained trace with orphans")  # NOQA
+    trace_id = uuid4().hex
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        trace_id,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/chained/:login/",
+            "frontend": True,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/auth/",
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/auth/check-login/",
+                            "errors": 1,
+                            "children": [
+                                {
+                                    "project": service_projects[1],
+                                    "transaction": "/analytics/",
+                                    "errors": 1,
+                                    "children": [
+                                        {
+                                            "project": service_projects[2],
+                                            "transaction": "tasks.check_login",
+                                            "errors": 1,
+                                            "children": [],
+                                        }
+                                    ],
+                                }
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        trace_id,
+        uuid4().hex[:16],
+        {
+            "project": frontend_project,
+            "transaction": "/orphans/:orphanId/",
+            "frontend": True,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/orphans/",
+                    "errors": 1,
+                    "children": [],
+                }
+            ],
+        },
+    )
+
+    print(f"    > Loading traces missing instrumentation")  # NOQA
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/missing/:frontend/",
+            "frontend": True,
+            "children": [],
+        },
+    )
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": backend_project,
+            "transaction": "/missing/backend",
+            "children": [],
+        },
+    )
+
+
+if __name__ == "__main__":
+    settings.CELERY_ALWAYS_EAGER = True
+
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option(
+        "--slow",
+        default=False,
+        action="store_true",
+        help="sleep between each transaction to let clickhouse rest",
+    )
+
+    (options, args) = parser.parse_args()
+
+    try:
+        main(
+            slow=options.slow,
+        )
+    except Exception:
+        # Avoid reporting any issues recursively back into Sentry
+        import sys
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)

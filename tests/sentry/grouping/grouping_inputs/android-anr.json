@@ -1,0 +1,911 @@
+{
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "type": "ANR"
+        },
+        "module": "io.sentry.android.core",
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "in_app": false,
+              "lineno": 698,
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 903,
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "in_app": false,
+              "lineno": 372,
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "in_app": false,
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "in_app": false,
+              "lineno": 5254,
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "in_app": false,
+              "lineno": 135,
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "in_app": false,
+              "lineno": 95,
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "in_app": false,
+              "lineno": 739,
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 753,
+              "module": "android.view.Choreographer$FrameDisplayEventReceiver"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "doFrame",
+              "in_app": false,
+              "lineno": 550,
+              "module": "android.view.Choreographer"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "doCallbacks",
+              "in_app": false,
+              "lineno": 580,
+              "module": "android.view.Choreographer"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 767,
+              "module": "android.view.Choreographer$CallbackRecord"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "run",
+              "in_app": false,
+              "lineno": 5891,
+              "module": "android.view.ViewRootImpl$TraversalRunnable"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "doTraversal",
+              "in_app": false,
+              "lineno": 1061,
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "performTraversals",
+              "in_app": false,
+              "lineno": 1843,
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "performLayout",
+              "in_app": false,
+              "lineno": 2086,
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 1466,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "layoutVertical",
+              "in_app": false,
+              "lineno": 1557,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "setChildFrame",
+              "in_app": false,
+              "lineno": 1703,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 1466,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "layoutVertical",
+              "in_app": false,
+              "lineno": 1557,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "setChildFrame",
+              "in_app": false,
+              "lineno": 1703,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 1466,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "layoutVertical",
+              "in_app": false,
+              "lineno": 1557,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "setChildFrame",
+              "in_app": false,
+              "lineno": 1703,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 1466,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "layoutVertical",
+              "in_app": false,
+              "lineno": 1557,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "setChildFrame",
+              "in_app": false,
+              "lineno": 1703,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 1466,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "layoutVertical",
+              "in_app": false,
+              "lineno": 1557,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "LinearLayout.java",
+              "filename": "LinearLayout.java",
+              "function": "setChildFrame",
+              "in_app": false,
+              "lineno": 1703,
+              "module": "android.widget.LinearLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 514,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "FrameLayout.java",
+              "filename": "FrameLayout.java",
+              "function": "layoutChildren",
+              "in_app": false,
+              "lineno": 579,
+              "module": "android.widget.FrameLayout"
+            },
+            {
+              "abs_path": "ViewGroup.java",
+              "filename": "ViewGroup.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 5039,
+              "module": "android.view.ViewGroup"
+            },
+            {
+              "abs_path": "View.java",
+              "filename": "View.java",
+              "function": "layout",
+              "in_app": false,
+              "lineno": 15679,
+              "module": "android.view.View"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "onLayout",
+              "in_app": false,
+              "lineno": 4410,
+              "module": "androidx.recyclerview.widget.RecyclerView"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "dispatchLayout",
+              "in_app": false,
+              "lineno": 3851,
+              "module": "androidx.recyclerview.widget.RecyclerView"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "dispatchLayoutStep1",
+              "in_app": false,
+              "lineno": 4041,
+              "module": "androidx.recyclerview.widget.RecyclerView"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "processAdapterUpdatesAndSetAnimationFlags",
+              "in_app": false,
+              "lineno": 3797,
+              "module": "androidx.recyclerview.widget.RecyclerView"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "consumeUpdatesInOnePass",
+              "in_app": false,
+              "lineno": 564,
+              "module": "androidx.recyclerview.widget.AdapterHelper"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "offsetPositionsForAdd",
+              "in_app": false,
+              "lineno": 1034,
+              "module": "androidx.recyclerview.widget.RecyclerView$6"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "offsetPositionRecordsForInsert",
+              "in_app": false,
+              "lineno": 4607,
+              "module": "androidx.recyclerview.widget.RecyclerView"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "getUnfilteredChildAt",
+              "in_app": false,
+              "lineno": 273,
+              "module": "androidx.recyclerview.widget.ChildHelper"
+            },
+            {
+              "abs_path": "SourceFile",
+              "filename": "SourceFile",
+              "function": "getChildAt",
+              "in_app": false,
+              "lineno": 887,
+              "module": "androidx.recyclerview.widget.RecyclerView$5"
+            }
+          ]
+        },
+        "thread_id": 1,
+        "type": "ApplicationNotResponding",
+        "value": "Application Not Responding for at least 5000 ms."
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "crashed": true,
+        "current": false,
+        "id": 586,
+        "name": "|ANR-WatchDog|",
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "getStackTrace",
+              "in_app": false,
+              "lineno": 580,
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "VMStack.java",
+              "filename": "VMStack.java",
+              "function": "getThreadStackTrace",
+              "in_app": false,
+              "module": "dalvik.system.VMStack"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+---
+created: '2021-08-06T16:25:45.077115Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NullPointerException:Attempt to invoke virtual method 'android.content.SharedPreferences android.content.Context.getSharedPreferences(java.lang.String, int)' on a null object reference (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+  android.app.servertransaction.TransactionE  execute category=std
+  android.app.servertransaction.TransactionE  executeCallbacks category=internals
+  android.app.servertransaction.LaunchActivi  execute category=internals
+                  android.app.ActivityThread  handleLaunchActivity category=internals
+                  android.app.ActivityThread  performLaunchActivity category=internals
+                 android.app.Instrumentation  callActivityOnCreate category=internals
+                        android.app.Activity  performCreate category=internals
+                        android.app.Activity  performCreate category=internals
+  cn.gundam.sdk.shell.activity.ProxyActivity  onCreate category=telemetry
+  cn.gundam.sdk.shell.activity.ProxyActivity  ᫋᫝ category=telemetry
+              cn.gundam.sdk.shell.activity.a  a category=telemetry
+              cn.gundam.sdk.shell.activity.a  ࡱࡪ category=telemetry
+              cn.gundam.sdk.shell.activity.a  a category=telemetry
+              cn.gundam.sdk.shell.activity.a  ࡱࡪ category=telemetry
+                                              stripped_application_code
+                                              stripped_application_code
+                     cn.gundam.sdk.shell.d.g  a category=telemetry
+                     cn.gundam.sdk.shell.d.g  ᫜ࡪ category=telemetry
+                     cn.gundam.sdk.shell.d.g  a category=telemetry
+                     cn.gundam.sdk.shell.d.g  ᫜ࡪ category=telemetry
+
+
+ExceptionInInitializerError:_ (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+  android.app.servertransaction.TransactionE  execute category=std
+  android.app.servertransaction.TransactionE  executeCallbacks category=internals
+  android.app.servertransaction.LaunchActivi  execute category=internals
+                  android.app.ActivityThread  handleLaunchActivity category=internals
+                  android.app.ActivityThread  performLaunchActivity category=internals
+                 android.app.Instrumentation  callActivityOnCreate category=internals
+                        android.app.Activity  performCreate category=internals
+                        android.app.Activity  performCreate category=internals
+  cn.gundam.sdk.shell.activity.ProxyActivity  onCreate category=telemetry
+  cn.gundam.sdk.shell.activity.ProxyActivity  ᫋᫝ category=telemetry
+              cn.gundam.sdk.shell.activity.a  a category=telemetry
+              cn.gundam.sdk.shell.activity.a  ࡱࡪ category=telemetry
+              cn.gundam.sdk.shell.activity.a  a category=telemetry
+              cn.gundam.sdk.shell.activity.a  ࡱࡪ category=telemetry
+                                              stripped_application_code

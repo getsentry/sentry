@@ -1,0 +1,119 @@
+import {useMemo} from 'react';
+
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {SpanIndexedField} from 'sentry/views/insights/types';
+
+interface UseVisualizeFieldsProps {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  /**
+   * All the aggregates that are in use. The arguments will be extracted
+   * and injected as options if they are compatible.
+   */
+  yAxes: string[];
+  parsedFunction?: ParsedFunction | null;
+}
+
+export function useVisualizeFields({
+  parsedFunction,
+  numberTags,
+  stringTags,
+  yAxes,
+}: UseVisualizeFieldsProps) {
+  const [kind, tags]: [FieldKind, TagCollection] = useMemo(() => {
+    if (parsedFunction?.name === AggregationKey.COUNT) {
+      const countTags: TagCollection = {
+        [SpanIndexedField.SPAN_DURATION]: {
+          name: t('spans'),
+          key: SpanIndexedField.SPAN_DURATION,
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
+
+    if (
+      parsedFunction?.name === AggregationKey.EPM ||
+      parsedFunction?.name === AggregationKey.EPS
+    ) {
+      const countTags: TagCollection = {
+        '': {
+          name: t('spans'),
+          key: '',
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
+
+    if (parsedFunction?.name === AggregationKey.COUNT_UNIQUE) {
+      return [FieldKind.TAG, stringTags];
+    }
+
+    return [FieldKind.MEASUREMENT, numberTags];
+  }, [parsedFunction?.name, numberTags, stringTags]);
+
+  const parsedYAxes: ParsedFunction[] = useMemo(() => {
+    return yAxes.map(parseFunction).filter(defined);
+  }, [yAxes]);
+
+  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
+    const unknownOptions = parsedYAxes
+      .flatMap(entry => {
+        return entry.arguments;
+      })
+      .filter(option => {
+        return !tags.hasOwnProperty(option);
+      });
+
+    const options = [
+      ...unknownOptions.map(option => {
+        const label = prettifyTagKey(option);
+        return {
+          label,
+          value: option,
+          textValue: option,
+          trailingItems: <TypeBadge kind={kind} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails column={option} kind={kind} label={label} type="span" />
+          ),
+        };
+      }),
+      ...Object.values(tags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={kind} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails column={tag.key} kind={kind} label={tag.name} type="span" />
+          ),
+        };
+      }),
+    ];
+
+    options.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    return options;
+  }, [kind, tags, parsedYAxes]);
+
+  return fieldOptions;
+}

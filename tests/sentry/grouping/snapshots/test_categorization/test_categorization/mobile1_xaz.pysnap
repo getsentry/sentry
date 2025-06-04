@@ -1,0 +1,119 @@
+---
+created: '2021-08-06T16:25:45.041586Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+UnsatisfiedLinkError:dlopen failed: "/data/app/com.android.chrome-2/base.apk!/lib/armeabi-v7a/libmonochrome.so" is 32-bit instead of 64-bit (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                      android.webkit.WebView  <init> category=std
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+               android.widget.AbsoluteLayout  <init> category=internals
+                      android.view.ViewGroup  <init> category=internals
+                           android.view.View  <init> category=internals
+                           android.view.View  <init> category=internals
+                      android.webkit.WebView  setOverScrollMode category=std
+                      android.webkit.WebView  ensureProviderCreated category=internals
+                      android.webkit.WebView  getFactory category=internals
+               android.webkit.WebViewFactory  getProvider category=internals
+               java.lang.reflect.Constructor  newInstance category=indirection
+               java.lang.reflect.Constructor  newInstance0 category=indirection
+  com.android.webview.chromium.WebViewChromi  <init> category=system
+  com.android.webview.chromium.WebViewChromi  f category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                            java.lang.System  loadLibrary category=load
+                           java.lang.Runtime  loadLibrary0 category=internals
+
+
+Dk2:errorCode=2 (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                      android.webkit.WebView  <init> category=std
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+               android.widget.AbsoluteLayout  <init> category=internals
+                      android.view.ViewGroup  <init> category=internals
+                           android.view.View  <init> category=internals
+                           android.view.View  <init> category=internals
+                      android.webkit.WebView  setOverScrollMode category=std
+                      android.webkit.WebView  ensureProviderCreated category=internals
+                      android.webkit.WebView  getFactory category=internals
+               android.webkit.WebViewFactory  getProvider category=internals
+               java.lang.reflect.Constructor  newInstance category=indirection
+               java.lang.reflect.Constructor  newInstance0 category=indirection
+  com.android.webview.chromium.WebViewChromi  <init> category=system
+  com.android.webview.chromium.WebViewChromi  f category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+
+
+InvocationTargetException:_ (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                      android.webkit.WebView  <init> category=std
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+               android.widget.AbsoluteLayout  <init> category=internals
+                      android.view.ViewGroup  <init> category=internals
+                           android.view.View  <init> category=internals
+                           android.view.View  <init> category=internals
+                      android.webkit.WebView  setOverScrollMode category=std
+                      android.webkit.WebView  ensureProviderCreated category=internals
+                      android.webkit.WebView  getFactory category=internals
+               android.webkit.WebViewFactory  getProvider category=internals
+               java.lang.reflect.Constructor  newInstance category=indirection
+               java.lang.reflect.Constructor  newInstance0 category=indirection
+
+
+AndroidRuntimeException:java.lang.reflect.InvocationTargetException (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                      android.webkit.WebView  <init> category=std
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+                      android.webkit.WebView  <init> category=internals
+               android.widget.AbsoluteLayout  <init> category=internals
+                      android.view.ViewGroup  <init> category=internals
+                           android.view.View  <init> category=internals
+                           android.view.View  <init> category=internals
+                      android.webkit.WebView  setOverScrollMode category=std
+                      android.webkit.WebView  ensureProviderCreated category=internals
+                      android.webkit.WebView  getFactory category=internals
+               android.webkit.WebViewFactory  getProvider category=internals

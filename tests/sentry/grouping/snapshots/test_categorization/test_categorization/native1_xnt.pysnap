@@ -1,0 +1,31 @@
+---
+created: '2021-08-06T16:16:58.497229Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_INT_DIVIDE_BY_ZERO:Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO (thread_id:_, crashed:_)
+  C:\Program Files\Company\Example App 2020\  wWinMain category=threadbase
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::{ctor} category=std
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=internals
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::assign category=internals
+  C:\Program Files\Company\Example App 2020\  std::basic_string<T>::_Reallocate_for category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+              C:\WINDOWS\System32\USER32.dll  GetMessageW category=system
+              C:\WINDOWS\System32\win32u.dll  NtUserGetMessage category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  KiUserCallbackDispatcher category=internals
+              C:\WINDOWS\System32\USER32.dll  _fnHkINLPMSG category=internals
+              C:\WINDOWS\System32\USER32.dll  CallHookWithSEH category=indirection
+              C:\WINDOWS\System32\USER32.dll  DispatchHookW category=handler
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  ??? category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  ??? category=internals
+  C:\Program Files\NVIDIA Corporation\nView\  DestroyThreadFeatureManager category=driver

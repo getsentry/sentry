@@ -1,0 +1,15 @@
+---
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - browser
+  - Chrome 132.0.6834.0
+- - browser.name
+  - Chrome
+to_json:
+  browser:
+    browser: Chrome 132.0.6834.0
+    name: Chrome
+    type: browser
+    version: 132.0.6834.0

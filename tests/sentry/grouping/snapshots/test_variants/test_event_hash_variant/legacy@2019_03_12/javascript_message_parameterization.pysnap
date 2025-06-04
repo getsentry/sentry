@@ -1,0 +1,12 @@
+---
+created: '2024-12-17T22:46:42.083018+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "bc485e4d2e22a2e4998479e52c370501"
+  contributing component: message
+  component:
+    default*
+      message*
+        "testing testing 1, 2, 3"

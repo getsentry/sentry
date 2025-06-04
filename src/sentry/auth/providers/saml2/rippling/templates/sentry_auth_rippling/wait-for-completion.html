@@ -1,0 +1,25 @@
+{% extends "sentry/bases/modal.html" %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Register Rippling" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<p>
+  Before completing your Rippling SSO auth setup on Sentry, you will need
+  to complete the rippling app setup. Click <strong>Complete Setup</strong>
+  once done.
+</p>
+
+<form method="post" class="form-stacked">
+  {% csrf_token %}
+  <input type="hidden" name="provider" value="rippling" />
+
+  <fieldset class="form-actions">
+    <button type="submit" class="btn btn-primary" name="continue_setup">{% trans "Complete Setup" %}</button>
+  </fieldset>
+</form>
+{% endblock %}

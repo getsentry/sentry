@@ -1,0 +1,243 @@
+---
+created: '2024-12-17T22:50:23.811551+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "9b037f38798ea127aac3e8b8e1e1024a"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "main.m"
+              function*
+                "main"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "TableView.layoutSubviews"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "AnyTableViewController.tableView"
+            frame*
+              filename*
+                "anytableviewcontroller.swift"
+              function*
+                "AnyTableViewController.tableView"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "closure"
+            frame*
+              filename*
+                "dailydigesttableviewsection.swift"
+              function*
+                "DailyDigestTableViewSection.photoCell"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "MediaSlideshow.toSources"
+            frame*
+              filename*
+                "mediaslideshow+extensions.swift"
+              function*
+                "MediaSlideshow.toSources"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "Sequence.compactMap<T>"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "closure"
+            frame*
+              filename*
+                "mediaslideshow+extensions.swift"
+              function*
+                "MediaSlideshow.toSources"
+            frame*
+              filename*
+                "mediaslideshow+extensions.swift"
+              function*
+                "MediaSlideshow.toSource"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "CurrentUserProfile.isVideoAutoplay.getter"
+            frame*
+              filename*
+                "currentuserprofile.swift"
+              function*
+                "CurrentUserProfile.isVideoAutoplay.getter"
+            frame*
+              filename*
+                "currentuserprofile.swift"
+              function*
+                "value"
+  system*
+    hash: "fe8b15fe322c91ede2fc48363fe43587"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "start"
+            frame*
+              filename*
+                "main.m"
+              function*
+                "main"
+            frame*
+              function*
+                "UIApplicationMain"
+            frame*
+              function*
+                "-[UIApplication _run]"
+            frame*
+              function*
+                "GSEventRunModal"
+            frame*
+              function*
+                "CFRunLoopRunSpecific"
+            frame*
+              function*
+                "__CFRunLoopRun"
+            frame*
+              function*
+                "__CFRunLoopDoObservers"
+            frame*
+              function*
+                "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+            frame*
+              function*
+                "CA::Transaction::observer_callback"
+            frame*
+              function*
+                "CA::Transaction::commit"
+            frame*
+              function*
+                "CA::Context::commit_transaction"
+            frame*
+              function*
+                "CA::Layer::layout_and_display_if_needed"
+            frame*
+              function*
+                "CA::Layer::layout_if_needed"
+            frame*
+              function*
+                "-[CALayer layoutSublayers]"
+            frame*
+              function*
+                "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "TableView.layoutSubviews"
+            frame*
+              function*
+                "-[UITableView layoutSubviews]"
+            frame*
+              function*
+                "-[UITableView _updateVisibleCellsNow:]"
+            frame*
+              function*
+                "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "AnyTableViewController.tableView"
+            frame*
+              filename*
+                "anytableviewcontroller.swift"
+              function*
+                "AnyTableViewController.tableView"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "closure"
+            frame*
+              filename*
+                "dailydigesttableviewsection.swift"
+              function*
+                "DailyDigestTableViewSection.photoCell"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "MediaSlideshow.toSources"
+            frame*
+              filename*
+                "mediaslideshow+extensions.swift"
+              function*
+                "MediaSlideshow.toSources"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "Sequence.compactMap<T>"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "closure"
+            frame*
+              filename*
+                "mediaslideshow+extensions.swift"
+              function*
+                "MediaSlideshow.toSources"
+            frame*
+              filename*
+                "mediaslideshow+extensions.swift"
+              function*
+                "MediaSlideshow.toSource"
+            frame*
+              filename*
+                "<compiler-generated>"
+              function*
+                "CurrentUserProfile.isVideoAutoplay.getter"
+            frame*
+              filename*
+                "currentuserprofile.swift"
+              function*
+                "CurrentUserProfile.isVideoAutoplay.getter"
+            frame*
+              filename*
+                "currentuserprofile.swift"
+              function*
+                "value"

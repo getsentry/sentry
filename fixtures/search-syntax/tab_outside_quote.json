@@ -1,0 +1,25 @@
+[
+  {
+    "desc": "tab outside quote",
+    "query": "release:a\trelease",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "a",
+          "quoted": false,
+          "wildcard": false
+        }
+      },
+      {"type": "spaces", "value": ""},
+      {"quoted": false, "type": "freeText", "value": "\trelease", "invalid": null},
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

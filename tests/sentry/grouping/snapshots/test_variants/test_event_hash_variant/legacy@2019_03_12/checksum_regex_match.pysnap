@@ -1,0 +1,8 @@
+---
+created: '2024-10-24T16:39:05.782674+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+checksum:
+  hash: "11212012123120120415201309082013"
+  checksum: "11212012123120120415201309082013"

@@ -1,0 +1,72 @@
+import {useCallback} from 'react';
+
+import {bulkDelete} from 'sentry/actionCreators/group';
+import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {openConfirmModal} from 'sentry/components/confirm';
+import useRefetchFeedbackList from 'sentry/components/feedback/list/useRefetchFeedbackList';
+import {t} from 'sentry/locale';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+
+export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
+  const organization = useOrganization();
+  const api = useApi({
+    persistInFlight: false,
+  });
+  const navigate = useNavigate();
+  const {query: locationQuery} = useLocation();
+
+  const {refetchFeedbackList} = useRefetchFeedbackList();
+
+  return useCallback(() => {
+    openConfirmModal({
+      onConfirm: () => {
+        addLoadingMessage(t('Updating feedback...'));
+        bulkDelete(
+          api,
+          {
+            orgId: organization.slug,
+            projectId,
+            itemIds: feedbackIds,
+          },
+          {
+            complete: () => {
+              refetchFeedbackList();
+              navigate(
+                normalizeUrl({
+                  pathname: makeFeedbackPathname({
+                    path: '/',
+                    organization,
+                  }),
+                  query: {
+                    mailbox: locationQuery.mailbox,
+                    project: locationQuery.project,
+                    query: locationQuery.query,
+                    statsPeriod: locationQuery.statsPeriod,
+                  },
+                })
+              );
+            },
+          }
+        );
+      },
+      message: t('Deleting feedbacks is permanent. Are you sure you wish to continue?'),
+      confirmText: t('Delete'),
+    });
+  }, [
+    api,
+    feedbackIds,
+    locationQuery.mailbox,
+    locationQuery.project,
+    locationQuery.query,
+    locationQuery.statsPeriod,
+    navigate,
+    organization,
+    projectId,
+    refetchFeedbackList,
+  ]);
+};

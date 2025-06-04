@@ -1,0 +1,124 @@
+---
+created: '2021-08-06T16:25:45.208749Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+KeyStoreException:Invalid key blob (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                              androidx.g.a.a  a category=std
+              com.google.crypto.tink.e.a.a$a  a category=internals
+              com.google.crypto.tink.e.a.a$a  b category=internals
+                com.google.crypto.tink.e.a.c  b category=internals
+                com.google.crypto.tink.e.a.c  a category=internals
+                com.google.crypto.tink.e.a.b  a category=internals
+                         javax.crypto.Cipher  init category=internals
+                         javax.crypto.Cipher  init category=internals
+                         javax.crypto.Cipher  chooseProvider category=internals
+   javax.crypto.Cipher$SpiAndProviderUpdater  updateAndGetSpiAndProvider category=internals
+                         javax.crypto.Cipher  tryCombinations category=internals
+                         javax.crypto.Cipher  tryTransformWithProvider category=internals
+  android.security.keystore.AndroidKeyStoreC  engineInit category=internals
+  android.security.keystore.AndroidKeyStoreC  ensureKeystoreOperationInitialized category=internals
+  android.security.keystore.KeyStoreCryptoOp  getExceptionForCipherInit category=internals
+  android.security.keystore.KeyStoreCryptoOp  getInvalidKeyExceptionForInit category=internals
+                   android.security.KeyStore  getInvalidKeyException category=internals
+                   android.security.KeyStore  getKeyStoreException category=internals
+
+
+InvalidKeyException:Keystore operation failed (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                              androidx.g.a.a  a category=std
+              com.google.crypto.tink.e.a.a$a  a category=internals
+              com.google.crypto.tink.e.a.a$a  b category=internals
+                com.google.crypto.tink.e.a.c  b category=internals
+                com.google.crypto.tink.e.a.c  a category=internals
+                com.google.crypto.tink.e.a.b  a category=internals
+                         javax.crypto.Cipher  init category=internals
+                         javax.crypto.Cipher  init category=internals
+                         javax.crypto.Cipher  chooseProvider category=internals
+   javax.crypto.Cipher$SpiAndProviderUpdater  updateAndGetSpiAndProvider category=internals
+                         javax.crypto.Cipher  tryCombinations category=internals
+                         javax.crypto.Cipher  tryTransformWithProvider category=internals
+  android.security.keystore.AndroidKeyStoreC  engineInit category=internals
+  android.security.keystore.AndroidKeyStoreC  ensureKeystoreOperationInitialized category=internals
+  android.security.keystore.KeyStoreCryptoOp  getExceptionForCipherInit category=internals
+  android.security.keystore.KeyStoreCryptoOp  getInvalidKeyExceptionForInit category=internals
+                   android.security.KeyStore  getInvalidKeyException category=internals
+                   android.security.KeyStore  getInvalidKeyException category=internals
+
+
+KeyStoreException:the master key android-keystore://_androidx_security_master_key_ exists but is unusable (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                              androidx.g.a.a  a category=std
+              com.google.crypto.tink.e.a.a$a  a category=internals
+              com.google.crypto.tink.e.a.a$a  b category=internals
+
+
+InvocationTargetException:_ (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+
+
+RuntimeException:java.lang.reflect.InvocationTargetException (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals

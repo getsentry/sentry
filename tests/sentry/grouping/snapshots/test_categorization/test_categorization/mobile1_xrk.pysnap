@@ -1,0 +1,33 @@
+---
+created: '2021-03-29T22:02:39.426726Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGBUS:BusError (thread_id:_, crashed:_)
+                                              stripped_application_code
+                       /system/lib64/libc.so  __start_thread category=internals
+                       /system/lib64/libc.so  __pthread_start category=threadbase
+                                              std::__ndk1::__thread_proxy<T> category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              std::__ndk1::__function::__func<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                       /system/lib64/libc.so  memcpy category=system

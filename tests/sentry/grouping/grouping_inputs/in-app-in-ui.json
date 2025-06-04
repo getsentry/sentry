@@ -1,0 +1,485 @@
+{
+  "platform": "cocoa",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BREAKPOINT",
+        "value": "autoplayOption",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib",
+              "in_app": false
+            },
+            {
+              "function": "main",
+              "package": "Previouswindow",
+              "filename": "Previouswindow/Supporting Files/main.m",
+              "in_app": true
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices",
+              "in_app": false
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRunLoopDoObservers",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "CA::Transaction::observer_callback",
+              "raw_function": "CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Transaction::commit",
+              "raw_function": "CA::Transaction::commit()",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Context::commit_transaction",
+              "raw_function": "CA::Context::commit_transaction(CA::Transaction*, double, double*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Layer::layout_and_display_if_needed",
+              "raw_function": "CA::Layer::layout_and_display_if_needed(CA::Transaction*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Layer::layout_if_needed",
+              "raw_function": "CA::Layer::layout_if_needed(CA::Transaction*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "-[CALayer layoutSublayers]",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "TableView.layoutSubviews",
+              "raw_function": "@objc TableView.layoutSubviews()",
+              "package": "ListKit",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "-[UITableView layoutSubviews]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UITableView _updateVisibleCellsNow:]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "AnyTableViewController.tableView",
+              "raw_function": "@objc AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)",
+              "package": "ListKit",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "AnyTableViewController.tableView",
+              "raw_function": "AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)",
+              "package": "ListKit",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "AnyTableViewController.tableView",
+              "raw_function": "specialized AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)",
+              "package": "ListKit",
+              "filename": "AnyTableViewController.swift",
+              "in_app": true
+            },
+            {
+              "function": "closure",
+              "raw_function": "thunk for closure",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "DailyDigestTableViewSection.photoCell",
+              "raw_function": "DailyDigestTableViewSection.photoCell(at: IndexPath, in: AnyTableViewController)",
+              "package": "Previouswindow",
+              "filename": "DailyDigestTableViewSection.swift",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSources",
+              "raw_function": "static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSources",
+              "raw_function": "specialized static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "MediaSlideshow+Extensions.swift",
+              "in_app": true
+            },
+            {
+              "function": "Sequence.compactMap<T>",
+              "raw_function": "specialized Sequence.compactMap<A>((A.Element))",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "closure",
+              "raw_function": "thunk for closure",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSources",
+              "raw_function": "closure #1 (FileAttachment) in static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "MediaSlideshow+Extensions.swift",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSource",
+              "raw_function": "static MediaSlideshow.toSource(_: FileAttachment, trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "MediaSlideshow+Extensions.swift",
+              "in_app": true
+            },
+            {
+              "function": "CurrentUserProfile.isVideoAutoplay.getter",
+              "raw_function": "@objc CurrentUserProfile.isVideoAutoplay.getter",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "CurrentUserProfile.isVideoAutoplay.getter",
+              "package": "Previouswindow",
+              "filename": "CurrentUserProfile.swift",
+              "in_app": true
+            },
+            {
+              "function": "value",
+              "raw_function": "Swift runtime failure: Unexpectedly found nil while implicitly unwrapping an Optional value",
+              "package": "Previouswindow",
+              "filename": "CurrentUserProfile.swift",
+              "in_app": true
+            }
+          ],
+          "registers": {
+            "cpsr": "0x80000000",
+            "fp": "0x16f5b37c0",
+            "lr": "0x1011933b0",
+            "pc": "0x101193564",
+            "sp": "0x16f5b37a0",
+            "x0": "0x0",
+            "x1": "0x101611693",
+            "x10": "0x2836729e0",
+            "x11": "0xdae913",
+            "x12": "0xe",
+            "x13": "0x0",
+            "x14": "0x18",
+            "x15": "0x5",
+            "x16": "0x196b2073c",
+            "x17": "0x1008d6c20",
+            "x18": "0x1077b38fc",
+            "x19": "0x1e56f93a8",
+            "x2": "0xe900000000000035",
+            "x20": "0x143f0e790",
+            "x21": "0x0",
+            "x22": "0x283810000",
+            "x23": "0x3737373832353931",
+            "x24": "0xe900000000000035",
+            "x25": "0x281fe3600",
+            "x26": "0x0",
+            "x27": "0x101c132a0",
+            "x28": "0x0",
+            "x29": "0x16f5b37c0",
+            "x3": "0x0",
+            "x4": "0x0",
+            "x5": "0x4",
+            "x6": "0x35",
+            "x7": "0x0",
+            "x8": "0x1020a79a0",
+            "x9": "0x0"
+          }
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "libdyld.dylib",
+              "in_app": false
+            },
+            {
+              "function": "main",
+              "package": "Previouswindow",
+              "filename": "Previouswindow/Supporting Files/main.m",
+              "in_app": true
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices",
+              "in_app": false
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRunLoopDoObservers",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__",
+              "package": "CoreFoundation",
+              "in_app": false
+            },
+            {
+              "function": "CA::Transaction::observer_callback",
+              "raw_function": "CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Transaction::commit",
+              "raw_function": "CA::Transaction::commit()",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Context::commit_transaction",
+              "raw_function": "CA::Context::commit_transaction(CA::Transaction*, double, double*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Layer::layout_and_display_if_needed",
+              "raw_function": "CA::Layer::layout_and_display_if_needed(CA::Transaction*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "CA::Layer::layout_if_needed",
+              "raw_function": "CA::Layer::layout_if_needed(CA::Transaction*)",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "-[CALayer layoutSublayers]",
+              "package": "QuartzCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "TableView.layoutSubviews",
+              "raw_function": "@objc TableView.layoutSubviews()",
+              "package": "ListKit",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "-[UITableView layoutSubviews]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UITableView _updateVisibleCellsNow:]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]",
+              "package": "UIKitCore",
+              "in_app": false
+            },
+            {
+              "function": "AnyTableViewController.tableView",
+              "raw_function": "@objc AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)",
+              "package": "ListKit",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "AnyTableViewController.tableView",
+              "raw_function": "AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)",
+              "package": "ListKit",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "AnyTableViewController.tableView",
+              "raw_function": "specialized AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)",
+              "package": "ListKit",
+              "filename": "AnyTableViewController.swift",
+              "in_app": true
+            },
+            {
+              "function": "thunk for closure",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@in_guaranteed IndexPath, @guaranteed AnyTableViewController) -> (@owned UITableViewCell)",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "DailyDigestTableViewSection.photoCell",
+              "raw_function": "DailyDigestTableViewSection.photoCell(at: IndexPath, in: AnyTableViewController)",
+              "package": "Previouswindow",
+              "filename": "DailyDigestTableViewSection.swift",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSources",
+              "raw_function": "static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSources",
+              "raw_function": "specialized static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "MediaSlideshow+Extensions.swift",
+              "in_app": true
+            },
+            {
+              "function": "Sequence.compactMap<T>",
+              "raw_function": "specialized Sequence.compactMap<A>((A.Element))",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "thunk for closure",
+              "raw_function": "thunk for @callee_guaranteed (@guaranteed FileAttachment) -> (@out MediaSource?, @error @owned Error)",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSources",
+              "raw_function": "closure #1 (FileAttachment) in static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "MediaSlideshow+Extensions.swift",
+              "in_app": true
+            },
+            {
+              "function": "MediaSlideshow.toSource",
+              "raw_function": "static MediaSlideshow.toSource(_: FileAttachment, trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)",
+              "package": "Previouswindow",
+              "filename": "MediaSlideshow+Extensions.swift",
+              "in_app": true
+            },
+            {
+              "function": "CurrentUserProfile.isVideoAutoplay.getter",
+              "raw_function": "@objc CurrentUserProfile.isVideoAutoplay.getter",
+              "package": "Previouswindow",
+              "filename": "<compiler-generated>",
+              "in_app": true
+            },
+            {
+              "function": "CurrentUserProfile.isVideoAutoplay.getter",
+              "package": "Previouswindow",
+              "filename": "CurrentUserProfile.swift",
+              "in_app": true
+            },
+            {
+              "function": "value",
+              "raw_function": "Swift runtime failure: Unexpectedly found nil while implicitly unwrapping an Optional value",
+              "package": "Previouswindow",
+              "filename": "CurrentUserProfile.swift",
+              "in_app": true
+            }
+          ]
+        },
+        "thread_id": 0,
+        "mechanism": {
+          "type": "mach",
+          "synthetic": true,
+          "handled": false,
+          "meta": {
+            "signal": {
+              "number": 5,
+              "code": 0,
+              "name": "SIGTRAP"
+            },
+            "mach_exception": {
+              "exception": 6,
+              "code": 18429284,
+              "subcode": 8,
+              "name": "EXC_BREAKPOINT"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

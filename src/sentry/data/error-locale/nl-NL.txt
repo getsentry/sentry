@@ -1,0 +1,289 @@
+5,Ongeldige procedureaanroep of ongeldig argument
+6,Overloop
+7,Onvoldoende geheugen
+9,Het subscript valt buiten het bereik
+10,Deze matrix ligt vast of is tijdelijk vergrendeld.
+11,Deling door nul
+13,Typen komen niet met elkaar overeen
+14,Onvoldoende tekenreeksruimte
+17,Kan de opgegeven bewerking niet uitvoeren
+28,Onvoldoende stackruimte
+35,Sub of Function is niet gedefinieerd
+48,Fout bij laden van DLL
+51,Interne fout
+52,Bestandsnaam of -nummer onjuist
+53,Bestand is niet gevonden
+54,Ongeldige bestandsmodus
+55,Het bestand is al geopend
+57,I/O-fout in apparaat
+58,Het bestand bestaat al
+61,De schijf is vol
+62,Invoer voorbij bestandseinde
+67,Er zijn te veel bestanden geopend
+68,Apparaat niet beschikbaar
+70,Toegang geweigerd
+71,De schijf is niet gereed
+74,Naam wijzigen met ander station niet toegestaan
+75,Toegangsfout bij pad of bestand
+76,Kan het pad niet vinden
+91,Objectvariabele of blokvariabele With is niet ingesteld
+92,De For-lus is niet geïnitialiseerd
+94,Ongeldig gebruik van Null
+322,Kan het benodigde tijdelijke bestand niet maken
+424,Object vereist
+429,Automatiseringsonderdeel kan object niet maken
+430,Automatisering wordt niet ondersteund door deze klasse
+432,De bestandsnaam of klassennaam is niet gevonden tijdens de Automation-bewerking
+438,Deze eigenschap of methode wordt niet ondersteund door dit object
+440,Automatiseringsfout
+445,Deze actie wordt niet ondersteund door dit object
+446,Benoemde argumenten worden niet ondersteund door het object
+447,De huidige landinstellingen worden niet ondersteund door het object
+448,Kan benoemd argument niet vinden
+449,Het argument is niet optioneel
+450,Onjuist aantal argumenten of ongeldige eigenschaptoewijzingen
+451,Dit object is geen collectie
+453,Kan opgegeven DLL-functie niet vinden
+458,Variabele maakt gebruik van een automatiseringstype dat niet door JavaScript wordt ondersteund
+462,De externe servercomputer bestaat niet of is niet beschikbaar
+501,Kan niets toewijzen aan een variabele
+502,Object kan niet veilig in script worden gebruikt
+503,Object kan niet op een veilige manier worden geïnitialiseerd
+504,Object kan niet op een veilige manier worden gemaakt
+507,Er is een uitzondering opgetreden
+1001,Onvoldoende geheugen
+1002,Syntaxisfout
+1003,':' wordt verwacht
+1004,';' wordt verwacht
+1005,'(' wordt verwacht
+1006,')' wordt verwacht
+1007,']' wordt verwacht
+1008,'{' wordt verwacht
+1009,'}' wordt verwacht
+1010,Id wordt verwacht
+1011,'=' wordt verwacht
+1012,'/' wordt verwacht
+1013,Ongeldig getal
+1014,Ongeldig teken
+1015,Tekenreeksconstante is niet afgesloten
+1016,Opmerking is niet afgesloten
+1018,'return' instructie bevindt zich buiten de functie
+1019,'break' buiten de lus is niet mogelijk
+1020,'continue' buiten de lus is niet mogelijk
+1023,Hexadecimaal teken wordt verwacht
+1024,'while' wordt verwacht
+1025,Naam is opnieuw gedefinieerd
+1026,Kan naam niet vinden
+1027,'default' mag niet meer dan een keer voorkomen in een 'switch' instructie
+1028,Id, tekenreeks of getal wordt verwacht
+1029,'@end' wordt verwacht
+1030,Voorwaardelijke compilatie is uitgeschakeld
+1031,Constante wordt verwacht
+1032,'@' wordt verwacht
+1033,'catch' wordt verwacht
+1034,'var' wordt verwacht
+1035,'throw' moet worden gevolgd door een expressie op dezelfde bronregel
+1037,'with'-instructies zijn niet toegestaan in de strikte modus
+1038,Dubbele formele parameternamen zijn niet toegestaan in de strikte modus
+1039,Octale numerieke waardes en escapetekens zijn niet toegestaan in de strikte modus
+1041,Ongeldig gebruik van 'eval' in de strikte modus
+1042,Ongeldig gebruik van 'arguments' in de strikte modus
+1045,Het verwijderen van een expressie is niet toegestaan in de strikte modus
+1046,Meerdere definities van een eigenschap zijn niet toegestaan in de strikte modus
+1047,In de strikte modus kunnen functiedeclaraties niet worden genest in een instructie of blok. Ze kunnen alleen op het hoogste niveau of rechtstreeks in de hoofdtekst van een functie voorkomen.
+1048,Het gebruik van een trefwoord voor een id is ongeldig
+1049,Het gebruik van een toekomstig gereserveerd woord voor een id is ongeldig
+1050,Het gebruik van een toekomstig gereserveerd woord voor een id is ongeldig. De id-naam is gereserveerd in de strikte modus.
+1051,Functies voor insteller moeten één argument hebben
+4096,Compilatiefout JavaScript
+4097,Runtime-fout JavaScript
+4098,Onbekende runtime-fout
+5000,Kan niet worden toegewezen aan 'this'
+5001,Getal wordt verwacht
+5002,Functie wordt verwacht
+5003,Kan niet worden toegewezen aan het resultaat van een functie
+5004,Kan object niet indexeren
+5005,Tekenreeks wordt verwacht
+5006,Datumobject wordt verwacht
+5007,Object wordt verwacht
+5008,Ongeldige linkerkant van toewijzing
+5009,Niet-gedefinieerde aanduiding
+5010,Boole-waarde wordt verwacht
+5011,Kan programmacode niet uitvoeren vanuit een vrijgegeven script
+5012,Objectlid wordt verwacht
+5013,VBArray wordt verwacht
+5014,JavaScript-object wordt verwacht
+5015,Enumeratorobject wordt verwacht
+5016,Regulier expressieobject wordt verwacht
+5017,Syntaxisfout in reguliere expressie
+5018,Onverwachte bepaler
+5019,']' wordt verwacht in reguliere expressie
+5020,')' wordt verwacht in reguliere expressie
+5021,Ongeldig bereik in tekenset
+5022,Uitzondering geactiveerd maar niet afgehandeld
+5023,Functie heeft geen geldig prototype-object
+5024,De te coderen URI bevat een ongeldig teken
+5025,De te decoderen URI is geen geldige codering
+5026,Het aantal cijfers in de breuk valt buiten het bereik
+5027,De precisie valt buiten het bereik
+5028,Array- of Arguments-object wordt verwacht
+5029,Lengte van Array-object moet een positieve integer zijn
+5030,Lengte van Array-object moet een eindig positief getal zijn
+5031,Array-object wordt verwacht
+5034,Kringverwijzing in waardeargument wordt niet ondersteund
+5035,Ongeldig vervangingsargument
+5038,De argumentenlijst is te groot om te worden toegepast
+5039,Herdeclaratie van constante eigenschap
+5041,Objectlid kan niet worden geconfigureerd
+5042,Variabele is niet gedefinieerd in de strikte modus
+5043,Het openen van de eigenschap 'caller' van een functie- of Arguments-object is niet toegestaan in de strikte modus
+5044,Het openen van de eigenschap 'callee' van een Arguments-object is niet toegestaan in de strikte modus
+5045,Toewijzing aan alleen-lezen eigenschappen is niet toegestaan in de strikte modus
+5046,Kan geen eigenschap maken voor een niet-uitbreidbaar object
+5047,Object wordt verwacht
+5048,Object wordt verwacht
+5049,Object wordt verwacht
+5050,Object wordt verwacht
+5051,Functie wordt verwacht
+5052,Functie wordt verwacht
+5053,De eigenschap kan niet zowel accessors als een waarde hebben
+5054,'this' is null of niet gedefinieerd
+5055,Object wordt verwacht
+5056,Functie wordt verwacht
+5057,Tekenreeks wordt verwacht
+5058,Boole-waarde wordt verwacht
+5059,Datum wordt verwacht
+5060,Getal wordt verwacht
+5061,VBArray wordt verwacht
+5062,JavaScript-object wordt verwacht
+5063,Enumeratorobject wordt verwacht
+5064,RegExp-object wordt verwacht
+5065,Ongeldig functieargument
+5066,Object wordt verwacht
+5067,JavaScript-object wordt verwacht
+5068,Functie wordt verwacht
+5069,VBArray wordt verwacht
+5070,Object wordt verwacht
+5071,Object wordt verwacht
+5072,Ongeldige lengte-eigenschap
+5073,Array- of Arguments-object wordt verwacht
+5074,Ongeldige operand
+5075,Ongeldige operand
+5076,Ongeldige eigenschapsdescriptor
+5077,Kan de eigenschap niet definiëren: object is niet uitbreidbaar
+5078,Kan de niet-configureerbare eigenschap niet opnieuw definiëren
+5079,Kan de niet-schrijfbare eigenschap niet wijzigen
+5080,Kan de eigenschap niet wijzigen: 'length' is niet schrijfbaar
+5081,Kan de eigenschap niet definiëren
+5082,Constructorargument van getypeerde matrix is ongeldig
+5083,'this' is geen getypeerd matrixobject
+5084,Ongeldige offset/lengte bij het maken van een getypeerde matrix
+5085,Ongeldige begin-/eindwaarde in submatrix-methode van getypeerde matrix
+5086,Ongeldige bron in getypeerde matrixset
+5087,'this' is geen DataView-object
+5088,Ongeldige argumenten in DataView
+5089,Toegang tot DataView-bewerking buiten opgegeven bufferlengte
+5090,Ongeldige argumenten in DataView
+5091,ongeldige functiehandtekening
+5092,ongeldige eigenschapshandtekening
+5093,ongeldig type invoerparameter
+5094,Ongeldige invoerparameter
+5095,Toegang tot de eigenschap 'arguments' van een functie is niet toegestaan in de strikte modus
+5096,Inspecteerbaar object verwacht
+5097,Kan argument niet converteren naar type 'char'
+5098,Kan argument niet converteren naar type 'GUID'
+5099,IInspectable verwacht
+5100,Kan object niet converteren naar structuur: verwachte eigenschap ontbreekt in object
+5101,Onbekend type
+5102,Functie is aangeroepen met te weinig argumenten
+5103,Kan type niet maken
+5104,Kan waarde niet converteren naar PropertyValue: type wordt niet ondersteund door PropertyValue
+5105,Kan waarde niet converteren naar IInspectable: type wordt niet ondersteund door IInspectable
+5106,Kan datum niet converteren naar Windows.Foundation.DateTime: waarde ligt buiten het geldige bereik
+5107,Kan waarde niet converteren naar Windows.Foundation.TimeSpan: waarde ligt buiten het geldige bereik
+5108,Ongeldige toegang tot reeds vrijgegeven inspecteerbaar object
+5109,Kan reeds vrijgegeven inspecteerbaar object niet vrijgeven
+5110,'dit' is niet van het verwachte type
+5111,Ongeldige lengte en grootte opgegeven voor de matrix
+5112,Er is een onverwachte fout opgetreden bij het opvragen van metagegevens
+5200,Status is 'fout', maar getResults heeft geen fout geretourneerd
+5201,Ontbrekende of ongeldige statusparameter doorgegeven aan voltooide handler
+5202,Ontbrekende of ongeldige afzenderparameter doorgegeven aan voltooide handler
+6000,Oneindig
+6001,-Oneindig
+10438,De eigenschap of methode %s wordt niet ondersteund door dit object
+10449,Het argument voor de functie %s is niet optioneel
+15001,%s is geen getal
+15002,%s is geen functie
+15004,%s kan als object niet worden geïndexeerd
+15005,%s is geen tekenreeks
+15006,%s is geen datumobject
+15007,%s is leeg of geen object
+15008,Kan niets toewijzen aan %s
+15009,%s is niet gedefinieerd
+15010,%s is geen boole-waarde
+15012,Kan %s niet verwijderen
+15013,%s is geen VBArray
+15014,%s is geen JavaScript-object
+15015,%s is geen enumeratorobject
+15016,%s is geen regulier expressieobject
+15028,%s is geen Array- of Arguments-object
+15031,%s is geen Array-object
+15036,Het kenmerk %s in de eigenschapsdescriptor kan voor dit object niet worden ingesteld op true.
+15037,Het kenmerk %s in de eigenschapsdescriptor kan voor dit object niet worden ingesteld op false.
+15039,Herdeclaratie van de constante %s
+15041,Het verwijderen van %s is niet toegestaan in de strikte modus
+15047,Kan de eigenschap %s van een niet-gedefinieerde verwijzing of een verwijzing naar een lege waarde niet instellen
+15048,Kan de eigenschap %s van een niet-gedefinieerde verwijzing of een verwijzing naar een lege waarde niet ophalen
+15049,Kan de eigenschap %s van een niet-gedefinieerde verwijzing of een verwijzing naar een lege waarde niet verwijderen
+15050,Kan de eigenschap %s niet openen: het type VarDate biedt geen ondersteuning voor door gebruikers gedefinieerde eigenschappen
+15051,De waarde van de eigenschap %s is geen functieobject
+15052,De waarde van de eigenschap %s null of niet gedefinieerd en geen functieobject
+15054,%s: 'this' is null of niet gedefinieerd
+15055,%s: 'this' is geen object
+15056,%s: 'this' is geen functieobject
+15057,%s: 'this' is geen tekenreeksobject
+15058,%s: 'this' is geen boole-object
+15059,%s: 'this' is geen datumobject
+15060,%s: 'this' is geen getalobject
+15061,%s: 'this' is geen VBArray-object
+15062,%s: 'this' is geen JavaScript-object
+15063,%s: 'this' is geen enumeratorobject
+15064,%s: 'this' is geen RegExp-object
+15065,%s: ongeldig argument
+15066,%s: argument is geen object
+15067,%s: argument is geen JavaScript-object
+15068,%s: argument is geen functieobject
+15069,%s: argument is geen VBArray-object
+15070,%s: argument is null of niet gedefinieerd
+15071,%s: argument is geen object en is niet null
+15072,%s: argument heeft geen geldige lengte-eigenschap
+15073,%s: Array- of Arguments-object wordt verwacht
+15074,Ongeldige operand naar %s: object wordt verwacht
+15075,Ongeldige operand naar %s: functie wordt verwacht
+15076,Ongeldige descriptor voor eigenschap %s
+15077,Kan de eigenschap %s niet definiëren: object is niet uitbreidbaar
+15078,Kan de niet-configureerbare eigenschap %s niet opnieuw definiëren
+15079,Kan de niet-schrijfbare eigenschap %s niet wijzigen
+15080,Kan de eigenschap %s niet wijzigen: 'length' is niet schrijfbaar
+15081,Kan de eigenschap %s niet definiëren
+15088,Vereist argument %s in de DataView-methode is niet opgegeven
+15090,DataView-constructorargument %s is ongeldig
+15091,De functie '%s' heeft een ongeldige handtekening en kan niet worden aangeroepen
+15092,De eigenschap '%s' heeft een ongeldige handtekening en kan niet worden geopend
+15093,De runtime-klasse %s met Windows.Foundation.IPropertyValue als standaardinterface wordt niet ondersteund als type invoerparameter
+15094,Het object met interface Windows.Foundation.IPropertyValue die de runtime-klassenaam %s heeft, wordt niet ondersteund als uitvoerparameter
+15096,%s: 'this' is geen inspecteerbaar object
+15097,%s: kan argument niet converteren naar type 'char'
+15098,%s: kan argument niet converteren naar type 'GUID'
+15099,%s: kan retourwaarde niet converteren naar IInspectable
+15100,Kan object niet converteren naar structuur: verwachte eigenschap '%s' ontbreekt in object
+15101,Type '%s' niet gevonden
+15102,%s: functie is aangeroepen met te weinig argumenten
+15103,%s: kan type niet maken
+15104,Kan waarde niet converteren naar PropertyValue: %s wordt niet ondersteund door PropertyValue
+15105,Kan waarde niet converteren naar IInspectable: %s wordt niet ondersteund door IInspectable
+15108,%s: het inspecteerbare object 'this' is vrijgegeven en kan niet worden geopend
+15110,'dit' is niet van het verwachte type: %s
+15112,%s: er is een onverwachte fout opgetreden bij het opvragen van metagegevens
+32812,De opgegeven datum is niet beschikbaar in de agenda van de huidige landinstellingen

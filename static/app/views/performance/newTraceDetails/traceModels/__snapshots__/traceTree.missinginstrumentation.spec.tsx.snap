@@ -1,0 +1,96 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`missing instrumentation adds missing instrumentation between children spans 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+      missing_instrumentation
+      http - request
+"
+`;
+
+exports[`missing instrumentation adds missing instrumentation between sibling spans 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    missing_instrumentation
+    db - redis
+"
+`;
+
+exports[`missing instrumentation adds missing instrumentation between two spans that share a common root 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - request
+      db - redis
+    missing_instrumentation
+    cache - redis
+"
+`;
+
+exports[`missing instrumentation does not add missing instrumentation for browser SDKs 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    db - redis
+"
+`;
+
+exports[`missing instrumentation eap traces adds missing instrumentation between eap children spans 1`] = `
+"
+eap trace root
+  db - redis
+    missing_instrumentation
+    http - request
+"
+`;
+
+exports[`missing instrumentation eap traces adds missing instrumentation between sibling eap spans 1`] = `
+"
+eap trace root
+  db - redis
+  missing_instrumentation
+  db - redis
+"
+`;
+
+exports[`missing instrumentation eap traces removes missing instrumentation nodes 1`] = `
+"
+eap trace root
+  db - redis
+  db - redis
+"
+`;
+
+exports[`missing instrumentation idempotent - children 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+      missing_instrumentation
+      http - request
+"
+`;
+
+exports[`missing instrumentation idempotent - siblings 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    missing_instrumentation
+    db - redis
+"
+`;
+
+exports[`missing instrumentation removes missing instrumentation nodes 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    db - redis
+"
+`;

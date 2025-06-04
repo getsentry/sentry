@@ -1,0 +1,3 @@
+class EmailReplyParser:
+    @classmethod
+    def parse_reply(cls, s: str) -> str: ...

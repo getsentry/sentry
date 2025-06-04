@@ -1,0 +1,18 @@
+{
+  "expand": "names,schema",
+  "startAt": 0,
+  "maxResults": 50,
+  "total": 1,
+  "issues": [
+    {
+      "expand": "",
+      "id": "10001",
+      "self": "http://www.example.com/jira/rest/api/2/issue/10001",
+      "key": "HSP-1",
+      "fields": {
+        "summary": "this is a test issue summary"
+      }
+    }
+  ],
+  "warningMessages": ["The value 'splat' does not exist for the field 'Foo'."]
+}

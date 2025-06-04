@@ -1,0 +1,37 @@
+---
+created: '2024-11-08T22:03:16.952667+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - something-went-wrong
+    - '{{ error.value }}'
+    matchers:
+    - - value
+      - '*went wrong*'
+    text: value:"*went wrong*" -> "something-went-wrong{{ error.value }}"
+  version: 1
+fingerprint:
+- something-went-wrong
+- '{{ error.value }}'
+title: 'EndOfWorld: something went WRONG'
+variants:
+  app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component
+  custom_fingerprint:
+    matched_rule: value:"*went wrong*" -> "something-went-wrong{{ error.value }}"
+    type: custom_fingerprint
+    values:
+    - something-went-wrong
+    - something went WRONG
+  system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

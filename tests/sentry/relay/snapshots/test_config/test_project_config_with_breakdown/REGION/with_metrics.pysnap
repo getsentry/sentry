@@ -1,0 +1,54 @@
+---
+created: '2024-05-17T08:39:20.461732+00:00'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+breakdownsV2:
+  span_ops:
+    matches:
+    - http
+    - db
+    - browser
+    - resource
+    - ui
+    type: spanOperations
+metricConditionalTagging:
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 1200
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 300
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+- condition:
+    inner: []
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
+  targetTag: satisfaction
+transactionMetrics:
+  acceptTransactionNames: clientBased
+  customMeasurements:
+    limit: 10
+  extractCustomTags: []
+  version: 6

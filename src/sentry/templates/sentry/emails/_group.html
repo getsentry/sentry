@@ -1,0 +1,66 @@
+{% load sentry_helpers %}
+{% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit extra_params=link_params_for_rule %}
+<div class="issue {% if group.is_resolved %}resolved{% endif %}">
+  {% if type == "error" %}
+    <div class="event-type error">
+      <h3>
+        {% if metadata.type %}
+          {%if rule %}
+            <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{metadata.type|truncatechars:40}}</a>
+          {% else %}
+            <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
+          {% endif %}
+          {% if transaction %}
+            <span class="event-subtitle">{{ transaction }}</span>
+          {% endif %}
+          <br />
+          {% if metadata.value %}
+            <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+          {% endif %}
+          {% else %}
+          {%if rule %}
+            <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{metadata.value|truncatechars:40}}</a>
+          {% else %}
+            <a href="{{group.get_absolute_url}}">{{metadata.value|truncatechars:40}}</a>
+          {% endif %}
+          <br />
+          {% if transaction %}
+          <span class="event-subtitle">{{ transaction }}</span>
+          {% endif %}
+        {% endif %}
+      </h3>
+    </div>
+  {% elif type == "csp" %}
+    <div class="event-type csp">
+      <h3>
+        {%if rule %}
+          <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{metadata.directive|truncatechars:40}}</a>
+        {% else %}
+          <a href="{{group.get_absolute_url}}">{{metadata.directive|truncatechars:40}}</a>
+        {% endif %}
+        <br />
+        {% if metadata.uri %}
+          <span class="event-subtitle">{{ metadata.uri }}</span>
+        {% endif %}
+      </h3>
+    </div>
+  {% else %}
+    <div class="event-type default">
+      <h3>
+        {%if rule %}
+          <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{group.title|truncatechars:40}}</a>
+        {% else %}
+          <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
+        {% endif %}
+        {% if transaction %}
+          <span class="event-subtitle">{{ transaction }}</span>
+        {% endif %}
+        <br />
+        {% if metadata.value %}
+          <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+        {% endif %}
+     </h3>
+    </div>
+  {% endif %}
+</div>
+{% endwith %}

@@ -1,0 +1,85 @@
+{
+  "event_id": "c6d9ada418084f849a6cbdae31eb39fb",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "abs_path": "ForceStopRunnable.java",
+              "filename": "ForceStopRunnable.java",
+              "function": "run",
+              "module": "androidx.work.impl.utils.ForceStopRunnable"
+            },
+            {
+              "abs_path": "WorkSpecDao_Impl.java",
+              "filename": "WorkSpecDao_Impl.java",
+              "function": "b",
+              "module": "androidx.work.impl.b.q"
+            },
+            {
+              "abs_path": "FrameworkSQLiteStatement.java",
+              "filename": "FrameworkSQLiteStatement.java",
+              "function": "a",
+              "module": "androidx.h.a.a.g"
+            },
+            {
+              "abs_path": "SQLiteStatement.java",
+              "filename": "SQLiteStatement.java",
+              "function": "executeUpdateDelete",
+              "module": "android.database.sqlite.SQLiteStatement"
+            },
+            {
+              "abs_path": "SQLiteSession.java",
+              "filename": "SQLiteSession.java",
+              "function": "executeForChangedRowCount",
+              "module": "android.database.sqlite.SQLiteSession"
+            },
+            {
+              "abs_path": "SQLiteConnection.java",
+              "filename": "SQLiteConnection.java",
+              "function": "executeForChangedRowCount",
+              "module": "android.database.sqlite.SQLiteConnection"
+            },
+            {
+              "abs_path": "SQLiteConnection.java",
+              "filename": "SQLiteConnection.java",
+              "function": "nativeExecuteForChangedRowCount",
+              "module": "android.database.sqlite.SQLiteConnection"
+            }
+          ]
+        },
+        "type": "SQLiteFullException",
+        "value": "database or disk is full (code 13)"
+      }
+    ]
+  },
+  "platform": "java"
+}

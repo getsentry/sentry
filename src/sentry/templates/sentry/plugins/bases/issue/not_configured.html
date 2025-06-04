@@ -1,0 +1,27 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <div class="page-header">
+        <h3>{{ title }}</h3>
+    </div>
+    <div class="alert alert-block">
+        {% if not has_auth_configured %}
+            <p>{% blocktrans with plugin.auth_provider as auth_provider %}Your server administrator will need to configure authentication with
+            <strong>{{ auth_provider }}</strong> before you can use this plugin.{% endblocktrans %}</p>
+            <p>The following settings must be configured:</p>
+            <ul>
+                {% for setting in required_auth_settings %}
+                    <li><code>{{ setting }}</code></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>{% blocktrans %}You still need to <a href="{{ plugin_link }}">configure this plugin</a>
+                before you can use it.{% endblocktrans %}
+            </p>
+        {% endif %}
+    </div>
+{% endblock %}

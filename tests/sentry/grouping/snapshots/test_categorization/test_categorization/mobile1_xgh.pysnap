@@ -1,0 +1,49 @@
+---
+created: '2021-08-06T16:25:44.560821Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+IllegalArgumentException:pointerIndex out of range (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.ZygoteInit$MethodA  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=threadbase
+                     android.os.MessageQueue  next category=system
+                     android.os.MessageQueue  nativePollOnce category=internals
+             android.view.InputEventReceiver  dispatchInputEvent category=internals
+  android.view.ViewRootImpl$WindowInputEvent  onInputEvent category=internals
+                   android.view.ViewRootImpl  enqueueInputEvent category=internals
+                   android.view.ViewRootImpl  doProcessInputEvents category=internals
+                   android.view.ViewRootImpl  deliverInputEvent category=internals
+        android.view.ViewRootImpl$InputStage  deliver category=internals
+        android.view.ViewRootImpl$InputStage  apply category=internals
+        android.view.ViewRootImpl$InputStage  forward category=internals
+        android.view.ViewRootImpl$InputStage  onDeliverToNext category=internals
+        android.view.ViewRootImpl$InputStage  deliver category=internals
+   android.view.ViewRootImpl$AsyncInputStage  apply category=internals
+        android.view.ViewRootImpl$InputStage  apply category=internals
+   android.view.ViewRootImpl$AsyncInputStage  forward category=internals
+        android.view.ViewRootImpl$InputStage  forward category=internals
+        android.view.ViewRootImpl$InputStage  onDeliverToNext category=internals
+        android.view.ViewRootImpl$InputStage  deliver category=internals
+  android.view.ViewRootImpl$ViewPostImeInput  onProcess category=internals
+  android.view.ViewRootImpl$ViewPostImeInput  processPointerEvent category=internals
+                           android.view.View  dispatchPointerEvent category=internals
+  com.android.internal.policy.PhoneWindow$De  dispatchTouchEvent category=indirection
+                        android.app.Activity  dispatchTouchEvent category=std
+     com.android.internal.policy.PhoneWindow  superDispatchTouchEvent category=internals
+  com.android.internal.policy.PhoneWindow$De  superDispatchTouchEvent category=internals
+                      android.view.ViewGroup  dispatchTouchEvent category=internals
+                      android.view.ViewGroup  dispatchTransformedTouchEvent category=internals
+                      android.view.ViewGroup  dispatchTouchEvent category=internals
+                      android.view.ViewGroup  dispatchTransformedTouchEvent category=internals
+                      android.view.ViewGroup  dispatchTouchEvent category=internals
+                      android.view.ViewGroup  dispatchTransformedTouchEvent category=internals
+                           android.view.View  dispatchTouchEvent category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                    android.view.MotionEvent  getPointerId category=ui
+                    android.view.MotionEvent  nativeGetPointerId category=internals

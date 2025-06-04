@@ -1,0 +1,12 @@
+---
+created: '2019-03-14T17:12:36.603950Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_stacktrace.py
+---
+errors:
+- name: stacktrace.frames
+  reason: expected a non-empty value
+  type: invalid_data
+get_stacktrace: foo
+to_json: {}
+to_string: foo

@@ -1,0 +1,15 @@
+[
+  {
+    "query": "min(measurements.size):3s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "freeText",
+        "quoted": false,
+        "value": "min(measurements.size):3s",
+        "invalid": null
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

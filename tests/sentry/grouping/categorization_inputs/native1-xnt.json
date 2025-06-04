@@ -1,0 +1,118 @@
+{
+  "event_id": "78bf8696c7e6480ab2590aad44e1fbd4",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "D:\\releases\\abc\\Farming Simulator\\Frontend\\Src\\Win\\WinMain.cpp",
+              "filename": "WinMain.cpp",
+              "function": "wWinMain",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::{ctor}",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::_Reallocate_for",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "GetMessageW",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "function": "NtUserGetMessage",
+              "package": "C:\\WINDOWS\\System32\\win32u.dll"
+            },
+            {
+              "function": "KiUserCallbackDispatcher",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "_fnHkINLPMSG",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "function": "CallHookWithSEH",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "function": "DispatchHookW",
+              "package": "C:\\WINDOWS\\System32\\USER32.dll"
+            },
+            {
+              "function": "DestroyThreadFeatureManager",
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "function": "DestroyThreadFeatureManager",
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            },
+            {
+              "function": "DestroyThreadFeatureManager",
+              "package": "C:\\Program Files\\NVIDIA Corporation\\nView\\nViewH64.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_INT_DIVIDE_BY_ZERO",
+        "value": "Fatal Error: EXCEPTION_INT_DIVIDE_BY_ZERO"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,76 @@
+{% load sentry_assets %}
+{% load sentry_trace %}
+
+<meta name="sentry-trace" content="{% get_sentry_trace %}">
+<meta name="baggage" content="{% get_sentry_baggage %}">
+
+{% script %}
+<script type="text/javascript">
+  function __preloadData() {
+    if (!window.__initialData.shouldPreloadData) {
+      return;
+    }
+    var slug = window.__initialData.lastOrganization;
+    if (!slug && window.__initialData.customerDomain) {
+      slug = window.__initialData.customerDomain.subdomain;
+    }
+    var host = '';
+    if (window.__initialData.links && window.__initialData.links.regionUrl !== window.__initialData.links.sentryUrl) {
+      host = window.__initialData.links.regionUrl;
+    }
+
+    async function promiseRequest(url) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json; charset=utf-8',
+            'Content-Type': 'application/json',
+            'sentry-trace': window.__initialData.initialTrace.sentry_trace,
+            'baggage': window.__initialData.initialTrace.baggage,
+          },
+          credentials: 'include',
+          priority: 'high',
+        });
+        if (response.status >= 200 && response.status < 300) {
+          const text = await response.text();
+          const json = JSON.parse(text);
+          // Matching ResponseMeta from api
+          const responseMeta = {
+            status: response.status,
+            statusText: response.statusText,
+            responseJSON: json,
+            responseText: text,
+            getResponseHeader: (header) => response.headers.get(header),
+          };
+          return [json, response.statusText, responseMeta];
+        }
+        throw [response.status, response.statusText];
+      } catch (error) {
+        throw [error.status, error.statusText];
+      }
+    }
+
+    function makeUrl(suffix) {
+      return host + '/api/0/organizations/' + slug + suffix;
+    }
+
+    var preloadPromises = {orgSlug: slug};
+    window.__sentry_preload = preloadPromises;
+
+    if (!slug) {
+      return;
+    }
+
+    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0&include_feature_flags=1'));
+    preloadPromises.projects = promiseRequest(
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
+    );
+    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+  }
+
+  try {
+    __preloadData();
+  } catch (_) {}
+</script>
+{% endscript %}

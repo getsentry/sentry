@@ -1,0 +1,62 @@
+[
+  {
+    "statusCategory": {
+      "name": "In Progress",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/4",
+      "id": 4,
+      "key": "indeterminate",
+      "colorName": "yellow"
+    },
+    "untranslatedName": "In Progress",
+    "description": "This issue is being actively worked on at the moment by the assignee.",
+    "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/3",
+    "iconUrl": "https://getsentry-dev.atlassian.net/images/icons/statuses/inprogress.png",
+    "id": "3",
+    "name": "In Progress"
+  },
+  {
+    "statusCategory": {
+      "name": "To Do",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/2",
+      "id": 2,
+      "key": "new",
+      "colorName": "blue-gray"
+    },
+    "untranslatedName": "To Do",
+    "description": "",
+    "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10000",
+    "iconUrl": "https://getsentry-dev.atlassian.net/",
+    "id": "10000",
+    "name": "To Do"
+  },
+  {
+    "statusCategory": {
+      "name": "In Progress",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/4",
+      "id": 4,
+      "key": "indeterminate",
+      "colorName": "yellow"
+    },
+    "untranslatedName": "In Review",
+    "description": "",
+    "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10001",
+    "iconUrl": "https://getsentry-dev.atlassian.net/",
+    "id": "10001",
+    "name": "In Review"
+  },
+  {
+    "statusCategory": {
+      "name": "Done",
+      "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/3",
+      "id": 3,
+      "key": "done",
+      "colorName": "green"
+    },
+    "untranslatedName": "Done",
+    "description": "",
+    "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10002",
+    "iconUrl": "https://getsentry-dev.atlassian.net/",
+    "id": "10002",
+    "name": "Done"
+  }
+]

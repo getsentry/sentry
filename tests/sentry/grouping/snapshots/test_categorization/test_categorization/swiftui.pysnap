@@ -1,0 +1,80 @@
+---
+created: '2021-08-03T17:17:28.557947Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGABRT:AttributeGraph precondition failure: %s.
+ > AttributeGraph precondition failure: child already attached to new parent.
+ (thread_id:_, crashed:_)
+                               libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                            GraphicsServices  GSEventRunModal category=internals
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoObservers category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ category=internals
+                                   UIKitCore  _afterCACommitHandler category=internals
+                                   UIKitCore  _cleanUpAfterCAFlushAndRunDeferredBlocks category=internals
+                                   UIKitCore  _runAfterCACommitDeferredBlocks category=internals
+                                   UIKitCore  -[_UIAfterCACommitBlock run] category=internals
+                                   UIKitCore  __56-[UIPresentationController runTransitionForCurrentState]_block_invoke.466 category=internals
+                                   UIKitCore  _UIViewControllerTransitioningRunCustomTransition category=internals
+                                   UIKitCore  +[UIView(Animation) _setAlongsideAnimations:toRunByEndOfBlock:] category=internals
+                                   UIKitCore  ___UIViewControllerTransitioningRunCustomTransition_block_invoke.641 category=internals
+                                   UIKitCore  +[UIInputResponderController _pinInputViewsForInputResponderController:onBehalfOfResponder:duringBlock:] category=internals
+                                   UIKitCore  ___UIViewControllerTransitioningRunCustomTransition_block_invoke_2 category=internals
+                                   UIKitCore  -[UIViewControllerBuiltinTransitionViewAnimator animateTransition:] category=internals
+                                   UIKitCore  -[UITransitionView transition:fromView:toView:removeFromView:] category=internals
+                                   UIKitCore  -[UIView(Internal) _addSubview:positioned:relativeTo:] category=internals
+                                   UIKitCore  -[UIView(Hierarchy) _postMovedFromSuperview:] category=internals
+                              CoreAutoLayout  -[NSISEngine withBehaviors:performModifications:] category=internals
+                                   UIKitCore  __45-[UIView _postMovedFromSuperview:]_block_invoke category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIScrollView _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                   UIKitCore  -[UIView(Internal) _didMoveFromWindow:toWindow:] category=internals
+                                     SwiftUI  _UIHostingView.didMoveToWindow category=internals
+                                     SwiftUI  _UIHostingView.didMoveToWindow category=internals
+                                     SwiftUI  _UIHostingView.updateRemovedState category=internals
+                                     SwiftUI  GraphHost.updateRemovedState category=internals
+                              AttributeGraph  AG::Subgraph::apply category=internals
+                                     SwiftUI  AGSubgraphRef.didReinsert category=internals
+                                     SwiftUI  AppearanceEffect.didReinsert category=internals
+                                     SwiftUI  AppearanceEffect.updateValue category=internals
+                                     SwiftUI  AppearanceEffect.phase.getter category=internals
+                              AttributeGraph  AGGraphGetValue category=internals
+                              AttributeGraph  AG::Graph::value_ref category=internals
+                              AttributeGraph  AG::Graph::update_attribute category=internals
+                              AttributeGraph  AG::Graph::UpdateStack::update category=internals
+                                     SwiftUI  Attribute.init<T> category=internals
+                                     SwiftUI  DynamicContainerInfo.updateValue category=internals
+                                     SwiftUI  DynamicContainerInfo.tryRemovingItem category=internals
+                                     SwiftUI  DynamicContainerInfo.eraseItem category=internals
+                              AttributeGraph  AG::Subgraph::apply category=internals
+                                     SwiftUI  AGSubgraphRef.willRemove category=internals
+                                     SwiftUI  PlatformViewChild.willRemove category=internals
+                                     SwiftUI  PreferenceBridge.removedStateDidChange category=internals
+                                     SwiftUI  GraphHost.updateRemovedState category=internals
+                              AttributeGraph  AG::Subgraph::add_child category=internals
+                              AttributeGraph  AG::precondition_failure category=throw
+                           libsystem_c.dylib  abort category=internals
+                     libsystem_pthread.dylib  pthread_kill category=indirection
+                      libsystem_kernel.dylib  __pthread_kill category=internals

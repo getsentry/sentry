@@ -1,0 +1,510 @@
+---
+created: '2025-02-19T15:24:59.532162+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "RtlUserThreadStart"
+            function (function name is not used if module or filename are available)
+              "RtlUserThreadStart"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "BaseThreadInitThunk"
+            function (function name is not used if module or filename are available)
+              "BaseThreadInitThunk"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "exe_common.inl"
+            symbol*
+              "__scrt_common_main_seh()"
+            function (symbol takes precedence)
+              "__scrt_common_main_seh()"
+            lineno (symbol takes precedence)
+              288
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "exe_common.inl"
+            symbol*
+              "invoke_main()"
+            function (symbol takes precedence)
+              "invoke_main()"
+            lineno (symbol takes precedence)
+              102
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "WinMain"
+            function (function name is not used if module or filename are available)
+              "WinMain"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?LaunchWindowsStartup@@YAHPEAUHINSTANCE__@@0PEADHPEB_W@Z"
+            function (function name is not used if module or filename are available)
+              "LaunchWindowsStartup(HINSTANCE__*, HINSTANCE__*, char*, int, wchar_t const*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?GuardedMainWrapper@@YAHPEB_W@Z"
+            function (function name is not used if module or filename are available)
+              "GuardedMainWrapper(wchar_t const*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?GuardedMain@@YAHPEB_W@Z"
+            function (function name is not used if module or filename are available)
+              "GuardedMain(wchar_t const*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?Tick@FEngineLoop@@UEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "FEngineLoop::Tick(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?PumpMessages@FWindowsPlatformApplicationMisc@@SAX_N@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsPlatformApplicationMisc::PumpMessages(bool)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "DispatchMessageWorker"
+            function (function name is not used if module or filename are available)
+              "DispatchMessageWorker"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?UserCallWinProcCheckWow@@YA_JPEAU_ACTIVATION_CONTEXT@@P6A_JPEAUtagWND@@I_K_J@ZPEAUHWND__@@W4_WM_VALUE@@23PEAXH@Z"
+            function (function name is not used if module or filename are available)
+              "UserCallWinProcCheckWow(_ACTIVATION_CONTEXT*, int64_t (*)(tagWND*, unsigned int, uint64_t, int64_t), HWND__*, _WM_VALUE, uint64_t, int64_t, void*, int)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?AppWndProc@FWindowsApplication@@KA_JPEAUHWND__@@I_K_J@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::AppWndProc(HWND__*, unsigned int, uint64_t, int64_t)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessMessage@FWindowsApplication@@IEAAHPEAUHWND__@@I_K_J@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::ProcessMessage(HWND__*, unsigned int, uint64_t, int64_t)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?DeferMessage@FWindowsApplication@@AEAAXAEAV?$TSharedPtr@VFWindowsWindow@@$00@@PEAUHWND__@@I_K_JHHI@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::DeferMessage(TSharedPtr<FWindowsWindow, 1>&, HWND__*, unsigned int, uint64_t, int64_t, int, int, unsigned int)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessDeferredMessage@FWindowsApplication@@IEAAHAEBUFDeferredWindowsMessage@@@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::ProcessDeferredMessage(FDeferredWindowsMessage const&)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?OnMouseUp@FSlateApplication@@UEAA_NW4Type@EMouseButtons@@U?$TVector2@N@Math@UE@@@Z"
+            function (function name is not used if module or filename are available)
+              "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessMouseButtonUpEvent@FSlateApplication@@QEAA_NAEBUFPointerEvent@@@Z"
+            function (function name is not used if module or filename are available)
+              "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?RoutePointerUpEvent@FSlateApplication@@QEAA?AVFReply@@AEBVFWidgetPath@@AEBUFPointerEvent@@@Z"
+            function (function name is not used if module or filename are available)
+              "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "??$NewIntrusiveReferenceController@$00VSWindowTitleBar@@$$V@SharedPointerInternals@@YAPEAV?$TIntrusiveReferenceController@VSWindowTitleBar@@$00@0@XZ"
+            function (function name is not used if module or filename are available)
+              "SharedPointerInternals::NewIntrusiveReferenceController<1, SWindowTitleBar>(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "??R<lambda_1>@?1??Remove@?$TArray@V?$TWeakPtr@VTAnimatedAttributeBase@@$00@@V?$TSizedDefaultAllocator@$0CA@@@@@QEAAHAEBV?$TWeakPtr@VTAnimatedAttributeBase@@$00@@@Z@QEBA@AEAV3@@Z"
+            function (function name is not used if module or filename are available)
+              "`TArray<TWeakPtr<TAnimatedAttributeBase, 1>, TSizedDefaultAllocator<32> >::Remove(TWeakPtr<TAnimatedAttributeBase, 1> const&)'::`2'::<lambda_1>::operator()(TWeakPtr<TAnimatedAttributeBase, 1>&) const"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?OnMouseButtonUp@SButton@@UEAA?AVFReply@@AEBUFGeometry@@AEBUFPointerEvent@@@Z"
+            function (function name is not used if module or filename are available)
+              "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ExecuteOnClick@SButton@@IEAA?AVFReply@@XZ"
+            function (function name is not used if module or filename are available)
+              "SButton::ExecuteOnClick(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?Execute@?$TBaseUObjectMethodDelegateInstance@$0A@VUButton@@$$A6A?AVFReply@@XZUFDefaultDelegateUserPolicy@@$$V@@UEBA?AVFReply@@XZ"
+            function (function name is not used if module or filename are available)
+              "TBaseUObjectMethodDelegateInstance<0, UButton, FReply (void), FDefaultDelegateUserPolicy>::Execute(void) const"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?SlateHandleClicked@UButton@@IEAA?AVFReply@@XZ"
+            function (function name is not used if module or filename are available)
+              "UButton::SlateHandleClicked(void)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "??$ProcessMulticastDelegate@VUObject@@@?$TMulticastScriptDelegate@UFNotThreadSafeDelegateMode@@@@QEBAXPEAX@Z"
+            function (function name is not used if module or filename are available)
+              "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessEvent@UObject@@UEAAXPEAVUFunction@@PEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessEvent(UFunction*, void*)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?Invoke@UFunction@@QEAAXPEAVUObject@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UFunction::Invoke(UObject*, FFrame&, void* const)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessInternal@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessInternal(UObject*, FFrame&, void* const)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessLocalFunction@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void* const)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "??R<lambda_1>@?1??Get@?$TThreadSingleton@UFDeferredScriptTracker@@@@SAAEAUFDeferredScriptTracker@@XZ@QEBA@XZ"
+            function (function name is not used if module or filename are available)
+              "`TThreadSingleton<FDeferredScriptTracker>::Get(void)'::`2'::<lambda_1>::operator()(void) const"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "??$ProcessScriptFunction@P6AXPEAVUObject@@AEAUFFrame@@PEAX@Z@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAXP6AX02PEAX@Z@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void* const, void (*)(UObject*, FFrame&, void*))"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?execCallMathFunction@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UObject::execCallMathFunction(UObject*, FFrame&, void* const)"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "SentryPlaygroundUtils.gen.cpp"
+            context-line*
+              "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));"
+            symbol (symbol is not used if context-line is available)
+              "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void* const)"
+            function (function name is not used if context-line is available)
+              "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void* const)"
+            lineno (line number is not used if context-line is available)
+              127
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "SentryPlaygroundUtils.cpp"
+            context-line*
+              "\t\t\t\tcheck(assertPtr != nullptr);"
+            symbol (symbol is not used if context-line is available)
+              "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)"
+            function (function name is not used if context-line is available)
+              "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)"
+            lineno (line number is not used if context-line is available)
+              34
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?CheckVerifyFailedImpl2@FDebug@@SA_NPEBD0HPEB_WZZ"
+            function (function name is not used if module or filename are available)
+              "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, wchar_t const*, ...)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?AssertFailed@FDebug@@SAXPEBD0HPEB_WZZ"
+            function (function name is not used if module or filename are available)
+              "FDebug::AssertFailed(char const*, char const*, int, wchar_t const*, ...)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?LogfImpl@FOutputDevice@@AEAAXPEB_WZZ"
+            function (function name is not used if module or filename are available)
+              "FOutputDevice::LogfImpl(wchar_t const*, ...)"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "SentryOutputDeviceError.cpp"
+            context-line*
+              "\tParentDevice->Serialize(V, Verbosity, Category);"
+            symbol (symbol is not used if context-line is available)
+              "FSentryOutputDeviceError::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)"
+            function (function name is not used if context-line is available)
+              "FSentryOutputDeviceError::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)"
+            lineno (line number is not used if context-line is available)
+              22
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "?Serialize@FWindowsErrorOutputDevice@@UEAAXPEB_WW4Type@ELogVerbosity@@AEBVFName@@@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsErrorOutputDevice::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)"
+          frame (frame considered in-app because no frame is in-app)
+            symbol (symbol is not used if module or filename are available)
+              "RaiseException"
+            function (function name is not used if module or filename are available)
+              "RaiseException"
+        type*
+          "unknown 0x00004000 / 0x7ff89574837a"
+        value (stacktrace and type take precedence)
+          "Fatal Error: unknown 0x00004000 / 0x7ff89574837a"
+--------------------------------------------------------------------------
+system:
+  hash: "93cdbc603c0e1c54a7095f789dfac612"
+  contributing component: exception
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "RtlUserThreadStart"
+            function (function name is not used if module or filename are available)
+              "RtlUserThreadStart"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "BaseThreadInitThunk"
+            function (function name is not used if module or filename are available)
+              "BaseThreadInitThunk"
+          frame*
+            filename*
+              "exe_common.inl"
+            symbol*
+              "__scrt_common_main_seh()"
+            function (symbol takes precedence)
+              "__scrt_common_main_seh()"
+            lineno (symbol takes precedence)
+              288
+          frame*
+            filename*
+              "exe_common.inl"
+            symbol*
+              "invoke_main()"
+            function (symbol takes precedence)
+              "invoke_main()"
+            lineno (symbol takes precedence)
+              102
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "WinMain"
+            function (function name is not used if module or filename are available)
+              "WinMain"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?LaunchWindowsStartup@@YAHPEAUHINSTANCE__@@0PEADHPEB_W@Z"
+            function (function name is not used if module or filename are available)
+              "LaunchWindowsStartup(HINSTANCE__*, HINSTANCE__*, char*, int, wchar_t const*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?GuardedMainWrapper@@YAHPEB_W@Z"
+            function (function name is not used if module or filename are available)
+              "GuardedMainWrapper(wchar_t const*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?GuardedMain@@YAHPEB_W@Z"
+            function (function name is not used if module or filename are available)
+              "GuardedMain(wchar_t const*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?Tick@FEngineLoop@@UEAAXXZ"
+            function (function name is not used if module or filename are available)
+              "FEngineLoop::Tick(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?PumpMessages@FWindowsPlatformApplicationMisc@@SAX_N@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsPlatformApplicationMisc::PumpMessages(bool)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "DispatchMessageWorker"
+            function (function name is not used if module or filename are available)
+              "DispatchMessageWorker"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?UserCallWinProcCheckWow@@YA_JPEAU_ACTIVATION_CONTEXT@@P6A_JPEAUtagWND@@I_K_J@ZPEAUHWND__@@W4_WM_VALUE@@23PEAXH@Z"
+            function (function name is not used if module or filename are available)
+              "UserCallWinProcCheckWow(_ACTIVATION_CONTEXT*, int64_t (*)(tagWND*, unsigned int, uint64_t, int64_t), HWND__*, _WM_VALUE, uint64_t, int64_t, void*, int)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?AppWndProc@FWindowsApplication@@KA_JPEAUHWND__@@I_K_J@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::AppWndProc(HWND__*, unsigned int, uint64_t, int64_t)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessMessage@FWindowsApplication@@IEAAHPEAUHWND__@@I_K_J@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::ProcessMessage(HWND__*, unsigned int, uint64_t, int64_t)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?DeferMessage@FWindowsApplication@@AEAAXAEAV?$TSharedPtr@VFWindowsWindow@@$00@@PEAUHWND__@@I_K_JHHI@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::DeferMessage(TSharedPtr<FWindowsWindow, 1>&, HWND__*, unsigned int, uint64_t, int64_t, int, int, unsigned int)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessDeferredMessage@FWindowsApplication@@IEAAHAEBUFDeferredWindowsMessage@@@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsApplication::ProcessDeferredMessage(FDeferredWindowsMessage const&)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?OnMouseUp@FSlateApplication@@UEAA_NW4Type@EMouseButtons@@U?$TVector2@N@Math@UE@@@Z"
+            function (function name is not used if module or filename are available)
+              "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessMouseButtonUpEvent@FSlateApplication@@QEAA_NAEBUFPointerEvent@@@Z"
+            function (function name is not used if module or filename are available)
+              "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?RoutePointerUpEvent@FSlateApplication@@QEAA?AVFReply@@AEBVFWidgetPath@@AEBUFPointerEvent@@@Z"
+            function (function name is not used if module or filename are available)
+              "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "??$NewIntrusiveReferenceController@$00VSWindowTitleBar@@$$V@SharedPointerInternals@@YAPEAV?$TIntrusiveReferenceController@VSWindowTitleBar@@$00@0@XZ"
+            function (function name is not used if module or filename are available)
+              "SharedPointerInternals::NewIntrusiveReferenceController<1, SWindowTitleBar>(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "??R<lambda_1>@?1??Remove@?$TArray@V?$TWeakPtr@VTAnimatedAttributeBase@@$00@@V?$TSizedDefaultAllocator@$0CA@@@@@QEAAHAEBV?$TWeakPtr@VTAnimatedAttributeBase@@$00@@@Z@QEBA@AEAV3@@Z"
+            function (function name is not used if module or filename are available)
+              "`TArray<TWeakPtr<TAnimatedAttributeBase, 1>, TSizedDefaultAllocator<32> >::Remove(TWeakPtr<TAnimatedAttributeBase, 1> const&)'::`2'::<lambda_1>::operator()(TWeakPtr<TAnimatedAttributeBase, 1>&) const"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?OnMouseButtonUp@SButton@@UEAA?AVFReply@@AEBUFGeometry@@AEBUFPointerEvent@@@Z"
+            function (function name is not used if module or filename are available)
+              "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ExecuteOnClick@SButton@@IEAA?AVFReply@@XZ"
+            function (function name is not used if module or filename are available)
+              "SButton::ExecuteOnClick(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?Execute@?$TBaseUObjectMethodDelegateInstance@$0A@VUButton@@$$A6A?AVFReply@@XZUFDefaultDelegateUserPolicy@@$$V@@UEBA?AVFReply@@XZ"
+            function (function name is not used if module or filename are available)
+              "TBaseUObjectMethodDelegateInstance<0, UButton, FReply (void), FDefaultDelegateUserPolicy>::Execute(void) const"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?SlateHandleClicked@UButton@@IEAA?AVFReply@@XZ"
+            function (function name is not used if module or filename are available)
+              "UButton::SlateHandleClicked(void)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "??$ProcessMulticastDelegate@VUObject@@@?$TMulticastScriptDelegate@UFNotThreadSafeDelegateMode@@@@QEBAXPEAX@Z"
+            function (function name is not used if module or filename are available)
+              "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessEvent@UObject@@UEAAXPEAVUFunction@@PEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessEvent(UFunction*, void*)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?Invoke@UFunction@@QEAAXPEAVUObject@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UFunction::Invoke(UObject*, FFrame&, void* const)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessInternal@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UObject::ProcessInternal(UObject*, FFrame&, void* const)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessLocalFunction@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void* const)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "??R<lambda_1>@?1??Get@?$TThreadSingleton@UFDeferredScriptTracker@@@@SAAEAUFDeferredScriptTracker@@XZ@QEBA@XZ"
+            function (function name is not used if module or filename are available)
+              "`TThreadSingleton<FDeferredScriptTracker>::Get(void)'::`2'::<lambda_1>::operator()(void) const"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "??$ProcessScriptFunction@P6AXPEAVUObject@@AEAUFFrame@@PEAX@Z@@YAXPEAVUObject@@PEAVUFunction@@AEAUFFrame@@QEAXP6AX02PEAX@Z@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void* const, void (*)(UObject*, FFrame&, void*))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?ProcessLocalScriptFunction@@YAXPEAVUObject@@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "ProcessLocalScriptFunction(UObject*, FFrame&, void* const)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?execCallMathFunction@UObject@@SAXPEAV1@AEAUFFrame@@QEAX@Z"
+            function (function name is not used if module or filename are available)
+              "UObject::execCallMathFunction(UObject*, FFrame&, void* const)"
+          frame*
+            filename*
+              "SentryPlaygroundUtils.gen.cpp"
+            context-line*
+              "\tUSentryPlaygroundUtils::Terminate(ESentryAppTerminationType(Z_Param_Type));"
+            symbol (symbol is not used if context-line is available)
+              "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void* const)"
+            function (function name is not used if context-line is available)
+              "USentryPlaygroundUtils::execTerminate(UObject*, FFrame&, void* const)"
+            lineno (line number is not used if context-line is available)
+              127
+          frame*
+            filename*
+              "SentryPlaygroundUtils.cpp"
+            context-line*
+              "\t\t\t\tcheck(assertPtr != nullptr);"
+            symbol (symbol is not used if context-line is available)
+              "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)"
+            function (function name is not used if context-line is available)
+              "USentryPlaygroundUtils::Terminate(ESentryAppTerminationType)"
+            lineno (line number is not used if context-line is available)
+              34
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?CheckVerifyFailedImpl2@FDebug@@SA_NPEBD0HPEB_WZZ"
+            function (function name is not used if module or filename are available)
+              "FDebug::CheckVerifyFailedImpl2(char const*, char const*, int, wchar_t const*, ...)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?AssertFailed@FDebug@@SAXPEBD0HPEB_WZZ"
+            function (function name is not used if module or filename are available)
+              "FDebug::AssertFailed(char const*, char const*, int, wchar_t const*, ...)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?LogfImpl@FOutputDevice@@AEAAXPEB_WZZ"
+            function (function name is not used if module or filename are available)
+              "FOutputDevice::LogfImpl(wchar_t const*, ...)"
+          frame*
+            filename*
+              "SentryOutputDeviceError.cpp"
+            context-line*
+              "\tParentDevice->Serialize(V, Verbosity, Category);"
+            symbol (symbol is not used if context-line is available)
+              "FSentryOutputDeviceError::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)"
+            function (function name is not used if context-line is available)
+              "FSentryOutputDeviceError::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)"
+            lineno (line number is not used if context-line is available)
+              22
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "?Serialize@FWindowsErrorOutputDevice@@UEAAXPEB_WW4Type@ELogVerbosity@@AEBVFName@@@Z"
+            function (function name is not used if module or filename are available)
+              "FWindowsErrorOutputDevice::Serialize(wchar_t const*, ELogVerbosity::Type, FName const&)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "RaiseException"
+            function (function name is not used if module or filename are available)
+              "RaiseException"
+        type*
+          "unknown 0x00004000 / 0x7ff89574837a"
+        value (stacktrace and type take precedence)
+          "Fatal Error: unknown 0x00004000 / 0x7ff89574837a"

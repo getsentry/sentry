@@ -1,0 +1,22 @@
+minVersion: '0.23.1'
+releaseBranchPrefix: releases
+changelog: CHANGES
+changelogPolicy: auto
+statusProvider:
+  name: github
+  config:
+    contexts:
+      - 'self-hosted'
+artifactProvider:
+  name: none
+targets:
+  - id: release
+    name: docker
+    source: ghcr.io/getsentry/sentry-self-hosted
+    target: getsentry/sentry
+  - id: latest
+    name: docker
+    source: ghcr.io/getsentry/sentry-self-hosted
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:latest'
+  - name: github

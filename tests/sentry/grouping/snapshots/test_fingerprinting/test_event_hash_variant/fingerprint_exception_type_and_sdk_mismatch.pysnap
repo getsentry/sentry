@@ -1,0 +1,44 @@
+---
+created: '2024-12-06T19:45:39.610879+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - database-unavailable
+    matchers:
+    - - sdk
+      - sentry.java
+    - - type
+      - DatabaseUnavailable
+    text: sdk:"sentry.java" type:"DatabaseUnavailable" -> "database-unavailable"
+  version: 1
+fingerprint:
+- my-route
+- '{{ default }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
+variants:
+  app:
+    client_values:
+    - my-route
+    - '{{ default }}'
+    component:
+      contributes: true
+      hint: null
+    type: salted_component
+    values:
+    - my-route
+    - '{{ default }}'
+  system:
+    client_values:
+    - my-route
+    - '{{ default }}'
+    component:
+      contributes: false
+      hint: exception of app takes precedence
+    type: salted_component
+    values:
+    - my-route
+    - '{{ default }}'

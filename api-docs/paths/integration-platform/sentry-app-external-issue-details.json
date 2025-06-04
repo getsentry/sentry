@@ -1,0 +1,43 @@
+{
+  "delete": {
+    "tags": ["Integration"],
+    "description": "Delete an external issue.",
+    "operationId": "Delete an External Issue",
+    "parameters": [
+      {
+        "name": "uuid",
+        "in": "path",
+        "description": "The uuid of the integration platform integration.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "external_issue_id",
+        "in": "path",
+        "description": "The ID of the external issue.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "External issue not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["event:admin"]
+      }
+    ]
+  }
+}

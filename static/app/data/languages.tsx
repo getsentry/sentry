@@ -1,0 +1,16 @@
+export default [
+  ['ja', 'Japanese'],
+  ['it', 'Italian'],
+  ['zh-tw', 'Traditional Chinese'],
+  ['cs', 'Czech'],
+  ['ru', 'Russian'],
+  ['zh-cn', 'Simplified Chinese'],
+  ['bg', 'Bulgarian'],
+  ['de', 'German'],
+  ['el', 'Greek'],
+  ['fi', 'Finnish'],
+  ['fr', 'French'],
+  ['hu', 'Hungarian'],
+  ['es', 'Spanish'],
+  ['en', 'English'],
+] as const;

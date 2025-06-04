@@ -1,0 +1,44 @@
+---
+created: '2021-08-06T16:25:44.545632Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_WRITE:Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE (thread_id:_, crashed:_)
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
+            C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=threadbase
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppTimerpExecuteCallback category=system
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpTpTimerCallback category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  boost::function0<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  C:\Program Files\Company\Example App 2020\  std::_Tree<T>::_Erase_unchecked category=internals
+  C:\Program Files\Company\Example App 2020\  std::_Tree_node<T>::_Freenode<T> category=internals
+  C:\Program Files\Company\Example App 2020\  std::_Normal_allocator_traits<T>::destroy category=internals
+  C:\Program Files\Company\Example App 2020\  abccore::classref::InterfaceRef<T>::{dtor} category=dtor
+  C:\Program Files\Company\Example App 2020\  destructor' category=internals
+  C:\Program Files\Company\Example App 2020\  std::vector<T>::~vector<T> category=std
+  C:\Program Files\Company\Example App 2020\  std::vector<T>::_Tidy category=internals
+  C:\Program Files\Company\Example App 2020\  std::allocator<T>::deallocate category=internals
+  C:\Program Files\Company\Example App 2020\  std::_Deallocate category=free
+            C:\WINDOWS\System32\ucrtbase.dll  free_base category=indirection
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeap category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlEnterCriticalSection category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpEnterCriticalSectionContended category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnCriticalSection category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpWaitOnAddress category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpOptimizeWaitOnAddressWaitList category=internals

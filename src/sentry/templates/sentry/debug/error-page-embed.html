@@ -1,0 +1,8 @@
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<html>
+<body>
+  <h2>Error Embed Debug</h2>
+  {% url 'sentry-error-page-embed' as base_url %}
+  {% script src=base_url|add:"?"|add:query_params %}{% endscript %}
+</body>
