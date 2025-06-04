@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import zlib
 from base64 import b64encode
 from datetime import datetime
 from typing import Any
@@ -54,9 +55,9 @@ class TestProcessProfileConsumerStrategy(TestCase):
         processing_strategy.terminate()
 
         process_profile_task.assert_called_with(
-            payload=b64encode(payload).decode("utf-8"),
+            payload=b64encode(zlib.compress(payload)).decode("utf-8"),
             sampled=True,
-            compressed_profile=False,
+            compressed_profile=True,
         )
 
 
