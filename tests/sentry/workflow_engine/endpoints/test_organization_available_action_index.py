@@ -352,7 +352,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "sentryApp": {
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
+                    "slug": self.sentry_app.slug,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
                     "title": ANY,
@@ -366,7 +368,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "sentryApp": {
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
+                    "slug": self.no_component_sentry_app.slug,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
@@ -456,7 +460,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "sentryApp": {
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
+                    "slug": self.sentry_app.slug,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
                     "title": ANY,
@@ -470,7 +476,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "sentryApp": {
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
+                    "slug": self.no_component_sentry_app.slug,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },

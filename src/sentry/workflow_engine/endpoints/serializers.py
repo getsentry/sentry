@@ -107,7 +107,9 @@ class ActionHandlerSerializer(Serializer):
             sentry_app: SentryAppContext = {
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
+                "slug": installation.sentry_app.slug,
                 "installationId": str(installation.id),
+                "installationUuid": str(installation.uuid),
                 "status": installation.sentry_app.status,
             }
             if component:
