@@ -54,17 +54,14 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
             end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
 
         response_data: ResponseData = {
-            "data": [
-                {"flag": flag, "score": score, "baseline_percent": baseline_percent}
-                for flag, score, baseline_percent in get_suspect_flag_scores(
-                    organization_id,
-                    project_id,
-                    start,
-                    end,
-                    environments,
-                    group_id,
-                )
-            ]
+            "data": get_suspect_flag_scores(
+                organization_id,
+                project_id,
+                start,
+                end,
+                environments,
+                group_id,
+            )
         }
 
         # Record a distribution of suspect flag scores.

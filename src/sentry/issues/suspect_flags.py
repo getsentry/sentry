@@ -49,8 +49,24 @@ def get_suspect_flag_scores(
             if value == "true":
                 baseline_percent_dict[key] = count / baseline_count
 
+    distributions = defaultdict(
+        lambda: {
+            "baseline": defaultdict(dict),
+            "outliers": defaultdict(dict),
+        }
+    )
+    for key, value, count in baseline:
+        distributions[key]["baseline"][value] = count
+    for key, value, count in outliers:
+        distributions[key]["outliers"][value] = count
+
     return [
-        Score(key=key, score=score, baseline_percent=baseline_percent_dict[key])
+        {
+            "flag": key,
+            "score": score,
+            "baseline_percent": baseline_percent_dict[key],
+            "distribution": distributions[key],
+        }
         for key, score in keyed_scores
     ]
 
