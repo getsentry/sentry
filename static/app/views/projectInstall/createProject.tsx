@@ -252,11 +252,11 @@ export function CreateProject() {
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig?.defaultRules
-            ? 'Default'
-            : alertRuleConfig?.shouldCreateCustomRule
-              ? 'Custom'
-              : 'No Rule',
+          issue_alert: alertRuleConfig?.shouldCreateCustomRule
+            ? 'Custom'
+            : alertRuleConfig?.shouldCreateRule === false
+              ? 'No Rule'
+              : 'Default',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
@@ -277,8 +277,8 @@ export function CreateProject() {
           name: project.name,
           team: project.team?.slug,
           alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
+            shouldCreateRule: alertRuleConfig?.shouldCreateRule,
+            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule,
             conditions: alertRuleConfig?.conditions,
             actions: alertRuleConfig?.actions,
             actionMatch: alertRuleConfig?.actionMatch,
@@ -452,9 +452,9 @@ export function CreateProject() {
             alertSetting={
               formData.alertRuleConfig?.shouldCreateCustomRule
                 ? RuleAction.CUSTOMIZED_ALERTS
-                : formData.alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
+                : formData.alertRuleConfig?.shouldCreateRule === false
+                  ? RuleAction.CREATE_ALERT_LATER
+                  : RuleAction.DEFAULT_ALERT
             }
             interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
             threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
