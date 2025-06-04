@@ -80,7 +80,6 @@ def process_projects_with_sessions(org_id, project_ids) -> None:
     cleanup_adopted_releases(project_ids, adopted_ids)
 
 
-@metrics.wraps("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates")
 def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
     # Using the totals calculated in sum_sessions_and_releases, mark any releases as adopted if they reach a threshold.
     adopted_ids = []
