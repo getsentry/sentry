@@ -220,7 +220,7 @@ def _sync_project_debug_file(
             )
 
             if not target_project:
-                return
+                return None
 
             return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
@@ -255,9 +255,16 @@ def _sync_proguard_artifact_release(
             project_debug_file = ProjectDebugFile.objects.filter(
                 project_id=target_project.id,
                 debug_id=source_proguard_artifact_release.project_debug_file.debug_id,
-            ).first() or _sync_project_debug_file(
-                source_proguard_artifact_release.project_debug_file, target_org
-            )
+            ).first()
+
+            if not project_debug_file:
+                project_debug_file = _sync_project_debug_file(
+                    source_proguard_artifact_release.project_debug_file, target_org
+                )
+
+            if not project_debug_file:
+                # we require a project debug file
+                return
 
             ProguardArtifactRelease.objects.create(
                 organization_id=target_org.id,
