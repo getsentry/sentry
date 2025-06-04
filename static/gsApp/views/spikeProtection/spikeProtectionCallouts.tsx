@@ -6,7 +6,7 @@ export function SpikeProtectionRangeLimitation() {
     <Alert.Container>
       <Alert type="warning">
         {t(
-          "To view this project's spike data on the chart, please select a time range between 30d and 6h"
+          "To view this project's spike data on the chart, please select a time range under 30d and above 6h"
         )}
       </Alert>
     </Alert.Container>
