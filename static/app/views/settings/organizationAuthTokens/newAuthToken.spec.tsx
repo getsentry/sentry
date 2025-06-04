@@ -34,7 +34,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Name'), 'My Token');
-    await userEvent.click(screen.getByRole('button', {name: 'Create Auth Token'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
     expect(await screen.findByLabelText('Generated token')).toHaveValue('sntrys_XXXXXXX');
 
@@ -63,12 +63,12 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Name'), 'My Token');
-    await userEvent.click(screen.getByRole('button', {name: 'Create Auth Token'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-      'Failed to create a new auth token.'
+      'Failed to create a new organization token.'
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -96,7 +96,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Name'), 'My Token');
-    await userEvent.click(screen.getByRole('button', {name: 'Create Auth Token'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 

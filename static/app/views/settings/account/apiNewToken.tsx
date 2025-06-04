@@ -52,12 +52,12 @@ export default function ApiNewToken() {
   );
 
   return (
-    <SentryDocumentTitle title={t('Create User Auth Token')}>
+    <SentryDocumentTitle title={t('Create New Personal Token')}>
       <div>
-        <SettingsPageHeader title={t('Create New User Auth Token')} />
+        <SettingsPageHeader title={t('Create New Personal Token')} />
         <TextBlock>
           {t(
-            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           )}
         </TextBlock>
         <TextBlock>

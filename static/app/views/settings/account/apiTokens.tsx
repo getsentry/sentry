@@ -24,7 +24,7 @@ import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-const PAGE_TITLE = t('User Auth Tokens');
+const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
 
 function ApiTokens() {
@@ -111,7 +111,7 @@ function ApiTokens() {
       <SettingsPageHeader title={PAGE_TITLE} action={action} />
       <TextBlock>
         {t(
-          "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+          "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
         )}
       </TextBlock>
       <TextBlock>
