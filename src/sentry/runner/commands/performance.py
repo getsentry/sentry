@@ -48,8 +48,6 @@ def detect(path: str, detector_class: str | None, verbose: int) -> None:
 
     settings = performance_detection.get_detection_settings()
 
-    settings = performance_detection.get_detection_settings()
-
     def run_detector_on_file(filepath: str) -> None:
         if not filepath.endswith(".json"):
             return
