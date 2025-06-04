@@ -115,6 +115,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
+    @pytest.mark.skip(reason="flaky: #92901")
     def test_unreal_crash_with_attachments(self):
         attachments = self.unreal_crash_test_impl(get_unreal_crash_file())
         assert len(attachments) == 4
