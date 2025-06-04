@@ -65,7 +65,7 @@ export default function LLMGenerationsWidget() {
     Referrer.QUERIES_CHART // TODO: add referrer
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data;
 
   const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
   const error = timeSeriesRequest.error || generationsRequest.error;
@@ -91,7 +91,7 @@ export default function LLMGenerationsWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
@@ -116,7 +116,7 @@ export default function LLMGenerationsWidget() {
             <ModelText>
               <ModelName modelId={modelId} />
             </ModelText>
-            <span>{item['count(span.duration)']}</span>
+            <span>{item['count()']}</span>
           </Fragment>
         );
       })}
