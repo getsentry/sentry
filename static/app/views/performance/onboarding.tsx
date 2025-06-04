@@ -59,7 +59,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import type {FirstIssue} from 'sentry/utils/eventWaiter';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -487,7 +486,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [firstTrace, setFirstTrace] = useState<FirstIssue>();
+  const [firstTrace, setFirstTrace] = useState(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
 
   const currentPlatform = project.platform
@@ -634,7 +633,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
       project={project}
       eventType="transaction"
       onIssueReceived={({firstIssue}) => {
-        setFirstTrace(firstIssue);
+        setFirstTrace(!!firstIssue);
       }}
     >
       {({firstIssue}) =>
