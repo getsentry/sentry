@@ -26,7 +26,7 @@ def convert_org_saved_searches_to_views(
             name=saved_search.name,
             query=saved_search.query,
             query_sort=saved_search.sort,
-        ).delete()
+        )
 
         if matching_views.count() == 0:
             GroupSearchView.objects.create(
