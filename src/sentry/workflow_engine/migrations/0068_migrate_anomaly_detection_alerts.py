@@ -713,20 +713,19 @@ def _create_detector_state(apps: Apps, alert_rule: Any, project: Any, detector: 
 
 def _update_migrated_detector_triggers(apps: Apps, alert_rule: Any, detector: Any) -> None:
     Detector = apps.get_model("workflow_engine", "Detector")
-    DataCondition = apps.get_model("Workflow_engine", "DataCondition")
+    DataCondition = apps.get_model("workflow_engine", "DataCondition")
     with transaction.atomic(router.db_for_write(Detector)):
         critical_detector_trigger = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        critical_detector_trigger.update(
-            type=Condition.ANOMALY_DETECTION,
-            comparison={
-                "sensitivity": alert_rule.sensitivity,
-                "seasonality": alert_rule.seasonality,
-                "threshold_type": alert_rule.threshold_type,
-            },
-        )
+        critical_detector_trigger.type = Condition.ANOMALY_DETECTION
+        critical_detector_trigger.comparison = {
+            "sensitivity": alert_rule.sensitivity,
+            "seasonality": alert_rule.seasonality,
+            "threshold_type": alert_rule.threshold_type,
+        }
+        critical_detector_trigger.save()
 
         resolve_detector_trigger = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group,

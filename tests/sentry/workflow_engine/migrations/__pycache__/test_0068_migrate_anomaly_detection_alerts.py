@@ -19,6 +19,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
@@ -137,6 +138,19 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
             sentry_app_config=[{"favorite_tea": "strawberry matcha latte with oat milk"}],
         )
 
+        # migrated rule
+        self.migrated_rule = self.create_alert_rule()
+        self.migrated_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.migrated_rule, label="critical", alert_threshold=0
+        )
+        dual_write_alert_rule(self.migrated_rule)
+        self.migrated_rule.update(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.MEDIUM,
+            seasonality=AlertRuleSeasonality.AUTO,
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value,
+        )
+
     def test_valid_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
@@ -217,6 +231,26 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
             type=Condition.ISSUE_PRIORITY_DEESCALATING,
         )
         assert resolve_action_filter.condition_result is True
+
+    def test_update_migrated_rule(self):
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.migrated_rule.id)
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        assert detector_trigger.comparison == {
+            "sensitivity": self.migrated_rule.sensitivity,
+            "seasonality": self.migrated_rule.seasonality,
+            "threshold_type": self.migrated_rule.threshold_type,
+        }
+        assert detector_trigger.type == Condition.ANOMALY_DETECTION
+
+        assert not DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        ).exists()
 
     def test_simple_trigger_action(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
