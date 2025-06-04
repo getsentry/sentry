@@ -168,14 +168,16 @@ export default Storybook.story('Tabs', story => {
       </div>
       <div>
         <p>
-          Use <Storybook.JSXNode name="TabList" props={{disabledKeys: Array}} /> to
+          Use <Storybook.JSXNode name="TabList.Item" props={{disabled: true}} /> to
           disable individual <Storybook.JSXNode name="TabList.Item" /> children.
         </p>
         <Storybook.SizingWindow>
           <Tabs>
-            <TabList disabledKeys={['two']}>
+            <TabList>
               {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                <TabList.Item disabled={tab.key === 'three'} key={tab.key}>
+                  {tab.label}
+                </TabList.Item>
               ))}
             </TabList>
             <TabPanels>
