@@ -17,7 +17,7 @@ export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
   if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
-    return getUserOrgNavigationConfiguration({organization: incomingOrganization});
+    return getUserOrgNavigationConfiguration();
   }
 
   return [
@@ -162,8 +162,8 @@ export function getOrganizationNavigationConfiguration({
       items: [
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
-          title: t('Auth Tokens'),
-          description: t('Manage organization auth tokens'),
+          title: t('Organization Tokens'),
+          description: t('Manage organization tokens'),
           id: 'auth-tokens',
         },
         {
