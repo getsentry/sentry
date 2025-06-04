@@ -1,20 +1,4 @@
-import type {NewAction} from './actions';
-
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  timeWindow: number;
-  environment?: string;
-}
-
-export interface DataSource {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription?: string;
-}
+import type {Action} from './actions';
 
 export enum DataConditionType {
   // operators
@@ -68,20 +52,38 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface NewDataCondition {
+/**
+ * See DataConditionSerializer
+ */
+export interface DataCondition {
   comparison: any;
-  comparison_type: DataConditionType;
-  condition_group?: DataConditionGroup;
-  condition_result?: any;
-}
-
-export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly id: string;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: any;
 }
 
 export interface DataConditionGroup {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  actions?: NewAction[];
+  actions?: Action[];
+}
+
+export enum DataConditionHandlerGroupType {
+  DETECTOR_TRIGGER = 'detector_trigger',
+  WORKFLOW_TRIGGER = 'workflow_trigger',
+  ACTION_FILTER = 'action_filter',
+}
+
+export enum DataConditionHandlerSubgroupType {
+  ISSUE_ATTRIBUTES = 'issue_attributes',
+  FREQUENCY = 'frequency',
+  EVENT_ATTRIBUTES = 'event_attributes',
+}
+
+export interface DataConditionHandler {
+  comparisonJsonSchema: Record<string, any>;
+  handlerGroup: DataConditionHandlerGroupType;
+  handlerSubgroup: DataConditionHandlerSubgroupType;
+  type: DataConditionType;
 }

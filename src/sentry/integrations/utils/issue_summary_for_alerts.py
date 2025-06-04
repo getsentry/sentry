@@ -5,6 +5,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry import features, options
+from sentry.autofix.utils import SeerAutomationSource
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.seer.issue_summary import get_issue_summary
@@ -22,7 +23,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not features.has("organizations:gen-ai-features", group.organization):
         return None
-    if not features.has("projects:trigger-issue-summary-on-alerts", group.project):
+    if not features.has("organizations:trigger-autofix-on-issue-summary", group.organization):
         return None
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
         return None
@@ -32,7 +33,9 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     try:
         with sentry_sdk.start_span(op="ai_summary.fetch_issue_summary_for_alert"):
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(get_issue_summary, group, source="alert")
+                future = executor.submit(
+                    get_issue_summary, group, source=SeerAutomationSource.ALERT
+                )
                 summary_result, status_code = future.result(timeout=timeout)
 
                 if status_code == 200:

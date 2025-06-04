@@ -2,7 +2,6 @@ import logging
 import random
 import uuid
 from collections import defaultdict
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
@@ -338,18 +337,21 @@ def get_group_to_groupevent(
         if event_id is not None
     ]
 
-    # Use a list comprehension for occurrence_ids
-    occurrence_ids: Sequence[str] = [
+    occurrence_ids: set[str] = {
         occurrence_id
         for occurrence_id in (
             instance_data.get("occurrence_id")
             for instance_data in relevant_rulegroup_to_event_data.values()
         )
         if occurrence_id is not None
-    ]
+    }
 
     bulk_event_id_to_events = bulk_fetch_events(event_ids, project_id)
-    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+
+    bulk_occurrences = []
+    # We aren't guaranteed to have occurrences for all the events.
+    if occurrence_ids:
+        bulk_occurrences = IssueOccurrence.fetch_multi(list(occurrence_ids), project_id=project_id)
 
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
@@ -498,30 +500,40 @@ def fire_rules(
         timedelta(seconds=40),
         extra={"project_id": project_id},
     ) as tracker:
+        groups_to_fire = set().union(*rules_to_fire.values())
+        group_to_groupevent = get_group_to_groupevent(
+            log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
+        )
+        if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
+            serialized_groups = {
+                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+            }
+            logger.info(
+                "delayed_processing.group_to_groupevent",
+                extra={
+                    "group_to_groupevent": serialized_groups,
+                    "project_id": project_id,
+                },
+            )
+        group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
-                group_to_groupevent = get_group_to_groupevent(
-                    log_config, parsed_rulegroup_to_event_data, project.id, group_ids
-                )
-                if (
-                    log_config.num_events_issue_debugging
-                    or log_config.workflow_engine_process_workflows
-                ):
-                    serialized_groups = {
-                        group.id: group_event.event_id
-                        for group, group_event in group_to_groupevent.items()
-                    }
-                    logger.info(
-                        "delayed_processing.group_to_groupevent",
-                        extra={
-                            "group_to_groupevent": serialized_groups,
-                            "project_id": project_id,
-                            "rule_id": rule.id,
-                        },
-                    )
-                for group, groupevent in group_to_groupevent.items():
+                for group_id in group_ids:
+                    group = group_id_to_group.get(group_id)
+                    if not group:
+                        # we need to fire the rule for this group, but we don't have the group
+                        logger.error(
+                            "delayed_processing.missing_group_to_fire",
+                            extra={
+                                "rule_id": rule.id,
+                                "group_id": group_id,
+                                "project_id": project_id,
+                            },
+                        )
+                        continue
+
                     rule_statuses = bulk_get_rule_status(alert_rules, group, project)
                     status = rule_statuses[rule.id]
                     if status.last_active and status.last_active > freq_offset:
@@ -530,6 +542,7 @@ def fire_rules(
                             extra={
                                 "last_active": status.last_active,
                                 "freq_offset": freq_offset,
+                                "rule_id": rule.id,
                                 "project_id": project_id,
                                 "group_id": group.id,
                             },
@@ -547,6 +560,7 @@ def fire_rules(
                             "delayed_processing.not_updated",
                             extra={
                                 "status_id": status.id,
+                                "rule_id": rule.id,
                                 "project_id": project_id,
                                 "group_id": group.id,
                             },
@@ -581,19 +595,17 @@ def fire_rules(
                     ).values()
 
                     # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-                    not_sent = 0
                     for callback, futures in callback_and_futures:
-                        results = safe_execute(callback, groupevent, futures)
-                        if results is None:
-                            not_sent += 1
+                        safe_execute(callback, groupevent, futures)
 
                     if log_config.num_events_issue_debugging:
                         logger.info(
                             "delayed_processing.rules_fired",
                             extra={
                                 "total": len(callback_and_futures),
-                                "not_sent": not_sent,
                                 "project_id": project_id,
+                                "group_id": group.id,
+                                "event_id": groupevent.event_id,
                                 "rule_id": rule.id,
                             },
                         )

@@ -1,4 +1,6 @@
-import {DataCategory} from 'sentry/types/core';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
@@ -12,13 +14,13 @@ const AM1_CHECKOUT_CATEGORIES = [
   'uptime',
 ] as DataCategory[];
 
-const AM1_ONDEMAND_CATEGORIES = [...AM1_CHECKOUT_CATEGORIES] as DataCategory[];
-
-const AM1_CATEGORIES = [
-  ...AM1_ONDEMAND_CATEGORIES,
-  'seerAutoFix',
+const AM1_ONDEMAND_CATEGORIES = [
+  ...AM1_CHECKOUT_CATEGORIES,
+  'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
+
+const AM1_CATEGORIES = [...AM1_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -27,22 +29,12 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
-  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 
 const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  [ReservedBudgetCategoryType.SEER]: {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    apiName: ReservedBudgetCategoryType.SEER,
-  },
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM1_FREE_FEATURES = [

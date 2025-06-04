@@ -128,9 +128,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "copy_from_project",
         "targetSampleRate",
         "dynamicSamplingBiases",
-        "performanceIssueCreationRate",
-        "performanceIssueCreationThroughPlatform",
-        "performanceIssueSendToPlatform",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
         "autofixAutomationTuning",
@@ -223,13 +220,10 @@ E.g. `['release', 'environment']`""",
     copy_from_project = serializers.IntegerField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
-    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
     autofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "low", "medium", "high", "always"], required=False
+        choices=["off", "super_low", "low", "medium", "high", "always"], required=False
     )
 
     # DO NOT ADD MORE TO OPTIONS
@@ -569,6 +563,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (

@@ -427,6 +427,22 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     monitor_slug = item.valid_monitor_slug
     environment = params.get("environment")
 
+    # XXX(epurkhiser): Adding VERY early logging specific to a sentry monitor
+    # that we're seeing have intermittent missed in-progress check-ins. We
+    # would like to verify that these check-ins truley are NOT being received
+    # at all (and not being drooped somewhere in this consumer)
+    if project_id == 1 and monitor_slug == "monitors-clock-pulse":
+        clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
+        logger.info(
+            "monitors.consumer.sentry_clock_pulse_debug_entry",
+            extra={
+                "clock_time": clock_time,
+                "item_ts": item.ts,
+                "start_time": start_time,
+                **params,
+            },
+        )
+
     project = Project.objects.get_from_cache(id=project_id)
 
     # Strip sdk version to reduce metric cardinality
@@ -826,7 +842,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 #
                 # XXX: They are NOT timezone aware date times, set the timezone
                 # to UTC
-                clock_time = item.ts.replace(tzinfo=UTC)
+                clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
 
                 # Record the reported in_progress time when the check is in progress
                 date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None

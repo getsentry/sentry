@@ -95,11 +95,9 @@ function GroupCheckbox({
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
 
-  const onChange = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
-
-      if (mouseEvent.shiftKey) {
+  const handleToggle = useCallback(
+    (isShiftClick: boolean) => {
+      if (isShiftClick) {
         SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
@@ -108,8 +106,28 @@ function GroupCheckbox({
     [group.id]
   );
 
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+      handleToggle(mouseEvent.shiftKey);
+    },
+    [handleToggle]
+  );
+
   return (
     <GroupCheckBoxWrapper>
+      {!group.hasSeen && (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator
+            data-test-id="unread-issue-indicator"
+            onClick={(e: React.MouseEvent) => {
+              // Toggle checkbox on unread indicator misclick
+              e.stopPropagation();
+              handleToggle(e.shiftKey);
+            }}
+          />
+        </Tooltip>
+      )}
       <CheckboxLabel>
         <CheckboxWithBackground
           id={group.id}
@@ -119,11 +137,6 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
-      {group.hasSeen ? null : (
-        <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator data-test-id="unread-issue-indicator" />
-        </Tooltip>
-      )}
     </GroupCheckBoxWrapper>
   );
 }
@@ -646,14 +659,16 @@ export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
   position: absolute;
-  top: 0;
+  top: -1px;
   left: 0;
   bottom: 0;
   height: 100%;
   width: 32px;
   padding-left: ${space(2)};
-  padding-top: 14px;
   margin: 0;
+  margin-top: -1px;
+  display: flex;
+  align-items: center;
 `;
 
 const UnreadIndicator = styled('div')`
@@ -661,8 +676,9 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
-  margin-left: ${space(3)};
-  margin-top: 10px;
+  margin-top: 1px;
+  margin-left: ${space(2)};
+  z-index: 1;
 `;
 
 // Position for wrapper is relative for overlay actions
@@ -675,15 +691,8 @@ const Wrapper = styled(PanelItem)<{
   padding: ${space(1)} 0;
   min-height: 82px;
 
-  &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
+  &:not(:has(:hover)):not(:has(input:checked)) {
     ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
-
-  &:hover,
-  &:focus-within {
-    ${UnreadIndicator} {
       ${p => p.theme.visuallyHidden};
     }
   }
@@ -757,7 +766,10 @@ const GroupCheckBoxWrapper = styled('div')`
   align-self: flex-start;
   width: 32px;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding-top: ${space(1)};
   z-index: 1;
 `;
 

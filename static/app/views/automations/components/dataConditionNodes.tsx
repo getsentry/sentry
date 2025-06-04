@@ -2,22 +2,29 @@ import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
 import {
+  type DataCondition,
   DataConditionType,
-  type NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
-import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
-import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
+import AgeComparisonNode, {
+  AgeComparisonDetails,
+} from 'sentry/views/automations/components/actionFilters/ageComparison';
+import {AssignedToNode} from 'sentry/views/automations/components/actionFilters/assignedTo';
+import EventAttributeNode, {
+  EventAttributeDetails,
+} from 'sentry/views/automations/components/actionFilters/eventAttribute';
 import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
 import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
-import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
+import IssuePriorityNode, {
+  IssuePriorityDetails,
+} from 'sentry/views/automations/components/actionFilters/issuePriority';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
 import LevelNode from 'sentry/views/automations/components/actionFilters/level';
 import PercentSessionsNode from 'sentry/views/automations/components/actionFilters/percentSessions';
 import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
-  condition: NewDataCondition;
+  condition: DataCondition;
   condition_id: string;
   onUpdate: (comparison: Record<string, any>) => void;
   onUpdateType: (type: DataConditionType) => void;
@@ -40,6 +47,7 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
 type DataConditionNode = {
   label: string;
   dataCondition?: React.ReactNode;
+  details?: React.ComponentType<any>;
 };
 
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
@@ -62,10 +70,30 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.NEW_HIGH_PRIORITY_ISSUE,
+    {
+      label: t('Sentry marks a new issue as high priority'),
+    },
+  ],
+  [
+    DataConditionType.EXISTING_HIGH_PRIORITY_ISSUE,
+    {
+      label: t('Sentry marks an existing issue as high priority'),
+    },
+  ],
+  [
     DataConditionType.AGE_COMPARISON,
     {
       label: t('Issue age'),
       dataCondition: <AgeComparisonNode />,
+      details: AgeComparisonDetails,
+    },
+  ],
+  [
+    DataConditionType.ASSIGNED_TO,
+    {
+      label: t('Issue assignment'),
+      dataCondition: <AssignedToNode />,
     },
   ],
   [
@@ -80,6 +108,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue priority'),
       dataCondition: <IssuePriorityNode />,
+      details: IssuePriorityDetails,
     },
   ],
   [
@@ -101,6 +130,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Event attribute'),
       dataCondition: <EventAttributeNode />,
+      details: EventAttributeDetails,
     },
   ],
   [
@@ -181,3 +211,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
 ]);
+
+export const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> =
+  {
+    [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
+    [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  };

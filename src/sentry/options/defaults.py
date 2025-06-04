@@ -602,6 +602,8 @@ register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIA
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("codecov.base-url", default="https://api.codecov.io")
+register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -942,6 +944,12 @@ register(
     "seer.similarity.grouping_killswitch_projects",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.grouping-ingest-timeout",
+    type=Int,
+    default=1,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1670,7 +1678,7 @@ register(
 )
 register(
     "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1775,7 +1783,7 @@ register(
 )  # ms
 register(
     "performance.issues.http_overhead.http_request_delay_threshold",
-    default=500,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
@@ -1900,6 +1908,18 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "explore.trace-items.keys.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "explore.trace-items.values.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # In Single Tenant with 100% DS, we may need to reverse the UI change made by dynamic-sampling
 # if metrics extraction isn't ready.
@@ -1921,6 +1941,14 @@ register(
 )
 # Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# If span alerts should use eap-items entity. Uses eap-items-span if disabled.
+register(
+    "alerts.spans.use-eap-items",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -2371,13 +2399,6 @@ register(
 
 # END: SDK Crash Detection
 
-# Whether to add the full stack trace to Python errors.
-register(
-    "sentry_sdk.add_full_stack",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
@@ -2672,6 +2693,11 @@ register(
 register(
     "standalone-spans.deserialize-spans-orjson.enable",
     default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.buffer.flusher.backpressure_seconds",
+    default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2970,6 +2996,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Configures the list of public IP addresses that are returned from the
+# `tempest-ips` API. This provides a way to configure and retrieve
+# IP addresses for Tempest purposes without code changes.
+register(
+    "tempest.tempest-ips-api-response",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "releases.no_snuba_for_release_creation",
@@ -3091,14 +3126,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Increases event title character limit
-register(
-    "sentry.save-event.title-char-limit-256.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "sentry.demo_mode.sync_artifact_bundles.enable",
     type=Bool,
@@ -3121,6 +3148,21 @@ register(
     "taskworker.try_compress.profile_metrics",
     default=0.0,
     type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.try_compress.profile_metrics.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics.level",
+    default=6,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3362,3 +3404,10 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register(
+    "issues.client_error_sampling.project_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)

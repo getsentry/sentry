@@ -7,9 +7,10 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 
 export default function CacheThroughputChartWidget(props: LoadableChartWidgetProps) {
+  const search = MutableSearch.fromQueryObject(BASE_FILTERS);
   const {isPending, data, error} = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      search,
       yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
@@ -20,6 +21,7 @@ export default function CacheThroughputChartWidget(props: LoadableChartWidgetPro
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="cacheThroughputChartWidget"
       title={getThroughputChartTitle('cache.get_item')}
       series={[data['epm()']]}

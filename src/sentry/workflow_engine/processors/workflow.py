@@ -18,7 +18,7 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
 )
-from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
+from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowEventData
@@ -177,7 +177,7 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
+    return filter_recently_fired_actions(filtered_action_groups, event_data)
 
 
 def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
@@ -311,6 +311,12 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "action_ids": [action.id for action in actions],
                 "detector_type": detector.type,
             },
+        )
+    # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
+    if len(actions) > 0:
+        metrics.incr(
+            "workflow_engine.process_workflows.fired_actions",
+            tags={"detector_type": detector.type},
         )
 
     return triggered_workflows

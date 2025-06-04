@@ -22,9 +22,10 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -42,6 +43,7 @@ interface Props {
   stepIndex: number;
   blockName?: string;
   isAgentComment?: boolean;
+  onShouldPersistChange?: (shouldPersist: boolean) => void;
 }
 
 interface OptimisticMessage extends CommentThreadMessage {
@@ -137,10 +139,14 @@ function AutofixHighlightPopupContent({
   isAgentComment,
   blockName,
   isFocused,
+  onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
+  const organization = useOrganization();
+
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
+  const [hidden, setHidden] = useState(false);
   const [comment, setComment] = useState('');
   const [threadId] = useState(() => {
     const timestamp = Date.now();
@@ -244,6 +250,14 @@ function AutofixHighlightPopupContent({
       is_agent_comment: isAgentComment ?? false,
     });
     setComment('');
+
+    trackAnalytics('autofix.comment_thread.submit', {
+      organization,
+      group_id: groupId,
+      run_id: runId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
   };
 
   const handleContainerClick = (e: React.MouseEvent) => {
@@ -261,12 +275,27 @@ function AutofixHighlightPopupContent({
 
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
+    resolveThread();
+  };
+
+  const resolveThread = () => {
+    setHidden(true);
     closeCommentThread({
       thread_id: threadId,
       step_index: stepIndex,
       is_agent_comment: isAgentComment ?? false,
     });
   };
+
+  useEffect(() => {
+    if (onShouldPersistChange) {
+      onShouldPersistChange(!!commentThread && commentThread.is_completed !== true);
+    }
+  }, [commentThread, onShouldPersistChange]);
+
+  if (hidden) {
+    return null;
+  }
 
   return (
     <Container onClick={handleContainerClick} isFocused={isFocused}>
@@ -332,6 +361,9 @@ function AutofixHighlightPopupContent({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit(e);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                resolveThread();
               }
             }}
           />
@@ -341,7 +373,7 @@ function AutofixHighlightPopupContent({
             borderless
             aria-label={t('Submit Comment')}
           >
-            <IconChevron direction="right" />
+            {'\u23CE'}
           </StyledButton>
         </InputWrapper>
       )}
@@ -578,7 +610,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-
+  color: ${p => p.theme.subText};
   z-index: 2;
 `;
 
@@ -656,8 +688,8 @@ const CircularSeerIcon = styled('div')`
   flex-shrink: 0;
 
   > svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     color: ${p => p.theme.white};
   }
 `;

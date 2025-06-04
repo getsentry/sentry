@@ -581,6 +581,7 @@ export default function AssigneeSelectorDropdown({
         menuFooter={footerInviteButton}
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
+        strategy="fixed"
       />
     </AssigneeWrapper>
   );
@@ -589,6 +590,7 @@ export default function AssigneeSelectorDropdown({
 export const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
+  text-align: left;
 `;
 
 const AssigneeDropdownButton = styled(DropdownButton)`

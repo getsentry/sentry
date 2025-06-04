@@ -2,6 +2,7 @@ import {type ChangeEvent, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {TextArea} from 'sentry/components/core/textarea';
 import type {RepoSettings} from 'sentry/components/events/autofix/types';
@@ -156,18 +157,18 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
               </SettingsGroup>
             </div>
             <FormActions>
-              <Button size="xs" icon={<IconDelete />} onClick={onRemove}>
+              <Button size="sm" icon={<IconDelete />} onClick={onRemove}>
                 {t('Remove Repository')}
               </Button>
               {isDirty && (
-                <div>
-                  <Button size="xs" onClick={cancelChanges}>
+                <ButtonBar gap={0.5}>
+                  <Button size="sm" onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
-                  <Button size="xs" priority="primary" onClick={saveChanges}>
+                  <Button size="sm" priority="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
-                </div>
+                </ButtonBar>
               )}
             </FormActions>
           </RepoForm>

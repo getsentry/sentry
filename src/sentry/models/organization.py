@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
+from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -23,6 +24,7 @@ from sentry.constants import (
 )
 from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import slugify_instance
@@ -208,8 +210,9 @@ class Organization(ReplicatedRegionModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
-        # TODO: Once we're on a version of Django that supports functional indexes,
-        # include index on `upper((slug::text))` here.
+        indexes = (
+            IndexWithPostgresNameLimits(Upper("slug"), name="sentry_organization_slug_upper_idx"),
+        )
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 

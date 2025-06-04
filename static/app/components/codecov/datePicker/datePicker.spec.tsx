@@ -1,152 +1,53 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState} from 'sentry/actionCreators/pageFilters';
+import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-
-const {organization, router} = initializeOrg({
-  router: {
-    location: {
-      query: {},
-      pathname: '/codecov/tests',
-    },
-    params: {},
-  },
-});
 
 describe('DatePicker', function () {
-  beforeEach(() => {
-    PageFiltersStore.init();
-    OrganizationStore.init();
-
-    OrganizationStore.onUpdate(organization, {replace: true});
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-      },
-      new Set(['datetime'])
-    );
-  });
-
   it('can change period', async function () {
-    render(<DatePicker />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(
+      <CodecovQueryParamsProvider>
+        <DatePicker />
+      </CodecovQueryParamsProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/codecov/tests',
+            query: {codecovPeriod: '7d'},
+          },
+        },
+      }
+    );
 
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Last 30 days'}));
 
+    expect(router.location.search).toBe('?codecovPeriod=30d');
+
     expect(
       screen.getByRole('button', {name: '30D', expanded: false})
     ).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {statsPeriod: '30d'}})
-    );
-    expect(PageFiltersStore.getState()).toEqual({
-      isReady: true,
-      shouldPersist: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(['datetime']),
-      selection: {
-        datetime: {
-          period: '30d',
-          end: null,
-          start: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
   });
 
-  it('adjusts period if invalid', async function () {
-    PageFiltersStore.reset();
-    PageFiltersStore.onInitializeUrlState(
+  it('displays invalid button for invalid values', async function () {
+    render(
+      <CodecovQueryParamsProvider>
+        <DatePicker />
+      </CodecovQueryParamsProvider>,
       {
-        projects: [],
-        environments: [],
-        datetime: {
-          period: '123d',
-          start: null,
-          end: null,
-          utc: false,
+        initialRouterConfig: {
+          location: {
+            pathname: '/codecov/tests',
+            query: {codecovPeriod: '123Dd12'},
+          },
         },
-      },
-      new Set(['datetime'])
+      }
     );
 
-    render(<DatePicker />, {
-      router,
-      deprecatedRouterMocks: true,
+    const button = await screen.findByRole('button', {
+      name: 'Invalid Period',
+      expanded: false,
     });
-
-    // Confirm selection changed to default Codecov period
-    const button = await screen.findByRole('button', {name: '24H', expanded: false});
     expect(button).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {statsPeriod: '24h'}})
-    );
-    expect(PageFiltersStore.getState()).toEqual({
-      isReady: true,
-      shouldPersist: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(['datetime']),
-      selection: {
-        datetime: {
-          period: '24h',
-          end: null,
-          start: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
-  });
-
-  it('displays a desynced state message', async function () {
-    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      router: {
-        location: {
-          query: {statsPeriod: '7d'},
-          pathname: '/codecov/test',
-        },
-        params: {},
-      },
-    });
-
-    PageFiltersStore.reset();
-    initializeUrlState({
-      memberProjects: [],
-      nonMemberProjects: [],
-      organization: desyncOrganization,
-      queryParams: {statsPeriod: '30d'},
-      router: desyncRouter,
-      shouldEnforceSingleProject: false,
-    });
-
-    render(<DatePicker />, {
-      router: desyncRouter,
-      organization: desyncOrganization,
-      deprecatedRouterMocks: true,
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: '30D', expanded: false}));
-    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Restore Previous Values'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

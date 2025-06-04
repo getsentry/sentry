@@ -45,7 +45,7 @@ describe('SeerAutomation', function () {
     expect(projectItem.parentElement!.parentElement).toHaveTextContent('Off');
 
     const slider = await screen.findByRole('slider', {
-      name: /Default for new projects/i,
+      name: /Default for New Projects/i,
     });
 
     act(() => {
@@ -64,7 +64,7 @@ describe('SeerAutomation', function () {
     expect(orgPutRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/`,
       expect.objectContaining({
-        data: {defaultAutofixAutomationTuning: 'low'},
+        data: {defaultAutofixAutomationTuning: 'super_low'},
       })
     );
   });

@@ -341,6 +341,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
+    "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -437,6 +438,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.insights",
+    "sentry.preprod",
 )
 
 # Silence internal hints from Django's system checks
@@ -946,6 +948,7 @@ CELERY_QUEUES_REGION = [
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
+    Queue("shortid.counters.refill", routing_key="shortid.counters.refill"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
@@ -1510,7 +1513,6 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
     },
 }
 
-TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES = False
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
     "ingest.transactions",
@@ -1918,10 +1920,6 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
-
-# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
-SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
-SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
@@ -2351,18 +2349,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# webpack.config.js is not part of Sentry's datafiles
+# rspack.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
             "serve",
-            "--color",
-            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
                 )
             ),
         ],
@@ -2412,7 +2408,7 @@ SENTRY_USE_PROFILING = False
 SENTRY_USE_SPANS = False
 
 # This flag activates spans consumer in the sentry backend in development environment
-SENTRY_USE_SPANS_BUFFER = False
+SENTRY_USE_SPANS_BUFFER = True
 
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
@@ -2696,7 +2692,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.5.0"
+SELF_HOSTED_STABLE_VERSION = "25.5.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3117,6 +3113,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
     "eap-spans-subscription-results": "default",
+    "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -3161,6 +3158,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-billing-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
+    "taskworker-cutover": "default",
+    "taskworker-email": "default",
+    "taskworker-email-dlq": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
@@ -3197,19 +3197,20 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "flags",
     "nodestore",
     "replays",
     "sentry",
     "social_auth",
     "feedback",
     "hybridcloud",
-    "remote_subscriptions",
     "uptime",
     "workflow_engine",
     "tempest",
     "explore",
     "insights",
     "monitors",
+    "preprod",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3355,7 +3356,6 @@ SEER_SEVERITY_RETRIES = 1
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_GROUPING_TIMEOUT = 1
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
@@ -3571,10 +3571,6 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 
 
-# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
-# to the buffer service.
-SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
-
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
 
@@ -3686,6 +3682,10 @@ MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
 MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
 MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
+
+# Base URL for Codecov API. Override if developing against a local instance
+# of Codecov.
+CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

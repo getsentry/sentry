@@ -1,8 +1,9 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {
-  ReservedBudgetFixture,
+  DynamicSamplingReservedBudgetFixture,
   ReservedBudgetMetricHistoryFixture,
+  SeerReservedBudgetFixture,
 } from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
@@ -10,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
-import {BillingType, ReservedBudgetCategoryType} from 'getsentry/types';
+import {BillingType} from 'getsentry/types';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -137,6 +138,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     dataRetention: null,
     hasReservedBudgets: false,
     reservedBudgetCategories: [],
+    reservedBudgets: [],
     categories: {
       errors: MetricHistoryFixture({
         category: DataCategory.ERRORS,
@@ -219,6 +221,31 @@ export function SubscriptionFixture(props: Props): TSubscription {
     },
     ...planData,
   };
+}
+
+export function SubscriptionWithSeerFixture(props: Props): TSubscription {
+  const subscription = SubscriptionFixture(props);
+  subscription.categories = {
+    ...subscription.categories,
+    seerAutofix: MetricHistoryFixture({
+      category: DataCategory.SEER_AUTOFIX,
+      reserved: RESERVED_BUDGET_QUOTA,
+      prepaid: RESERVED_BUDGET_QUOTA,
+      order: 27,
+    }),
+    seerScanner: MetricHistoryFixture({
+      category: DataCategory.SEER_SCANNER,
+      reserved: RESERVED_BUDGET_QUOTA,
+      prepaid: RESERVED_BUDGET_QUOTA,
+      order: 28,
+    }),
+  };
+  subscription.reservedBudgetCategories = [
+    DataCategory.SEER_AUTOFIX,
+    DataCategory.SEER_SCANNER,
+  ];
+  subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+  return subscription;
 }
 
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
@@ -397,6 +424,7 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     ...props,
     plan: planData.plan,
     planTier: planData.planTier,
+    canSelfServe: false,
   });
   subscription.hasReservedBudgets = true;
   subscription.reservedBudgetCategories = [
@@ -404,17 +432,8 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     DataCategory.SPANS_INDEXED,
   ];
   subscription.reservedBudgets = [
-    ReservedBudgetFixture({
+    DynamicSamplingReservedBudgetFixture({
       id: '11',
-      apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
-      budgetCategoryType: 'DYNAMIC_SAMPLING',
-      canProductTrial: false,
-      dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
-      defaultBudget: null,
-      docLink: '',
-      isFixed: false,
-      name: 'spans budget',
-      productName: 'dynamic sampling',
       reservedBudget: 100_000_00,
       totalReservedSpend: 60_000_00,
       freeBudget: 0,

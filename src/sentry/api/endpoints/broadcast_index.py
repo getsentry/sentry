@@ -132,7 +132,10 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             paginator_cls=paginator_cls,
         )
 
-    def put(self, request: Request):
+    def put(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=401)
+
         validator = BroadcastValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -146,9 +149,6 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             queryset = queryset.filter(id__in=ids)
 
         if result.get("hasSeen"):
-            if not request.user.is_authenticated:
-                return self.respond(status=401)
-
             if ids:
                 unseen_queryset = queryset
             else:
@@ -166,6 +166,8 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         return self.respond(result)
 
     def post(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
         if not request.access.has_permission("broadcasts.admin"):
             return self.respond(status=401)
 

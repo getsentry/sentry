@@ -54,6 +54,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  shouldCommitQuery?: boolean;
 };
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
@@ -112,6 +113,7 @@ type UpdateAggregateArgsAction = {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
+  focusOverride?: FocusOverride;
 };
 
 export type QueryBuilderActions =
@@ -471,11 +473,14 @@ function updateAggregateArgs(
   }
 ): QueryBuilderState {
   const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
+  const focusOverride =
+    action.focusOverride === undefined ? state.focusOverride : action.focusOverride;
 
   if (!fieldDefinition?.parameterDependentValueType) {
     return {
       ...state,
       query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
     };
   }
 
@@ -488,6 +493,7 @@ function updateAggregateArgs(
     return {
       ...state,
       query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
     };
   }
 
@@ -499,6 +505,7 @@ function updateAggregateArgs(
       {token: getArgsToken(action.token), replacement: action.value},
       {token: action.token.value, replacement: newValue},
     ]),
+    focusOverride,
   };
 }
 
@@ -557,13 +564,15 @@ export function useQueryBuilderState({
             ...state,
             committedQuery: state.query,
           };
-        case 'UPDATE_QUERY':
+        case 'UPDATE_QUERY': {
+          const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
             ...state,
             query: action.query,
-            committedQuery: action.query,
+            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
             focusOverride: action.focusOverride ?? null,
           };
+        }
         case 'RESET_FOCUS_OVERRIDE':
           return {
             ...state,

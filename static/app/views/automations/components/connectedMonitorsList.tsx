@@ -1,3 +1,5 @@
+import type {Dispatch, SetStateAction} from 'react';
+
 import {Button} from 'sentry/components/core/button';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
@@ -6,23 +8,35 @@ import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
   monitors: Detector[];
-  connectedMonitorIds?: Set<string>;
-  toggleConnected?: (id: string) => void;
+  connectedIds?: Set<string>;
+  setConnectedIds?: Dispatch<SetStateAction<Set<string>>>;
 };
 
 export default function ConnectedMonitorsList({
   monitors,
-  connectedMonitorIds,
-  toggleConnected,
+  connectedIds,
+  setConnectedIds,
 }: Props) {
   const organization = useOrganization();
-  const canEdit = connectedMonitorIds && !!toggleConnected;
+  const canEdit = connectedIds && !!setConnectedIds;
+
+  const toggleConnected = (id: string) => {
+    setConnectedIds?.(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
 
   const data = monitors.map(monitor => ({
     title: {
@@ -35,7 +49,7 @@ export default function ConnectedMonitorsList({
     createdBy: monitor.createdBy,
     connected: canEdit
       ? {
-          isConnected: connectedMonitorIds?.has(monitor.id),
+          isConnected: connectedIds?.has(monitor.id),
           toggleConnected: () => toggleConnected?.(monitor.id),
         }
       : undefined,
@@ -55,10 +69,10 @@ export default function ConnectedMonitorsList({
 }
 
 interface BaseMonitorsData {
-  createdBy: string;
+  createdBy: Detector['createdBy'];
   lastIssue: Group | undefined;
   title: {link: string; name: string; projectId: string};
-  type: DetectorType;
+  type: Detector['type'];
 }
 
 const baseColumns = defineColumns<BaseMonitorsData>({
@@ -81,7 +95,7 @@ const baseColumns = defineColumns<BaseMonitorsData>({
   },
   createdBy: {
     Header: () => t('Creator'),
-    Cell: ({value}) => <UserCell user={value} />,
+    Cell: ({value}) => (value ? <UserCell user={value} /> : null),
     width: '1fr',
   },
 });

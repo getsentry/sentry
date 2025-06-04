@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 
 interface Props {
   eventData: Event | undefined;
@@ -62,6 +63,8 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
     onMarkAsReadClick,
   } = useFeedbackActions({feedbackItem});
 
+  const project = useProjectFromId({project_id: feedbackItem.project?.id});
+
   return (
     <Fragment>
       <Button
@@ -74,12 +77,17 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       <Button size="xs" priority="default" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
-      <Button size="xs" onClick={onMarkAsReadClick}>
-        {hasSeen ? t('Mark Unread') : t('Mark Read')}
-      </Button>
+      <Tooltip
+        disabled={project?.isMember}
+        title={t('You must be a member of the project')}
+      >
+        <Button size="xs" onClick={onMarkAsReadClick} disabled={!project?.isMember}>
+          {hasSeen ? t('Mark Unread') : t('Mark Read')}
+        </Button>
+      </Tooltip>
       <Tooltip
         disabled={!disableDelete}
-        title={t('You must be an admin to delete feedback.')}
+        title={t('You must be an admin to delete feedback')}
       >
         <Button size="xs" onClick={onDelete} disabled={disableDelete}>
           {t('Delete')}

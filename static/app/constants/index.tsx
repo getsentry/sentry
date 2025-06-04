@@ -235,6 +235,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+export const TAXONOMY_DEFAULT_QUERY = 'is:unresolved';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -507,7 +508,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'log_item',
     plural: DataCategory.LOG_ITEM,
     displayName: 'log',
-    titleName: t('Logs'),
+    titleName: t('Log Counts'), // Only currently visible internally, this name should change if we expose this to users.
     productName: t('Logging'),
     uid: 23,
     isBilledCategory: false,
@@ -521,7 +522,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'log_byte',
     plural: DataCategory.LOG_BYTE,
     displayName: 'log byte',
-    titleName: t('Logs Storage'),
+    titleName: t('Logs'),
     productName: t('Logging'),
     uid: 24,
     isBilledCategory: false,

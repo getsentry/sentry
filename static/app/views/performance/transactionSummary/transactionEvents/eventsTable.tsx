@@ -109,7 +109,7 @@ type Props = {
     isPending: boolean;
     pageEventsCount: number;
     pageLinks: string | null;
-    totalEventsCount: ReactNode;
+    totalEventsCount: string | number;
   }) => ReactNode;
 };
 

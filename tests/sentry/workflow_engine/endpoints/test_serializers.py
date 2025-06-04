@@ -27,12 +27,14 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
+            "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
-            "connectedWorkflows": [],
+            "workflowIds": [],
             "config": default_detector_config_data[MetricIssue.slug],
+            "owner": None,
         }
 
     def test_serialize_full(self):
@@ -60,6 +62,8 @@ class TestDetectorSerializer(TestCase):
             name="Test Detector",
             type=MetricIssue.slug,
             workflow_condition_group=condition_group,
+            owner_user_id=self.user.id,
+            created_by_id=self.user.id,
         )
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
@@ -91,6 +95,7 @@ class TestDetectorSerializer(TestCase):
             "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricIssue.slug,
+            "createdBy": str(self.user.id),
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -136,8 +141,9 @@ class TestDetectorSerializer(TestCase):
                     }
                 ],
             },
-            "connectedWorkflows": [str(workflow.id)],
+            "workflowIds": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
+            "owner": self.user.get_actor_identifier(),
         }
 
     def test_serialize_bulk(self):
@@ -359,11 +365,13 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": None,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": None,
             "actionFilters": [],
             "environment": None,
+            "detectorIds": [],
         }
 
     def test_serialize_full(self):
@@ -383,6 +391,7 @@ class TestWorkflowSerializer(TestCase):
             config={},
             when_condition_group=when_condition_group,
             environment=self.environment,
+            created_by_id=self.user.id,
         )
 
         condition_group = self.create_data_condition_group(
@@ -410,6 +419,12 @@ class TestWorkflowSerializer(TestCase):
             workflow=workflow,
         )
 
+        detector = self.create_detector()
+        self.create_detector_workflow(
+            detector=detector,
+            workflow=workflow,
+        )
+
         result = serialize(workflow)
 
         assert result == {
@@ -417,6 +432,7 @@ class TestWorkflowSerializer(TestCase):
             "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": str(self.user.id),
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": {
@@ -458,4 +474,5 @@ class TestWorkflowSerializer(TestCase):
                 },
             ],
             "environment": self.environment.name,
+            "detectorIds": [str(detector.id)],
         }

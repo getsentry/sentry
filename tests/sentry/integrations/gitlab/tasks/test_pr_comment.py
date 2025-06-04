@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -7,7 +8,7 @@ import responses
 from django.utils import timezone
 
 from fixtures.gitlab import GitLabTestCase
-from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabOpenPRCommentWorkflow
 from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -34,6 +35,9 @@ class GitlabCommentTestCase(GitLabTestCase):
             GitlabIntegration, integration=self.integration, org_id=self.organization.id
         )
         self.pr_comment_workflow = self.installation.get_pr_comment_workflow()
+        self.open_pr_comment_workflow = cast(
+            GitlabOpenPRCommentWorkflow, self.installation.get_open_pr_comment_workflow()
+        )
         self.another_integration = self.create_integration(
             organization=self.organization, external_id="1", provider="github"
         )
@@ -54,7 +58,7 @@ class GitlabCommentTestCase(GitLabTestCase):
                 project=self.another_org_project, user=self.another_org_user
             ),
         }
-        self.repo = self.create_repo(name="Get Sentry / Example Repo", external_id=123)
+        self.repo = self.create_gitlab_repo(name="Get Sentry / Example Repo", external_id=123)
         self.pr_key = 1
         self.commit_sha = 1
         self.fingerprint = 1

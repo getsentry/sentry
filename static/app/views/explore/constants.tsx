@@ -20,7 +20,6 @@ export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.SPAN_DESCRIPTION,
   SpanIndexedField.SPAN_DOMAIN,
   SpanIndexedField.SPAN_GROUP,
-  SpanIndexedField.SPAN_MODULE,
   SpanIndexedField.SPAN_OP,
   SpanIndexedField.SPAN_STATUS,
   SpanIndexedField.TIMESTAMP,
@@ -65,6 +64,7 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.MESSAGE,
   OurLogKnownFieldKey.SEVERITY,
+  OurLogKnownFieldKey.TIMESTAMP,
 ];
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];

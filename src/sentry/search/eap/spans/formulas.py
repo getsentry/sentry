@@ -172,7 +172,7 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
-                    name="sentry.trace.status",
+                    name="sentry.status",
                     type=AttributeKey.TYPE_STRING,
                 ),
                 filter=TraceItemFilter(
@@ -181,7 +181,7 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
                             TraceItemFilter(
                                 comparison_filter=ComparisonFilter(
                                     key=AttributeKey(
-                                        name="sentry.trace.status",
+                                        name="sentry.status",
                                         type=AttributeKey.TYPE_STRING,
                                     ),
                                     op=ComparisonFilter.OP_NOT_IN,
@@ -219,13 +219,13 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
-                    name="sentry.trace.status",
+                    name="sentry.status",
                     type=AttributeKey.TYPE_STRING,
                 ),
                 filter=TraceItemFilter(
                     comparison_filter=ComparisonFilter(
                         key=AttributeKey(
-                            name="sentry.trace.status",
+                            name="sentry.status",
                             type=AttributeKey.TYPE_STRING,
                         ),
                         op=ComparisonFilter.OP_NOT_IN,
@@ -377,9 +377,6 @@ def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     if ratio_attribute.name == "score.total":
         return total_performance_score(args, settings)
 
-    web_vital = score_attribute.name.split(".")[-1]
-    vital_count = get_count_of_vital(web_vital, settings)
-
     return Column.BinaryFormula(
         default_value_double=0.0,
         left=Column(
@@ -390,29 +387,27 @@ def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
             )
         ),
         op=Column.BinaryFormula.OP_MULTIPLY,
-        right=Column(literal=LiteralValue(val_double=1.0 if vital_count > 0 else 0.0)),
+        right=Column(literal=LiteralValue(val_double=1.0)),
     )
 
 
 def total_performance_score(
     _: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
+    vital_weights: list[Column] = []
 
     performance_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
-    total_weight = 0.0
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
         vital_performance_score = performance_score([vital_score_key], settings)
-        hasVitalCount = vital_performance_score.right.literal.val_double > 0
-        if hasVitalCount:
-            performance_score_formulas.append((vital_performance_score, vital))
-            total_weight += WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+        performance_score_formulas.append((vital_performance_score, vital))
 
     for formula, vital in performance_score_formulas:
-        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
         vital_score_columns.append(
             Column(
                 formula=Column.BinaryFormula(
@@ -420,6 +415,40 @@ def total_performance_score(
                     left=Column(formula=formula),
                     op=Column.BinaryFormula.OP_MULTIPLY,
                     right=Column(literal=LiteralValue(val_double=weight)),
+                )
+            )
+        )
+        vital_score_ratio_key = AttributeKey(
+            name=f"score.ratio.{vital}", type=AttributeKey.TYPE_DOUBLE
+        )
+        # Hack to return 1.0 if any span with the vital metric exists, otherwise 0.0
+        vital_exists_formula = Column.BinaryFormula(
+            default_value_double=0.0,
+            left=Column(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_COUNT,
+                    key=vital_score_ratio_key,
+                    extrapolation_mode=extrapolation_mode,
+                )
+            ),
+            op=Column.BinaryFormula.OP_DIVIDE,
+            right=Column(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_COUNT,
+                    key=vital_score_ratio_key,
+                    extrapolation_mode=extrapolation_mode,
+                )
+            ),
+        )
+        vital_weights.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    default_value_double=0.0,
+                    left=Column(
+                        literal=LiteralValue(val_double=WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital])
+                    ),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(formula=vital_exists_formula),
                 )
             )
         )
@@ -432,7 +461,13 @@ def total_performance_score(
     if len(vital_score_columns) == 1:
         return vital_score_columns[0].formula
 
-    return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
+    return Column.BinaryFormula(
+        left=Column(
+            formula=operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(formula=operate_multiple_columns(vital_weights, Column.BinaryFormula.OP_ADD)),
+    )
 
 
 def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:

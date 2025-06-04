@@ -55,7 +55,12 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
+import {
+  type FieldDefinition,
+  FieldKey,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -133,9 +138,17 @@ function getSelectedValuesFromText(
   return parsed.items
     .filter(item => item.value?.value)
     .map(item => {
-      return (
-        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? ''
-      );
+      const value =
+        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? '';
+
+      // Check if this value is selected by looking at the character after the value in
+      // the text. If there's a comma after the value, it means this value is selected.
+      // We need to check the text content to ensure that we account for any quotes the
+      // user may have added.
+      const valueText = item.value?.text ?? '';
+      const selected = text.charAt(text.indexOf(valueText) + valueText.length) === ',';
+
+      return {value, selected};
     });
 }
 
@@ -194,7 +207,15 @@ function getPredefinedValues({
   }
 
   if (isStringFilterValues(definedValues)) {
-    return [{sectionText: '', suggestions: definedValues.map(value => ({value}))}];
+    return [
+      {
+        sectionText: '',
+        suggestions: definedValues.map(value => ({
+          label: token.filter === FilterType.HAS ? prettifyTagKey(value) : undefined,
+          value,
+        })),
+      },
+    ];
   }
 
   const valuesWithoutSection = definedValues
@@ -304,7 +325,7 @@ function useFilterSuggestions({
 }: {
   ctrlKeyPressed: boolean;
   filterValue: string;
-  selectedValues: string[];
+  selectedValues: Array<{selected: boolean; value: string}>;
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
@@ -408,7 +429,7 @@ function useFilterSuggestions({
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
       .flatMap(group => group.suggestions)
-      .filter(suggestion => !selectedValues.includes(suggestion.value));
+      .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
@@ -418,13 +439,13 @@ function useFilterSuggestions({
           ...selectedValues.map(value => {
             const matchingSuggestion = suggestionGroups
               .flatMap(group => group.suggestions)
-              .find(suggestion => suggestion.value === value);
+              .find(suggestion => suggestion.value === value.value);
 
             if (matchingSuggestion) {
-              return createItem(matchingSuggestion, true);
+              return createItem(matchingSuggestion, value.selected);
             }
 
-            return createItem({value}, true);
+            return createItem({value: value.value}, value.selected);
           }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
@@ -433,7 +454,7 @@ function useFilterSuggestions({
         sectionText: group.sectionText,
         items: getItemsWithKeys(
           group.suggestions
-            .filter(suggestion => !selectedValues.includes(suggestion.value))
+            .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value))
             .map(suggestion => createItem(suggestion))
         ),
       })),
@@ -519,6 +540,7 @@ export function SearchQueryBuilderValueCombobox({
   const organization = useOrganization();
   const {
     getFieldDefinition,
+    getSuggestedFilterKey,
     filterKeys,
     dispatch,
     searchSource,
@@ -533,7 +555,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -604,6 +626,19 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
+      if (token.filter === FilterType.HAS) {
+        const suggested = getSuggestedFilterKey(value);
+        if (suggested) {
+          dispatch({
+            type: 'UPDATE_TOKEN_VALUE',
+            token,
+            value: suggested,
+          });
+          onCommit();
+          return true;
+        }
+      }
+
       const cleanedValue = cleanFilterValue({
         valueType: getFilterValueType(token, fieldDefinition),
         value,
@@ -621,12 +656,12 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValuesUnescaped.includes(value)) {
+        if (selectedValuesUnescaped.map(v => v.value).includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
             selectedValuesUnescaped
-              .filter(v => v !== value)
-              .map(escapeTagValue)
+              .filter(v => (v.selected ? v.value !== value : true))
+              .map(v => escapeTagValue(v.value))
               .join(',')
           );
 
@@ -669,6 +704,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
       selectedValuesUnescaped,
@@ -802,10 +838,11 @@ export function SearchQueryBuilderValueCombobox({
           return (
             <ValueListBox
               {...props}
+              wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
-              canUseWildcard={canUseWildard}
+              canUseWildcard={canUseWildcard}
             />
           );
         };
@@ -843,16 +880,24 @@ export function SearchQueryBuilderValueCombobox({
       };
     }, [
       showDatePicker,
+      topLevelWrapperRef,
       canSelectMultipleValues,
       items,
       isFetching,
-      canUseWildard,
+      canUseWildcard,
       inputValue,
       token,
       analyticsData,
       dispatch,
       onCommit,
     ]);
+
+  const placeholder =
+    token.filter === FilterType.HAS
+      ? prettifyTagKey(token.value.text)
+      : canSelectMultipleValues
+        ? ''
+        : formatFilterValue(token.value);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">
@@ -865,7 +910,7 @@ export function SearchQueryBuilderValueCombobox({
         onExit={onCommit}
         inputValue={inputValue}
         filterValue={filterValue}
-        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
+        placeholder={placeholder}
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}

@@ -22,7 +22,6 @@ import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
 export function Sidebar() {
   const organization = useOrganization();
   const {isCollapsed: isCollapsedState} = useNavContext();
-  const {isOpen} = useCollapsedNav();
 
   // Avoid showing superuser UI on certain organizations
   const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
@@ -36,6 +35,7 @@ export function Sidebar() {
   const tourIsActive = currentStepId !== null;
   const forceExpanded = tourIsActive;
   const isCollapsed = forceExpanded ? false : isCollapsedState;
+  const {isOpen} = useCollapsedNav();
 
   useTourModal();
 
@@ -57,7 +57,6 @@ export function Sidebar() {
         <PrimaryNavigationItems />
       </SidebarWrapper>
       {isCollapsed ? null : <SecondarySidebar />}
-
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
           initial="hidden"
@@ -99,6 +98,7 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
   left: ${PRIMARY_SIDEBAR_WIDTH}px;
   height: 100%;
   box-shadow: ${p => (p.theme.isChonk ? 'none' : p.theme.dropShadowHeavy)};
+  background: ${p => p.theme.background};
 `;
 
 const SidebarHeader = styled('header')<{isSuperuser: boolean}>`

@@ -8,7 +8,6 @@ import type {
   CustomSeriesRenderItemReturn,
   ElementEvent,
 } from 'echarts';
-import type {EChartsInstance} from 'echarts-for-react';
 import debounce from 'lodash/debounce';
 import moment from 'moment-timezone';
 
@@ -69,6 +68,7 @@ interface ReleaseBubbleSeriesProps {
   };
   releases: ReleaseMetaBasic[];
   theme: Theme;
+  yAxisIndex?: number;
 }
 
 /**
@@ -82,6 +82,7 @@ function ReleaseBubbleSeries({
   bubblePadding,
   dateFormatOptions,
   alignInMiddle,
+  yAxisIndex,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -190,6 +191,7 @@ function ReleaseBubbleSeries({
   return {
     id: BUBBLE_SERIES_ID,
     type: 'custom',
+    yAxisIndex,
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
@@ -286,6 +288,10 @@ interface UseReleaseBubblesParams {
    * List of releases that will be grouped
    */
   releases?: ReleaseMetaBasic[];
+  /**
+   * The index of the y-axis to use for the release bubbles
+   */
+  yAxisIndex?: number;
 }
 
 export function useReleaseBubbles({
@@ -297,6 +303,7 @@ export function useReleaseBubbles({
   environments,
   projects,
   legendSelected,
+  yAxisIndex,
   alignInMiddle = false,
   bubbleSize = 4,
   bubblePadding = 2,
@@ -342,6 +349,23 @@ export function useReleaseBubbles({
     }),
     [bubbleSize, totalBubblePaddingY]
   );
+
+  const releaseBubbleYAxis = useMemo(
+    () => ({
+      type: 'value' as const,
+      min: 0,
+      max: 100,
+      show: false,
+      // `axisLabel` causes an unwanted whitespace/width on the y-axis
+      axisLabel: {show: false},
+      // Hides an axis line + tooltip when hovering on chart
+      // This is default `false`, but the main y-axis has
+      // `tooltip.trigger=axis` which will cause this to be enabled.
+      axisPointer: {show: false},
+    }),
+    []
+  );
+
   const releaseBubbleGrid = useMemo(
     () => ({
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
@@ -372,14 +396,18 @@ export function useReleaseBubbles({
     (e: ReactEchartsRef | null) => {
       chartRef.current = e;
 
-      const echartsInstance: EChartsInstance = e?.getEchartsInstance?.();
+      const echartsInstance = e?.getEchartsInstance?.();
       const highlightedBuckets = new Set();
 
       const handleMouseMove = (params: ElementEvent) => {
+        if (!echartsInstance) {
+          return;
+        }
+
         // Tracks movement across the chart and highlights the corresponding release bubble
         const pointInPixel = [params.offsetX, params.offsetY];
         const pointInGrid = echartsInstance.convertFromPixel('grid', pointInPixel);
-        const series = echartsInstance.getOption().series;
+        const series = echartsInstance.getOption().series as Series[];
         const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
 
         // No release bubble series found (shouldn't happen)
@@ -455,7 +483,7 @@ export function useReleaseBubbles({
       };
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID) {
+        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
 
@@ -490,7 +518,7 @@ export function useReleaseBubbles({
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID) {
+        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
 
@@ -513,7 +541,7 @@ export function useReleaseBubbles({
           return;
         }
 
-        const series = echartsInstance.getOption().series;
+        const series = echartsInstance.getOption().series as Series[];
         const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
         // We could find and include a `dataIndex` to be specific about which
         // bubble to "downplay", but I think it's ok to downplay everything
@@ -524,7 +552,11 @@ export function useReleaseBubbles({
       };
 
       const handleLegendSelectChanged = (params: LegendSelectChangedParams) => {
-        if (params.name !== 'Releases' || !('Releases' in params.selected)) {
+        if (
+          params.name !== 'Releases' ||
+          !('Releases' in params.selected) ||
+          !echartsInstance
+        ) {
           return;
         }
         const selected = params.selected.Releases;
@@ -558,6 +590,7 @@ export function useReleaseBubbles({
         echartsInstance.on('mouseover', handleMouseOver);
         echartsInstance.on('mouseout', handleMouseOut);
         echartsInstance.on('globalout', handleGlobalOut);
+        // @ts-expect-error ECharts types `params` as unknown
         echartsInstance.on('legendselectchanged', handleLegendSelectChanged);
         echartsInstance.getZr().on('mousemove', handleMouseMove);
       }
@@ -600,6 +633,7 @@ export function useReleaseBubbles({
       ReleaseBubbleSeries: null,
       releaseBubbleXAxis: {},
       releaseBubbleGrid: {},
+      releaseBubbleYAxis: null,
     };
   }
 
@@ -610,6 +644,7 @@ export function useReleaseBubbles({
      * Series to append to a chart's existing `series`
      */
     releaseBubbleSeries: ReleaseBubbleSeries({
+      yAxisIndex,
       alignInMiddle,
       buckets,
       bubbleSize,
@@ -621,6 +656,8 @@ export function useReleaseBubbles({
         timezone: options.timezone,
       },
     }),
+
+    releaseBubbleYAxis,
 
     /**
      * ECharts xAxis configuration. Spread/override charts `xAxis` prop.

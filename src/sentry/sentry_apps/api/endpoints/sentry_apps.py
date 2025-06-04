@@ -39,6 +39,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     owner = ApiOwner.ISSUES
 
     def get(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         status = request.GET.get("status")
         elevated_user = is_active_superuser(request) or is_active_staff(request)
 

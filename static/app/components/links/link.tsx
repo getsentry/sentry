@@ -2,6 +2,8 @@ import {
   Link as RouterLink,
   type LinkProps as ReactRouterLinkProps,
 } from 'react-router-dom';
+import isPropValid from '@emotion/is-prop-valid';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -9,7 +11,25 @@ import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {linkStyles} from './styles';
+export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => css`
+  /* @TODO(jonasbadalic) This was defined on theme and only used here */
+  border-radius: 2px;
+
+  &:focus-visible {
+    box-shadow: ${theme.linkFocus} 0 0 0 2px;
+    text-decoration: none;
+    outline: none;
+  }
+
+  ${disabled &&
+  css`
+    color: ${theme.disabled};
+    pointer-events: none;
+    :hover {
+      color: ${theme.disabled};
+    }
+  `}
+`;
 
 export interface LinkProps
   extends Omit<
@@ -35,7 +55,6 @@ export interface LinkProps
    */
   disabled?: boolean;
   preventScrollReset?: ReactRouterLinkProps['preventScrollReset'];
-  ref?: React.Ref<HTMLAnchorElement>;
   replace?: ReactRouterLinkProps['replace'];
   state?: ReactRouterLinkProps['state'];
 }
@@ -44,7 +63,7 @@ export interface LinkProps
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-function BaseLink({disabled, to, ...props}: LinkProps): React.ReactElement {
+const Link = styled(({disabled, to, ...props}: LinkProps) => {
   const location = useLocation();
   to = normalizeUrl(to, location);
 
@@ -52,11 +71,15 @@ function BaseLink({disabled, to, ...props}: LinkProps): React.ReactElement {
     return <RouterLink to={locationDescriptorToTo(to)} {...props} />;
   }
 
-  return <a href={typeof to === 'string' ? to : ''} {...props} />;
-}
+  return <Anchor href={typeof to === 'string' ? to : ''} {...props} />;
+})`
+  ${linkStyles}
+`;
 
-// Re-assign to Link to make auto-importing smarter
-const Link = styled(BaseLink)`
+export const Anchor = styled('a', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
+})<{disabled?: boolean}>`
   ${linkStyles}
 `;
 

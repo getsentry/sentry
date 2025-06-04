@@ -112,7 +112,6 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.organization_releases",
@@ -173,6 +172,7 @@ module = [
     "fixtures.safe_migrations_apps.*",
     "sentry.analytics.*",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
+    "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.release_thresholds.health_checks.*",
     "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
@@ -350,7 +350,6 @@ module = [
     "sentry.release_health.release_monitor.*",
     "sentry.relocation.api.endpoints.artifacts.*",
     "sentry.relocation.services.relocation_export.*",
-    "sentry.remote_subscriptions.migrations.*",
     "sentry.replays.consumers.*",
     "sentry.replays.lib.new_query.*",
     "sentry.replays.migrations.*",
@@ -439,6 +438,7 @@ module = [
     "social_auth.migrations.*",
     "sudo.*",
     "tests.sentry.api.endpoints.issues.test_organization_derive_code_mappings",
+    "tests.sentry.api.endpoints.test_project_repo_path_parsing",
     "tests.sentry.audit_log.services.*",
     "tests.sentry.deletions.test_group",
     "tests.sentry.event_manager.test_event_manager",

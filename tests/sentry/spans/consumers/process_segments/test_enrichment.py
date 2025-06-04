@@ -1,4 +1,8 @@
-from sentry.spans.consumers.process_segments.enrichment import set_exclusive_time
+from sentry.spans.consumers.process_segments.enrichment import (
+    compute_breakdowns,
+    set_exclusive_time,
+)
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.spans.consumers.process import build_mock_span
 
 # Tests ported from Relay
@@ -303,3 +307,78 @@ def test_only_immediate_child_spans_affect_calculation():
         "cccccccccccccccc": 400.0,
         "dddddddddddddddd": 400.0,
     }
+
+
+@django_db_all
+def test_emit_ops_breakdown(default_project):
+    segment_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        start_timestamp_precise=1577836800.0,
+        end_timestamp_precise=1577858400.01,
+        span_id="ffffffffffffffff",
+    )
+
+    spans = [
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1577836800.0,  # 2020-01-01 00:00:00
+            end_timestamp_precise=1577840400.0,  # 2020-01-01 01:00:00
+            span_id="fa90fdead5f74052",
+            parent_span_id=segment_span["span_id"],
+            span_op="http",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1577844000.0,  # 2020-01-01 02:00:00
+            end_timestamp_precise=1577847600.0,  # 2020-01-01 03:00:00
+            span_id="bbbbbbbbbbbbbbbb",
+            parent_span_id=segment_span["span_id"],
+            span_op="db",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1577845800.0,  # 2020-01-01 02:30:00
+            end_timestamp_precise=1577849400.0,  # 2020-01-01 03:30:00
+            span_id="cccccccccccccccc",
+            parent_span_id=segment_span["span_id"],
+            span_op="db.postgres",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1577851200.0,  # 2020-01-01 04:00:00
+            end_timestamp_precise=1577853000.0,  # 2020-01-01 04:30:00
+            span_id="dddddddddddddddd",
+            parent_span_id=segment_span["span_id"],
+            span_op="db.mongo",
+        ),
+        build_mock_span(
+            project_id=1,
+            start_timestamp_precise=1577854800.0,  # 2020-01-01 05:00:00
+            end_timestamp_precise=1577858400.01,  # 2020-01-01 06:00:00.01
+            span_id="eeeeeeeeeeeeeeee",
+            parent_span_id=segment_span["span_id"],
+            span_op="browser",
+        ),
+        segment_span,
+    ]
+
+    breakdowns_config = {
+        "span_ops": {"type": "spanOperations", "matches": ["http", "db"]},
+        "span_ops_2": {"type": "spanOperations", "matches": ["http", "db"]},
+    }
+    default_project.update_option("sentry:breakdowns", breakdowns_config)
+
+    # Compute breakdowns for the segment span
+    compute_breakdowns(segment_span, spans, default_project)
+    measurements = segment_span["measurements"]
+
+    assert measurements["span_ops.ops.http"]["value"] == 3600000.0
+    assert measurements["span_ops.ops.db"]["value"] == 7200000.0
+    assert measurements["span_ops_2.ops.http"]["value"] == 3600000.0
+    assert measurements["span_ops_2.ops.db"]["value"] == 7200000.0
+
+    # NOTE: Relay used to extract a total.time breakdown, which is no longer
+    # included in span breakdowns.
+    # assert measurements["span_ops.total.time"]["value"] == 14400000.01
+    # assert measurements["span_ops_2.total.time"]["value"] == 14400000.01

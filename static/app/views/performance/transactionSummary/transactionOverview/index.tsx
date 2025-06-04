@@ -32,6 +32,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
@@ -74,7 +75,7 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const shouldUseTransactionSummaryEAP = useTransactionSummaryEAP();
 
   return (
     <MEPSettingProvider>
@@ -85,7 +86,11 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={isEAP ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper}
+        childComponent={
+          shouldUseTransactionSummaryEAP
+            ? EAPCardinalityLoadingWrapper
+            : CardinalityLoadingWrapper
+        }
       />
     </MEPSettingProvider>
   );
@@ -327,11 +332,11 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
-  organization,
   transactionName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
-  organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transactionName: string;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
@@ -340,8 +345,7 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
-  if (isEAP) {
+  if (shouldUseOTelFriendlyUI) {
     conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues(
       'transaction.method',
@@ -359,7 +363,7 @@ function generateEventView({
     }
   });
 
-  const fields = isEAP
+  const fields = shouldUseOTelFriendlyUI
     ? [
         'id',
         'user.email',
@@ -380,7 +384,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: isEAP ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );

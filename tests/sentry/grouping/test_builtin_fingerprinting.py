@@ -559,15 +559,10 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_chunkload_rules_variants(self):
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
-        variants = {
-            variant_name: variant.as_dict()
-            for variant_name, variant in event.get_grouping_variants(
-                force_config=GROUPING_CONFIG
-            ).items()
-        }
+        variants = event.get_grouping_variants(GROUPING_CONFIG)
         assert "built_in_fingerprint" in variants
 
-        assert variants["built_in_fingerprint"] == {
+        assert variants["built_in_fingerprint"].as_dict() == {
             "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
             "type": "built_in_fingerprint",
             "description": "Sentry defined fingerprint",

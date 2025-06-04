@@ -1,4 +1,6 @@
-import {DataCategory} from 'sentry/types/core';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
@@ -17,13 +19,11 @@ const AM2_ONDEMAND_CATEGORIES = [
   ...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
-] as DataCategory[];
-
-const AM2_CATEGORIES = [
-  ...AM2_ONDEMAND_CATEGORIES,
-  'seerAutoFix',
+  'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
+
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -37,22 +37,12 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
-  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  [ReservedBudgetCategoryType.SEER]: {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: true,
-    apiName: ReservedBudgetCategoryType.SEER,
-  },
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM2_FREE_FEATURES = [
@@ -113,6 +103,68 @@ const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
 );
 
 const BUDGET_TERM = 'on-demand';
+
+const SEER_TIERS = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 20_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
+
+const SEER_TIERS_ANNUAL = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 216_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
 
 // TODO: Update with correct pricing and structure
 const AM2_PLANS: Record<string, Plan> = {
@@ -831,6 +883,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1637,6 +1690,8 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+
+      ...SEER_TIERS,
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -2408,6 +2463,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
   },
   am2_business_auf: {
@@ -3089,6 +3145,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
