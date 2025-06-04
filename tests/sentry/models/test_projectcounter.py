@@ -179,7 +179,11 @@ def test_increment_project_counter_in_cache(default_project, redis_mock):
             pipeline_mock.execute.return_value = [None, 0]
             with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
                 result = increment_project_counter_in_cache(default_project, using="default")
-                mock_refill.assert_called_once_with(default_project.id, using="default")
+                mock_refill.assert_called_once_with(
+                    default_project.id,
+                    block_size=calculate_cached_id_block_size(1),
+                    using="default",
+                )
 
             # After refill, should get a value from Redis
             pipeline_mock.execute.return_value = ["42", 100]
@@ -194,21 +198,20 @@ def test_refill_cached_short_ids(default_project, redis_mock):
     lock_mock.locked.return_value = False
     lock_mock.__enter__ = MagicMock()
     lock_mock.__exit__ = MagicMock()
-
+    block_size = calculate_cached_id_block_size(1)
     # Configure redis_mock to return an integer for llen
     redis_mock.llen.return_value = 0
 
     with (
         patch("sentry.models.counter.locks.get", return_value=lock_mock),
         patch("sentry.models.counter.increment_project_counter_in_database", return_value=100),
-        patch("sentry.models.counter.Counter.objects.get", return_value=MagicMock(value=0)),
     ):
-        refill_cached_short_ids(default_project.id)
+        refill_cached_short_ids(default_project.id, block_size)
 
         # Should have pushed BLOCK values to Redis
         redis_mock.rpush.assert_called_once()
         args = redis_mock.rpush.call_args[0]
-        assert len(args) == calculate_cached_id_block_size(1) + 1  # +1 for the redis_key
+        assert len(args) == block_size + 1  # +1 for the redis_key
         assert args[0] == f"pc:{default_project.id}"
         # Convert tuple to list for comparison
         assert list(args[1:]) == list(range(1, calculate_cached_id_block_size(1) + 1))
@@ -217,11 +220,12 @@ def test_refill_cached_short_ids(default_project, redis_mock):
 @django_db_all
 def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
     # Mock the lock as already locked
+    block_size = calculate_cached_id_block_size(1)
     lock = locks.get(
         f"pc:lock:{default_project.id}", duration=30, name="project_short_id_counter_refill"
     )
     with lock.acquire():
-        refill_cached_short_ids(default_project.id)
+        refill_cached_short_ids(default_project.id, block_size)
         # Should not have called any Redis operations
         redis_mock.rpush.assert_not_called()  # noqa: F821
 
@@ -234,15 +238,20 @@ def test_low_water_mark_trigger(default_project, redis_mock):
         pipeline_mock = MagicMock()
         pipeline_mock.__enter__.return_value = pipeline_mock
         pipeline_mock.__exit__.return_value = None
+        block_size = calculate_cached_id_block_size(42)
         with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
             pipeline_mock.execute.return_value = [
                 "42",
-                calculate_cached_id_block_size(42) * LOW_WATER_RATIO - 1,
+                block_size * LOW_WATER_RATIO - 1,
             ]
             with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
                 result = increment_project_counter_in_cache(default_project, using="default")
                 assert result == 42
-                mock_refill.assert_called_once_with(default_project.id, using="default")
+                mock_refill.assert_called_once_with(
+                    default_project.id,
+                    block_size=block_size,
+                    using="default",
+                )
 
 
 @django_db_all
@@ -299,20 +308,20 @@ def test_preallocation_end_to_end(default_project):
 def test_preallocation_early_return(default_project):
     Counter.increment(default_project)
     assert Counter.objects.get(project_id=default_project.id).value == 1
-
+    block_size = calculate_cached_id_block_size(2)
     with override_settings(SENTRY_FEATURES={"projects:short-id-pre-allocation-counter": True}):
         with TaskRunner():
             current_value = Counter.increment(default_project)
         assert current_value == 2
-        assert Counter.objects.get(
-            project_id=default_project.id
-        ).value == current_value + calculate_cached_id_block_size(2)
+        assert (
+            Counter.objects.get(project_id=default_project.id).value == current_value + block_size
+        )
         redis_key = f"pc:{default_project.id}"
         redis = redis_clusters.get("default")
-        assert redis.llen(redis_key) == calculate_cached_id_block_size(2)
+        assert redis.llen(redis_key) == block_size
 
         # Directly call refill_cached_short_ids - should do nothing since we have enough values
-        refill_cached_short_ids(default_project.id)
+        refill_cached_short_ids(default_project.id, block_size)
         assert Counter.objects.get(
             project_id=default_project.id
         ).value == current_value + calculate_cached_id_block_size(

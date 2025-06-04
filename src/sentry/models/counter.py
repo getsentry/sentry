@@ -72,14 +72,20 @@ def increment_project_counter_in_cache(project, using="default") -> int:
     if short_id_from_redis is None:  # fallback if not populated in Redis
         metrics.incr("counter.increment_project_counter_in_cache.fallback")
         short_id_from_db = increment_project_counter_in_database(project, using=using)
-        refill_cached_short_ids.delay(project.id, using=using)
+        refill_cached_short_ids.delay(
+            project.id, block_size=calculate_cached_id_block_size(short_id_from_db), using=using
+        )
         return short_id_from_db
     else:
         cached_id_block_size = calculate_cached_id_block_size(short_id_from_redis)
         metrics.incr("counter.increment_project_counter_in_cache.found_in_redis")
         if remaining < cached_id_block_size * LOW_WATER_RATIO:
             metrics.incr("counter.increment_project_counter_in_cache.refill")
-            refill_cached_short_ids.delay(project.id, using=using)
+            refill_cached_short_ids.delay(
+                project.id,
+                block_size=calculate_cached_id_block_size(short_id_from_redis),
+                using=using,
+            )
 
         return short_id_from_redis
 
@@ -188,7 +194,7 @@ post_migrate.connect(create_counter_function, dispatch_uid="create_counter_funct
         retry=None,  # No retries since we want to try again on next counter increment
     ),
 )
-def refill_cached_short_ids(project_id, using="default") -> None:
+def refill_cached_short_ids(project_id, block_size: int, using="default") -> None:
     """Refills the Redis short-id counter block for a project."""
     from sentry.models.project import Project
 
@@ -201,31 +207,20 @@ def refill_cached_short_ids(project_id, using="default") -> None:
         with lock.acquire():
             project = Project.objects.get_from_cache(id=project_id)
 
-            cached_id_block_size = calculate_cached_id_block_size(
-                Counter.objects.get(project=project).value
-            )
-
             # in case the counter was just/already filled, we can return early
-            if redis.llen(redis_key) >= cached_id_block_size * LOW_WATER_RATIO:
+            if redis.llen(redis_key) >= block_size * LOW_WATER_RATIO:
                 metrics.incr("counter.refill_cached_short_ids.early_return")
                 return
 
-            # We increment the counter in a transaction and push to redis afterward.
             # there is a potential race condition where the counter is incremented
             # between the db transaction end and the redis push,
             # but that should just result in skipped short ids, which is acceptable.
-            with transaction.atomic(using=using):
-                # Recalculate the cached_id_block_size in case the counter was incremented
-                # between the start of the task and the transaction start
-                cached_id_block_size = calculate_cached_id_block_size(
-                    Counter.objects.get(project=project).value
-                )
-                current_value = increment_project_counter_in_database(
-                    project, delta=cached_id_block_size, using=using
-                )
+            current_value = increment_project_counter_in_database(
+                project, delta=block_size, using=using
+            )
 
             # Append the new block of values to Redis in a single operation
-            start = current_value - cached_id_block_size + 1
+            start = current_value - block_size + 1
             redis.rpush(redis_key, *range(start, current_value + 1))
             redis.expire(redis_key, 60 * 60 * 24 * 365)  # 1 year
             # TODO: should we delete the keys when a project is deleted instead of / in addition expiring?
