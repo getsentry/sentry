@@ -206,8 +206,11 @@ function getIsEndsWith(tokenValue: TokenValue) {
   return tokenValue === WildcardOperators.LEADING;
 }
 
-export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
-  if (token.value.type === Token.VALUE_TEXT) {
+export function getLabelAndOperatorFromToken(
+  token: TokenResult<Token.FILTER>,
+  hasWildcardOperators: boolean
+) {
+  if (token.value.type === Token.VALUE_TEXT && hasWildcardOperators) {
     if (getIsContains(token.value.wildcard)) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),
@@ -230,7 +233,7 @@ export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
         operator: ExtendedTermOperators.ENDS_WITH,
       };
     }
-  } else if (token.value.type === Token.VALUE_TEXT_LIST) {
+  } else if (token.value.type === Token.VALUE_TEXT_LIST && hasWildcardOperators) {
     if (token.value.items.every(entry => getIsContains(entry.value?.wildcard))) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),

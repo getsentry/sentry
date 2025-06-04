@@ -116,7 +116,7 @@ export function getOperatorInfo(
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(token);
+  const {operator, label} = getLabelAndOperatorFromToken(token, hasWildcardOperators);
 
   if (token.filter === FilterType.IS) {
     return {
