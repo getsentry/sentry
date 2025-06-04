@@ -113,7 +113,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       search={search}
       showReleaseAs="none"
       showLegend="always"
-      height={'100%'}
+      height={220}
     />
   );
 }
