@@ -330,7 +330,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
                 replay_id_val = replay_info.get("replay_id")
                 if isinstance(replay_id_val, str):  # Add type check for replay_id
                     replay_id_from_data = replay_id_val
-    
+
     if (
         isinstance(event, GroupEvent)
         and event.occurrence is not None
