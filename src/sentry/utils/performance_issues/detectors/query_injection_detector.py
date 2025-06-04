@@ -39,6 +39,9 @@ class QueryInjectionDetector(PerformanceDetector):
                 self.potential_unsafe_inputs.append(key)
 
     def visit_span(self, span: Span) -> None:
+        if not QueryInjectionDetector.is_span_eligible(span):
+            return
+
         if len(self.potential_unsafe_inputs) == 0:
             return
 
@@ -64,7 +67,7 @@ class QueryInjectionDetector(PerformanceDetector):
             desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
             cause_span_ids=[],
             parent_span_ids=[],
-            offender_span_ids=[spans_involved],
+            offender_span_ids=spans_involved,
             evidence_data={
                 "op": op,
                 "cause_span_ids": [],
@@ -106,6 +109,7 @@ class QueryInjectionDetector(PerformanceDetector):
         description = span.get("description", None)
         if not description:
             return False
+        return True
 
     def _fingerprint(self, description: str) -> str:
         signature = description.encode("utf-8")
