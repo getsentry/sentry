@@ -190,6 +190,7 @@ class DashboardListResponse(TypedDict):
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    projects: list[int]
 
 
 class _WidgetPreview(TypedDict):
@@ -274,6 +275,7 @@ class DashboardListSerializer(Serializer):
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": attrs.get("permissions", None),
             "isFavorited": attrs.get("is_favorited", False),
+            "projects": list(obj.projects.values_list("id", flat=True)),
         }
 
 
