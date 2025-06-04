@@ -29,7 +29,7 @@ class QueryInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
-        self.potential_unsafe_inputs: list[tuple[str, dict]] = []
+        self.potential_unsafe_inputs: list[tuple[str, dict[str, any]]] = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
