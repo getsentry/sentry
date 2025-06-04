@@ -235,6 +235,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const seerBudget = reservedBudgets?.find(
       budget => budget.apiName === ReservedBudgetCategoryType.SEER
     )?.reservedBudget;
+    const dynamicSamplingBudget = reservedBudgets?.find(
+      budget => budget.apiName === ReservedBudgetCategoryType.DYNAMIC_SAMPLING
+    )?.reservedBudget;
 
     const infoFromMetricHistories: Record<string, any> = {};
     Object.entries(subscription.categories).forEach(([category, info]) => {
@@ -284,7 +287,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         ...state.data,
         ...enterpriseData,
         ...infoFromMetricHistories,
-        seerBudget: toDollars(seerBudget ?? 0), // reserved budget will always be in terms of dollars per month
+        seerBudget: toDollars(seerBudget ?? 0),
+        dynamicSamplingBudget: toDollars(dynamicSamplingBudget ?? 0),
       },
     }));
   }
@@ -359,7 +363,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedSpans'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.customPriceSpans;
+    this.state.data.customPriceSpans &&
+    this.state.data.dynamicSamplingBudget;
 
   // Same as above, but for Seer budgets
   hasCompleteSeerBudget = () =>
@@ -367,7 +372,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedSeer'))
       .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.customPriceSeerAutofix;
+    this.state.data.customPriceSeerAutofix &&
+    this.state.data.seerBudget;
 
   /**
    * If the user is changing the on-demand max spend mode or disabling it,
@@ -495,14 +501,13 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         !isNaN(value as number)
       ) {
         postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
-      } else if (key.startsWith('customPrice') && !isNaN(value as number)) {
+      } else if (
+        (key.startsWith('customPrice') ||
+          key === 'seerBudget' ||
+          key === 'dynamicSamplingBudget') &&
+        !isNaN(value as number)
+      ) {
         postData[key] = toCents(value as number); // price should be in cents
-      } else if (key === 'seerBudget' && !isNaN(value as number)) {
-        const reservedBudgetAmount =
-          postData.billingInterval === 'annual'
-            ? (value as number) * 12
-            : (value as number);
-        postData.seerBudget = toCents(reservedBudgetAmount);
       }
     });
 
@@ -566,7 +571,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural,
             DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED].plural,
           ],
-          budget: postData.customPriceSpans,
+          budget: postData.dynamicSamplingBudget,
         });
       } else {
         onSubmitError({
@@ -579,12 +584,16 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         return;
       }
     }
+    delete postData.dynamicSamplingBudget;
+
     if (this.hasCompleteSeerBudget()) {
       postData.reservedBudgets.push({
         categories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
         budget: postData.seerBudget,
       });
     }
+    delete postData.seerBudget;
+
     this.props.api.request(this.endpoint, {
       method: 'POST',
       data: postData,
@@ -950,23 +959,42 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             </Fragment>
                           );
                         })}
-                      <StyledDollarsField
-                        label="Seer Budget"
-                        name="seerBudget"
-                        help="Monthly reserved budget for Seer"
-                        required={this.isSettingSeerBudget()}
-                        disabled={!this.isSettingSeerBudget()}
-                        value={data.seerBudget}
-                        onChange={v =>
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              seerBudget: v,
-                            },
-                          }))
-                        }
-                      />
+                      {this.isSettingSeerBudget() && (
+                        <StyledDollarsField
+                          label="Seer Budget"
+                          name="seerBudget"
+                          help="Monthly reserved budget for Seer"
+                          required={this.isSettingSeerBudget()}
+                          value={data.seerBudget}
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                seerBudget: v,
+                              },
+                            }))
+                          }
+                        />
+                      )}
+                      {isAm3DsPlan(this.state.data.plan) && (
+                        <StyledDollarsField
+                          label="Dynamic Sampling Budget"
+                          name="dynamicSamplingBudget"
+                          help="Monthly reserved budget for Dynamic Sampling"
+                          required={this.isSettingSpansBudget()}
+                          value={data.dynamicSamplingBudget}
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                dynamicSamplingBudget: v,
+                              },
+                            }))
+                          }
+                        />
+                      )}
                     </Fragment>
                   )}
               </div>
