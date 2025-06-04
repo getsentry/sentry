@@ -2237,7 +2237,10 @@ class ProfilesSnubaTestCase(
 
     def store_spans(self, spans, is_eap=False):
         if is_eap:
-            files = {f"span_{i}": span.SerializeToString() for i, span in enumerate(spans)}
+            files = {}
+            for i, span in enumerate(spans):
+                trace_item = span_to_trace_item(span)
+                files[f"item_{i}"] = trace_item.SerializeToString()
             assert (
                 requests.post(
                     settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
