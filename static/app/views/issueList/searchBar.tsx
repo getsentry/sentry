@@ -16,7 +16,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -126,6 +126,28 @@ function IssueListSearchBar({
           ...fetchTagValuesPayload,
           organization,
         });
+      }
+
+      if (key === FieldKey.FIRST_RELEASE) {
+        const includeLatest = 'latest'.startsWith(search.toLowerCase());
+        return [
+          ...(includeLatest
+            ? [
+                {
+                  count: 1,
+                  firstSeen: '2021-01-01',
+                  lastSeen: '2021-01-01',
+                  name: 'latest',
+                  value: 'latest',
+                } as TagValue,
+              ]
+            : []),
+          ...(await fetchTagValues({
+            ...fetchTagValuesPayload,
+            tagKey: 'release',
+            dataset: Dataset.ERRORS,
+          })),
+        ];
       }
 
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
