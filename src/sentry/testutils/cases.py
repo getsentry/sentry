@@ -3310,6 +3310,8 @@ def scalar_to_any_value(value: Any) -> AnyValue:
 
 
 def span_to_trace_item(span) -> TraceItem:
+    client_sample_rate = 1.0
+    server_sample_rate = 1.0
     attributes = {}
 
     for field in {"tags", "data"}:
@@ -3323,7 +3325,12 @@ def span_to_trace_item(span) -> TraceItem:
         attributes[f"sentry.{k}"] = scalar_to_any_value(v)
 
     for k, v in span.get("measurements", {}).items():
-        attributes[k] = scalar_to_any_value(v["value"])
+        if k == "client_sample_rate":
+            client_sample_rate = v["value"]
+        elif k == "server_sample_rate":
+            server_sample_rate = v["value"]
+        else:
+            attributes[k] = scalar_to_any_value(v["value"])
 
     if "description" in span:
         description = scalar_to_any_value(span["description"])
@@ -3362,6 +3369,8 @@ def span_to_trace_item(span) -> TraceItem:
         received=timestamp,
         retention_days=90,
         attributes=attributes,
+        client_sample_rate=client_sample_rate,
+        server_sample_rate=server_sample_rate,
     )
 
 
