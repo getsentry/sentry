@@ -17,7 +17,7 @@ import {
   getValidOpsForFilter,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {type FETermOperators} from 'sentry/components/searchQueryBuilder/types';
+import {type SearchQueryBuilderOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -91,8 +91,8 @@ export function getOperatorInfo(
   hasWildcardOperators: boolean
 ): {
   label: ReactNode;
-  operator: FETermOperators;
-  options: Array<SelectOption<FETermOperators>>;
+  operator: SearchQueryBuilderOperators;
+  options: Array<SelectOption<SearchQueryBuilderOperators>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
@@ -102,7 +102,7 @@ export function getOperatorInfo(
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
-      options: DATE_OPTIONS.map((op): SelectOption<FETermOperators> => {
+      options: DATE_OPTIONS.map((op): SelectOption<SearchQueryBuilderOperators> => {
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
         return {
@@ -199,7 +199,7 @@ export function getOperatorInfo(
     label: <OpLabel>{label}</OpLabel>,
     options: getValidOpsForFilter(token, hasWildcardOperators)
       .filter(op => op !== TermOperator.EQUAL)
-      .map((op): SelectOption<FETermOperators> => {
+      .map((op): SelectOption<SearchQueryBuilderOperators> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
         return {

@@ -38,8 +38,8 @@ export enum WildcardOperators {
   ENDS_WITH = 'ends with',
 }
 
-export function isTermOperator(op: FETermOperators): op is TermOperator {
+export function isTermOperator(op: SearchQueryBuilderOperators): op is TermOperator {
   return typeof op === 'string' && Object.values(TermOperator).includes(op as any);
 }
 
-export type FETermOperators = TermOperator | WildcardOperators;
+export type SearchQueryBuilderOperators = TermOperator | WildcardOperators;

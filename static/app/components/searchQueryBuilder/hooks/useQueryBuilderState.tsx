@@ -7,10 +7,10 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
-  type FETermOperators,
   type FieldDefinitionGetter,
   type FocusOverride,
   isTermOperator,
+  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -94,7 +94,7 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: FETermOperators;
+  op: SearchQueryBuilderOperators;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -165,7 +165,7 @@ function deleteQueryTokens(
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: FETermOperators
+  newOperator: SearchQueryBuilderOperators
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
@@ -206,7 +206,7 @@ function modifyFilterOperator(
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: FETermOperators
+  newOperator: SearchQueryBuilderOperators
 ): string {
   switch (newOperator) {
     case TermOperator.GREATER_THAN:

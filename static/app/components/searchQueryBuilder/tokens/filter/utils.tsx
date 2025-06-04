@@ -1,5 +1,5 @@
 import {
-  type FETermOperators,
+  type SearchQueryBuilderOperators,
   WildcardOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
@@ -73,11 +73,11 @@ export function isAggregateFilterToken(
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>,
   hasWildcardOperators: boolean
-): readonly FETermOperators[] {
+): readonly SearchQueryBuilderOperators[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
 
   if (fieldDefinition?.allowComparisonOperators) {
-    const validOps = new Set<FETermOperators>(allOperators);
+    const validOps = new Set<SearchQueryBuilderOperators>(allOperators);
 
     return [...validOps];
   }
@@ -95,7 +95,7 @@ export function getValidOpsForFilter(
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
 
   // Find all valid operations
-  const validOps = new Set<FETermOperators>(
+  const validOps = new Set<SearchQueryBuilderOperators>(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
