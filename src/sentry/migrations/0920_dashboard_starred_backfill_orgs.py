@@ -53,7 +53,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0918_dashboard_starred_add_position_column_and_constraint"),
+        ("sentry", "0919_dashboard_starred_add_position_column_and_constraint"),
     ]
 
     operations = [
