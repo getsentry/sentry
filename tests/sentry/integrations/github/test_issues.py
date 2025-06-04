@@ -2,9 +2,11 @@ import datetime
 from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import cast
+from unittest import mock
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 from django.test import RequestFactory
 from django.utils import timezone
@@ -15,6 +17,11 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
+from sentry.shared_integrations.exceptions import (
+    IntegrationError,
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -258,6 +265,91 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         else:
             self._check_proxying()
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_create_issue_with_invalid_field(self, mock_record):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=422,
+            json={
+                "message": "Validation Failed",
+                "errors": [
+                    {
+                        "value": "example_username",
+                        "resource": "Issue",
+                        "field": "assignee",
+                        "code": "invalid",
+                    }
+                ],
+                "documentation_url": "https://docs.github.com/rest/issues/issues#create-an-issue",
+                "status": "422",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationFormError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.field_errors == {
+            "assignee": "Got invalid value: example_username for field: assignee"
+        }
+
+    @responses.activate
+    def test_create_issue_with_bad_github_repo(self):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=410,
+            json={
+                "message": "Issues are disabled for this repo",
+                "documentation_url": "https://docs.github.com/v3/issues/",
+                "status": "410",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.args[0] == {
+            "detail": "Issues are disabled for this repo, please check your repo's permissions"
+        }
+
+    @responses.activate
+    def test_create_issue_raises_integration_error(self):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=500,
+            json={
+                "message": "dang snap!",
+                "documentation_url": "https://docs.github.com/v3/issues/",
+                "status": "500",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.args[0] == "Error Communicating with GitHub (HTTP 500): dang snap!"
+
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
         event = self.create_performance_issue()
@@ -282,11 +374,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         group_event.occurrence = occurrence
 
         description = self.install.get_group_description(group_event.group, group_event)
-        assert group_event.occurrence.evidence_display[0].value in description
-        assert group_event.occurrence.evidence_display[1].value in description
-        assert group_event.occurrence.evidence_display[2].value in description
+        assert occurrence.evidence_display[0].value in description
+        assert occurrence.evidence_display[1].value in description
+        assert occurrence.evidence_display[2].value in description
         title = self.install.get_group_title(group_event.group, group_event)
-        assert title == group_event.occurrence.issue_title
+        assert title == occurrence.issue_title
 
     def test_error_issues_content(self):
         """Test that a GitHub issue created from an error issue has the expected title and descriptionn"""

@@ -28,6 +28,8 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -96,7 +98,8 @@ export function TransactionNodeDetails({
     isError,
     isPending,
   } = useTransaction({
-    node,
+    event_id: node.value.event_id,
+    project_slug: node.value.project_slug,
     organization,
   });
   const {data: cacheMetrics} = useSpanMetrics(
@@ -156,6 +159,9 @@ export function TransactionNodeDetails({
           project={project}
           organization={organization}
         />
+
+        <AIInputSection node={node} event={event} />
+        <AIOutputSection node={node} event={event} />
 
         <TransactionSpecificSections
           event={event}

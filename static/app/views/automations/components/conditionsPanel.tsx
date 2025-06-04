@@ -1,78 +1,124 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {tct} from 'sentry/locale';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Action} from 'sentry/types/workflowEngine/actions';
+import type {
+  DataCondition,
+  DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 type ConditionsPanelProps = {
-  actions: string[];
-  if_conditions: string[];
-  when_conditions: string[];
+  actionFilters: DataConditionGroup[];
+  triggers: DataConditionGroup;
 };
 
-function List(list: string[]) {
-  return list.map((item, index) => <ListItem key={index}>{item}</ListItem>);
-}
-
-function ConditionsPanel({
-  actions,
-  if_conditions,
-  when_conditions,
-}: ConditionsPanelProps) {
+function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
-    <Panel column gap={space(2)}>
+    <Panel>
       <Flex column gap={space(1)}>
         <div>
           {tct('[when:When] any of the following occur', {
-            when: <Badge />,
+            when: <ConditionBadge />,
           })}
         </div>
-        {List(when_conditions)}
-      </Flex>
-      {if_conditions.length > 0 && (
-        <Flex column gap={space(1)}>
-          <div>
-            {tct('[if:If] any of these filters match', {
-              if: <Badge />,
-            })}
+        {triggers.conditions.map((trigger, index) => (
+          <div key={index}>
+            <DataConditionDetails condition={trigger} />
           </div>
-          {List(if_conditions)}
-        </Flex>
-      )}
-      <Flex column gap={space(1)}>
-        <div>
-          {tct('[then:Then] perform these actions', {
-            then: <Badge />,
-          })}
-        </div>
-        {List(actions)}
+        ))}
       </Flex>
+      {actionFilters.map((actionFilter, index) => (
+        <div key={index}>
+          <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
+        </div>
+      ))}
     </Panel>
   );
 }
 
-const Panel = styled(Flex)`
+interface ActionFilterProps {
+  actionFilter: DataConditionGroup;
+  totalFilters: number;
+}
+
+function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
+  return (
+    <ActionFilterWrapper showDivider={totalFilters > 1}>
+      <div>
+        {tct('[if:If] any of these filters match', {
+          if: <ConditionBadge />,
+        })}
+      </div>
+      {actionFilter.conditions.length > 0
+        ? actionFilter.conditions.map((filter, index) => (
+            <div key={index}>
+              <DataConditionDetails condition={filter} />
+            </div>
+          ))
+        : t('Any event')}
+      <div>
+        {tct('[then:Then] perform these actions', {
+          then: <ConditionBadge />,
+        })}
+      </div>
+      {actionFilter.actions?.map((action, index) => (
+        <div key={index}>
+          <ActionDetails action={action} />
+        </div>
+      ))}
+    </ActionFilterWrapper>
+  );
+}
+
+function DataConditionDetails({condition}: {condition: DataCondition}) {
+  const node = dataConditionNodesMap.get(condition.type);
+  const Component = node?.details;
+
+  if (!Component) {
+    return <span>{node?.label}</span>;
+  }
+
+  return <Component condition={condition} />;
+}
+
+function ActionDetails({action}: {action: Action}) {
+  const node = actionNodesMap.get(action.type);
+  const Component = node?.details;
+
+  if (!Component) {
+    return <span>{node?.label}</span>;
+  }
+
+  return <Component action={action} />;
+}
+
+const Panel = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
 `;
 
-const Badge = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.5;
-`;
+const ActionFilterWrapper = styled('div')<{showDivider?: boolean}>`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 
-const ListItem = styled('span')`
-  color: ${p => p.theme.subText};
+  ${p =>
+    p.showDivider &&
+    css`
+      padding-top: ${space(1.5)};
+      border-top: 1px solid ${p.theme.translucentBorder};
+    `}
 `;
 
 export default ConditionsPanel;

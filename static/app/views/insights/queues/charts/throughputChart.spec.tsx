@@ -26,7 +26,14 @@ describe('throughputChart', () => {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [[1739378162, [{count: 1}]]],
+        'queue.process': {
+          data: [[1739378162, [{count: 1}]]],
+          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
+        },
+        'queue.publish': {
+          data: [[1739378162, [{count: 1}]]],
+          meta: {fields: {epm: 'rate'}, units: {epm: '1/second'}},
+        },
       },
     });
   });
@@ -34,7 +41,7 @@ describe('throughputChart', () => {
     render(
       <ThroughputChart
         id="throughput-chart-test"
-        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+        referrer={Referrer.QUEUES_SUMMARY_THROUGHPUT_CHART}
       />,
       {organization}
     );
@@ -43,21 +50,10 @@ describe('throughputChart', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: [
-            'avg(span.duration)',
-            'avg(messaging.message.receive.latency)',
-            'epm()',
-          ],
-          query: 'span.op:queue.process',
-        }),
-      })
-    );
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: ['avg(span.duration)', 'epm()'],
-          query: 'span.op:queue.publish',
+          yAxis: 'epm()',
+          field: ['epm()', 'span.op'],
+          topEvents: '2',
+          query: 'span.op:[queue.publish, queue.process]',
         }),
       })
     );

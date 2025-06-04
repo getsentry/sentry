@@ -17,6 +17,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
@@ -155,12 +156,15 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
             ? subscription.onDemandBudgets.budgets[category]
             : subscription?.onDemandMaxSpend;
+
+        const reservedTiers = subscription?.planDetails.planCategories?.[category];
         if (
           !designatedBudget &&
-          (!currentHistory.reserved || currentHistory.reserved <= 1)
+          reservedTiers?.length === 1 &&
+          reservedTiers[0]?.events === 1
         ) {
-          // don't show any categories without additional reserved volumes
-          // if there is no PAYG
+          // if there isn't any PAYG and the category has a single reserved tier which is 1 (ie. crons, uptime, etc),
+          // then we don't need to show the alert
           return acc;
         }
         acc.push(category);
@@ -308,9 +312,19 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       <SidebarButton
         analyticsKey="billingStatus"
         label={t('Billing Status')}
-        buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
+        // @ts-expect-error Warning variant is only available in Chonk
+        buttonProps={{
+          ...overlayTriggerProps,
+          ...(isChonkTheme(theme)
+            ? {priority: 'warning'}
+            : {style: {backgroundColor: theme.warning}}),
+        }}
       >
-        <motion.div {...(isOpen || hasSnoozedAllPrompts() ? {} : ANIMATE_PROPS)}>
+        <motion.div
+          {...(isOpen || hasSnoozedAllPrompts()
+            ? {style: {display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+            : ANIMATE_PROPS)}
+        >
           <IconWarning color={iconColor as Color} />
         </motion.div>
       </SidebarButton>

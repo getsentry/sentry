@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -18,6 +19,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -27,8 +29,8 @@ import {
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface LogIssueDrawerProps {
@@ -40,7 +42,9 @@ interface LogIssueDrawerProps {
 export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
-  const tableData = useExploreLogsTable({});
+  const hasInfiniteFeature = useOrganization().features.includes(
+    'ourlogs-infinite-scroll'
+  );
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
 
@@ -55,6 +59,7 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
+  const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
@@ -78,9 +83,13 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
         <EventNavigator>
           <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
         </EventNavigator>
-        <EventDrawerBody>
+        <EventDrawerBody ref={containerRef}>
           <LogsTableContainer>
-            <LogsTable showHeader={false} allowPagination tableData={tableData} />
+            {hasInfiniteFeature ? (
+              <LogsInfiniteTable showHeader={false} scrollContainer={containerRef} />
+            ) : (
+              <LogsTable showHeader={false} allowPagination />
+            )}
           </LogsTableContainer>
         </EventDrawerBody>
       </EventDrawerContainer>
@@ -92,5 +101,4 @@ const LogsTableContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-  height: 100%;
 `;

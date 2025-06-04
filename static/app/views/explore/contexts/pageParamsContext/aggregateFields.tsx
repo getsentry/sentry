@@ -18,10 +18,6 @@ export interface GroupBy {
   groupBy: string;
 }
 
-function _isGroupBy(value: any): value is GroupBy {
-  return typeof value === 'object' && typeof value.groupBy === 'string';
-}
-
 function _isBaseVisualize(value: any): value is BaseVisualize {
   return (
     typeof value === 'object' &&
@@ -31,14 +27,15 @@ function _isBaseVisualize(value: any): value is BaseVisualize {
   );
 }
 
-export function isGroupBy(value: GroupBy | Visualize): value is GroupBy {
-  return _isGroupBy(value);
+export function isGroupBy(value: any): value is GroupBy {
+  return typeof value === 'object' && typeof value.groupBy === 'string';
 }
 
-export function isVisualize(value: GroupBy | Visualize): value is Visualize {
-  return 'yAxes' in value && Array.isArray(value.yAxes);
+export function isVisualize(value: any): value is Visualize {
+  return typeof value === 'object' && 'yAxes' in value && Array.isArray(value.yAxes);
 }
 
+export type BaseAggregateField = GroupBy | BaseVisualize;
 export type AggregateField = GroupBy | Visualize;
 
 export function defaultAggregateFields(): AggregateField[] {
@@ -77,7 +74,7 @@ export function getAggregateFieldsFromLocation(
   let hasVisualizes = false;
 
   for (const groupByOrBaseVisualize of parsed) {
-    if (_isGroupBy(groupByOrBaseVisualize)) {
+    if (isGroupBy(groupByOrBaseVisualize)) {
       aggregateFields.push(groupByOrBaseVisualize);
       hasGroupBys = true;
     } else if (_isBaseVisualize(groupByOrBaseVisualize)) {

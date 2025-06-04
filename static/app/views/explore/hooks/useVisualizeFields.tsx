@@ -1,46 +1,69 @@
 import {useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
-interface Props {
+interface UseVisualizeFieldsProps {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
   /**
    * All the aggregates that are in use. The arguments will be extracted
    * and injected as options if they are compatible.
    */
   yAxes: string[];
-  /**
-   * The current aggregate in use. Used to determine what the argument
-   * types will be compatible.
-   */
-  yAxis?: string;
+  parsedFunction?: ParsedFunction | null;
 }
 
-export function useVisualizeFields({yAxis, yAxes}: Props) {
-  const {tags: stringTags} = useSpanTags('string');
-  const {tags: numberTags} = useSpanTags('number');
+export function useVisualizeFields({
+  parsedFunction,
+  numberTags,
+  stringTags,
+  yAxes,
+}: UseVisualizeFieldsProps) {
+  const [kind, tags]: [FieldKind, TagCollection] = useMemo(() => {
+    if (parsedFunction?.name === AggregationKey.COUNT) {
+      const countTags: TagCollection = {
+        [SpanIndexedField.SPAN_DURATION]: {
+          name: t('spans'),
+          key: SpanIndexedField.SPAN_DURATION,
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
 
-  const parsedYAxis = useMemo(() => (yAxis ? parseFunction(yAxis) : undefined), [yAxis]);
+    if (
+      parsedFunction?.name === AggregationKey.EPM ||
+      parsedFunction?.name === AggregationKey.EPS
+    ) {
+      const countTags: TagCollection = {
+        '': {
+          name: t('spans'),
+          key: '',
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
 
-  const tags =
-    parsedYAxis?.name === AggregationKey.COUNT_UNIQUE ? stringTags : numberTags;
+    if (parsedFunction?.name === AggregationKey.COUNT_UNIQUE) {
+      return [FieldKind.TAG, stringTags];
+    }
+
+    return [FieldKind.MEASUREMENT, numberTags];
+  }, [parsedFunction?.name, numberTags, stringTags]);
 
   const parsedYAxes: ParsedFunction[] = useMemo(() => {
     return yAxes.map(parseFunction).filter(defined);
   }, [yAxes]);
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
-    const kind =
-      parsedYAxis?.name === AggregationKey.COUNT_UNIQUE
-        ? FieldKind.TAG
-        : FieldKind.MEASUREMENT;
-
     const unknownOptions = parsedYAxes
       .flatMap(entry => {
         return entry.arguments;
@@ -90,7 +113,7 @@ export function useVisualizeFields({yAxis, yAxes}: Props) {
     });
 
     return options;
-  }, [tags, parsedYAxes, parsedYAxis?.name]);
+  }, [kind, tags, parsedYAxes]);
 
   return fieldOptions;
 }

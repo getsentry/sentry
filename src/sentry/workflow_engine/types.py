@@ -81,7 +81,7 @@ class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         """
-        Bulk fetch related data-source models reutrning a dict of the
+        Bulk fetch related data-source models returning a dict of the
         `DataSource.id -> T`.
         """
         raise NotImplementedError

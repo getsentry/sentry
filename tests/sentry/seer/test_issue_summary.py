@@ -585,7 +585,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ("low", 0.6, False),
             ("low", 0.7, True),
             ("low", 0.8, True),
-            ("medium", 0.4, False),
+            ("medium", 0.39, False),
             ("medium", 0.5, True),
             ("medium", 0.6, True),
             ("high", 0.2, False),

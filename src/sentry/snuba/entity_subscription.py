@@ -10,7 +10,7 @@ from typing import Any, TypedDict, Union
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
@@ -49,6 +49,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
     EntityKey.EAPItemsSpan: "timestamp",
+    EntityKey.EAPItems: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -273,7 +274,9 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
             granularity_secs=self.time_window,
         )
-        search_resolver = spans_rpc.get_resolver(snuba_params, SearchResolverConfig())
+        search_resolver = spans_rpc.get_resolver(
+            snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
+        )
 
         rpc_request, _, _ = rpc_dataset_common.get_timeseries_query(
             search_resolver=search_resolver,
@@ -621,6 +624,9 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
+        use_eap_items = options.get("alerts.spans.use-eap-items")
+        if use_eap_items:
+            return EntityKey.EAPItems
         return EntityKey.EAPItemsSpan
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,

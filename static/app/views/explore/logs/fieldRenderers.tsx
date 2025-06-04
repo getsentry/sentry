@@ -116,9 +116,15 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
 }
 
 function TimestampRenderer(props: LogFieldRendererProps) {
+  const preciseTimestamp =
+    props.extra.attributes?.['tags[sentry.timestamp_precise,number]'];
+  const timestampToUse = preciseTimestamp
+    ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
+    : props.item.value;
+
   return (
     <LogDate align={props.extra.align}>
-      <DateTime seconds date={props.item.value} />
+      <DateTime seconds milliseconds date={timestampToUse} />
     </LogDate>
   );
 }

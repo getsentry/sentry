@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import patch
 
 import pytest
@@ -133,6 +134,30 @@ def test_capture_payload_metrics(mock_distribution):
         tags={"taskname": "test.tasks.test_base.region_task"},
         sample_rate=1.0,
     )
+
+
+@override_settings(
+    CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE=True,
+    CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE=1.0,
+)
+@override_options(
+    {
+        "taskworker.test.rollout": {"*": 0.0},
+        "taskworker.route.overrides": {},
+    }
+)
+def test_validate_parameters_call():
+    with pytest.raises(TypeError) as err:
+        region_task.apply_async(args=(datetime.datetime.now(),))
+    assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
+
+    with pytest.raises(TypeError) as err:
+        region_task.delay(datetime.datetime.now())
+    assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
+
+    with pytest.raises(TypeError) as err:
+        region_task(datetime.datetime.now())
+    assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
 
 
 @patch("sentry.taskworker.retry.current_task")

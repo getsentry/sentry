@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
@@ -9,9 +11,9 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
-    DoubleArray,
     ExtrapolationMode,
     Function,
+    IntArray,
     StrArray,
     VirtualColumnContext,
 )
@@ -25,10 +27,12 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils import json
 
 
 class SearchResolverQueryTest(TestCase):
@@ -63,9 +67,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_double=123),
+                value=AttributeValue(val_int=123),
             )
         )
         assert having is None
@@ -111,9 +115,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
+                value=AttributeValue(val_int_array=IntArray(values=[123, 456, 789])),
             )
         )
         assert having is None
@@ -122,9 +126,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:>123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_GREATER_THAN,
-                value=AttributeValue(val_double=123),
+                value=AttributeValue(val_int=123),
             )
         )
         assert having is None
@@ -324,7 +328,7 @@ class SearchResolverQueryTest(TestCase):
                 aggregation=AttributeAggregation(
                     aggregate=Function.FUNCTION_AVG,
                     key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_DOUBLE),
-                    label="avg(tags[foo, number])",
+                    label="avg(tags[foo,number])",
                     extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
                 ),
                 op=AggregationComparisonFilter.OP_GREATER_THAN,
@@ -692,3 +696,12 @@ class SearchResolverColumnTest(TestCase):
 
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
+
+
+def test_loads_deprecated_attrs_json():
+    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
+        deprecated_attrs = json.loads(f.read())["attributes"]
+
+    attribute = deprecated_attrs[0]
+    assert attribute["key"]
+    assert attribute["deprecation"]

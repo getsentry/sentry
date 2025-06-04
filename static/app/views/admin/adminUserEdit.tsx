@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useParams} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -24,6 +23,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -51,7 +51,7 @@ const userEditForm: JsonFormObject = {
     {
       name: 'isActive',
       type: 'boolean',
-      required: true,
+      required: false,
       label: t('Active'),
       help: t(
         'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.'
@@ -60,14 +60,14 @@ const userEditForm: JsonFormObject = {
     {
       name: 'isStaff',
       type: 'boolean',
-      required: true,
+      required: false,
       label: t('Admin'),
       help: t('Designates whether this user can perform administrative functions.'),
     },
     {
       name: 'isSuperuser',
       type: 'boolean',
-      required: true,
+      required: false,
       label: t('Superuser'),
       help: t(
         'Designates whether this user has all permissions without explicitly assigning them.'
