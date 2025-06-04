@@ -48,8 +48,6 @@ interface FeedbackListProps {
     loading: boolean;
     summary: string | null;
   };
-  isHelpful: boolean | null;
-  setIsHelpful: (isHelpful: boolean) => void;
 }
 
 export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
