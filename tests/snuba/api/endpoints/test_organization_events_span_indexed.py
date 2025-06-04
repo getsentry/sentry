@@ -3521,6 +3521,159 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         assert meta["dataset"] == self.dataset
 
+    def test_total_performance_score_missing_vital(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.0},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.02},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.04},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.cls": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.inp": {"value": 0.5},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.cls)",
+                    "performance_score(measurements.score.ttfb)",
+                    "performance_score(measurements.score.fcp)",
+                    "performance_score(measurements.score.inp)",
+                    "performance_score(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.02
+        assert data[0]["performance_score(measurements.score.cls)"] == 0.08
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.0
+        assert data[0]["performance_score(measurements.score.fcp)"] == 0.08
+        assert data[0]["performance_score(measurements.score.inp)"] == 0.5
+        self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.20)
+
+        assert meta["dataset"] == self.dataset
+
+    def test_total_performance_score_multiple_transactions(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.8},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.cls": {"value": 0.7},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.total)",
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.cls)",
+                    "performance_score(measurements.score.fcp)",
+                    "opportunity_score(measurements.score.total)",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.cls)",
+                    "opportunity_score(measurements.score.fcp)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "foo_transaction"
+        self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.8)
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.8
+        assert data[0]["performance_score(measurements.score.cls)"] == 0.0
+        assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
+        self.assertAlmostEqual(
+            data[0]["opportunity_score(measurements.score.total)"], 0.13333333333333333
+        )
+        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], 0.2)
+        assert data[0]["opportunity_score(measurements.score.cls)"] == 0.0
+        assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.0
+        assert data[1]["transaction"] == "bar_transaction"
+        self.assertAlmostEqual(data[1]["performance_score(measurements.score.total)"], 0.7)
+        assert data[1]["performance_score(measurements.score.lcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.cls)"] == 0.7
+        assert data[1]["performance_score(measurements.score.fcp)"] == 0.0
+        self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.1)
+        assert data[1]["opportunity_score(measurements.score.lcp)"] == 0.0
+        self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.cls)"], 0.3)
+        assert data[1]["opportunity_score(measurements.score.fcp)"] == 0.0
+
+        assert meta["dataset"] == self.dataset
+
     def test_division(self):
         self.store_spans(
             [
