@@ -23,7 +23,7 @@ preprod: 0001_emerge_upload_models
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0920_convert_org_saved_searches_to_views_revised
+sentry: 0921_convert_org_saved_searches_to_views_rerevised
 
 social_auth: 0001_squashed_0002_default_auto_field
 
