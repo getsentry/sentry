@@ -1108,7 +1108,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 ? current.value.event_id
                 : current.value.span_id,
               op: current.value.op ?? '',
-              description: current.value.description ?? '',
+              description: current.value.description,
               autogrouped_by: {
                 op: current.value.op ?? '',
                 description: current.value.description ?? '',
