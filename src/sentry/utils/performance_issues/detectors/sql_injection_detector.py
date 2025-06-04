@@ -76,9 +76,9 @@ class SQLInjectionDetector(PerformanceDetector):
         valid_parameters = []
         request_data = []
 
-        if self.query_string:
+        if self.query_string and isinstance(self.query_string, list):
             request_data.extend(self.query_string)
-        if self.request_body:
+        if self.request_body and isinstance(self.request_body, dict):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
