@@ -3321,12 +3321,18 @@ def span_to_trace_item(span) -> TraceItem:
     for k, v in span["measurements"].items():
         attributes[k] = scalar_to_any_value(v["value"])
 
+    if "description" in span:
+        description = scalar_to_any_value(span["description"])
+        attributes["sentry.raw_description"] = description
+        attributes["sentry.normalized_description"] = description
+
     for field in {
         "duration_ms",
         "end_timestamp_precise",
         "event_id",
         "exclusive_time_ms",
         "group_raw",
+        "is_segment",
         "parent_span_id",
         "profile_id",
         "segment_id",
