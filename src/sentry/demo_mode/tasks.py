@@ -226,12 +226,16 @@ def _sync_proguard_artifact_release(
             if not target_project:
                 return
 
+            project_debug_file = ProjectDebugFile.objects.get(
+                project_id=target_project.id,
+                debug_id=source_proguard_artifact_release.project_debug_file.debug_id,
+            )
             ProguardArtifactRelease.objects.create(
                 organization_id=target_org.id,
-                project_id=source_proguard_artifact_release.project_id,
+                project_id=target_project.id,
                 release_name=source_proguard_artifact_release.release_name,
                 proguard_uuid=source_proguard_artifact_release.proguard_uuid,
-                project_debug_file=source_proguard_artifact_release.project_debug_file,  # TODO: this needs to be the project debug file of the target org
+                project_debug_file=project_debug_file,
                 date_added=source_proguard_artifact_release.date_added,
             )
     except IntegrityError as e:
