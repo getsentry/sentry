@@ -441,15 +441,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
     }
-    if (traceStateRef.current.preferences.missing_instrumentation) {
-      TraceTree.DetectMissingInstrumentation(props.tree.root);
-    }
-    if (traceStateRef.current.preferences.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
-    }
-    if (traceStateRef.current.preferences.autogroup.parent) {
-      TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
-    }
+
+    TraceTree.ApplyPreferences(props.tree.root, {
+      preferences: traceStateRef.current.preferences,
+    });
 
     // Construct the visual representation of the tree
     props.tree.build();
