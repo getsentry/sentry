@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import type {ParseResult, TermOperator} from 'sentry/components/searchSyntax/parser';
+import {type ParseResult, TermOperator} from 'sentry/components/searchSyntax/parser';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
 export type FilterKeySection = {
@@ -27,23 +27,19 @@ export type CallbackSearchState = {
 };
 
 /**
- * This is a list of operators that are used in the search query builder. That are only
- * present on the frontend. This is because of the wildcard operators, and the fact that
- * we utilize the underlying '*' character rather than introducing new operators on the
- * backend.
+ * This is a list of wildcard operators that are used in the search query builder.
+ * These are only present on the frontend. This is because we utilize the underlying
+ * '*' character rather than introducing new operators on the backend.
  */
-export enum ExtendedTermOperators {
-  DEFAULT = '',
-  GREATER_THAN_EQUAL = '>=',
-  LESS_THAN_EQUAL = '<=',
-  GREATER_THAN = '>',
-  LESS_THAN = '<',
-  EQUAL = '=',
-  NOT_EQUAL = '!=',
+export enum WildcardOperators {
   CONTAINS = 'contains',
   DOES_NOT_CONTAIN = 'does not contain',
   STARTS_WITH = 'starts with',
   ENDS_WITH = 'ends with',
 }
 
-export type FETermOperators = ExtendedTermOperators | TermOperator;
+export function isTermOperator(op: FETermOperators): op is TermOperator {
+  return op in TermOperator;
+}
+
+export type FETermOperators = TermOperator | WildcardOperators;

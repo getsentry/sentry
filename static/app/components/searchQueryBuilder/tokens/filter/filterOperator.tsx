@@ -17,8 +17,7 @@ import {
   getValidOpsForFilter,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import type {FETermOperators} from 'sentry/components/searchQueryBuilder/types';
-import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
+import {type FETermOperators} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -26,7 +25,7 @@ import {
 import {
   FilterType,
   type ParseResultToken,
-  type TermOperator,
+  TermOperator,
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -52,10 +51,10 @@ function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
       return token.operator;
     case FilterType.RELATIVE_DATE:
       return token.value.sign === '+'
-        ? ExtendedTermOperators.LESS_THAN
-        : ExtendedTermOperators.GREATER_THAN;
+        ? TermOperator.LESS_THAN
+        : TermOperator.GREATER_THAN;
     default:
-      return ExtendedTermOperators.DEFAULT;
+      return TermOperator.DEFAULT;
   }
 }
 
@@ -103,8 +102,7 @@ export function getOperatorInfo(
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
-      options: DATE_OPTIONS.map((op): SelectOption<ExtendedTermOperators> => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      options: DATE_OPTIONS.map((op): SelectOption<FETermOperators> => {
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
         return {
@@ -125,13 +123,13 @@ export function getOperatorInfo(
         <FilterKeyOperatorLabel
           keyValue={token.key.value}
           keyLabel={token.key.text}
-          opLabel={operator === ExtendedTermOperators.NOT_EQUAL ? 'not' : undefined}
+          opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
           includeKeyLabel
         />
       ),
       options: [
         {
-          value: ExtendedTermOperators.DEFAULT,
+          value: TermOperator.DEFAULT,
           label: (
             <FilterKeyOperatorLabel
               keyLabel={token.key.text}
@@ -142,7 +140,7 @@ export function getOperatorInfo(
           textValue: 'is',
         },
         {
-          value: ExtendedTermOperators.NOT_EQUAL,
+          value: TermOperator.NOT_EQUAL,
           label: (
             <FilterKeyOperatorLabel
               keyLabel={token.key.text}
@@ -163,15 +161,13 @@ export function getOperatorInfo(
       label: (
         <FilterKeyOperatorLabel
           keyValue={token.key.value}
-          keyLabel={
-            operator === ExtendedTermOperators.NOT_EQUAL ? 'does not have' : 'has'
-          }
+          keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
           includeKeyLabel
         />
       ),
       options: [
         {
-          value: ExtendedTermOperators.DEFAULT,
+          value: TermOperator.DEFAULT,
           label: (
             <FilterKeyOperatorLabel
               keyLabel="has"
@@ -182,7 +178,7 @@ export function getOperatorInfo(
           textValue: 'has',
         },
         {
-          value: ExtendedTermOperators.NOT_EQUAL,
+          value: TermOperator.NOT_EQUAL,
           label: (
             <FilterKeyOperatorLabel
               keyLabel="does not have"
@@ -202,8 +198,8 @@ export function getOperatorInfo(
     operator,
     label: <OpLabel>{label}</OpLabel>,
     options: getValidOpsForFilter(token, hasWildcardOperators)
-      .filter(op => op !== ExtendedTermOperators.EQUAL)
-      .map((op): SelectOption<ExtendedTermOperators> => {
+      .filter(op => op !== TermOperator.EQUAL)
+      .map((op): SelectOption<FETermOperators> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
         return {
@@ -263,7 +259,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
-          op: option.value as unknown as TermOperator,
+          op: option.value,
         });
       }}
       offset={MENU_OFFSET}

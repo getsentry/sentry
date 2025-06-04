@@ -1,13 +1,17 @@
-import {ExtendedTermOperators} from 'sentry/components/searchQueryBuilder/types';
+import {
+  type FETermOperators,
+  WildcardOperators,
+} from 'sentry/components/searchQueryBuilder/types';
 import {
   type AggregateFilter,
   allOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
+  TermOperator,
   Token,
   type TokenResult,
-  WildcardOperators,
+  WildcardPositions,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -20,35 +24,35 @@ import {
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
 export const OP_LABELS = {
-  [ExtendedTermOperators.DEFAULT]: 'is',
-  [ExtendedTermOperators.GREATER_THAN]: '>',
-  [ExtendedTermOperators.GREATER_THAN_EQUAL]: '>=',
-  [ExtendedTermOperators.LESS_THAN]: '<',
-  [ExtendedTermOperators.LESS_THAN_EQUAL]: '<=',
-  [ExtendedTermOperators.EQUAL]: 'is',
-  [ExtendedTermOperators.NOT_EQUAL]: 'is not',
-  [ExtendedTermOperators.CONTAINS]: 'contains',
-  [ExtendedTermOperators.DOES_NOT_CONTAIN]: 'does not contain',
-  [ExtendedTermOperators.STARTS_WITH]: 'starts with',
-  [ExtendedTermOperators.ENDS_WITH]: 'ends with',
+  [TermOperator.DEFAULT]: 'is',
+  [TermOperator.GREATER_THAN]: '>',
+  [TermOperator.GREATER_THAN_EQUAL]: '>=',
+  [TermOperator.LESS_THAN]: '<',
+  [TermOperator.LESS_THAN_EQUAL]: '<=',
+  [TermOperator.EQUAL]: 'is',
+  [TermOperator.NOT_EQUAL]: 'is not',
+  [WildcardOperators.CONTAINS]: 'contains',
+  [WildcardOperators.DOES_NOT_CONTAIN]: 'does not contain',
+  [WildcardOperators.STARTS_WITH]: 'starts with',
+  [WildcardOperators.ENDS_WITH]: 'ends with',
 };
 
 export const DATE_OP_LABELS = {
-  [ExtendedTermOperators.GREATER_THAN]: 'is after',
-  [ExtendedTermOperators.GREATER_THAN_EQUAL]: 'is on or after',
-  [ExtendedTermOperators.LESS_THAN]: 'is before',
-  [ExtendedTermOperators.LESS_THAN_EQUAL]: 'is on or before',
-  [ExtendedTermOperators.EQUAL]: 'is',
-  [ExtendedTermOperators.DEFAULT]: 'is',
+  [TermOperator.GREATER_THAN]: 'is after',
+  [TermOperator.GREATER_THAN_EQUAL]: 'is on or after',
+  [TermOperator.LESS_THAN]: 'is before',
+  [TermOperator.LESS_THAN_EQUAL]: 'is on or before',
+  [TermOperator.EQUAL]: 'is',
+  [TermOperator.DEFAULT]: 'is',
 };
 
 export const DATE_OPTIONS = [
-  ExtendedTermOperators.GREATER_THAN,
-  ExtendedTermOperators.GREATER_THAN_EQUAL,
-  ExtendedTermOperators.LESS_THAN,
-  ExtendedTermOperators.LESS_THAN_EQUAL,
-  ExtendedTermOperators.EQUAL,
-];
+  TermOperator.GREATER_THAN,
+  TermOperator.GREATER_THAN_EQUAL,
+  TermOperator.LESS_THAN,
+  TermOperator.LESS_THAN_EQUAL,
+  TermOperator.EQUAL,
+] as const;
 
 export function isAggregateFilterToken(
   token: TokenResult<Token.FILTER>
@@ -69,13 +73,11 @@ export function isAggregateFilterToken(
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>,
   hasWildcardOperators: boolean
-): readonly ExtendedTermOperators[] {
+): readonly FETermOperators[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
 
   if (fieldDefinition?.allowComparisonOperators) {
-    const validOps = new Set<ExtendedTermOperators>(
-      allOperators as unknown as ExtendedTermOperators[]
-    );
+    const validOps = new Set<FETermOperators>(allOperators);
 
     return [...validOps];
   }
@@ -93,7 +95,7 @@ export function getValidOpsForFilter(
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
 
   // Find all valid operations
-  const validOps = new Set<ExtendedTermOperators>(
+  const validOps = new Set<FETermOperators>(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
@@ -102,10 +104,10 @@ export function getValidOpsForFilter(
     filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
   // Special case for text, add contains operator
   if (isTextFilter && fieldDefinition?.allowWildcard !== false && hasWildcardOperators) {
-    validOps.add(ExtendedTermOperators.CONTAINS);
-    validOps.add(ExtendedTermOperators.DOES_NOT_CONTAIN);
-    validOps.add(ExtendedTermOperators.STARTS_WITH);
-    validOps.add(ExtendedTermOperators.ENDS_WITH);
+    validOps.add(WildcardOperators.CONTAINS);
+    validOps.add(WildcardOperators.DOES_NOT_CONTAIN);
+    validOps.add(WildcardOperators.STARTS_WITH);
+    validOps.add(WildcardOperators.ENDS_WITH);
   }
 
   return [...validOps];
@@ -195,15 +197,15 @@ export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
 type TokenValue = string | boolean | undefined;
 
 function getIsContains(tokenValue: TokenValue) {
-  return tokenValue === WildcardOperators.SURROUNDED;
+  return tokenValue === WildcardPositions.SURROUNDED;
 }
 
 function getIsStartsWith(tokenValue: TokenValue) {
-  return tokenValue === WildcardOperators.TRAILING;
+  return tokenValue === WildcardPositions.TRAILING;
 }
 
 function getIsEndsWith(tokenValue: TokenValue) {
-  return tokenValue === WildcardOperators.LEADING;
+  return tokenValue === WildcardPositions.LEADING;
 }
 
 export function getLabelAndOperatorFromToken(
@@ -215,22 +217,22 @@ export function getLabelAndOperatorFromToken(
       return {
         label: token.negated ? t('does not contain') : t('contains'),
         operator: token.negated
-          ? ExtendedTermOperators.DOES_NOT_CONTAIN
-          : ExtendedTermOperators.CONTAINS,
+          ? WildcardOperators.DOES_NOT_CONTAIN
+          : WildcardOperators.CONTAINS,
       };
     }
 
     if (getIsStartsWith(token.value.wildcard)) {
       return {
         label: t('starts with'),
-        operator: ExtendedTermOperators.STARTS_WITH,
+        operator: WildcardOperators.STARTS_WITH,
       };
     }
 
     if (getIsEndsWith(token.value.wildcard)) {
       return {
         label: t('ends with'),
-        operator: ExtendedTermOperators.ENDS_WITH,
+        operator: WildcardOperators.ENDS_WITH,
       };
     }
   } else if (token.value.type === Token.VALUE_TEXT_LIST && hasWildcardOperators) {
@@ -238,27 +240,27 @@ export function getLabelAndOperatorFromToken(
       return {
         label: token.negated ? t('does not contain') : t('contains'),
         operator: token.negated
-          ? ExtendedTermOperators.DOES_NOT_CONTAIN
-          : ExtendedTermOperators.CONTAINS,
+          ? WildcardOperators.DOES_NOT_CONTAIN
+          : WildcardOperators.CONTAINS,
       };
     }
 
     if (token.value.items.every(entry => getIsStartsWith(entry.value?.wildcard))) {
       return {
         label: t('starts with'),
-        operator: ExtendedTermOperators.STARTS_WITH,
+        operator: WildcardOperators.STARTS_WITH,
       };
     }
 
     if (token.value.items.every(entry => getIsEndsWith(entry.value?.wildcard))) {
       return {
         label: t('ends with'),
-        operator: ExtendedTermOperators.ENDS_WITH,
+        operator: WildcardOperators.ENDS_WITH,
       };
     }
   }
 
-  const operator = token.negated ? ExtendedTermOperators.NOT_EQUAL : token.operator;
+  const operator = token.negated ? TermOperator.NOT_EQUAL : token.operator;
   const label = OP_LABELS[operator] ?? operator;
 
   return {
