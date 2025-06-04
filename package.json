@@ -104,7 +104,6 @@
     "@types/webpack-env": "1.18.8",
     "ansi-to-react": "^6.1.6",
     "base64-arraybuffer": "^1.0.1",
-    "browserslist": "^4.22.2",
     "buffer": "^6.0.3",
     "cbor2": "^1.12.0",
     "classnames": "2.3.1",
