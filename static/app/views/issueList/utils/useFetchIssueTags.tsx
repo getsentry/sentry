@@ -336,8 +336,8 @@ function builtInIssuesFields({
     [FieldKey.FIRST_RELEASE]: {
       ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
-      values: ['latest'],
-      predefined: true,
+      values: [],
+      predefined: false,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
       ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
