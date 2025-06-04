@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0918_sentry_release_arrayfield"),
+        ("sentry", "0920_convert_org_saved_searches_to_views_revised"),
     ]
 
     operations = [
@@ -49,7 +49,7 @@ class Migration(CheckedMigration):
                     model_name="dashboardfavoriteuser",
                     constraint=models.UniqueConstraint(
                         fields=("user_id", "dashboard"),
-                        name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
+                        name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
                     ),
                 ),
             ],
