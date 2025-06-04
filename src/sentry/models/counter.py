@@ -24,12 +24,6 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 
-CACHED_ID_BLOCK_SIZE = 1000
-"""
-The number of short ids to pre-allocate in Redis.
-"""
-
-
 LOW_WATER_RATIO = 0.2
 """
 If the number of short ids in Redis is less than this ratio, we will refill the block.
@@ -72,20 +66,22 @@ def increment_project_counter_in_cache(project, using="default") -> int:
     with redis.pipeline() as pipe:
         pipe.lpop(redis_key)
         pipe.llen(redis_key)
-        short_id, remaining = pipe.execute()
+        short_id_from_redis, remaining = pipe.execute()
+        short_id_from_redis = int(short_id_from_redis) if short_id_from_redis is not None else None
 
-    if short_id is None:  # fallback if not populated in Redis
+    if short_id_from_redis is None:  # fallback if not populated in Redis
         metrics.incr("counter.increment_project_counter_in_cache.fallback")
-        next_id = increment_project_counter_in_database(project, using=using)
+        short_id_from_db = increment_project_counter_in_database(project, using=using)
         refill_cached_short_ids.delay(project.id, using=using)
-        return next_id
+        return short_id_from_db
     else:
+        cached_id_block_size = calculate_cached_id_block_size(short_id_from_redis)
         metrics.incr("counter.increment_project_counter_in_cache.found_in_redis")
-        if remaining < CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
+        if remaining < cached_id_block_size * LOW_WATER_RATIO:
             metrics.incr("counter.increment_project_counter_in_cache.refill")
             refill_cached_short_ids.delay(project.id, using=using)
 
-        return int(short_id)
+        return short_id_from_redis
 
 
 @sentry_sdk.tracing.trace
@@ -203,26 +199,36 @@ def refill_cached_short_ids(project_id, using="default") -> None:
 
     try:
         with lock.acquire():
+            project = Project.objects.get_from_cache(id=project_id)
+
+            cached_id_block_size = calculate_cached_id_block_size(
+                Counter.objects.get(project=project).value
+            )
+
             # in case the counter was just/already filled, we can return early
-            if redis.llen(redis_key) >= CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO:
+            if redis.llen(redis_key) >= cached_id_block_size * LOW_WATER_RATIO:
                 metrics.incr("counter.refill_cached_short_ids.early_return")
                 return
 
-            project = Project.objects.get_from_cache(id=project_id)
-
-            # We need the transaction to ensure that the redis push is atomic
-            # with the database counter increment,
-            # otherwise we could have duplicates if the counter is incremented between
-            # the database increment and the redis push.
+            # We increment the counter in a transaction and push to redis afterward.
+            # there is a potential race condition where the counter is incremented
+            # between the db transaction end and the redis push,
+            # but that should just result in skipped short ids, which is acceptable.
             with transaction.atomic(using=using):
-                current_value = increment_project_counter_in_database(
-                    project, delta=CACHED_ID_BLOCK_SIZE, using=using
+                # Recalculate the cached_id_block_size in case the counter was incremented
+                # between the start of the task and the transaction start
+                cached_id_block_size = calculate_cached_id_block_size(
+                    Counter.objects.get(project=project).value
                 )
-                # Append the new block of values to Redis in a single operation
-                start = current_value - CACHED_ID_BLOCK_SIZE + 1
-                redis.rpush(redis_key, *range(start, current_value + 1))
-                redis.expire(redis_key, 60 * 60 * 24 * 365)  # 1 year
-                # TODO: should we delete the keys when a project is deleted instead of / in addition expiring?
+                current_value = increment_project_counter_in_database(
+                    project, delta=cached_id_block_size, using=using
+                )
+
+            # Append the new block of values to Redis in a single operation
+            start = current_value - cached_id_block_size + 1
+            redis.rpush(redis_key, *range(start, current_value + 1))
+            redis.expire(redis_key, 60 * 60 * 24 * 365)  # 1 year
+            # TODO: should we delete the keys when a project is deleted instead of / in addition expiring?
     except UnableToAcquireLock:
         metrics.incr("counter.refill_cached_short_ids.lock_contention")
         return
@@ -230,3 +236,14 @@ def refill_cached_short_ids(project_id, using="default") -> None:
 
 def make_short_id_counter_key(project_id: int) -> str:
     return f"pc:{project_id}"
+
+
+def calculate_cached_id_block_size(counter_value: int) -> int:
+    """
+    to save memory in our cache, if a project's counter is less than 1000,
+    we will pre-allocate 100 short ids, and if greater 1000.
+    """
+    if counter_value < 1000:
+        return 100
+    else:
+        return 1000

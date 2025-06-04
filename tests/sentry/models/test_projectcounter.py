@@ -8,9 +8,9 @@ from django.test import override_settings
 from sentry import options
 from sentry.locks import locks
 from sentry.models.counter import (
-    CACHED_ID_BLOCK_SIZE,
     LOW_WATER_RATIO,
     Counter,
+    calculate_cached_id_block_size,
     increment_project_counter_in_cache,
     refill_cached_short_ids,
 )
@@ -198,20 +198,20 @@ def test_refill_cached_short_ids(default_project, redis_mock):
     # Configure redis_mock to return an integer for llen
     redis_mock.llen.return_value = 0
 
-    with patch("sentry.models.counter.locks.get", return_value=lock_mock):
-        # Mock the database increment
-        with patch(
-            "sentry.models.counter.increment_project_counter_in_database", return_value=1000
-        ):
-            refill_cached_short_ids(default_project.id)
+    with (
+        patch("sentry.models.counter.locks.get", return_value=lock_mock),
+        patch("sentry.models.counter.increment_project_counter_in_database", return_value=100),
+        patch("sentry.models.counter.Counter.objects.get", return_value=MagicMock(value=0)),
+    ):
+        refill_cached_short_ids(default_project.id)
 
-            # Should have pushed BLOCK values to Redis
-            redis_mock.rpush.assert_called_once()
-            args = redis_mock.rpush.call_args[0]
-            assert len(args) == CACHED_ID_BLOCK_SIZE + 1  # +1 for the redis_key
-            assert args[0] == f"pc:{default_project.id}"
-            # Convert tuple to list for comparison
-            assert list(args[1:]) == list(range(1, CACHED_ID_BLOCK_SIZE + 1))
+        # Should have pushed BLOCK values to Redis
+        redis_mock.rpush.assert_called_once()
+        args = redis_mock.rpush.call_args[0]
+        assert len(args) == calculate_cached_id_block_size(1) + 1  # +1 for the redis_key
+        assert args[0] == f"pc:{default_project.id}"
+        # Convert tuple to list for comparison
+        assert list(args[1:]) == list(range(1, calculate_cached_id_block_size(1) + 1))
 
 
 @django_db_all
@@ -237,7 +237,7 @@ def test_low_water_mark_trigger(default_project, redis_mock):
         with patch.object(redis_mock, "pipeline", return_value=pipeline_mock):
             pipeline_mock.execute.return_value = [
                 "42",
-                int(CACHED_ID_BLOCK_SIZE * LOW_WATER_RATIO) - 1,
+                calculate_cached_id_block_size(42) * LOW_WATER_RATIO - 1,
             ]
             with patch("sentry.models.counter.refill_cached_short_ids.delay") as mock_refill:
                 result = increment_project_counter_in_cache(default_project, using="default")
@@ -278,17 +278,21 @@ def test_preallocation_end_to_end(default_project):
         # see that the next counter value is 2 (incremented by 1)
         assert current_value == 2
         # see that the database was incremented by CACHED_ID_BLOCK_SIZE
-        assert Counter.objects.get(project_id=default_project.id).value == 2 + CACHED_ID_BLOCK_SIZE
+        assert Counter.objects.get(
+            project_id=default_project.id
+        ).value == 2 + calculate_cached_id_block_size(2)
         # See that the redis key was populated with CACHED_ID_BLOCK_SIZE values
         redis_key = f"pc:{default_project.id}"
         redis = redis_clusters.get("default")
-        assert redis.llen(redis_key) == CACHED_ID_BLOCK_SIZE
+        assert redis.llen(redis_key) == calculate_cached_id_block_size(2)
         assert Counter.increment(default_project) == 3
-        assert redis.llen(redis_key) == CACHED_ID_BLOCK_SIZE - 1
+        assert redis.llen(redis_key) == calculate_cached_id_block_size(2) - 1
         assert redis.lpop(redis_key) == "4"
 
         # see the the database value is still the same since we didn't refill
-        assert Counter.objects.get(project_id=default_project.id).value == 2 + CACHED_ID_BLOCK_SIZE
+        assert Counter.objects.get(
+            project_id=default_project.id
+        ).value == 2 + calculate_cached_id_block_size(2)
 
 
 @django_db_all
@@ -300,18 +304,25 @@ def test_preallocation_early_return(default_project):
         with TaskRunner():
             current_value = Counter.increment(default_project)
         assert current_value == 2
-        assert (
-            Counter.objects.get(project_id=default_project.id).value
-            == current_value + CACHED_ID_BLOCK_SIZE
-        )
+        assert Counter.objects.get(
+            project_id=default_project.id
+        ).value == current_value + calculate_cached_id_block_size(2)
         redis_key = f"pc:{default_project.id}"
         redis = redis_clusters.get("default")
-        assert redis.llen(redis_key) == CACHED_ID_BLOCK_SIZE
+        assert redis.llen(redis_key) == calculate_cached_id_block_size(2)
 
         # Directly call refill_cached_short_ids - should do nothing since we have enough values
         refill_cached_short_ids(default_project.id)
-        assert (
-            Counter.objects.get(project_id=default_project.id).value
-            == current_value + CACHED_ID_BLOCK_SIZE
+        assert Counter.objects.get(
+            project_id=default_project.id
+        ).value == current_value + calculate_cached_id_block_size(
+            2
         )  # Value hasn't changed
-        assert redis.llen(redis_key) == CACHED_ID_BLOCK_SIZE  # Redis values haven't changed
+        assert redis.llen(redis_key) == calculate_cached_id_block_size(
+            2
+        )  # Redis values haven't changed
+
+
+def test_calculate_cached_id_block_size():
+    assert calculate_cached_id_block_size(1) == 100
+    assert calculate_cached_id_block_size(1000) == 1000
