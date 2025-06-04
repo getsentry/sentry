@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import pytest
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic, Value
@@ -8,7 +7,6 @@ from arroyo.types import Message, Partition, Topic, Value
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
 
-@pytest.mark.django_db
 def test_basic(monkeypatch):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
