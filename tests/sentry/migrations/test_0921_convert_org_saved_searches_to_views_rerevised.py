@@ -46,6 +46,8 @@ class ConvertOrgSavedSearchesToViewsTest(TestMigrations):
 
     def test_convert_org_saved_searches_to_views(self):
         assert GroupSearchView.objects.count() == 2
-        org_view = GroupSearchView.objects.get(organization=self.org, user_id=self.user.id)
+        org_view = GroupSearchView.objects.get(
+            organization=self.org, user_id=self.user.id, name="Org Saved Search"
+        )
 
         assert org_view.query == self.org_saved_search.query
