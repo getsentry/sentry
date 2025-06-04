@@ -479,7 +479,7 @@ def _get_workflow_name(apps: Apps, alert_rule: Any) -> str:
     return name
 
 
-def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, alert_rule_workflow: Any) -> None:
+def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, workflow: Any) -> None:
     AlertRuleTriggerAction = apps.get_model("sentry", "AlertRuleTriggerAction")
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
     DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
@@ -511,7 +511,7 @@ def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, alert_rule_workflo
     )
     WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group,
-        workflow=alert_rule_workflow.workflow,
+        workflow=workflow,
     )
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
@@ -830,7 +830,7 @@ def migrate_anomaly_detection_alerts(apps: Apps, schema_editor: BaseDatabaseSche
                         AlertRuleDetector.objects.create(
                             alert_rule_id=alert_rule.id, detector=detector
                         )
-                        alert_rule_workflow = AlertRuleWorkflow.objects.create(
+                        AlertRuleWorkflow.objects.create(
                             alert_rule_id=alert_rule.id, workflow=workflow
                         )
                         DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
@@ -840,7 +840,7 @@ def migrate_anomaly_detection_alerts(apps: Apps, schema_editor: BaseDatabaseSche
                         for trigger in triggers:
                             # anomaly detection alerts only have critical triggers
                             # migrates the trigger and its associated actions
-                            _migrate_trigger(apps, trigger, detector, alert_rule_workflow)
+                            _migrate_trigger(apps, trigger, detector, workflow)
 
                         logger.info(
                             "Successfully migrated alert rule",
