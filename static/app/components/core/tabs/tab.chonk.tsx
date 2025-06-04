@@ -22,7 +22,7 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
   }
 
   &[aria-disabled] {
-    opacity: 0.6;
+    opacity: ${p => (p.overflowing ? 0 : 0.6)};
     cursor: default;
   }
 
