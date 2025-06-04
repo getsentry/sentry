@@ -23,7 +23,7 @@ export function AddUploadToken({step}: AddUploadTokenProps) {
   // this value is only used when showing token details
   const [showFullToken, setShowFullToken] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
-  const headerText = tct(`Step [step]: add token as [repositorySecret]`, {
+  const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
     step,
     // TODO: replace with actual link
     repositorySecret: (
