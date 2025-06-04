@@ -207,15 +207,7 @@ function DeviceClassBreakdownBarChart({
   return (
     <ChartContainer height={chartHeight}>
       <Widget
-        Title={
-          <Widget.WidgetTitle
-            title={
-              startType === COLD_START_TYPE
-                ? t('Cold Start Device Distribution')
-                : t('Warm Start Device Distribution')
-            }
-          />
-        }
+        Title={Title}
         Visualization={Visualization}
         Actions={
           <Widget.WidgetToolbar>
