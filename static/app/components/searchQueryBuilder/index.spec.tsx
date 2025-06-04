@@ -3643,7 +3643,7 @@ describe('SearchQueryBuilder', function () {
       const input = screen.getByPlaceholderText('bar');
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
-      // await userEvent.keyboard('bar');
+      await userEvent.keyboard('bar');
       expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
     });
   });
