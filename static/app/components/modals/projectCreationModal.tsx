@@ -160,9 +160,9 @@ export default function ProjectCreationModal({
             alertSetting={
               alertRuleConfig?.shouldCreateCustomRule
                 ? RuleAction.CUSTOMIZED_ALERTS
-                : alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
+                : alertRuleConfig?.shouldCreateRule === false
+                  ? RuleAction.CREATE_ALERT_LATER
+                  : RuleAction.DEFAULT_ALERT
             }
             interval={alertRuleConfig?.conditions?.[0]?.interval}
             threshold={alertRuleConfig?.conditions?.[0]?.value}
