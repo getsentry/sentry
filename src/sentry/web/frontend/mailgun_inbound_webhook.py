@@ -38,14 +38,14 @@ class MailgunInboundWebhookView(View):
         return super().dispatch(*args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        if request.content_type == 'application/json':
+        if request.content_type == "application/json":
             # Log warning about unexpected content type
             return HttpResponse("Unsupported Media Type", status=415)
-            
+
         token = request.POST.get("token")
         signature = request.POST.get("signature")
         timestamp = request.POST.get("timestamp")
-        
+
         if not all([token, signature, timestamp]):
             # Log warning about missing parameters
             return HttpResponse("Missing required security parameters", status=400)
