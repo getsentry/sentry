@@ -70,6 +70,7 @@ const config: KnipConfig = {
     '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
+    '@types/webpack-env', // needed to make require.context work
   ],
   rules: {
     binaries: 'off',
