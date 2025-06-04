@@ -122,7 +122,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 now = int(time.time()) + current_drift.value
                 flushed_segments = buffer.flush_segments(now=now, max_segments=max_flush_segments)
 
-                if len(flushed_segments) >= max_flush_segments * len(buffer.assigned_shards):
+                # Check backpressure flag set by buffer
+                if buffer.any_shard_at_limit:
                     if backpressure_since.value == 0:
                         backpressure_since.value = int(time.time())
                 else:

@@ -157,6 +157,7 @@ class SpansBuffer:
         self.max_segment_spans = max_segment_spans
         self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
+        self.any_shard_at_limit = False
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -365,10 +366,14 @@ class SpansBuffer:
 
         return_segments = {}
         num_has_root_spans = 0
+        any_shard_at_limit = False
 
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
+
+            if max_segments > 0 and len(segment) >= max_segments:
+                any_shard_at_limit = True
 
             output_spans = []
             has_root_span = False
@@ -411,6 +416,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
+        self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
     def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
