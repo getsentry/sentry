@@ -52,7 +52,7 @@ function useOverflowTabs({
 
     const options = {
       root: tabListRef.current,
-      // Nagative right margin to account for overflow menu's trigger button
+      // Negative right margin to account for overflow menu's trigger button
       rootMargin: `0px -42px 1px ${space(1)}`,
       // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
       // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
@@ -84,17 +84,16 @@ function useOverflowTabs({
     return () => observer.disconnect();
   }, [tabListRef, tabItemsRef, disabled]);
 
-  const tabItemKeyToHiddenMap = tabItems.reduce(
+  const tabItemKeyToHiddenMap = tabItems.reduce<Record<string | number, boolean>>(
     (acc, next) => ({
       ...acc,
-      [next.key]: next.hidden,
+      [next.key]: !!next.hidden,
     }),
     {}
   );
 
   // Tabs that are hidden will be rendered with display: none so won't intersect,
   // but we don't want to show them in the overflow menu
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
