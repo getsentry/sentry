@@ -32,7 +32,7 @@ const testingEntryPoints = [
 
 const storyBookEntryPoints = [
   // our storybook implementation is here
-  'static/app/stories/storyBook.tsx',
+  'static/app/stories/storybook.tsx',
 ];
 
 const config: KnipConfig = {
