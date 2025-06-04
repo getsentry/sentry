@@ -47,7 +47,7 @@ const WaitingNotice = styled('div')`
   align-items: center;
   gap: ${space(0.25)} ${space(0.5)};
   margin-top: ${space(2)};
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.pink400};
 `;
 
 const WaitingHelpText = styled('small')`
