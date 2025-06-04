@@ -61,14 +61,6 @@ def github_comment_reactions():
 
         # Add check for GitHub provider before proceeding
         if repo.provider not in ("github", "integrations:github"):
-            logger.info(
-                "pr_comment.comment_reactions.skip_non_github",
-                extra={
-                    "organization_id": pr.organization_id,
-                    "repository_id": repo.id,
-                    "provider": repo.provider,
-                },
-            )
             metrics.incr("pr_comment.comment_reactions.skipped_non_github")
             continue
 
