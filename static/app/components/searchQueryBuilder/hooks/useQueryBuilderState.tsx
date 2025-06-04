@@ -113,6 +113,7 @@ type UpdateAggregateArgsAction = {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
+  focusOverride?: FocusOverride;
 };
 
 export type QueryBuilderActions =
@@ -472,11 +473,14 @@ function updateAggregateArgs(
   }
 ): QueryBuilderState {
   const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
+  const focusOverride =
+    action.focusOverride === undefined ? state.focusOverride : action.focusOverride;
 
   if (!fieldDefinition?.parameterDependentValueType) {
     return {
       ...state,
       query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
     };
   }
 
@@ -489,6 +493,7 @@ function updateAggregateArgs(
     return {
       ...state,
       query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
     };
   }
 
@@ -500,6 +505,7 @@ function updateAggregateArgs(
       {token: getArgsToken(action.token), replacement: action.value},
       {token: action.token.value, replacement: newValue},
     ]),
+    focusOverride,
   };
 }
 

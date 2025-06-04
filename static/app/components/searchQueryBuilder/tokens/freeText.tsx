@@ -36,6 +36,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -129,12 +130,19 @@ function countPreviousItemsOfType({
   }, 0);
 }
 
-function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusOverride {
+function calculateNextFocusForFilter(
+  state: ListState<ParseResultToken>,
+  definition: FieldDefinition | null
+): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
+  const part =
+    definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
+      ? 'key'
+      : 'value';
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
-    part: 'value',
+    part,
   };
 }
 
@@ -432,7 +440,7 @@ function SearchQueryBuilderInputInternal({
               value,
               getFieldDefinition
             ),
-            focusOverride: calculateNextFocusForFilter(state),
+            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -527,7 +535,10 @@ function SearchQueryBuilderInputInternal({
                     filterValue,
                     getFieldDefinition
                   ),
-                  focusOverride: calculateNextFocusForFilter(state),
+                  focusOverride: calculateNextFocusForFilter(
+                    state,
+                    getFieldDefinition(filterValue)
+                  ),
                   shouldCommitQuery: false,
                 });
                 resetInputValue();
@@ -564,7 +575,10 @@ function SearchQueryBuilderInputInternal({
                 filterKey,
                 getFieldDefinition
               ),
-              focusOverride: calculateNextFocusForFilter(state),
+              focusOverride: calculateNextFocusForFilter(
+                state,
+                getFieldDefinition(filterKey)
+              ),
               shouldCommitQuery: false,
             });
             resetInputValue();
