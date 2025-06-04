@@ -8,20 +8,41 @@ import {
 import AgeComparisonNode, {
   AgeComparisonDetails,
 } from 'sentry/views/automations/components/actionFilters/ageComparison';
-import {AssignedToNode} from 'sentry/views/automations/components/actionFilters/assignedTo';
+import {
+  AssignedToDetails,
+  AssignedToNode,
+} from 'sentry/views/automations/components/actionFilters/assignedTo';
 import EventAttributeNode, {
   EventAttributeDetails,
 } from 'sentry/views/automations/components/actionFilters/eventAttribute';
-import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
-import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
-import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+import EventFrequencyNode, {
+  EventFrequencyCountDetails,
+  EventFrequencyPercentDetails,
+} from 'sentry/views/automations/components/actionFilters/eventFrequency';
+import EventUniqueUserFrequencyNode, {
+  EventUniqueUserFrequencyCountDetails,
+  EventUniqueUserFrequencyPercentDetails,
+} from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
+import IssueOccurrencesNode, {
+  IssueOccurrencesDetails,
+} from 'sentry/views/automations/components/actionFilters/issueOccurrences';
 import IssuePriorityNode, {
   IssuePriorityDetails,
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
-import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
-import LevelNode from 'sentry/views/automations/components/actionFilters/level';
-import PercentSessionsNode from 'sentry/views/automations/components/actionFilters/percentSessions';
-import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
+import LatestAdoptedReleaseNode, {
+  LatestAdoptedReleaseDetails,
+} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
+import {LatestReleaseNode} from 'sentry/views/automations/components/actionFilters/latestRelease';
+import LevelNode, {
+  LevelDetails,
+} from 'sentry/views/automations/components/actionFilters/level';
+import PercentSessionsNode, {
+  PercentSessionsCountDetails,
+  PercentSessionsPercentDetails,
+} from 'sentry/views/automations/components/actionFilters/percentSessions';
+import TaggedEventNode, {
+  TaggedEventDetails,
+} from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
   condition: DataCondition;
@@ -94,6 +115,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue assignment'),
       dataCondition: <AssignedToNode />,
+      details: AssignedToDetails,
     },
   ],
   [
@@ -101,6 +123,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue frequency'),
       dataCondition: <IssueOccurrencesNode />,
+      details: IssueOccurrencesDetails,
     },
   ],
   [
@@ -116,13 +139,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Release age'),
       dataCondition: <LatestAdoptedReleaseNode />,
+      details: LatestAdoptedReleaseDetails,
     },
   ],
   [
     DataConditionType.LATEST_RELEASE,
     {
       label: t('Latest release'),
-      dataCondition: t('The issue is from the latest release'),
+      dataCondition: <LatestReleaseNode />,
+      details: LatestReleaseNode,
     },
   ],
   [
@@ -138,6 +163,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Tagged event'),
       dataCondition: <TaggedEventNode />,
+      details: TaggedEventDetails,
     },
   ],
   [
@@ -145,6 +171,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Event level'),
       dataCondition: <LevelNode />,
+      details: LevelDetails,
     },
   ],
   [
@@ -159,6 +186,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Number of events'),
       dataCondition: <EventFrequencyNode />,
+      details: EventFrequencyCountDetails,
     },
   ],
   [
@@ -166,6 +194,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Number of events'),
       dataCondition: <EventFrequencyNode />,
+      details: EventFrequencyPercentDetails,
     },
   ],
   [
@@ -180,6 +209,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Number of users affected'),
       dataCondition: <EventUniqueUserFrequencyNode />,
+      details: EventUniqueUserFrequencyCountDetails,
     },
   ],
   [
@@ -187,6 +217,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Number of users affected'),
       dataCondition: <EventUniqueUserFrequencyNode />,
+      details: EventUniqueUserFrequencyPercentDetails,
     },
   ],
   [
@@ -201,6 +232,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Percentage of sessions affected'),
       dataCondition: <PercentSessionsNode />,
+      details: PercentSessionsCountDetails,
     },
   ],
   [
@@ -208,6 +240,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Percentage of sessions affected'),
       dataCondition: <PercentSessionsNode />,
+      details: PercentSessionsPercentDetails,
     },
   ],
 ]);

@@ -1,6 +1,7 @@
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {t, tct} from 'sentry/locale';
 import type {Environment} from 'sentry/types/project';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -10,6 +11,23 @@ import {
   type ModelAge,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+
+export function LatestAdoptedReleaseDetails({condition}: {condition: DataCondition}) {
+  return tct(
+    "The [releaseAgeType] adopted release associated with the event's issue is [ageComparison] the latest adopted release in [environment]",
+    {
+      releaseAgeType:
+        MODEL_AGE_CHOICES.find(
+          choice => choice.value === condition.comparison.release_age_type
+        )?.label || condition.comparison.release_age_type,
+      ageComparison:
+        AGE_COMPARISON_CHOICES.find(
+          choice => choice.value === condition.comparison.age_comparison
+        )?.label || condition.comparison.age_comparison,
+      environment: condition.comparison.environment,
+    }
+  );
+}
 
 export default function LatestAdoptedReleaseNode() {
   return tct(

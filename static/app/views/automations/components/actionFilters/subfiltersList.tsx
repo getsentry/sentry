@@ -8,7 +8,7 @@ import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRo
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -255,6 +255,30 @@ function ValueField() {
   );
 }
 
+export function SubfilterDetailsList({
+  subfilters,
+}: {
+  subfilters: Array<Record<string, any>>;
+}) {
+  return (
+    <DetailsListWrapper>
+      {subfilters.map((subfilter, index) => (
+        <div key={index}>
+          <SubfilterDetails subfilter={subfilter} />
+        </div>
+      ))}
+    </DetailsListWrapper>
+  );
+}
+
+function SubfilterDetails({subfilter}: {subfilter: Record<string, any>}) {
+  return tct('[item] [match] [value]', {
+    item: subfilter.attribute ?? subfilter.key,
+    match: subfilter.match === MatchType.EQUAL ? t('is') : t('is not'),
+    value: subfilter.value,
+  });
+}
+
 const RowWrapper = styled('div')`
   display: flex;
   align-items: center;
@@ -277,4 +301,11 @@ const StyledRowLine = styled(RowLine)`
       opacity: 1;
     }
   }
+`;
+
+const DetailsListWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  padding: ${space(1)} 0 0 ${space(2)};
 `;
