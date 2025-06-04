@@ -17,6 +17,7 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {
   TimeSeriesWidgetVisualization,
@@ -33,8 +34,8 @@ import {
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {CreateAlertButton} from 'sentry/views/insights/common/components/createAlertButton';
-import {OpenInExploreButton} from 'sentry/views/insights/common/components/openInExploreButton';
+import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
+import {ChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -51,6 +52,7 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  extraPlottables?: Plottable[];
   groupBy?: SpanFields[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
@@ -82,10 +84,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const hasChartActionsEnabled =
     organization.features.includes('insights-chart-actions') && useEap;
   const yAxes = new Set<string>();
-
-  const visualizationProps: TimeSeriesWidgetVisualizationProps = {
-    showLegend: props.showLegend,
-    plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
+  const plottables = [
+    ...(props.series.filter(Boolean) ?? []).map(serie => {
       const timeSeries = markDelayedData(
         convertSeriesToTimeseries(serie),
         INGESTION_DELAY
@@ -106,6 +106,12 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         alias: props.aliases?.[timeSeries.yAxis],
       });
     }),
+    ...(props.extraPlottables ?? []),
+  ];
+
+  const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    showLegend: props.showLegend,
+    plottables,
   };
 
   if (props.samples) {
@@ -190,16 +196,14 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <Widget.WidgetDescription description={props.description} />
             )}
             {hasChartActionsEnabled && (
-              <OpenInExploreButton
+              <ChartActionDropdown
                 chartType={chartType}
                 yAxes={yAxisArray}
                 groupBy={props.groupBy}
                 title={props.title}
                 search={props.search}
+                aliases={props.aliases}
               />
-            )}
-            {hasChartActionsEnabled && (
-              <CreateAlertButton yAxis={yAxisArray[0]} search={props.search} />
             )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
@@ -247,12 +251,6 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'avg(span.duration)': colors[2],
   };
 };
-
-const ChartContainer = styled('div')<{height?: string | number}>`
-  min-height: 220px;
-  height: ${p =>
-    p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
-`;
 
 const ModalChartContainer = styled('div')`
   height: 360px;

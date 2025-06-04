@@ -257,7 +257,7 @@ export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
 }
 
 const Wrapper = styled(Input.withComponent('div'))`
-  min-height: 38px;
+  min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;
   width: 100%;

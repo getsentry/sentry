@@ -1,5 +1,5 @@
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {WildcardPositions} from 'sentry/components/searchSyntax/parser';
 
 describe('parseMultiSelectValue', function () {
   it('single value', function () {
@@ -140,7 +140,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(1);
       expect(result!.items[0]!.value?.value).toBe('*a*');
       expect(result!.items[0]!.value?.text).toBe('*a*');
-      expect(result!.items[0]!.value?.wildcard).toBe(WildcardOperators.SURROUNDED);
+      expect(result!.items[0]!.value?.wildcard).toBe(WildcardPositions.SURROUNDED);
     });
 
     it('multiple value', function () {
@@ -151,11 +151,11 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(3);
       expect(result?.items[0]!.value?.value).toBe('*a*');
       expect(result?.items[0]!.value?.text).toBe('*a*');
-      expect(result?.items[0]!.value?.wildcard).toBe(WildcardOperators.SURROUNDED);
+      expect(result?.items[0]!.value?.wildcard).toBe(WildcardPositions.SURROUNDED);
 
       expect(result?.items[1]!.value?.value).toBe('*b*');
       expect(result?.items[1]!.value?.text).toBe('*b*');
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.SURROUNDED);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.SURROUNDED);
 
       expect(result?.items[2]!.value?.value).toBe('c');
       expect(result?.items[2]!.value?.text).toBe('c');
@@ -173,7 +173,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[1]!.value?.value).toBe('*b*');
       expect(result?.items[1]!.value?.text).toBe('"*b*"');
       expect(result?.items[1]!.value?.quoted).toBe(true);
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.SURROUNDED);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.SURROUNDED);
 
       expect(result!.items[2]!.value?.value).toBe('c');
     });
@@ -188,7 +188,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[0]!.value?.value).toBe('a');
       expect(result?.items[1]!.value?.value).toBe('*b c*');
       expect(result?.items[1]!.value?.text).toBe('*b c*');
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.SURROUNDED);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.SURROUNDED);
 
       expect(result?.items[2]!.value?.value).toBe('d');
     });
@@ -202,7 +202,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(1);
       expect(result!.items[0]!.value?.value).toBe('a*');
       expect(result!.items[0]!.value?.text).toBe('a*');
-      expect(result!.items[0]!.value?.wildcard).toBe(WildcardOperators.TRAILING);
+      expect(result!.items[0]!.value?.wildcard).toBe(WildcardPositions.TRAILING);
     });
 
     it('multiple value', function () {
@@ -213,11 +213,11 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(3);
       expect(result?.items[0]!.value?.value).toBe('a*');
       expect(result?.items[0]!.value?.text).toBe('a*');
-      expect(result?.items[0]!.value?.wildcard).toBe(WildcardOperators.TRAILING);
+      expect(result?.items[0]!.value?.wildcard).toBe(WildcardPositions.TRAILING);
 
       expect(result?.items[1]!.value?.value).toBe('b*');
       expect(result?.items[1]!.value?.text).toBe('b*');
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.TRAILING);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.TRAILING);
 
       expect(result?.items[2]!.value?.value).toBe('c');
       expect(result?.items[2]!.value?.text).toBe('c');
@@ -235,7 +235,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[1]!.value?.value).toBe('b*');
       expect(result?.items[1]!.value?.text).toBe('"b*"');
       expect(result?.items[1]!.value?.quoted).toBe(true);
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.TRAILING);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.TRAILING);
 
       expect(result!.items[2]!.value?.value).toBe('c');
     });
@@ -250,7 +250,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[0]!.value?.value).toBe('a');
       expect(result?.items[1]!.value?.value).toBe('b c*');
       expect(result?.items[1]!.value?.text).toBe('b c*');
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.TRAILING);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.TRAILING);
 
       expect(result?.items[2]!.value?.value).toBe('d');
     });
@@ -264,7 +264,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(1);
       expect(result!.items[0]!.value?.value).toBe('*a');
       expect(result!.items[0]!.value?.text).toBe('*a');
-      expect(result!.items[0]!.value?.wildcard).toBe(WildcardOperators.LEADING);
+      expect(result!.items[0]!.value?.wildcard).toBe(WildcardPositions.LEADING);
     });
 
     it('multiple value', function () {
@@ -275,11 +275,11 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(3);
       expect(result?.items[0]!.value?.value).toBe('*a');
       expect(result?.items[0]!.value?.text).toBe('*a');
-      expect(result?.items[0]!.value?.wildcard).toBe(WildcardOperators.LEADING);
+      expect(result?.items[0]!.value?.wildcard).toBe(WildcardPositions.LEADING);
 
       expect(result?.items[1]!.value?.value).toBe('*b');
       expect(result?.items[1]!.value?.text).toBe('*b');
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.LEADING);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.LEADING);
 
       expect(result?.items[2]!.value?.value).toBe('c');
       expect(result?.items[2]!.value?.text).toBe('c');
@@ -297,7 +297,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[1]!.value?.value).toBe('*b');
       expect(result?.items[1]!.value?.text).toBe('"*b"');
       expect(result?.items[1]!.value?.quoted).toBe(true);
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.LEADING);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.LEADING);
 
       expect(result!.items[2]!.value?.value).toBe('c');
     });
@@ -312,7 +312,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[0]!.value?.value).toBe('a');
       expect(result?.items[1]!.value?.value).toBe('*b c');
       expect(result?.items[1]!.value?.text).toBe('*b c');
-      expect(result?.items[1]!.value?.wildcard).toBe(WildcardOperators.LEADING);
+      expect(result?.items[1]!.value?.wildcard).toBe(WildcardPositions.LEADING);
 
       expect(result?.items[2]!.value?.value).toBe('d');
     });

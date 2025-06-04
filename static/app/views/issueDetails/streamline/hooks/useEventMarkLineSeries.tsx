@@ -12,7 +12,7 @@ interface UseEventMarklineSeriesProps {
   event: Event | undefined;
   /**
    * The event series is used to place the mark line on the nearest bar
-   * This is to ensure the mark line is always visisble.
+   * This is to ensure the mark line is always visible.
    */
   eventSeries: Array<{name: number; value: number}>;
   group: Group;
