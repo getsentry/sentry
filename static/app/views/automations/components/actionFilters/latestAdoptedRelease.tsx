@@ -29,7 +29,7 @@ export function LatestAdoptedReleaseDetails({condition}: {condition: DataConditi
   );
 }
 
-export default function LatestAdoptedReleaseNode() {
+export function LatestAdoptedReleaseNode() {
   return tct(
     "The [releaseAgeType] adopted release associated with the event's issue is [ageComparison] the latest adopted release in [environment]",
     {

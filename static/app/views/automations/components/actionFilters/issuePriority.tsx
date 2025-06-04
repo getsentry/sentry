@@ -15,7 +15,7 @@ export function IssuePriorityDetails({condition}: {condition: DataCondition}) {
   });
 }
 
-export default function IssuePriorityNode() {
+export function IssuePriorityNode() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return tct('Current issue priority is [level]', {
     level: (

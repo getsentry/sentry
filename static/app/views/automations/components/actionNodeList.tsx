@@ -134,8 +134,8 @@ function Node() {
   const {action} = useActionNodeContext();
   const node = actionNodesMap.get(action.type);
 
-  const component = node?.action;
-  return component ? component : node?.label;
+  const Component = node?.action;
+  return Component ? <Component /> : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

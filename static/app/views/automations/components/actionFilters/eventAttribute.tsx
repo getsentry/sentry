@@ -19,7 +19,7 @@ export function EventAttributeDetails({condition}: {condition: DataCondition}) {
   });
 }
 
-export default function EventAttributeNode() {
+export function EventAttributeNode() {
   return tct("The event's [attribute] [match] [value]", {
     attribute: <AttributeField />,
     match: <MatchField />,

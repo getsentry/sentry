@@ -18,7 +18,7 @@ export function TaggedEventDetails({condition}: {condition: DataCondition}) {
   });
 }
 
-export default function TaggedEventNode() {
+export function TaggedEventNode() {
   return tct("The event's [key] [match] [value]", {
     key: <KeyField />,
     match: <MatchField />,
