@@ -1,4 +1,4 @@
-import {css, type Theme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -11,16 +11,17 @@ import type {
   Orientation,
 } from '@react-types/shared';
 
-import {
-  chonkInnerWrapStyles,
-  ChonkStyledFocusLayer,
-  ChonkStyledTabWrap,
-} from 'sentry/components/core/tabs/tab.chonk';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
-import {withChonk} from 'sentry/utils/theme/withChonk';
+import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 
+import {
+  chonkInnerWrapStyles,
+  ChonkStyledFocusLayer,
+  ChonkStyledTabSelectionIndicator,
+  ChonkStyledTabWrap,
+} from './tab.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 interface TabProps extends AriaTabProps {
@@ -98,6 +99,7 @@ function BaseTab({
   variant = 'flat',
   as = 'li',
 }: BaseTabProps) {
+  const theme = useTheme();
   if (variant === 'floating') {
     return (
       <FloatingTabWrap
@@ -124,10 +126,12 @@ function BaseTab({
       as={as}
     >
       <InnerWrap to={to} orientation={orientation} disabled={disabled}>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
-        />
+        {!theme.isChonk && (
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+        )}
         <FocusLayer orientation={orientation} />
         {children}
         <TabSelectionIndicator orientation={orientation} selected={isSelected} />
@@ -226,6 +230,7 @@ const TabWrap = withChonk(
     &[aria-disabled],
     &[aria-disabled]:hover {
       color: ${p => p.theme.subText};
+      pointer-events: none;
       cursor: default;
     }
 
@@ -268,7 +273,10 @@ const innerWrapStyles = ({
 `;
 
 const TabLink = styled(Link)<{orientation: Orientation}>`
-  ${p => (p.theme.isChonk ? innerWrapStyles(p) : chonkInnerWrapStyles(p as any))}
+  ${p =>
+    isChonkTheme(p.theme)
+      ? chonkInnerWrapStyles({orientation: p.orientation, theme: p.theme})
+      : innerWrapStyles(p)}
 
   &,
   &:hover {
@@ -277,7 +285,10 @@ const TabLink = styled(Link)<{orientation: Orientation}>`
 `;
 
 const TabInnerWrap = styled('span')<{orientation: Orientation}>`
-  ${p => (p.theme.isChonk ? innerWrapStyles(p) : chonkInnerWrapStyles(p as any))}
+  ${p =>
+    isChonkTheme(p.theme)
+      ? chonkInnerWrapStyles({orientation: p.orientation, theme: p.theme})
+      : innerWrapStyles(p)}
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
@@ -345,36 +356,39 @@ const VariantFocusLayer = styled('div')`
   }
 `;
 
-const TabSelectionIndicator = styled('div')<{
-  orientation: Orientation;
-  selected: boolean;
-}>`
-  position: absolute;
-  border-radius: 2px;
-  pointer-events: none;
-  background: ${p => (p.selected ? p.theme.active : 'transparent')};
-  transition: background 0.1s ease-out;
+const TabSelectionIndicator = withChonk(
+  styled('div')<{
+    orientation: Orientation;
+    selected: boolean;
+  }>`
+    position: absolute;
+    border-radius: 2px;
+    pointer-events: none;
+    background: ${p => (p.selected ? p.theme.active : 'transparent')};
+    transition: background 0.1s ease-out;
 
-  li[aria-disabled='true'] & {
-    background: ${p => (p.selected ? p.theme.subText : 'transparent')};
-  }
+    li[aria-disabled='true'] & {
+      background: ${p => (p.selected ? p.theme.subText : 'transparent')};
+    }
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? css`
-          width: calc(100% - ${space(2)});
-          height: 3px;
+    ${p =>
+      p.orientation === 'horizontal'
+        ? css`
+            width: calc(100% - ${space(2)});
+            height: 3px;
 
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-        `
-      : css`
-          width: 3px;
-          height: 50%;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          `
+        : css`
+            width: 3px;
+            height: 50%;
 
-          left: 0;
-          top: 50%;
-          transform: translateY(-50%);
-        `};
-`;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+          `};
+  `,
+  ChonkStyledTabSelectionIndicator
+);
