@@ -36,7 +36,6 @@ class FrameInfo:
             not frame_file_path
             or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") != NOT_FOUND
-            or self.normalized_path.find("/") == NOT_FOUND
         ):
             raise UnsupportedFrameInfo("This path is not supported.")
 

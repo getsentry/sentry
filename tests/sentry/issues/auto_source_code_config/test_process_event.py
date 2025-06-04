@@ -301,6 +301,30 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         assert len(all_cm) == 1
         assert all_cm[0].automatically_generated is False
 
+    def test_single_file_path(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
+        )
+
+    def test_single_file_path_multiple_matches_same_repo(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py", "foo/bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[],
+        )
+
+    def test_single_file_path_multiple_matches_different_repos(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"], REPO2: ["foo/bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[],
+        )
+
     def test_dry_run_platform(self) -> None:
         frame_filename = "foo/bar.py"
         file_in_repo = "src/foo/bar.py"
