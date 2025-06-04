@@ -53,22 +53,22 @@ class QueryInjectionDetector(PerformanceDetector):
             return
 
         description = span.get("description", None) or ""
-        description_dict = json.loads(description)
+        # description_dict = json.loads(description)
         op = span.get("op", None) or ""
         spans_involved = [span["span_id"]]
 
         unsafe_inputs = []
-        for input_key, input_value in self.potential_unsafe_inputs:
+        for input_pair in self.potential_unsafe_inputs:
+            input_key, input_value = input_pair
             # Replace all value in pair with "?" since the query string is parameterized
             if isinstance(input_value, dict):
                 for dict_key, dict_value in input_value.items():
                     if not isinstance(dict_value, dict):
                         input_value[dict_key] = "?"
 
-            # This is specific to MongoDB queries right now
-            filters = description_dict.get("filter", {})
-            if input_key in filters and input_value == filters[input_key]:
-                description = description.replace(json.dumps(input_value).replace(" ", ""), "?")
+            input_dict = {input_key: input_value}
+            if json.dumps(input_dict) in description:
+                description = description.replace(json.dumps(input_value), "?")
                 unsafe_inputs.append(input_key)
 
         if len(unsafe_inputs) == 0:
