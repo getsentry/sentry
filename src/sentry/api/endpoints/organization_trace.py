@@ -16,7 +16,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import (
     handle_query_errors,
-    reformat_timestamp_ms_to_isoformat,
     update_snuba_params_with_timestamp,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -114,7 +113,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             )
         elif event.get("event_type") == "error":
             timestamp = (
-                reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
+                event["timestamp_ms"]
                 if "timestamp_ms" in event and event["timestamp_ms"] is not None
                 else event["timestamp"]
             )
