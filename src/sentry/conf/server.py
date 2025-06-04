@@ -2406,7 +2406,7 @@ SENTRY_USE_PROFILING = False
 SENTRY_USE_SPANS = False
 
 # This flag activates spans consumer in the sentry backend in development environment
-SENTRY_USE_SPANS_BUFFER = False
+SENTRY_USE_SPANS_BUFFER = True
 
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
