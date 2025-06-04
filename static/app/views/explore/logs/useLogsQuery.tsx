@@ -471,6 +471,7 @@ export function useInfiniteLogsQuery({
     hasPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
+    lastPageLength: data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0,
   };
 }
 
