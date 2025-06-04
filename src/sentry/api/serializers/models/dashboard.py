@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
@@ -209,6 +211,7 @@ class _Widget(TypedDict):
 class DashboardListSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
+        prefetch_related_objects(item_list, "projects")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by(
             "order"
@@ -262,6 +265,7 @@ class DashboardListSerializer(Serializer):
         for dashboard in item_dict.values():
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
+            result[dashboard]["projects"] = list(dashboard.projects.values_list("id", flat=True))
 
         return result
 
@@ -275,7 +279,7 @@ class DashboardListSerializer(Serializer):
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": attrs.get("permissions", None),
             "isFavorited": attrs.get("is_favorited", False),
-            "projects": list(obj.projects.values_list("id", flat=True)),
+            "projects": attrs.get("projects", []),
         }
 
 

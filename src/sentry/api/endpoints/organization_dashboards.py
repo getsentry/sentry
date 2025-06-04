@@ -117,8 +117,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             dashboards = Dashboard.objects.filter(organization_id=organization.id)
 
-        dashboards = dashboards.prefetch_related("projects")
-
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
