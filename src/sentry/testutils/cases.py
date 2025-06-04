@@ -3312,8 +3312,9 @@ def scalar_to_any_value(value: Any) -> AnyValue:
 def span_to_trace_item(span) -> TraceItem:
     attributes = {}
 
-    for k, v in span.get("tags", {}).items():
-        attributes[k] = scalar_to_any_value(v)
+    for field in {"tags", "data"}:
+        for k, v in span.get(field, {}).items():
+            attributes[k] = scalar_to_any_value(v)
 
     for k, v in span.get("sentry_tags", {}).items():
         if k == "description":
