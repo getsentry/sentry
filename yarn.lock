@@ -3889,24 +3889,6 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.2.tgz#821f8442f4175d8f0467b9daf26e3a18e2d02af2"
   integrity sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==
 
-"@spotlightjs/overlay@2.0.0-alpha.1":
-  version "2.0.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-2.0.0-alpha.1.tgz#ccf8af298f05f07db54475aee5d633e3f7b4790c"
-  integrity sha512-BJM8l9mJ6obTX/3xw1Erj9Pk/eVOP8oUtb3PoNjwQfnOrio7J8wlWjSETES22EslVPFI1kpl2UMtB+s91Ic8zQ==
-
-"@spotlightjs/sidecar@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.4.0.tgz#8cbd7b620e718723a9507c5b7975d7d379685cdd"
-  integrity sha512-onj/phrNtDI8a79zc8jfxJ5BITQk5klO4xSoQXxiYeQWTZcegVeO8VftOVfWPBnMY/axnh+ltxJm/cHaV5SP6Q==
-
-"@spotlightjs/spotlight@^2.0.0-alpha.1":
-  version "2.0.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-2.0.0-alpha.1.tgz#942b1ca78723ac5d20f2006e71abe4862ae9b29a"
-  integrity sha512-d5AorTG9HDmyaFy1RBbYrw8UwxFWT9IU4itJRcnEgp/JdwarOmDAF9w0TsBocKtoCsYtspSaXaN0AxTZqS22iA==
-  dependencies:
-    "@spotlightjs/overlay" "2.0.0-alpha.1"
-    "@spotlightjs/sidecar" "1.4.0"
-
 "@styled/typescript-styled-plugin@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@styled/typescript-styled-plugin/-/typescript-styled-plugin-1.0.1.tgz#b341e97c2d043275a2fe292cf55980339219b7e1"

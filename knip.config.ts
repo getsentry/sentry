@@ -61,7 +61,6 @@ const config: KnipConfig = {
   },
   ignoreDependencies: [
     'core-js',
-    '@spotlightjs/spotlight', // todo not sure why we need this
     '@babel/runtime', // used implicitly alongside @babel/plugin-transform-runtime
     'tsconfig-paths', // passed as cli arg to benchmarking
     'eslint-import-resolver-typescript', // used in eslint config
