@@ -80,12 +80,14 @@ class SQLInjectionDetector(PerformanceDetector):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
-            query_value = query_pair[1].upper()
-            query_key = query_pair[0].upper()
+            query_value = query_pair[1]
+            query_key = query_pair[0]
 
+            if not isinstance(query_value, str):
+                continue
             if query_key == query_value:
                 continue
-            if query_value in SQL_KEYWORDS:
+            if query_value.upper() in SQL_KEYWORDS:
                 continue
             valid_parameters.append(query_pair)
 
