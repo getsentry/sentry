@@ -452,9 +452,9 @@ export function CreateProject() {
             alertSetting={
               formData.alertRuleConfig?.shouldCreateCustomRule
                 ? RuleAction.CUSTOMIZED_ALERTS
-                : formData.alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
+                : formData.alertRuleConfig?.shouldCreateRule === false
+                  ? RuleAction.CREATE_ALERT_LATER
+                  : RuleAction.DEFAULT_ALERT
             }
             interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
             threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
