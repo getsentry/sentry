@@ -17,7 +17,7 @@ def get_metric_name(metric_name: str) -> str:
     return f"{METRIC_PREFIX}{metric_name}"
 
 
-def metric_incr(
+def metrics_incr(
     metric_name: str,
     value: int = 1,
     tags: MetricTags | None = None,

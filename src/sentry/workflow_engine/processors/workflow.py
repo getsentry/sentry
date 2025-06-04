@@ -22,6 +22,7 @@ from sentry.workflow_engine.processors.action import filter_recently_fired_actio
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.utils import metrics_incr
 
 logger = logging.getLogger(__name__)
 
@@ -228,8 +229,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     )
 
     if workflows:
-        metrics.incr(
-            "workflow_engine.process_workflows",
+        metrics_incr(
+            "process_workflows",
             len(workflows),
             tags={"detector_type": detector.type},
         )
@@ -251,8 +252,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         triggered_workflows = evaluate_workflow_triggers(workflows, event_data)
 
         if triggered_workflows:
-            metrics.incr(
-                "workflow_engine.process_workflows.triggered_workflows",
+            metrics_incr(
+                "process_workflows.triggered_workflows",
                 len(triggered_workflows),
                 tags={"detector_type": detector.type},
             )
@@ -272,10 +273,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
         actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
-        metrics.incr(
-            "workflow_engine.process_workflows.actions",
-            amount=len(actions),
-            tags={"detector_type": detector.type},
+        metrics_incr(
+            "process_workflows.actions", len(actions), tags={"detector_type": detector.type}
         )
 
         logger.info(
@@ -297,21 +296,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             for action in actions:
                 action.trigger(event_data, detector)
 
-        metrics.incr(
-            "workflow_engine.process_workflows.triggered_actions",
-            amount=len(actions),
-            tags={"detector_type": detector.type},
-        )
-        logger.info(
-            "workflow_engine.process_workflows.triggered_actions (batch)",
-            extra={
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
-                "workflow_ids": [workflow.id for workflow in triggered_workflows],
-                "action_ids": [action.id for action in actions],
-                "detector_type": detector.type,
-            },
-        )
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
     if len(actions) > 0:
         metrics.incr(
