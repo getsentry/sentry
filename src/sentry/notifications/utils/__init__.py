@@ -322,13 +322,13 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 
 def get_replay_id(event: Event | GroupEvent) -> str | None:
     replay_id_from_data: str | None = None
-    if event.data:  # Add check for event.data
+    if event.data:
         contexts = event.data.get("contexts")
-        if isinstance(contexts, dict):  # Add check for contexts
+        if isinstance(contexts, dict):
             replay_info = contexts.get("replay")
-            if isinstance(replay_info, dict):  # Add check for replay_info
+            if isinstance(replay_info, dict):
                 replay_id_val = replay_info.get("replay_id")
-                if isinstance(replay_id_val, str):  # Add type check for replay_id
+                if isinstance(replay_id_val, str):
                     replay_id_from_data = replay_id_val
 
     if (
