@@ -109,12 +109,30 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  if (attributeObject['ai.toolCall.name']) {
+  const toolName = getAttribute(attributeObject, 'ai.toolCall.name');
+  if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
-      value: attributeObject['ai.toolCall.name'],
+      value: toolName,
     });
   }
+
+  const toolArgs = getAttribute(attributeObject, 'ai.toolCall.args');
+  if (toolArgs) {
+    highlightedAttributes.push({
+      name: t('Arguments'),
+      value: toolArgs,
+    });
+  }
+
+  const toolResult = getAttribute(attributeObject, 'ai.toolCall.result');
+  if (toolResult) {
+    highlightedAttributes.push({
+      name: t('Result'),
+      value: toolResult,
+    });
+  }
+
   return highlightedAttributes;
 }
 
