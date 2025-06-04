@@ -40,7 +40,7 @@ export function PercentSessionsPercentDetails({condition}: {condition: DataCondi
   );
 }
 
-export default function PercentSessionsNode() {
+export function PercentSessionsNode() {
   return tct('Percentage of sessions affected by an issue is [select]', {
     select: <ComparisonTypeField />,
   });

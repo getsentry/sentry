@@ -1,4 +1,5 @@
-import React, {createContext, useContext} from 'react';
+import type React from 'react';
+import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -13,6 +14,7 @@ import {JiraServerNode} from 'sentry/views/automations/components/actions/jiraSe
 import {MSTeamsNode} from 'sentry/views/automations/components/actions/msTeams';
 import {OpsgenieNode} from 'sentry/views/automations/components/actions/opsgenie';
 import {PagerdutyNode} from 'sentry/views/automations/components/actions/pagerduty';
+import {PluginNode} from 'sentry/views/automations/components/actions/plugin';
 import {SentryAppNode} from 'sentry/views/automations/components/actions/sentryApp';
 import {SlackNode} from 'sentry/views/automations/components/actions/slack';
 import {WebhookNode} from 'sentry/views/automations/components/actions/webhook';
@@ -35,65 +37,65 @@ export function useActionNodeContext(): ActionNodeProps {
 }
 
 type ActionNode = {
-  action: React.ReactNode;
+  action: React.ComponentType<any>;
   details?: React.ComponentType<any>;
   label?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
-  [ActionType.AZURE_DEVOPS, {label: t('Azure DevOps'), action: <AzureDevOpsNode />}],
-  [ActionType.EMAIL, {label: t('Notify on preferred channel'), action: <EmailNode />}],
+  [ActionType.AZURE_DEVOPS, {label: t('Azure DevOps'), action: AzureDevOpsNode}],
+  [ActionType.EMAIL, {label: t('Notify on preferred channel'), action: EmailNode}],
   [
     ActionType.DISCORD,
     {
       label: t('Discord'),
-      action: <DiscordNode />,
+      action: DiscordNode,
     },
   ],
-  [ActionType.GITHUB, {label: t('Github'), action: <GithubNode />}],
+  [ActionType.GITHUB, {label: t('Github'), action: GithubNode}],
   [
     ActionType.GITHUB_ENTERPRISE,
-    {label: t('Github Enterprise'), action: <GithubEnterpriseNode />},
+    {label: t('Github Enterprise'), action: GithubEnterpriseNode},
   ],
-  [ActionType.JIRA, {label: t('Jira'), action: <JiraNode />}],
-  [ActionType.JIRA_SERVER, {label: t('Jira Server'), action: <JiraServerNode />}],
+  [ActionType.JIRA, {label: t('Jira'), action: JiraNode}],
+  [ActionType.JIRA_SERVER, {label: t('Jira Server'), action: JiraServerNode}],
   [
     ActionType.MSTEAMS,
     {
       label: t('MS Teams'),
-      action: <MSTeamsNode />,
+      action: MSTeamsNode,
     },
   ],
-  [ActionType.OPSGENIE, {label: t('Opsgenie'), action: <OpsgenieNode />}],
+  [ActionType.OPSGENIE, {label: t('Opsgenie'), action: OpsgenieNode}],
   [
     ActionType.PAGERDUTY,
     {
       label: t('Pagerduty'),
-      action: <PagerdutyNode />,
+      action: PagerdutyNode,
     },
   ],
   [
     ActionType.PLUGIN,
     {
       label: t('Legacy integrations'),
-      action: t('Send a notification (for all legacy integrations)'),
+      action: PluginNode,
     },
   ],
   [
     ActionType.SENTRY_APP,
     {
-      action: <SentryAppNode />,
+      action: SentryAppNode,
     },
   ],
   [
     ActionType.SLACK,
     {
       label: t('Slack'),
-      action: <SlackNode />,
+      action: SlackNode,
     },
   ],
   [
     ActionType.WEBHOOK,
-    {label: t('Send a notification via an integration'), action: <WebhookNode />},
+    {label: t('Send a notification via an integration'), action: WebhookNode},
   ],
 ]);

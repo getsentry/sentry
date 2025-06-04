@@ -62,7 +62,7 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
   );
 }
 
-export default function EventFrequencyNode() {
+export function EventFrequencyNode() {
   const {condition} = useDataConditionNodeContext();
   const hasSubfilters = condition.comparison.filters?.length > 0;
 
