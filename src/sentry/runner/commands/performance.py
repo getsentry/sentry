@@ -9,7 +9,6 @@ from django.template.defaultfilters import pluralize
 
 from sentry.runner.decorators import configuration
 from sentry.utils import json
-from sentry.utils.performance_issues.base import PerformanceDetector
 
 
 @click.group()
@@ -22,7 +21,10 @@ def performance() -> None:
 @performance.command()
 @click.argument("path", type=click.Path(exists=True, path_type=str, file_okay=True, dir_okay=True))
 @click.option(
-    "-d", "--detector", "detector_class", help="Limit detection to only one detector class"
+    "-d",
+    "--detector",
+    "detector_class",
+    help="Limit detection to only one detector class. Pass in the detector class name, i.e. NPlusOneAPICallsDetector ",
 )
 @click.option("-v", "--verbose", count=True)
 @configuration
@@ -33,6 +35,7 @@ def detect(path: str, detector_class: str | None, verbose: int) -> None:
     path to a JSON event data file or directory containing JSON event data files or folders of JSON event data files.
     """
     from sentry.utils.performance_issues import performance_detection
+    from sentry.utils.performance_issues.base import PerformanceDetector
 
     if detector_class:
         detector_classes = [performance_detection.__dict__[detector_class]]
