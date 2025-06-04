@@ -18,12 +18,14 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
-import {ChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
+import {
+  ChartContainer,
+  ModalChartContainer,
+} from 'sentry/views/insights/common/components/insightsChartContainer';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import type {MetricsProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
