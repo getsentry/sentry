@@ -240,7 +240,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
       ).toHaveTextContent('SELECT * FROM books');
       expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
-        'db.sql.active_record - SELECT * FROM books WHERE id = %s'
+        'SELECT * FROM books WHERE id = %s'
       );
 
       expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
