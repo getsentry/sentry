@@ -86,13 +86,14 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
-export const DetailsWrapper = styled('div')`
+export const DetailsWrapper = styled('tr')`
   align-items: center;
   background-color: ${p => p.theme.gray100};
   padding: ${space(1)} ${space(1)};
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
+  display: grid;
   border-top: 1px solid ${p => p.theme.border};
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${2 /* place above the grid resizing lines */};
