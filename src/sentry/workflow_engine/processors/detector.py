@@ -15,15 +15,34 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+def get_detector_by_event(event_data: WorkflowEventData) -> Detector | None:
     evt = event_data.event
     issue_occurrence = evt.occurrence
 
-    if issue_occurrence is None:
-        # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
-        detector = Detector.objects.get(project_id=evt.project_id, type=evt.group.issue_type.slug)
-    else:
-        detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
+    try:
+        if issue_occurrence is None:
+            # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
+            detector = Detector.objects.get(
+                project_id=evt.project_id, type=evt.group.issue_type.slug
+            )
+        else:
+            detector = Detector.objects.get(
+                id=issue_occurrence.evidence_data.get("detector_id", None)
+            )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.process_workflows.error")
+        evt = event_data.event
+        detector_id = evt.occurrence.evidence_data.get("detector_id") if evt.occurrence else None
+
+        logger.exception(
+            "Detector not found for event",
+            extra={
+                "event_id": evt.event_id,
+                "group_id": evt.group_id,
+                "detector_id": detector_id,
+            },
+        )
+        return None
 
     return detector
 

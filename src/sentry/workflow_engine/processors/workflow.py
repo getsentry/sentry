@@ -98,6 +98,7 @@ def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
 ) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
+    detector = get_detector_by_event(event_data)
 
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
@@ -112,6 +113,26 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+
+    metrics_incr(
+        "process_workflows.triggered_workflows",
+        len(triggered_workflows),
+        tags={"detector_type": detector.type},
+    )
+    environment = get_environment_from_event(event_data)
+    if environment is None:
+        return set()
+
+    logger.info(
+        "workflow_engine.process_workflows.triggered_workflows",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "event_data": asdict(event_data),
+            "event_environment_id": environment.id,
+            "triggered_workflows": [workflow.id for workflow in triggered_workflows],
+        },
+    )
 
     return triggered_workflows
 
@@ -181,32 +202,7 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_actions(filtered_action_groups, event_data)
 
 
-def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
-    """
-    This method will get the detector based on the event, and then gather the associated workflows.
-    Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
-    the workflow will be added to a unique list of triggered workflows.
-
-    Finally, each of the triggered workflows will have their actions evaluated and executed.
-    """
-    # Check to see if the GroupEvent has an issue occurrence
-    try:
-        detector = get_detector_by_event(event_data)
-    except Detector.DoesNotExist:
-        metrics.incr("workflow_engine.process_workflows.error")
-        evt = event_data.event
-        detector_id = evt.occurrence.evidence_data.get("detector_id") if evt.occurrence else None
-
-        logger.exception(
-            "Detector not found for event",
-            extra={
-                "event_id": evt.event_id,
-                "group_id": evt.group_id,
-                "detector_id": detector_id,
-            },
-        )
-        return set()
-
+def get_environment_from_event(event_data: WorkflowEventData) -> Environment | None:
     try:
         environment = event_data.event.get_environment()
     except Environment.DoesNotExist:
@@ -214,12 +210,18 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.exception(
             "Missing environment for event", extra={"event_id": event_data.event.event_id}
         )
+
+        return None
+
+    return environment
+
+
+def get_workflows_by_detector(detector: Detector, event_data: WorkflowEventData) -> set[Workflow]:
+    # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
+    environment = get_environment_from_event(event_data)
+    if environment is None:
         return set()
 
-    # TODO: remove fetching org, only used for feature flag checks
-    organization = detector.project.organization
-
-    # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
         Workflow.objects.filter(
             (Q(environment_id=None) | Q(environment_id=environment.id)),
@@ -228,46 +230,46 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         ).distinct()
     )
 
-    if workflows:
-        metrics_incr(
-            "process_workflows",
-            len(workflows),
-            tags={"detector_type": detector.type},
-        )
+    metrics_incr(
+        "process_workflows",
+        len(workflows),
+        tags={"detector_type": detector.type},
+    )
 
-        logger.info(
-            "workflow_engine.process_workflows",
-            extra={
-                "payload": event_data,
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
-                "event_environment_id": environment.id,
-                "workflows": [workflow.id for workflow in workflows],
-                "detector_type": detector.type,
-                "detector_id": detector.id,
-            },
-        )
+    logger.info(
+        "workflow_engine.process_workflows",
+        extra={
+            "payload": event_data,
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "event_environment_id": environment.id,
+            "workflows": [workflow.id for workflow in workflows],
+            "detector_type": detector.type,
+            "detector_id": detector.id,
+        },
+    )
+
+    return workflows
+
+
+def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
+    """
+    This method will get the detector based on the event, and then gather the associated workflows.
+    Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
+    the workflow will be added to a unique list of triggered workflows.
+
+    Finally, each of the triggered workflows will have their actions evaluated and executed.
+    """
+    detector = get_detector_by_event(event_data)
+    if detector is None:
+        return set()
+
+    # TODO: remove fetching org, only used for feature flag checks
+    organization = detector.project.organization
+    workflows = get_workflows_by_detector(detector, event_data)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.evaluate_workflow_triggers"):
         triggered_workflows = evaluate_workflow_triggers(workflows, event_data)
-
-        if triggered_workflows:
-            metrics_incr(
-                "process_workflows.triggered_workflows",
-                len(triggered_workflows),
-                tags={"detector_type": detector.type},
-            )
-
-            logger.info(
-                "workflow_engine.process_workflows.triggered_workflows",
-                extra={
-                    "group_id": event_data.event.group_id,
-                    "event_id": event_data.event.event_id,
-                    "event_data": asdict(event_data),
-                    "event_environment_id": environment.id,
-                    "triggered_workflows": [workflow.id for workflow in triggered_workflows],
-                },
-            )
 
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
