@@ -22,7 +22,6 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
   }
 
   &[aria-disabled] {
-    color: ${p => p.theme.tokens.component.link.muted.default};
     opacity: 0.6;
     cursor: default;
   }
@@ -103,10 +102,10 @@ export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
   position: absolute;
   border-radius: 1px;
   pointer-events: none;
-  background: ${p => (p.selected ? p.theme.active : 'transparent')};
+  background: ${p => (p.selected ? p.theme.colors.blue400 : 'transparent')};
 
-  li[aria-disabled='true'] & {
-    background: ${p => (p.selected ? p.theme.subText : 'transparent')};
+  li[aria-disabled] & {
+    opacity: 0.6;
   }
 
   ${p =>

@@ -88,7 +88,7 @@ export default Storybook.story('Tabs', story => {
   ));
 
   story('Controlled Value', () => {
-    const [selected, setSelected] = useState('two');
+    const [selected, setSelected] = useState('four');
     return (
       <Fragment>
         <p>
@@ -107,7 +107,9 @@ export default Storybook.story('Tabs', story => {
           <Tabs value={selected} onChange={setSelected}>
             <TabList>
               {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                <TabList.Item key={tab.key} disabled={tab.disabled}>
+                  {tab.label}
+                </TabList.Item>
               ))}
             </TabList>
             <TabPanels>
