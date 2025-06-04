@@ -4,29 +4,29 @@ import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 // AI Runs - equivalent to OTEL Invoke Agent span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
-const AI_RUN_OPS = [
+export const AI_RUN_OPS = [
   'ai.run.generateText',
   'ai.run.generateObject',
   'gen_ai.invoke_agent',
 ];
-const AI_RUN_DESCRIPTIONS = ['ai.generateText', 'generateText'];
+export const AI_RUN_DESCRIPTIONS = ['ai.generateText', 'generateText'];
 
 // AI Generations - equivalent to OTEL Inference span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#inference
-const AI_GENERATION_OPS = [
+export const AI_GENERATION_OPS = [
   'ai.run.doGenerate',
   'gen_ai.chat',
   'gen_ai.generate_content',
   'gen_ai.text_completion',
 ];
-const AI_GENERATION_DESCRIPTIONS = [
+export const AI_GENERATION_DESCRIPTIONS = [
   'ai.generateText.doGenerate',
   'generateText.doGenerate',
 ];
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool', 'ai.toolCall'];
+export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool', 'ai.toolCall'];
 
 const AI_OPS = [...AI_RUN_OPS, ...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS];
 const AI_DESCRIPTIONS = [...AI_RUN_DESCRIPTIONS, ...AI_GENERATION_DESCRIPTIONS];
@@ -60,6 +60,38 @@ export function getIsAiSpan({
     return AI_OPS.includes(op);
   }
   return AI_DESCRIPTIONS.includes(description ?? '');
+}
+
+// TODO: Remove once tool spans have their own op
+export function mapMissingSpanOp({
+  op = 'default',
+  description,
+}: {
+  description?: string;
+  op?: string;
+}) {
+  if (op !== 'default') {
+    return op;
+  }
+
+  if (description === 'ai.toolCall') {
+    return 'ai.toolCall';
+  }
+
+  return op;
+}
+
+export function getIsAiSpanLoose({op, description}: {description?: string; op?: string}) {
+  if (description?.startsWith('ai') || description?.startsWith('gen_ai')) {
+    return true;
+  }
+  if (op?.startsWith('ai') || op?.startsWith('gen_ai')) {
+    return true;
+  }
+  if (op === 'http.client') {
+    return true;
+  }
+  return false;
 }
 
 export const getAgentRunsFilter = () => {

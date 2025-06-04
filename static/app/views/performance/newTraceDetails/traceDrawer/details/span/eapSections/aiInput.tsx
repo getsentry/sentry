@@ -18,25 +18,25 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-function renderUserMessage(content: any) {
+export function renderUserMessage(content: any) {
   return content
     .filter((part: any) => part.type === 'text')
     .map((part: any) => part.text)
     .join('\n');
 }
 
-function renderAssistantMessage(content: any) {
+export function renderAssistantMessage(content: any) {
   return content
     .filter((part: any) => part.type === 'text')
     .map((part: any) => part.text)
     .join('\n');
 }
 
-function renderToolMessage(content: any) {
+export function renderToolMessage(content: any) {
   return <StructuredData value={content} maxDefaultDepth={2} withAnnotatedText />;
 }
 
-function parseAIMessages(messages: string) {
+export function parseAIMessages(messages: string) {
   try {
     const array: any[] = JSON.parse(messages);
 
@@ -83,7 +83,7 @@ function parseAIMessages(messages: string) {
   }
 }
 
-function transformInputMessages(inputMessages: string) {
+export function transformInputMessages(inputMessages: string) {
   try {
     const json = JSON.parse(inputMessages);
     const result = [];
@@ -148,6 +148,42 @@ export function AIInputSection({
     promptMessages = transformInputMessages(inputMessages);
   }
 
+  const aiInput = defined(promptMessages) && parseAIMessages(promptMessages as string);
+
+  if (!aiInput) {
+    return null;
+  }
+
+  return (
+    <FoldSection
+      sectionKey={SectionKey.AI_INPUT}
+      title={t('Input')}
+      disableCollapsePersistence
+    >
+      {/* If parsing fails, we'll just show the raw string */}
+      {typeof aiInput === 'string' ? (
+        <TraceDrawerComponents.MultilineText>
+          {aiInput}
+        </TraceDrawerComponents.MultilineText>
+      ) : (
+        <Fragment>
+          {aiInput.map((message, index) => (
+            <Fragment key={index}>
+              <TraceDrawerComponents.MultilineTextLabel>
+                {roleHeadings[message.role]}
+              </TraceDrawerComponents.MultilineTextLabel>
+              <TraceDrawerComponents.MultilineText>
+                {message.content}
+              </TraceDrawerComponents.MultilineText>
+            </Fragment>
+          ))}
+        </Fragment>
+      )}
+    </FoldSection>
+  );
+}
+
+export function AIInputSectionSimple({promptMessages}: {promptMessages: string}) {
   const aiInput = defined(promptMessages) && parseAIMessages(promptMessages as string);
 
   if (!aiInput) {

@@ -83,3 +83,48 @@ export function AIOutputSection({
     </FoldSection>
   );
 }
+
+export function AIOutputSectionSimple({
+  responseText,
+  toolCalls,
+}: {
+  responseText: string;
+  toolCalls: string;
+}) {
+  if (!responseText && !toolCalls) {
+    return null;
+  }
+
+  return (
+    <FoldSection
+      sectionKey={SectionKey.AI_OUTPUT}
+      title={t('Output')}
+      disableCollapsePersistence
+    >
+      {responseText && (
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Response')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <TraceDrawerComponents.MultilineText>
+            {responseText}
+          </TraceDrawerComponents.MultilineText>
+        </Fragment>
+      )}
+      {toolCalls && (
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Tool Calls')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <TraceDrawerComponents.MultilineText>
+            <StructuredData
+              value={tryParseJson(toolCalls)}
+              maxDefaultDepth={2}
+              withAnnotatedText
+            />
+          </TraceDrawerComponents.MultilineText>
+        </Fragment>
+      )}
+    </FoldSection>
+  );
+}
