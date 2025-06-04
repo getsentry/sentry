@@ -36,13 +36,13 @@ class SerializedEvent(TypedDict):
     event_type: str
     project_id: int
     project_slug: str
-    start_timestamp: datetime
     transaction: str
 
 
 class SerializedIssue(SerializedEvent):
     issue_id: int
     level: str
+    start_timestamp: float
     end_timestamp: NotRequired[datetime]
 
 
@@ -58,6 +58,7 @@ class SerializedSpan(SerializedEvent):
     profile_id: str
     profiler_id: str
     sdk_name: str
+    start_timestamp: datetime
     is_transaction: bool
     transaction_id: str
 
@@ -110,9 +111,9 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             )
         elif event.get("event_type") == "error":
             timestamp = (
-                datetime.datetime.fromisoformat(event["timestamp_ms"]).timestamp()
+                datetime.fromisoformat(event["timestamp_ms"]).timestamp()
                 if "timestamp_ms" in event and event["timestamp_ms"] is not None
-                else event["timestamp"]
+                else datetime.fromisoformat(event["timestamp"]).timestamp()
             )
 
             return SerializedIssue(
