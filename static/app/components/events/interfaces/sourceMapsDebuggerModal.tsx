@@ -12,6 +12,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
@@ -738,12 +739,14 @@ export function SourceMapsDebuggerModal({
                   <UploadedSourceFileWithCorrectDebugIdChecklistItem
                     shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
                     sourceResolutionResults={sourceResolutionResults}
+                    projectSlug={project?.slug}
                   />
                   <UploadedSourceMapWithCorrectDebugIdChecklistItem
                     shouldValidate={
                       sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
                     }
                     sourceResolutionResults={sourceResolutionResults}
+                    projectSlug={project?.slug}
                   />
                 </CheckList>
                 {sourceResolutionResults.debugIdProgressPercent === 1 ? (
@@ -1255,12 +1258,58 @@ function HasDebugIdChecklistItem({
   );
 }
 
+function DebugIdMismatchMessage({
+  debugId,
+  projectSlug,
+}: {
+  debugId: string | null;
+  projectSlug?: string;
+}) {
+  // At this point debugId is always defined. The types need to be fixed
+  if (!debugId) {
+    return (
+      <Fragment>
+        {t(
+          "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID"
+        )}
+      </Fragment>
+    );
+  }
+
+  return tct(
+    "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+    {
+      debugId: projectSlug ? (
+        <LinkButton
+          to={{
+            pathname: `/settings/projects/${projectSlug}/source-maps/`,
+            query: {
+              query: debugId,
+            },
+          }}
+          icon={<IconOpen />}
+          aria-label={t('View source map Debug ID %(debugId)s in project settings', {
+            debugId,
+          })}
+          size="xs"
+        >
+          {debugId}
+        </LinkButton>
+      ) : (
+        <MonoBlock>{debugId}</MonoBlock>
+      ),
+    }
+  );
+}
+
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
@@ -1281,21 +1330,16 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('No Source File With Matching Debug ID')}</h6>
           <p>
-            {tct(
-              "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
-              {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
-                ),
-              }
-            )}
+            <DebugIdMismatchMessage
+              projectSlug={projectSlug}
+              debugId={sourceResolutionResults.stackFrameDebugId}
+            />
           </p>
           <p>
             {t(
               'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
             )}
           </p>
-          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -1322,9 +1366,11 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
@@ -1345,21 +1391,16 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('No Source Map With Matching Debug ID')}</h6>
           <p>
-            {tct(
-              "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
-              {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
-                ),
-              }
-            )}
+            <DebugIdMismatchMessage
+              projectSlug={projectSlug}
+              debugId={sourceResolutionResults.stackFrameDebugId}
+            />
           </p>
           <p>
             {t(
               'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
             )}
           </p>
-          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
         <SourceMapStepNotRequiredNote />
       </CheckListItem>
