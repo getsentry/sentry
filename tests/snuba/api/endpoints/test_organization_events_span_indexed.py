@@ -1529,7 +1529,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
+        assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[1]["tags[foo,    number]"] == 5
 
