@@ -14,11 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import (
-    handle_query_errors,
-    reformat_timestamp_ms_to_isoformat,
-    update_snuba_params_with_timestamp,
-)
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -40,13 +36,13 @@ class SerializedEvent(TypedDict):
     event_type: str
     project_id: int
     project_slug: str
-    start_timestamp: datetime
     transaction: str
 
 
 class SerializedIssue(SerializedEvent):
     issue_id: int
     level: str
+    start_timestamp: float
     end_timestamp: NotRequired[datetime]
 
 
@@ -62,6 +58,7 @@ class SerializedSpan(SerializedEvent):
     profile_id: str
     profiler_id: str
     sdk_name: str
+    start_timestamp: datetime
     is_transaction: bool
     transaction_id: str
 
@@ -114,9 +111,9 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             )
         elif event.get("event_type") == "error":
             timestamp = (
-                reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
+                datetime.fromisoformat(event["timestamp_ms"]).timestamp()
                 if "timestamp_ms" in event and event["timestamp_ms"] is not None
-                else event["timestamp"]
+                else datetime.fromisoformat(event["timestamp"]).timestamp()
             )
 
             return SerializedIssue(
