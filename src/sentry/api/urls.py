@@ -286,6 +286,9 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
+    ProjectPreprodArtifactAssembleEndpoint,
+)
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
@@ -2496,6 +2499,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/difs/assemble/$",
         DifAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-dif-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/preprodartifacts/assemble/$",
+        ProjectPreprodArtifactAssembleEndpoint.as_view(),
+        name="sentry-api-0-assemble-preprod-artifact-files",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/unknown/$",

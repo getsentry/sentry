@@ -236,8 +236,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset == spans_rpc:
-                return spans_rpc.run_top_events_timeseries_query(
+            if dataset in {spans_rpc, ourlogs}:
+                return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
