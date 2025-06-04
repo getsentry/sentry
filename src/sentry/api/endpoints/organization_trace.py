@@ -110,7 +110,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             )
         elif event.get("event_type") == "error":
             timestamp = (
-                event["timestamp_ms"] / 1000.0
+                datetime.datetime.fromisoformat(event["timestamp_ms"]).timestamp()
                 if "timestamp_ms" in event and event["timestamp_ms"] is not None
                 else event["timestamp"]
             )
