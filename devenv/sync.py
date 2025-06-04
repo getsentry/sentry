@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.metadata
+import json
 import os
 import shlex
 import shutil
@@ -161,14 +162,10 @@ Then, use it to run sync this one time.
         reporoot,
     )
 
-    # packageManager causes interoperability errors with yarn
-    # enable this after 3-stage rollout
-    # with open(f"{reporoot}/package.json") as f:
-    #     package_json = json.load(f)
-    #     pnpm = package_json["packageManager"]
-    #     pnpm_version = pnpm.split("@")[-1]
-
-    pnpm_version = "10.10.0"
+    with open(f"{reporoot}/package.json") as f:
+        package_json = json.load(f)
+        pnpm = package_json["packageManager"]
+        pnpm_version = pnpm.split("@")[-1]
 
     # TODO: move pnpm install into devenv
     install_pnpm(pnpm_version, reporoot)
