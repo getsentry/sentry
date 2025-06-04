@@ -15,12 +15,14 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
 import {Item} from './item';
 import {type BaseTabProps, Tab} from './tab';
+import {ChonkStyledTabListWrap} from './tabList.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 /**
@@ -296,35 +298,38 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
-  hideBorder: boolean;
-  orientation: Orientation;
-  variant: BaseTabProps['variant'];
-}>`
-  position: relative;
-  display: grid;
-  padding: 0;
-  margin: 0;
-  list-style-type: none;
-  flex-shrink: 0;
+const TabListWrap = withChonk(
+  styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+    hideBorder: boolean;
+    orientation: Orientation;
+    variant: BaseTabProps['variant'];
+  }>`
+    position: relative;
+    display: grid;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+    flex-shrink: 0;
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? css`
-          grid-auto-flow: column;
-          justify-content: start;
-          gap: ${p.variant === 'floating' ? 0 : space(2)};
-          ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
-        `
-      : css`
-          height: 100%;
-          grid-auto-flow: row;
-          align-content: start;
-          gap: 1px;
-          padding-right: ${space(2)};
-          ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-        `};
-`;
+    ${p =>
+      p.orientation === 'horizontal'
+        ? css`
+            grid-auto-flow: column;
+            justify-content: start;
+            gap: ${p.variant === 'floating' ? 0 : space(2)};
+            ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+          `
+        : css`
+            height: 100%;
+            grid-auto-flow: row;
+            align-content: start;
+            gap: 1px;
+            padding-right: ${space(2)};
+            ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+          `};
+  `,
+  ChonkStyledTabListWrap
+);
 
 const TabListOverflowWrap = styled('div')`
   position: absolute;

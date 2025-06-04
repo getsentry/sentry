@@ -8,9 +8,10 @@ import {TabList, TabPanels, Tabs} from '.';
 
 export default Storybook.story('Tabs', story => {
   const TABS = [
-    {key: 'one', label: 'One', content: 'This is the first Panel.'},
-    {key: 'two', label: 'Two', content: 'This is the second panel'},
-    {key: 'three', label: 'Three', content: 'This is the third panel'},
+    {key: 'one', label: 'Label 1', content: 'This is the first Panel.'},
+    {key: 'two', label: 'Label 2', content: 'This is the second panel'},
+    {key: 'three', label: 'Label 3', content: 'This is the third panel'},
+    {key: 'four', label: 'Label 4', content: 'This is the fourth panel', disabled: true},
   ];
 
   story('Default', () => (
@@ -25,20 +26,20 @@ export default Storybook.story('Tabs', story => {
         This will give you all kinds of accessibility and state tracking out of the box.
         But you will have to render all tab content, including hooks, upfront.
       </p>
-      <Storybook.SizingWindow>
-        <Tabs>
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
-          <TabPanels>
-            {TABS.map(tab => (
-              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-            ))}
-          </TabPanels>
-        </Tabs>
-      </Storybook.SizingWindow>
+      <Tabs>
+        <TabList>
+          {TABS.map(tab => (
+            <TabList.Item disabled={tab.disabled} key={tab.key}>
+              {tab.label}
+            </TabList.Item>
+          ))}
+        </TabList>
+        <TabPanels>
+          {TABS.map(tab => (
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+          ))}
+        </TabPanels>
+      </Tabs>
     </Fragment>
   ));
 

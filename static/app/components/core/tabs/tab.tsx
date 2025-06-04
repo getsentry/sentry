@@ -11,9 +11,14 @@ import type {
   Orientation,
 } from '@react-types/shared';
 
+import {
+  ChonkStyledFocusLayer,
+  ChonkStyledTabWrap,
+} from 'sentry/components/core/tabs/tab.chonk';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {tabsShouldForwardProp} from './utils';
 
@@ -200,35 +205,38 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
     `}
 `;
 
-const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  overflowing: boolean;
-  selected: boolean;
-}>`
-  color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
-  white-space: nowrap;
-  cursor: pointer;
+const TabWrap = withChonk(
+  styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+    overflowing: boolean;
+    selected: boolean;
+  }>`
+    color: ${p => (p.selected ? p.theme.activeText : p.theme.textColor)};
+    white-space: nowrap;
+    cursor: pointer;
 
-  &:hover {
-    color: ${p => (p.selected ? p.theme.activeText : p.theme.headingColor)};
-  }
+    &:hover {
+      color: ${p => (p.selected ? p.theme.activeText : p.theme.headingColor)};
+    }
 
-  &:focus {
-    outline: none;
-  }
+    &:focus {
+      outline: none;
+    }
 
-  &[aria-disabled],
-  &[aria-disabled]:hover {
-    color: ${p => p.theme.subText};
-    cursor: default;
-  }
+    &[aria-disabled],
+    &[aria-disabled]:hover {
+      color: ${p => p.theme.subText};
+      cursor: default;
+    }
 
-  ${p =>
-    p.overflowing &&
-    css`
-      opacity: 0;
-      pointer-events: none;
-    `}
-`;
+    ${p =>
+      p.overflowing &&
+      css`
+        opacity: 0;
+        pointer-events: none;
+      `}
+  `,
+  ChonkStyledTabWrap
+);
 
 const innerWrapStyles = ({
   theme,
@@ -295,24 +303,27 @@ const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
   bottom: 0;
 `;
 
-const FocusLayer = styled('div')<{orientation: Orientation}>`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
+const FocusLayer = withChonk(
+  styled('div')<{orientation: Orientation}>`
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 0;
-  transition: box-shadow 0.1s ease-out;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+    transition: box-shadow 0.1s ease-out;
 
-  li:focus-visible & {
-    box-shadow:
-      ${p => p.theme.focusBorder} 0 0 0 1px,
-      inset ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
-`;
+    li:focus-visible & {
+      box-shadow:
+        ${p => p.theme.focusBorder} 0 0 0 1px,
+        inset ${p => p.theme.focusBorder} 0 0 0 1px;
+    }
+  `,
+  ChonkStyledFocusLayer
+);
 
 const VariantFocusLayer = styled('div')`
   position: absolute;
