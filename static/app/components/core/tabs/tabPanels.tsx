@@ -13,7 +13,8 @@ import {TabsContext} from '.';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-interface TabPanelsProps extends AriaTabPanelProps, CollectionBase<any> {
+interface TabPanelsProps extends AriaTabPanelProps {
+  children: CollectionBase<unknown>['children'];
   className?: string;
 }
 
