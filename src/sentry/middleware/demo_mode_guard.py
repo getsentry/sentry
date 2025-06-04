@@ -13,7 +13,7 @@ from sentry.organizations.services.organization import organization_service
 def _get_org(slug):
     if not slug:
         return None
-    return organization_service.get_org_by_slug(slug=slug)
+    return organization_service.get_organization_by_slug(slug=slug, only_visible=True).organization
 
 
 class DemoModeGuardMiddleware:
