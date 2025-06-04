@@ -503,7 +503,7 @@ register(
 register(
     "release-health.tasks.adopt-releases.bulk",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables viewed by queries for a list of project ids.
