@@ -59,6 +59,7 @@ class AlertRuleThresholdType(Enum):
 class Condition(StrEnum):
     ANOMALY_DETECTION = "anomaly_detection"
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
 
 
 class AlertRuleActivityType(Enum):
@@ -519,6 +520,14 @@ def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, alert_rule_workflo
         condition_group=data_condition_group,
     )
 
+    # resolve action filter
+    DataCondition.objects.create(
+        comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+        condition_group=data_condition_group,
+    )
+
     trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
     for trigger_action in trigger_actions:
         # 0 is active status
@@ -697,7 +706,7 @@ def _create_detector_state(apps: Apps, alert_rule: Any, project: Any, detector: 
     # create detector state
     DetectorState.objects.create(
         detector=detector,
-        active=True if open_incident else False,
+        is_triggered=True if open_incident else False,
         state=state,
     )
 
@@ -746,7 +755,7 @@ def migrate_anomaly_detection_alerts(apps: Apps, schema_editor: BaseDatabaseSche
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rules = AlertRule.objects_with_snapshots.select_for_update().filter(
                 organization=organization,
-                status=AlertRuleStatus.PENDING.value,
+                status__in=[AlertRuleStatus.PENDING.value, AlertRuleStatus.NOT_ENOUGH_DATA.value],
                 detection_type="dynamic",
             )
             for alert_rule in RangeQuerySetWrapper(alert_rules):
@@ -844,7 +853,6 @@ def migrate_anomaly_detection_alerts(apps: Apps, schema_editor: BaseDatabaseSche
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
                     )
                     sentry_sdk.capture_exception(e)
-                    continue
 
 
 class Migration(CheckedMigration):
