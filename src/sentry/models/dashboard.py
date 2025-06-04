@@ -47,7 +47,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             # A user can only favorite a dashboard once
             UniqueConstraint(
                 fields=["user_id", "dashboard"],
-                name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
+                name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
             ),
         ]
 
