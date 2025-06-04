@@ -38,9 +38,17 @@ class MailgunInboundWebhookView(View):
         return super().dispatch(*args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        token = request.POST["token"]
-        signature = request.POST["signature"]
-        timestamp = request.POST["timestamp"]
+        if request.content_type == 'application/json':
+            # Log warning about unexpected content type
+            return HttpResponse("Unsupported Media Type", status=415)
+            
+        token = request.POST.get("token")
+        signature = request.POST.get("signature")
+        timestamp = request.POST.get("timestamp")
+        
+        if not all([token, signature, timestamp]):
+            # Log warning about missing parameters
+            return HttpResponse("Missing required security parameters", status=400)
 
         key = options.get("mail.mailgun-api-key")
         if not key:
@@ -54,8 +62,8 @@ class MailgunInboundWebhookView(View):
             )
             return HttpResponse(status=200)
 
-        to_email = request.POST["recipient"]
-        from_email = request.POST["sender"]
+        to_email = request.POST.get("recipient")
+        from_email = request.POST.get("sender")
 
         try:
             # This needs to return a tuple of orgid, groupid
