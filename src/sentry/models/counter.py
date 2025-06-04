@@ -194,7 +194,7 @@ post_migrate.connect(create_counter_function, dispatch_uid="create_counter_funct
         retry=None,  # No retries since we want to try again on next counter increment
     ),
 )
-def refill_cached_short_ids(project_id, block_size: int, using="default") -> None:
+def refill_cached_short_ids(project_id, block_size: int, using="default", **kwargs) -> None:
     """Refills the Redis short-id counter block for a project."""
     from sentry.models.project import Project
 
