@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
@@ -56,7 +57,7 @@ class SQLInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
-        self.request_parameters = []
+        self.request_parameters: list[Sequence[str, str]] = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
