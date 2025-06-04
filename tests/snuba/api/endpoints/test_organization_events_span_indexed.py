@@ -3644,6 +3644,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "orderby": "-transaction",
             }
         )
 
