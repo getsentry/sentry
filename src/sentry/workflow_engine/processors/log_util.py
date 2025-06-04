@@ -93,8 +93,9 @@ class BatchPerformanceTracker:
             }
             if self._failure_key:
                 extra["failure_key"] = self._failure_key
-            if len(self._iteration_durations) > _MAX_ITERATIONS_LOGGED:
-                extra["durations_truncated"] = True
+            durations_truncated = max(0, len(self._iteration_durations) - _MAX_ITERATIONS_LOGGED)
+            if durations_truncated > 0:
+                extra["durations_truncated"] = durations_truncated
             self._logger.info(
                 self._name,
                 extra=extra,
