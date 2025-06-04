@@ -14,8 +14,6 @@ const productionEntryPoints = [
   'static/app/gettingStartedDocs/**/*.{js,mjs,ts,tsx}',
   // this is imported with require.context
   'static/app/data/forms/*.tsx',
-  // used in script in package.json
-  'config/build-chartcuterie.ts',
   // --- we should be able to get rid of those: ---
   // todo codecov has unused code from the migration
   'static/app/{components,views}/codecov/**/*.{js,mjs,ts,tsx}',
@@ -46,7 +44,7 @@ const config: KnipConfig = {
   storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
-    'config/**/*.ts!',
+    'config/**/*.ts',
     'tests/js/**/*.{js,mjs,ts,tsx}',
     // fixtures can be ignored in production - it's fine that they are only used in tests
     '!static/**/{fixtures,__fixtures__}/**!',
