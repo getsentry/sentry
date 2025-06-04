@@ -409,7 +409,7 @@ class SubscriptionProcessor:
         fired_incident_triggers = []
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
-            trigger_logger_counter = 0
+            metrics_incremented = False
             for trigger in self.triggers:
                 if potential_anomalies:
                     # NOTE: There should only be one anomaly in the list
@@ -476,10 +476,10 @@ class SubscriptionProcessor:
                                 "organizations:workflow-engine-metric-alert-dual-processing-logs",
                                 self.subscription.project.organization,
                             )
-                            and trigger_logger_counter < 1
+                            and not metrics_incremented
                         ):
                             metrics.incr("dual_processing.alert_rules.fire")
-                            trigger_logger_counter += 1
+                            metrics_incremented = True
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                         if incident_trigger is not None:
