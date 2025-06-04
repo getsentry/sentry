@@ -463,9 +463,6 @@ function ReservedUsageChart({
   const categoryStats = usageStats[category];
   const isReservedBudgetCategory =
     subscription.reservedBudgetCategories?.includes(category) ?? false;
-  if (isReservedBudgetCategory) {
-    displayMode = 'cost';
-  }
 
   function chartMetadata() {
     let dataCategoryMetadata: {
@@ -487,7 +484,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory) {
+      if (isReservedBudgetCategory && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
