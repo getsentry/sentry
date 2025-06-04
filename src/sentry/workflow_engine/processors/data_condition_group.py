@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
 from sentry.workflow_engine.types import DataConditionResult
 
@@ -40,6 +41,21 @@ def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
 )
 def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
+
+
+def get_slow_conditions_for_groups(
+    data_condition_group_ids: list[int],
+) -> dict[int, list[DataCondition]]:
+    """
+    Takes a list of DataConditionGroup IDs and returns a dict with
+    the slow conditions associated with each ID.
+    """
+    args_list = [(group_id,) for group_id in data_condition_group_ids]
+    results = get_data_conditions_for_group.batch(args_list)
+    return {
+        group_id: [cond for cond in conditions if is_slow_condition(cond)]
+        for group_id, conditions in zip(data_condition_group_ids, results)
+    }
 
 
 def evaluate_condition_group_results(
