@@ -2237,6 +2237,25 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'release.version:>1.0'})
         ).toBeInTheDocument();
       });
+
+      it('string filters have the correct operator options', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: 'does not contain'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+      });
     });
 
     describe('numeric', function () {
