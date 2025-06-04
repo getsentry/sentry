@@ -175,7 +175,9 @@ export default Storybook.story('Tabs', story => {
           <Tabs>
             <TabList>
               {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                <TabList.Item disabled={tab.key === 'three'} key={tab.key}>
+                  {tab.label}
+                </TabList.Item>
               ))}
             </TabList>
             <TabPanels>
@@ -207,9 +209,7 @@ export default Storybook.story('Tabs', story => {
           <Tabs>
             <TabList variant={'floating'} hideBorder>
               {TABS.map(tab => (
-                <TabList.Item disabled={tab.disabled} key={tab.key}>
-                  {tab.label}
-                </TabList.Item>
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
               ))}
             </TabList>
             <TabPanels>
