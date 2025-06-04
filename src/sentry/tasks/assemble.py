@@ -60,6 +60,7 @@ class AssembleTask:
     DIF = "project.dsym"  # Debug file upload
     RELEASE_BUNDLE = "organization.artifacts"  # Release file upload
     ARTIFACT_BUNDLE = "organization.artifact_bundle"  # Artifact bundle upload
+    PREPROD_ARTIFACT = "organization.preprod_artifact_bundle"  # Preprod artifact upload
 
 
 class AssembleResult(NamedTuple):
