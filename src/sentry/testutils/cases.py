@@ -3328,12 +3328,13 @@ def span_to_trace_item(span) -> TraceItem:
         "exclusive_time_ms",
         "group_raw",
         "parent_span_id",
-        "profile_idstart_timestamp_ms",
+        "profile_id",
         "segment_id",
-        "span_id",
+        "start_timestamp_ms",
         "start_timestamp_precise",
     }:
-        attributes[f"sentry.{field}"] = scalar_to_any_value(span[field])
+        if field in span:
+            attributes[f"sentry.{field}"] = scalar_to_any_value(span[field])
 
     timestamp = Timestamp()
 
@@ -3345,7 +3346,11 @@ def span_to_trace_item(span) -> TraceItem:
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=timestamp,
         trace_id=span["trace_id"],
-        item_id=uuid4().bytes,
+        item_id=int(span["span_id"], 16).to_bytes(
+            16,
+            byteorder="little",
+            signed=False,
+        ),
         received=timestamp,
         retention_days=90,
         attributes=attributes,
