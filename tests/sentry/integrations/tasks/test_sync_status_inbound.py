@@ -215,10 +215,10 @@ class TestSyncStatusInbound(TestCase):
         self.create_release(project=self.project, version="2.0.0")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = OrganizationIntegration.objects.filter(
+            org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id,
                 integration_id=self.integration.id,
-            ).first()
+            )
             org_integration.update(
                 config={
                     "sync_comments": True,
@@ -247,10 +247,10 @@ class TestSyncStatusInbound(TestCase):
         self.create_release(project=self.project, version="1.0.0")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = OrganizationIntegration.objects.filter(
+            org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id,
                 integration_id=self.integration.id,
-            ).first()
+            )
             org_integration.update(
                 config={
                     "sync_comments": True,
@@ -277,10 +277,10 @@ class TestSyncStatusInbound(TestCase):
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = OrganizationIntegration.objects.filter(
+            org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id,
                 integration_id=self.integration.id,
-            ).first()
+            )
             org_integration.update(
                 config={
                     "sync_comments": True,
