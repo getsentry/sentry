@@ -53,6 +53,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
         self.backpressure_since = multiprocessing.Value("i", 0)
+        self.healthy_since = multiprocessing.Value("i", 0)
         self.produce_to_pipe = produce_to_pipe
 
         self._create_process()
@@ -75,6 +76,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.stopped,
                 self.current_drift,
                 self.backpressure_since,
+                self.healthy_since,
                 self.buffer,
                 self.max_flush_segments,
                 self.produce_to_pipe,
@@ -91,6 +93,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         stopped,
         current_drift,
         backpressure_since,
+        healthy_since,
         buffer: SpansBuffer,
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
@@ -119,15 +122,18 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     producer_futures.append(producer.produce(topic, payload))
 
             while not stopped.value:
-                now = int(time.time()) + current_drift.value
+                system_now = int(time.time())
+                now = system_now + current_drift.value
                 flushed_segments = buffer.flush_segments(now=now, max_segments=max_flush_segments)
 
                 # Check backpressure flag set by buffer
                 if buffer.any_shard_at_limit:
                     if backpressure_since.value == 0:
-                        backpressure_since.value = int(time.time())
+                        backpressure_since.value = system_now
                 else:
                     backpressure_since.value = 0
+
+                healthy_since.value = system_now
 
                 if not flushed_segments:
                     time.sleep(1)
@@ -168,7 +174,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # per second at most. If anything, self.poll() might even be called
         # more often than submit()
         if not self.process.is_alive():
-            metrics.incr("sentry.spans.buffer.flusher_dead")
+            metrics.incr("sentry.spans.buffer.flusher_dead", tags={"reason": "no_process"})
             if self.process_restarts < MAX_PROCESS_RESTARTS:
                 self._create_process()
                 self.process_restarts += 1
@@ -176,6 +182,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 raise RuntimeError(
                     "flusher process has crashed.\n\nSearch for sentry_spans_buffer_component:flusher in Sentry to get the original error."
                 )
+
+        if int(time.time()) - self.healthy_since.value > options.get(
+            "standalone-spans.buffer.flusher.max_unhealthy_seconds"
+        ):
+            metrics.incr("sentry.spans.buffer.flusher_dead", tags={"reason": "hang"})
+            raise RuntimeError("flusher process is hanging.")
 
         self.buffer.record_stored_segments()
 
