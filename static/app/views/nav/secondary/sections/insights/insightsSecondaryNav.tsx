@@ -1,10 +1,8 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -157,7 +155,7 @@ export function InsightsSecondaryNav() {
                     : undefined
                 }
                 leadingItems={
-                  <StyledProjectIcon
+                  <ProjectIcon
                     projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 }
@@ -172,7 +170,3 @@ export function InsightsSecondaryNav() {
     </Fragment>
   );
 }
-
-const StyledProjectIcon = styled(ProjectIcon)`
-  margin-right: ${space(0.75)};
-`;
