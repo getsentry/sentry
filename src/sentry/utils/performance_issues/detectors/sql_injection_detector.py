@@ -56,6 +56,7 @@ class SQLInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
+        self.request_parameters = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
@@ -94,7 +95,7 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not SQLInjectionDetector.is_span_eligible(span):
+        if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
             return
 
         description = span.get("description") or ""
