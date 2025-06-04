@@ -321,7 +321,16 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 
 
 def get_replay_id(event: Event | GroupEvent) -> str | None:
-    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    replay_id_from_data: str | None = None
+    if event.data:  # Add check for event.data
+        contexts = event.data.get("contexts")
+        if isinstance(contexts, dict):  # Add check for contexts
+            replay_info = contexts.get("replay")
+            if isinstance(replay_info, dict):  # Add check for replay_info
+                replay_id_val = replay_info.get("replay_id")
+                if isinstance(replay_id_val, str):  # Add type check for replay_id
+                    replay_id_from_data = replay_id_val
+    
     if (
         isinstance(event, GroupEvent)
         and event.occurrence is not None
@@ -334,7 +343,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
         if evidence_replay_id:
             return evidence_replay_id
 
-    return replay_id
+    return replay_id_from_data
 
 
 @dataclass
