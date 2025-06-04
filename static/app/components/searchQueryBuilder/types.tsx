@@ -39,7 +39,7 @@ export enum WildcardOperators {
 }
 
 export function isTermOperator(op: FETermOperators): op is TermOperator {
-  return op in TermOperator;
+  return typeof op === 'string' && Object.values(TermOperator).includes(op as any);
 }
 
 export type FETermOperators = TermOperator | WildcardOperators;
