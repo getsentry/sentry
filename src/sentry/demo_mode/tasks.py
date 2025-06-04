@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.db import router
@@ -41,18 +41,19 @@ def sync_debug_artifacts():
 
     target_org = get_demo_org()
 
-    lookback_days = options.get("sentry.demo_mode.sync_artifact_bundles.lookback_days")
+    lookback_days = 3
+    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
-    _sync_artifact_bundles(source_org, target_org, lookback_days)
-    _sync_project_debug_files(source_org, target_org, lookback_days)
-    _sync_proguard_artifact_releases(source_org, target_org, lookback_days)
+    _sync_artifact_bundles(source_org, target_org, cutoff_date)
+    _sync_project_debug_files(source_org, target_org, cutoff_date)
+    _sync_proguard_artifact_releases(source_org, target_org, cutoff_date)
 
 
-def _sync_artifact_bundles(source_org: Organization, target_org: Organization, lookback_days=1):
+def _sync_artifact_bundles(
+    source_org: Organization, target_org: Organization, cutoff_date: datetime
+):
     if not source_org or not target_org:
         return
-
-    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     artifact_bundles = ArtifactBundle.objects.filter(
         Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
@@ -70,7 +71,9 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
         _sync_artifact_bundle(source_artifact_bundle, target_org)
 
 
-def _sync_project_debug_files(source_org: Organization, target_org: Organization, lookback_days=1):
+def _sync_project_debug_files(
+    source_org: Organization, target_org: Organization, cutoff_date: datetime
+):
     if not source_org or not target_org:
         return
 
@@ -82,11 +85,16 @@ def _sync_project_debug_files(source_org: Organization, target_org: Organization
         organization_id=target_org.id,
     ).values_list("id", flat=True)
 
-    source_project_debug_files = ProjectDebugFile.objects.filter(
+    project_debug_files = ProjectDebugFile.objects.filter(
+        Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
+        date_accessed__gte=cutoff_date,
+    )
+
+    source_project_debug_files = project_debug_files.filter(
         project_id__in=source_project_ids,
     )
 
-    target_project_debug_files = ProjectDebugFile.objects.filter(
+    target_project_debug_files = project_debug_files.filter(
         project_id__in=target_project_ids,
     )
 
@@ -99,12 +107,10 @@ def _sync_project_debug_files(source_org: Organization, target_org: Organization
 
 
 def _sync_proguard_artifact_releases(
-    source_org: Organization, target_org: Organization, lookback_days=1
+    source_org: Organization, target_org: Organization, cutoff_date: datetime
 ):
     if not source_org or not target_org:
         return
-
-    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     proguard_artifact_releases = ProguardArtifactRelease.objects.filter(
         Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
