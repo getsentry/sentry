@@ -278,8 +278,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
 
-    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-    project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+    project1 = Project(name="project1", organization_id=default_organization.id)
+    project2 = Project(name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
         _add_mock_data(project, 4)
@@ -358,8 +358,8 @@ def test_run_clusterer_spawn_cluster_projects(cluster_projects_delay, default_or
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
 
-    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-    project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+    project1 = Project(name="project1", organization_id=default_organization.id)
+    project2 = Project(name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
         _add_mock_data(project, 4)
