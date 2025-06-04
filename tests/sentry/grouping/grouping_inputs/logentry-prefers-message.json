@@ -1,7 +1,0 @@
-{
-  "logentry": {
-    "message": "Hello there %s!",
-    "params": ["world"],
-    "formatted": "Hello there world!"
-  }
-}

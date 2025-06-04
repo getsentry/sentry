@@ -1,6 +1,0 @@
-{
-  "exception": {
-    "type": "ValueError",
-    "module": "foo.bar"
-  }
-}
