@@ -193,6 +193,70 @@ trace root
 "
 `;
 
+exports[`autogrouping sibling autogrouping eap traces collapsing sibling autogroup removes its children 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping eap traces collapsing sibling autogroup removes its children 2`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping eap traces does not autogroup if count is less 5 1`] = `
+"
+eap trace root
+  http.server - redis
+    db - redis
+    db - redis
+    db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping eap traces expanding sibling autogroup renders its children 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping eap traces groups spans with the same op and description 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping eap traces removes sibling autogroup 1`] = `
+"
+eap trace root
+  http.server - redis
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+"
+`;
+
 exports[`autogrouping sibling autogrouping expanding sibling autogroup renders its children 1`] = `
 "
 trace root
