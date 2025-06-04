@@ -1,7 +1,5 @@
 // import {useEffect, useMemo, useRef, useState} from 'react';
 
-// import useFeedbackMessages from 'sentry/components/feedback/list/useFeedbackMessages';
-// import useOpenAIKey from 'sentry/components/feedback/list/useOpenAIKey';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
