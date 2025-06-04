@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from uuid import uuid4
 
 from django.urls import reverse
@@ -158,10 +157,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["project_slug"] == self.gen1_project.slug
         assert error_event["level"] == "error"
         assert error_event["issue_id"] == error.group_id
-        assert (
-            error_event["start_timestamp"]
-            == datetime.fromtimestamp(error_data["timestamp"]).astimezone().isoformat()
-        )
+        assert error_event["start_timestamp"] == error_data["timestamp"]
 
     def test_with_performance_issues(self):
         self.load_trace(is_eap=True)
