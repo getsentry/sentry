@@ -105,6 +105,7 @@ const ButtonLabel = styled('span', {
     !['size', 'borderless'].includes(prop),
 })<Pick<CommonButtonProps, 'size' | 'borderless'>>`
   height: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
