@@ -309,6 +309,14 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
         )
 
+    def test_single_file_path_one_to_one_match(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("", "")],
+        )
+
     def test_single_file_path_multiple_matches_same_repo(self) -> None:
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/foo/bar.py", "foo/bar.py"]},
