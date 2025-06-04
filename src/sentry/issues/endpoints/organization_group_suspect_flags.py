@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.issues.suspect_flags import get_suspect_flag_scores
+from sentry.issues.suspect_flags import Distribution, get_suspect_flag_scores
 from sentry.models.group import Group
 from sentry.utils import metrics
 
@@ -20,6 +20,7 @@ class ResponseDataItem(TypedDict):
     flag: str
     score: float
     baseline_percent: float
+    distribution: Distribution
 
 
 class ResponseData(TypedDict):
