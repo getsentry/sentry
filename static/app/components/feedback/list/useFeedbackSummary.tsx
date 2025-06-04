@@ -5,15 +5,12 @@ import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export type Sentiment = {
-  type: 'positive' | 'negative' | 'neutral';
-  value: string;
+type FeedbackSummaryResponse = {
+  summary: string | null;
 };
 
-// props had {isHelpful}: {isHelpful: boolean | null}
 export default function useFeedbackSummary(): {
   error: Error | null;
-  keySentiments: Sentiment[];
   loading: boolean;
   summary: string | null;
 } {
@@ -45,12 +42,12 @@ export default function useFeedbackSummary(): {
     isError: isFeedbackSummaryError,
     error: feedbackSummaryError,
     // refetch: refetchFeedbackSummary,
-  } = useApiQuery<any>( // TODO: fix this type
+  } = useApiQuery<FeedbackSummaryResponse>( // TODO: fix this type
     [
       `/organizations/${organization.slug}/user-feedback-summary/`,
       {
         query: {
-          // ...normalizeDateTimeParams(datetime),
+          // ...normalizeDateTimeParams(datetime), # add something in the frontend or options to query feedbacks in a certain time range?
           ...queryView,
         },
       },
@@ -94,7 +91,6 @@ export default function useFeedbackSummary(): {
   if (isFeedbackSummaryLoading) {
     return {
       summary: null,
-      keySentiments: [],
       loading: true,
       error: null,
     };
@@ -103,7 +99,6 @@ export default function useFeedbackSummary(): {
   if (isFeedbackSummaryError) {
     return {
       summary: null,
-      keySentiments: [],
       loading: false,
       error: feedbackSummaryError,
     };
@@ -111,7 +106,6 @@ export default function useFeedbackSummary(): {
 
   return {
     summary: feedbackSummaryData.summary,
-    keySentiments: feedbackSummaryData.key_sentiments,
     loading: false,
     error: null,
   };

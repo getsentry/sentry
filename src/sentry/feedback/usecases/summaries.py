@@ -56,9 +56,7 @@ def parse_response(
         return summary_text
     else:
         logger.error("Error parsing AI feedback summary")
-        raise Exception(
-            "Error parsing AI feedback summary"
-        )  # figure out what exception to throw here
+        raise Exception("Error parsing AI feedback summary")
 
 
 # TODO: make corresponding feature flag and function for user feedback summaries

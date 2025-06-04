@@ -45,10 +45,6 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 interface FeedbackListProps {
   feedbackSummary: {
     error: Error | null;
-    keySentiments: Array<{
-      type: 'positive' | 'negative' | 'neutral';
-      value: string;
-    }>;
     loading: boolean;
     summary: string | null;
   };

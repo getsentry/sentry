@@ -43,9 +43,10 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         # stolen from organization_group_index.py
         try:
-            # default is one week
             start, end = get_date_range_from_stats_period(
-                request.GET, optional=False, default_stats_period=timedelta(days=1)
+                request.GET,
+                optional=False,
+                default_stats_period=timedelta(days=7),  # default is one week of user feedbacks
             )
         except InvalidParams as e:
             raise ParseError(detail=str(e))
@@ -65,7 +66,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         #     print(f)
 
         # without an openai API key, we'll just return a sample response
-        # return Response(res)
+        return Response(res)
 
         # TODO: chatgpt generates BS if there are no feedbacks, maybe return some other status / response if there are less than 5 feedbacks to just hide the summary
         # there is a max token limit for the LLM, we also need to find the max number of feedbacks (starting from the most recent) that can be sent to the LLM, can we filter for that or maybe binary search after getting all feedbacks in the given time period?
