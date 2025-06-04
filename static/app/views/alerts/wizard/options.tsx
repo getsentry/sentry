@@ -257,30 +257,37 @@ export const AlertWizardRuleTemplates: Record<
   trace_item_throughput: {
     aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
   trace_item_duration: {
     aggregate: 'p95(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
   trace_item_apdex: {
     aggregate: 'apdex(300)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
   trace_item_failure_rate: {
     aggregate: 'failure_rate()',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
   trace_item_lcp: {
     aggregate: 'p95(measurements.lcp)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
   trace_item_fid: {
     aggregate: 'p95(measurements.fid)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
   trace_item_cls: {
     aggregate: 'p95(measurements.cls)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM,
   },
 };
 
