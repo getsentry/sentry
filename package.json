@@ -311,6 +311,7 @@
       "current node"
     ]
   },
+  "packageManager": "pnpm@10.10.0",
   "volta": {
     "extends": ".volta.json"
   },
