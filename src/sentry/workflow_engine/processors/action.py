@@ -138,7 +138,7 @@ def filter_recently_fired_actions(
     return filtered_actions
 
 
-def get_workflow_group_action_statuses(
+def get_workflow_action_group_statuses(
     action_to_workflows_ids: dict[int, set[int]], group: Group, workflow_ids: set[int]
 ) -> dict[int, list[WorkflowActionGroupStatus]]:
     """
@@ -165,62 +165,62 @@ def get_workflow_group_action_statuses(
     return actions_with_statuses
 
 
-def update_workflow_action_group_statuses(
+def process_workflow_action_group_statuses(
     action_to_workflows_ids: dict[int, set[int]],
     action_to_statuses: dict[int, list[WorkflowActionGroupStatus]],
     workflows: BaseQuerySet[Workflow],
     group: Group,
-) -> set[int]:
+    now: datetime,
+) -> tuple[dict[int, int], set[int], list[WorkflowActionGroupStatus]]:
     """
-    Returns the action IDs that we should fire for the group given their WorkflowActionGroupStatus.
-    Also updates or creates WorkflowActionGroupStatus objects for those actions.
+    Determine which workflow actions should be fired based on their statuses.
+    Prepare the statuses to update and create.
     """
 
-    now = timezone.now()
-    status_ids: set[int] = set()
+    action_to_workflow_ids: dict[int, int] = {}  # will dedupe because there can be only 1
     workflow_frequencies = {
         workflow.id: workflow.config.get("frequency", 0) * timedelta(minutes=1)
         for workflow in workflows
     }
+    statuses_to_update: set[int] = set()
 
     for action_id, statuses in action_to_statuses.items():
         for status in statuses:
-            if (now - status.date_updated) >= workflow_frequencies.get(status.workflow_id, 0):
+            if (now - status.date_updated) > workflow_frequencies.get(status.workflow_id, 0):
                 # we should fire the workflow for this action
-                status_ids.add(status.id)
+                action_to_workflow_ids[action_id] = status.workflow_id
+                statuses_to_update.add(status.id)
 
-    workflow_action_statuses = WorkflowActionGroupStatus.objects.filter(
-        id__in=status_ids, date_updated__lt=now
-    )
-    action_ids = {status.action_id for status in workflow_action_statuses}
-    workflow_action_statuses.update(date_updated=now)
-
-    # handle actions that don't have a status
     missing_statuses: list[WorkflowActionGroupStatus] = []
     for action_id, expected_workflows in action_to_workflows_ids.items():
         wags = action_to_statuses.get(action_id, [])
         actual_workflows = {status.workflow_id for status in wags}
         missing_workflows = expected_workflows - actual_workflows
 
-        missing_statuses.extend(
-            [
+        for workflow_id in missing_workflows:
+            # create a new status for the missing workflow
+            missing_statuses.append(
                 WorkflowActionGroupStatus(
                     workflow_id=workflow_id, action_id=action_id, group=group, date_updated=now
                 )
-                for workflow_id in missing_workflows
-            ]
-        )
-        if missing_workflows:
-            action_ids.add(action_id)
+            )
+            action_to_workflow_ids[action_id] = workflow_id
+
+    return action_to_workflow_ids, statuses_to_update, missing_statuses
+
+
+def update_workflow_action_group_statuses(
+    now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
+) -> None:
+    WorkflowActionGroupStatus.objects.filter(
+        id__in=statuses_to_update, date_updated__lt=now
+    ).update(date_updated=now)
 
     WorkflowActionGroupStatus.objects.bulk_create(
         missing_statuses,
         batch_size=1000,
         ignore_conflicts=True,
     )
-
-    # TODO: need to know the exact workflow that fired the action
-    return action_ids
 
 
 def filter_recently_fired_workflow_actions(
@@ -243,22 +243,28 @@ def filter_recently_fired_workflow_actions(
 
     workflows = Workflow.objects.filter(id__in=workflow_ids)
 
-    action_to_statuses = get_workflow_group_action_statuses(
+    action_to_statuses = get_workflow_action_group_statuses(
         action_to_workflows_ids=action_to_workflows_ids,
         group=event_data.event.group,
         workflow_ids=workflow_ids,
     )
-    action_ids = update_workflow_action_group_statuses(
-        action_to_workflows_ids=action_to_workflows_ids,
-        action_to_statuses=action_to_statuses,
-        workflows=workflows,
-        group=event_data.event.group,
+    now = timezone.now()
+    action_to_workflow_ids, statuses_to_update, missing_statuses = (
+        process_workflow_action_group_statuses(
+            action_to_workflows_ids=action_to_workflows_ids,
+            action_to_statuses=action_to_statuses,
+            workflows=workflows,
+            group=event_data.event.group,
+            now=now,
+        )
     )
+    update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
     # TODO: write this in a single spot
     # create_workflow_fire_histories
 
-    return Action.objects.filter(id__in=action_ids)
+    # TODO: somehow attach workflows so we can fire actions with the appropriate workflow env
+    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
