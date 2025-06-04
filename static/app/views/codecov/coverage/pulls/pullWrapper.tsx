@@ -16,7 +16,7 @@ export default function PullDetailWrapper() {
         <Layout.HeaderContent>
           <HeaderContentBar>
             <Layout.Title>
-              Pull Page Wrapper <FeatureBadge type="new" variant="badge" />
+              Pull Page Wrapper <FeatureBadge type="new" />
             </Layout.Title>
           </HeaderContentBar>
         </Layout.HeaderContent>
