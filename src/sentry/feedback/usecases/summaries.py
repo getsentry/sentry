@@ -68,7 +68,7 @@ def parse_response(
         return False, "", []
 
 
-# TODO: make corresponing feature flag and function for user feedback summaries
+# TODO: make corresponding feature flag and function for user feedback summaries
 # def spam_detection_enabled(project: Project) -> bool:
 #     return features.has(
 #         "organizations:user-feedback-spam-ingest", project.organization

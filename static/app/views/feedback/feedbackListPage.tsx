@@ -47,7 +47,7 @@ export default function FeedbackListPage() {
   const prefersStackedNav = usePrefersStackedNav();
 
   const [isHelpful, setIsHelpful] = useState<boolean | null>(null);
-  const feedbackSummary = useFeedbackSummary({isHelpful});
+  const feedbackSummary = useFeedbackSummary(); // pass in {isHelpful}
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))

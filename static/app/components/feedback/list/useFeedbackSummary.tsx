@@ -1,150 +1,134 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+// import {useEffect, useMemo, useRef, useState} from 'react';
 
-import useFeedbackMessages from 'sentry/components/feedback/list/useFeedbackMessages';
-import useOpenAIKey from 'sentry/components/feedback/list/useOpenAIKey';
+// import useFeedbackMessages from 'sentry/components/feedback/list/useFeedbackMessages';
+// import useOpenAIKey from 'sentry/components/feedback/list/useOpenAIKey';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type Sentiment = {
   type: 'positive' | 'negative' | 'neutral';
   value: string;
 };
 
-const SUMMARY_REGEX = /Summary:(.*?)Key sentiments:/s;
-const SENTIMENT_REGEX = /- (.*?):\s*(positive|negative|neutral)/gi;
-
-async function getSentimentSummary({
-  messages,
-  apiKey,
-}: {
-  apiKey: string;
-  messages: string[];
-}) {
-  const inputText = messages.map(msg => `- ${msg}`).join('\n');
-  const prompt = `
-You are an AI assistant that analyzes customer feedback. Below is a list of user messages.
-
-${inputText}
-
-Figure out the top 4 specific sentiments in the messages. These sentiments should be distinct from each other and not the same concept. Be concise but also specific in the summary.
-
-The summary should be at most 2 sentences, and complete the sentence "Users say...".
-
-After the summary, for each sentiment, also indicate if it is mostly positive or negative.
-
-The output format should be:
-
-Summary: <1-2 sentence summary>
-Key sentiments:
-- <sentiment>: positive/negative/neutral
-- <sentiment>: positive/negative/neutral
-- <sentiment>: positive/negative/neutral
-- <sentiment>: positive/negative/neutral
-`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: [{role: 'user', content: prompt}],
-      temperature: 0.3,
-    }),
-  });
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-export default function useFeedbackSummary({isHelpful}: {isHelpful: boolean | null}): {
+// props had {isHelpful}: {isHelpful: boolean | null}
+export default function useFeedbackSummary(): {
   error: Error | null;
   keySentiments: Sentiment[];
   loading: boolean;
   summary: string | null;
 } {
-  const apiKey = useOpenAIKey();
-  const {messages} = useFeedbackMessages();
+  // const apiKey = useOpenAIKey();
+  // const {messages} = useFeedbackMessages();
 
-  const [response, setResponse] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const requestMadeRef = useRef(false);
-  const prevIsHelpfulRef = useRef<boolean | null>(isHelpful);
+  // const [response, setResponse] = useState<string | null>(null);
+  // const [loading, setLoading] = useState(false);
+  // const [error, setError] = useState<Error | null>(null);
+  // const requestMadeRef = useRef(false);
+  // const prevIsHelpfulRef = useRef<boolean | null>(isHelpful);
 
-  const finalResultRef = useRef<{
-    keySentiments: Sentiment[];
-    summary: string | null;
-  }>({
-    summary: null,
-    keySentiments: [],
+  // const finalResultRef = useRef<{
+  //   keySentiments: Sentiment[];
+  //   summary: string | null;
+  // }>({
+  //   summary: null,
+  //   keySentiments: [],
+  // });
+
+  const queryView = useLocationQuery({
+    fields: {
+      project: decodeList,
+    },
   });
 
-  useEffect(() => {
-    // Refetch when isHelpful changes to false
-    const shouldRefetch = isHelpful === false && prevIsHelpfulRef.current !== isHelpful;
+  const organization = useOrganization();
 
-    if (shouldRefetch) {
-      requestMadeRef.current = false;
-    }
+  const {
+    data: feedbackSummaryData,
+    isPending: isFeedbackSummaryLoading,
+    isError: isFeedbackSummaryError,
+    error: feedbackSummaryError,
+    // refetch: refetchFeedbackSummary,
+  } = useApiQuery<any>( // TODO: fix this type
+    [
+      `/organizations/${organization.slug}/user-feedback-summary/`,
+      {
+        query: {
+          // ...normalizeDateTimeParams(datetime),
+          ...queryView,
+        },
+      },
+    ],
+    {staleTime: 5000}
+  );
 
-    prevIsHelpfulRef.current = isHelpful;
+  // useEffect(() => {
+  //   // Refetch when isHelpful changes to false
+  //   const shouldRefetch = isHelpful === false && prevIsHelpfulRef.current !== isHelpful;
 
-    if (!apiKey || !messages.length || requestMadeRef.current) {
-      return;
-    }
+  //   if (shouldRefetch) {
+  //     requestMadeRef.current = false;
+  //   }
 
-    setLoading(true);
-    setError(null);
-    requestMadeRef.current = true;
+  //   prevIsHelpfulRef.current = isHelpful;
 
-    getSentimentSummary({messages, apiKey})
-      .then(result => {
-        setResponse(result);
-      })
-      .catch(err => {
-        setError(
-          err instanceof Error ? err : new Error('Failed to get sentiment summary')
-        );
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [apiKey, messages, isHelpful]);
+  //   if (!apiKey || !messages.length || requestMadeRef.current) {
+  //     return;
+  //   }
 
-  const parsedResults = useMemo(() => {
-    if (!response) {
-      return finalResultRef.current;
-    }
+  //   setLoading(true);
+  //   setError(null);
+  //   requestMadeRef.current = true;
 
-    let summaryText: string | null = null;
-    const parsedSentiments: Sentiment[] = [];
-    const summaryMatch = response.match(SUMMARY_REGEX);
+  //   getSentimentSummary({messages, apiKey})
+  //     .then(result => {
+  //       setResponse(result);
+  //     })
+  //     .catch(err => {
+  //       setError(
+  //         err instanceof Error ? err : new Error('Failed to get sentiment summary')
+  //       );
+  //     })
+  //     .finally(() => {
+  //       setLoading(false);
+  //     });
 
-    if (summaryMatch?.[1]) {
-      summaryText = summaryMatch[1].trim();
-    }
+  // }, [apiKey, messages, isHelpful, queryView, organization]);
 
-    SENTIMENT_REGEX.lastIndex = 0;
-    let match = SENTIMENT_REGEX.exec(response);
-    while (match !== null) {
-      if (match[1] && match[2]) {
-        const value = match[1].trim();
-        const type = match[2].toLowerCase() as 'positive' | 'negative' | 'neutral';
-        parsedSentiments.push({value, type});
-      }
-      match = SENTIMENT_REGEX.exec(response);
-    }
+  // const parsedResults = useMemo(() => {
+  //   if (!response) {
+  //     return finalResultRef.current;
+  //   }
 
-    finalResultRef.current = {
-      summary: summaryText,
-      keySentiments: parsedSentiments,
-    };
+  //   let summaryText: string | null = null;
+  //   const parsedSentiments: Sentiment[] = [];
+  //   const summaryMatch = response.match(SUMMARY_REGEX);
 
-    return finalResultRef.current;
-  }, [response]);
+  //   if (summaryMatch?.[1]) {
+  //     summaryText = summaryMatch[1].trim();
+  //   }
 
-  if (loading) {
+  //   SENTIMENT_REGEX.lastIndex = 0;
+  //   let match = SENTIMENT_REGEX.exec(response);
+  //   while (match !== null) {
+  //     if (match[1] && match[2]) {
+  //       const value = match[1].trim();
+  //       const type = match[2].toLowerCase() as 'positive' | 'negative' | 'neutral';
+  //       parsedSentiments.push({value, type});
+  //     }
+  //     match = SENTIMENT_REGEX.exec(response);
+  //   }
+
+  //   finalResultRef.current = {
+  //     summary: summaryText,
+  //     keySentiments: parsedSentiments,
+  //   };
+
+  //   return finalResultRef.current;
+  // }, [response]);
+
+  if (isFeedbackSummaryLoading) {
     return {
       summary: null,
       keySentiments: [],
@@ -153,18 +137,18 @@ export default function useFeedbackSummary({isHelpful}: {isHelpful: boolean | nu
     };
   }
 
-  if (error) {
+  if (isFeedbackSummaryError) {
     return {
       summary: null,
       keySentiments: [],
       loading: false,
-      error,
+      error: feedbackSummaryError,
     };
   }
 
   return {
-    summary: parsedResults.summary,
-    keySentiments: parsedResults.keySentiments,
+    summary: feedbackSummaryData.summary,
+    keySentiments: feedbackSummaryData.key_sentiments,
     loading: false,
     error: null,
   };

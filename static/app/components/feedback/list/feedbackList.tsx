@@ -11,7 +11,6 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -27,7 +26,6 @@ import useSentimentKeyword from 'sentry/components/feedback/list/useSentimentKey
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
@@ -67,11 +65,7 @@ interface FeedbackListProps {
   setIsHelpful: (isHelpful: boolean) => void;
 }
 
-export default function FeedbackList({
-  feedbackSummary,
-  setIsHelpful,
-  isHelpful,
-}: FeedbackListProps) {
+export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const location = useLocation();
   const navigate = useNavigate();
@@ -169,33 +163,6 @@ export default function FeedbackList({
             onChange={option => setSelectValue(String(option.value))}
             value={selectValue}
           />
-          {selectValue === 'summary' && (
-            <Thumbs>
-              {
-                <Button
-                  title={t('This summary is helpful')}
-                  borderless
-                  size="xs"
-                  onClick={() => setIsHelpful(true)}
-                >
-                  <IconThumb color={isHelpful ? 'green400' : undefined} direction="up" />
-                </Button>
-              }
-              {
-                <Button
-                  title={t('This summary is not helpful. Click to update.')}
-                  borderless
-                  size="xs"
-                  onClick={() => setIsHelpful(false)}
-                >
-                  <IconThumb
-                    color={isHelpful === false ? 'red400' : undefined}
-                    direction="down"
-                  />
-                </Button>
-              }
-            </Thumbs>
-          )}
         </SummaryHeader>
         {selectValue === 'summary' ? (
           summaryLoading ? (
@@ -286,11 +253,6 @@ const SummaryHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-`;
-
-const Thumbs = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
 `;
 
 const Summary = styled('div')`
