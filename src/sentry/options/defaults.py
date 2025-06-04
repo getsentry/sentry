@@ -2703,11 +2703,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.buffer.flusher.max_unhealthy_seconds",
-    default=10,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "indexed-spans.agg-span-waterfall.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
