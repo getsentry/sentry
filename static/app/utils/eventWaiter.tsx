@@ -15,7 +15,7 @@ const DEFAULT_POLL_INTERVAL = 5000;
  * Or in the case of transactions & replay the value will be set to true.
  * The `group.id` value is used to generate links directly into the event.
  */
-type FirstIssue = null | boolean | Group;
+export type FirstIssue = null | boolean | Group;
 
 export interface EventWaiterProps {
   api: Client;
@@ -25,7 +25,6 @@ export interface EventWaiterProps {
   project: Project;
   disabled?: boolean;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
-  onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
 }
 

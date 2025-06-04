@@ -59,6 +59,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import type {FirstIssue} from 'sentry/utils/eventWaiter';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -486,8 +487,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [received, setReceived] = useState<boolean>(false);
-  const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
+  const [firstTrace, setFirstTrace] = useState<FirstIssue>();
+  const showNewUi = true;
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -632,11 +633,13 @@ export function Onboarding({organization, project}: OnboardingProps) {
       organization={organization}
       project={project}
       eventType="transaction"
-      onIssueReceived={() => {
-        setReceived(true);
+      onIssueReceived={({firstIssue}) => {
+        setFirstTrace(firstIssue);
       }}
     >
-      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      {({firstIssue}) =>
+        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
+      }
     </EventWaiter>
   );
 
@@ -733,14 +736,35 @@ export function Onboarding({organization, project}: OnboardingProps) {
             </div>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
-              <SampleButton
-                triggerText={t('Take me to an example')}
-                loadingMessage={t('Processing sample trace...')}
-                errorMessage={t('Failed to create sample trace')}
-                organization={organization}
-                project={project}
-                api={api}
-              />
+              {firstTrace ? (
+                <Button
+                  priority="primary"
+                  onClick={() => {
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          guidedStep: undefined,
+                        },
+                      },
+                      {replace: true}
+                    );
+                    window.location.reload();
+                  }}
+                >
+                  {t('Take me to traces')}
+                </Button>
+              ) : (
+                <SampleButton
+                  triggerText={t('Take me to an example')}
+                  loadingMessage={t('Processing sample trace...')}
+                  errorMessage={t('Failed to create sample trace')}
+                  organization={organization}
+                  project={project}
+                  api={api}
+                />
+              )}
             </GuidedSteps.ButtonWrapper>
           </GuidedSteps.Step>
         ) : (
