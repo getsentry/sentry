@@ -131,13 +131,14 @@ export function SelectionKeyHandler({ref, state, undo}: SelectionKeyHandlerProps
             return;
           }
 
-          // If th key pressed will generate a symbol, replace the selection with it
+          // If the key pressed will generate a symbol, replace the selection with it
           if (/^.$/u.test(e.key)) {
             dispatch({
               type: 'REPLACE_TOKENS_WITH_TEXT',
               text: e.key,
               tokens: selectedTokens,
             });
+            state.selectionManager.clearSelection();
             e.preventDefault();
             e.stopPropagation();
           }
