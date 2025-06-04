@@ -13,7 +13,11 @@ extra_var: ContextVar[dict[str, Any]] = ContextVar("extra", default={})
 T = TypeVar("T")
 
 
-class ContextFilter(logging.Filter):
+class ContextAnnotatingFilter(logging.Filter):
+    """
+    A logging filter that annotates log records with the current log context.
+    """
+
     def filter(self, record: logging.LogRecord) -> bool:
         for k, v in extra_var.get().items():
             if k not in record.__dict__:
@@ -21,7 +25,7 @@ class ContextFilter(logging.Filter):
         return True
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, ContextFilter)
+        return isinstance(other, ContextAnnotatingFilter)
 
 
 def top_n_slowest(durations: dict[str, float], n: int) -> dict[str, float]:
@@ -146,6 +150,10 @@ def track_batch_performance(
 
 
 class LogExtraContext:
+    """
+    Helper to modify the current log annotation context.
+    """
+
     def __init__(self):
         self._current_extra = dict(extra_var.get())
 
@@ -163,6 +171,8 @@ class LogExtraContext:
 @contextmanager
 def log_extra_context(logger: logging.Logger, **extra: Any) -> Generator[LogExtraContext]:
     """Context manager that provides a mutable context object for logging.
+    For function-scoped context, `with_log_context` is preferred; use this for context
+    scopes that don't align with function calls.
 
     Example:
         with log_extra_context(logger, project_id=123) as ctx:
@@ -172,7 +182,7 @@ def log_extra_context(logger: logging.Logger, **extra: Any) -> Generator[LogExtr
     """
     # Ensure logger has ContextFilter
     # no-op if already present
-    logger.addFilter(ContextFilter())
+    logger.addFilter(ContextAnnotatingFilter())
 
     old_extra = extra_var.get()
     context = LogExtraContext()

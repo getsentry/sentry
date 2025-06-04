@@ -1,6 +1,7 @@
 import logging
 import unittest
 from datetime import timedelta
+from typing import Any
 from unittest.mock import Mock
 
 from sentry.workflow_engine.processors.log_util import (
@@ -17,9 +18,19 @@ class TestLogExtraContextWithRealLogger(unittest.TestCase):
         super().setUp()
         self.logger = logging.getLogger("test_real_logger")
         self.logger.setLevel(logging.INFO)
-        self.records = []
-        self.handler = logging.Handler()
-        self.handler.emit = lambda record: self.records.append(record)
+        # This is a list[logging.LogRecord], but LogRecords get fields dynamically
+        # from extras, so we use Any to avoid type errors.
+        self.records: list[Any] = []
+
+        class TestHandler(logging.Handler):
+            def __init__(self, records: list[Any]):
+                super().__init__()
+                self.records = records
+
+            def emit(self, record: logging.LogRecord) -> None:
+                self.records.append(record)
+
+        self.handler = TestHandler(self.records)
         self.logger.addHandler(self.handler)
 
     def tearDown(self):
