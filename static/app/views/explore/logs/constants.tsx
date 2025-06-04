@@ -67,4 +67,4 @@ export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 
 export const VIRTUAL_STREAMED_INTERVAL_MS = 333;
 
-export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 300; // Items from bottom of table to trigger table fetch.
+export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 100; // Items from bottom of table to trigger table fetch.
