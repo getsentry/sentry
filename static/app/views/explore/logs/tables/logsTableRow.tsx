@@ -380,9 +380,11 @@ function LogRowDetails({
     );
   }
 
+  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
+
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
-      <LogDetailTableBodyCell colSpan={fields.length}>
+      <LogDetailTableBodyCell colSpan={colSpan}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>
