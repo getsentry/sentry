@@ -19,9 +19,6 @@ export default function useFeedbackSummary(): {
   loading: boolean;
   summary: string | null;
 } {
-  // const apiKey = useOpenAIKey();
-  // const {messages} = useFeedbackMessages();
-
   // const [response, setResponse] = useState<string | null>(null);
   // const [loading, setLoading] = useState(false);
   // const [error, setError] = useState<Error | null>(null);
@@ -95,38 +92,6 @@ export default function useFeedbackSummary(): {
   //     });
 
   // }, [apiKey, messages, isHelpful, queryView, organization]);
-
-  // const parsedResults = useMemo(() => {
-  //   if (!response) {
-  //     return finalResultRef.current;
-  //   }
-
-  //   let summaryText: string | null = null;
-  //   const parsedSentiments: Sentiment[] = [];
-  //   const summaryMatch = response.match(SUMMARY_REGEX);
-
-  //   if (summaryMatch?.[1]) {
-  //     summaryText = summaryMatch[1].trim();
-  //   }
-
-  //   SENTIMENT_REGEX.lastIndex = 0;
-  //   let match = SENTIMENT_REGEX.exec(response);
-  //   while (match !== null) {
-  //     if (match[1] && match[2]) {
-  //       const value = match[1].trim();
-  //       const type = match[2].toLowerCase() as 'positive' | 'negative' | 'neutral';
-  //       parsedSentiments.push({value, type});
-  //     }
-  //     match = SENTIMENT_REGEX.exec(response);
-  //   }
-
-  //   finalResultRef.current = {
-  //     summary: summaryText,
-  //     keySentiments: parsedSentiments,
-  //   };
-
-  //   return finalResultRef.current;
-  // }, [response]);
 
   if (isFeedbackSummaryLoading) {
     return {

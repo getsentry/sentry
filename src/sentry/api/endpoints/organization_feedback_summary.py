@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from iniconfig import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,9 +18,9 @@ from sentry.models.organization import Organization
 
 @region_silo_endpoint
 class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,  # is this private or experimental?
     }
     permission_classes = (OrganizationUserReportsPermission,)
 
@@ -27,7 +29,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         Get summary and key sentiments of the user feedbacks of a given organization
         ``````````````````````````````````````````````````
 
-        Returns a tuple of summary and key sentiments. (TODO: write more, about which feedbacks we take, etc.)
+        Returns a tuple of summary and key sentiments. The user feedbacks can be filtered by a list of projects and the date range that they were created in.
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
@@ -36,7 +38,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         """
 
         res = {
-            "summary": "User appreciate that the app is fast and easy to use, but there are some UI bugs",
+            "summary": "User appreciate that the app is fast and easy to use and that features are working well. Some users are experiencing UI issues with the app, such as the navigation bar not being visible.",
             "key_sentiments": [
                 {"value": "Fast", "type": "positive"},
                 {"value": "Easy to use", "type": "positive"},
@@ -44,24 +46,35 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             ],
         }
 
-        # without an openai API key, we'll just return a sample response for now
-        return Response(res)
-
         # stolen from organization_group_index.py
         try:
-            start, end = get_date_range_from_stats_period(request.GET)
+            # default is one week
+            start, end = get_date_range_from_stats_period(
+                request.GET, optional=False, default_stats_period=timedelta(days=1)
+            )
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
         groups = Group.objects.filter(
             project__in=self.get_projects(request, organization),
-            type=FeedbackGroup.type_id,  # filter on the list of projects that the user has selected in the frontend
-        )  # we take all feedbacks for now, but need to add filters for start and end dates
+            type=FeedbackGroup.type_id,
+            first_seen__gte=start,  # is this an expensive query? (querying for gte / lte)
+            first_seen__lte=end,
+        )
 
-        group_feedbacks = [group.message for group in groups]
+        # group.message includes "User Feedback" and the URL and we don't want to pass that to the LLM - check augment_message_with_occurrence for how they get added to message
+        # thus, we use group.data["metadata"]["message"] instead of group.message which contains only the message that the user wrote
+        group_feedbacks = [group.data["metadata"]["message"] for group in groups]
+
+        # for f in group_feedbacks:
+        #     print(f)
+
+        # without an openai API key, we'll just return a sample response
+        return Response(res)
 
         # TODO: chatgpt generates BS if there are no feedbacks, maybe return some other status / response if there are less than 5 feedbacks
-        summary = generate_summary(group_feedbacks)
+        # there is a max token limit for the LLM, we also need to find the max number of feedbacks (starting from the most recent) that can be sent to the LLM, can we filter for that or maybe binary search after getting all feedbacks in the given time period?
+        summary = generate_summary(group_feedbacks)  # if this throws an error, we should return 500
 
         if not summary[0]:  # parsing wasn't successful
             return Response(

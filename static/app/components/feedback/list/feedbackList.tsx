@@ -11,12 +11,10 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
-import SentimentOverTimeChart from 'sentry/components/feedback/list/sentimentOverTimeChart';
 import {
   getSentimentIcon,
   getSentimentType,
@@ -74,7 +72,7 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
   // keyword used for search when a sentiment is selected
   const {keyword} = useSentimentKeyword({sentiment: selectedSentiment});
-  const [selectValue, setSelectValue] = useState<string>('summary');
+  // const [selectValue, setSelectValue] = useState<string>('summary');
 
   const prevKeywordRef = useRef(keyword);
   const prevSelectedSentimentRef = useRef(selectedSentiment);
@@ -154,41 +152,28 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   return (
     <Fragment>
       <Summary>
-        <SummaryHeader>
-          <StyledCompactSelect
-            options={[
-              {value: 'summary', label: t('Feedback Summary')},
-              {value: 'sentimentOverTime', label: t('Sentiment Over Time')},
-            ]}
-            onChange={option => setSelectValue(String(option.value))}
-            value={selectValue}
-          />
-        </SummaryHeader>
-        {selectValue === 'summary' ? (
-          summaryLoading ? (
-            <Placeholder height="200px" />
-          ) : (
-            <Fragment>
-              <div>{summary}</div>
-              <KeySentiments>
-                {keySentiments.map(sentiment => (
-                  <SentimentTag
-                    key={sentiment.value}
-                    icon={getSentimentIcon(sentiment.type)}
-                    type={getSentimentType(sentiment.type)}
-                    onClick={e => {
-                      const targetSentiment = (e.target as HTMLElement).textContent ?? '';
-                      setSelectedSentiment(targetSentiment);
-                    }}
-                  >
-                    {sentiment.value}
-                  </SentimentTag>
-                ))}
-              </KeySentiments>
-            </Fragment>
-          )
+        <SummaryHeader>Feedback Summary</SummaryHeader>
+        {summaryLoading ? (
+          <Placeholder height="200px" />
         ) : (
-          <SentimentOverTimeChart />
+          <Fragment>
+            <div>{summary}</div>
+            <KeySentiments>
+              {keySentiments.map(sentiment => (
+                <SentimentTag
+                  key={sentiment.value}
+                  icon={getSentimentIcon(sentiment.type)}
+                  type={getSentimentType(sentiment.type)}
+                  onClick={e => {
+                    const targetSentiment = (e.target as HTMLElement).textContent ?? '';
+                    setSelectedSentiment(targetSentiment);
+                  }}
+                >
+                  {sentiment.value}
+                </SentimentTag>
+              ))}
+            </KeySentiments>
+          </Fragment>
         )}
       </Summary>
       <FeedbackListHeader {...checkboxState} />
@@ -308,13 +293,5 @@ const EmptyMessage = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
-  }
-`;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  > button {
-    border: none;
-    border-color: transparent;
-    box-shadow: none;
   }
 `;

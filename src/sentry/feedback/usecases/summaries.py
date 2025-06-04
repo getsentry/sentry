@@ -53,6 +53,7 @@ def generate_summary(
 def parse_response(
     text,
 ):  # Boolean (for if parsing was successful or not), string, list - maybe change the return type
+    # TODO: throw error if parsing was not sucessful instead of returning False
     summary_match = SUMMARY_REGEX.search(text)
     if summary_match:
         summary_text = summary_match.group(1).strip()
@@ -60,8 +61,9 @@ def parse_response(
         logger.error("Error parsing AI feedback summary")
         return False, "", []
 
-    sentiments = SENTIMENT_REGEX.findall(text)
-    if sentiments:
+    sentiments_raw = SENTIMENT_REGEX.findall(text)
+    if sentiments_raw:
+        sentiments = [{"value": sentiment[0], "type": sentiment[1]} for sentiment in sentiments_raw]
         return True, summary_text, sentiments
     else:
         logger.error("Error parsing AI feedback key sentiments")
