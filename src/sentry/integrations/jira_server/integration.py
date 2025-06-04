@@ -1007,8 +1007,13 @@ class JiraServerIntegration(IssueSyncIntegration):
                 cleaned_data["summary"] = title[:255] if title else None
                 continue
             elif field_name == "labels" and "labels" in data:
-                labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
-                cleaned_data["labels"] = labels
+                raw_labels_input = data["labels"]
+                processed_labels = []
+                if isinstance(raw_labels_input, str):
+                    processed_labels = [label.strip() for label in raw_labels_input.split(",") if label.strip()]
+                elif isinstance(raw_labels_input, list):
+                    processed_labels = [str(label).strip() for label in raw_labels_input if str(label).strip()]
+                cleaned_data["labels"] = processed_labels
                 continue
             if field_name in data.keys():
                 v = data.get(field_name)
