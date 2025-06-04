@@ -4,18 +4,14 @@ import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
-import type {
-  DOMAttributes,
-  FocusableElement,
-  Node,
-  Orientation,
-} from '@react-types/shared';
+import type {Node, Orientation} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 
+import type {BaseTabProps} from './tab.chonk';
 import {
   chonkInnerWrapStyles,
   ChonkStyledFocusLayer,
@@ -49,20 +45,6 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   if (e.metaKey || e.ctrlKey || e.shiftKey) {
     e.stopPropagation();
   }
-}
-
-export interface BaseTabProps {
-  children: React.ReactNode;
-  disabled: boolean;
-  hidden: boolean;
-  isSelected: boolean;
-  orientation: Orientation;
-  overflowing: boolean;
-  tabProps: DOMAttributes<FocusableElement>;
-  as?: React.ElementType;
-  ref?: React.Ref<HTMLLIElement>;
-  to?: string;
-  variant?: 'flat' | 'floating';
 }
 
 function InnerWrap({
@@ -100,7 +82,7 @@ function BaseTab({
   as = 'li',
 }: BaseTabProps) {
   const theme = useTheme();
-  if (variant === 'floating') {
+  if (variant === 'floating' && !theme.isChonk) {
     return (
       <FloatingTabWrap
         {...tabProps}
@@ -132,9 +114,11 @@ function BaseTab({
             higherOpacity={isSelected}
           />
         )}
-        <FocusLayer orientation={orientation} />
+        <FocusLayer orientation={orientation} variant={variant} selected={isSelected} />
         {children}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        {variant === 'flat' ? (
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        ) : null}
       </InnerWrap>
     </TabWrap>
   );
@@ -316,7 +300,11 @@ const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
 `;
 
 const FocusLayer = withChonk(
-  styled('div')<{orientation: Orientation}>`
+  styled('div')<{
+    orientation: Orientation;
+    selected: boolean;
+    variant: BaseTabProps['variant'];
+  }>`
     position: absolute;
     left: 0;
     right: 0;

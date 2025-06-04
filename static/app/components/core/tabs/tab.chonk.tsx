@@ -1,11 +1,25 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
-import type {Orientation} from '@react-types/shared';
+import type {DOMAttributes, Orientation} from '@react-types/shared';
 
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 import {tabsShouldForwardProp} from './utils';
+
+export interface BaseTabProps {
+  children: React.ReactNode;
+  disabled: boolean;
+  hidden: boolean;
+  isSelected: boolean;
+  orientation: Orientation;
+  overflowing: boolean;
+  tabProps: DOMAttributes;
+  as?: React.ElementType;
+  ref?: React.Ref<HTMLLIElement>;
+  to?: string;
+  variant?: 'flat' | 'floating';
+}
 
 export const ChonkStyledTabWrap = chonkStyled('li', {
   shouldForwardProp: tabsShouldForwardProp,
@@ -34,7 +48,11 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
-export const ChonkStyledFocusLayer = chonkStyled('div')<{orientation: Orientation}>`
+export const ChonkStyledFocusLayer = chonkStyled('div')<{
+  orientation: Orientation;
+  selected: boolean;
+  variant: BaseTabProps['variant'];
+}>`
   position: absolute;
   left: 0;
   right: 0;
@@ -54,14 +72,21 @@ export const ChonkStyledFocusLayer = chonkStyled('div')<{orientation: Orientatio
   }
 
   li:hover & {
-    background-color: ${p => p.theme.gray100};
-    color: ${p => p.theme.tokens.component.link.muted.hover};
+    background-color: ${p => (p.variant === 'floating' ? p.theme.colors.blue200 : p.theme.colors.gray100)};
+    color: ${p => (p.variant === 'floating' ? p.theme.tokens.component.link.accent.hover : p.theme.tokens.component.link.muted.hover)};
   }
 
   li:active & {
-    background-color: ${p => p.theme.gray200};
+    background-color: ${p => (p.variant === 'floating' ? p.theme.colors.blue300 : p.theme.colors.gray200)};
+    color: ${p => (p.variant === 'floating' ? p.theme.tokens.component.link.accent.active : p.theme.tokens.component.link.muted.active)};
   }
 
+  ${p =>
+    p.variant === 'floating' &&
+    p.selected &&
+    css`
+      background-color: ${p.theme.colors.blue100};
+    `}
 `;
 
 export const chonkInnerWrapStyles = ({

@@ -4,7 +4,7 @@ import type {Orientation} from '@react-types/shared';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
-import type {BaseTabProps} from './tab';
+import type {BaseTabProps} from './tab.chonk';
 import {tabsShouldForwardProp} from './utils';
 
 export const ChonkStyledTabListWrap = chonkStyled('ul', {
@@ -26,7 +26,7 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
       ? css`
           grid-auto-flow: column;
           justify-content: start;
-          gap: ${p.variant === 'floating' ? 0 : space(2)};
+          gap: ${space(2)};
           ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
         `
       : css`
