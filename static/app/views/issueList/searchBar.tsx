@@ -197,7 +197,6 @@ function IssueListSearchBar({
       disallowLogicalOperators
       showUnsubmittedIndicator
       searchSource={searchSource}
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       {...props}
     />
   );

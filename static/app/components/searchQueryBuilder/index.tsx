@@ -116,7 +116,8 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
-   * When true, will trigger the `onSearch` callback when the query changes.
+   * Triggers the `onSearch` callback when the query changes.
+   * Defaults to true.
    */
   searchOnChange?: boolean;
   /**
@@ -199,7 +200,7 @@ function SearchQueryBuilderUI({
   showUnsubmittedIndicator,
   trailingItems,
   onChange,
-  searchOnChange,
+  searchOnChange = true,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();

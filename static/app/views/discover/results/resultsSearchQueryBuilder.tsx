@@ -350,7 +350,6 @@ function ResultsSearchQueryBuilder(props: Props) {
 
   return (
     <SearchQueryBuilder
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       placeholder={placeholderText}
       filterKeys={getTagList}
       initialQuery={props.query ?? ''}

@@ -155,7 +155,6 @@ function useSpanSearchQueryBuilderProps({
     disallowUnsupportedFilters: true,
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
-    searchOnChange: organization.features.includes('ui-search-on-change'),
   };
 }
 

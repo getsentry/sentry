@@ -198,7 +198,6 @@ function ReplaySearchBar(props: Props) {
   return (
     <SearchQueryBuilder
       {...props}
-      searchOnChange={organization.features.includes('ui-search-on-change')}
       onChange={undefined} // not implemented and different type from SmartSearchBar
       disallowLogicalOperators={undefined} // ^
       className={props.className}

@@ -334,7 +334,6 @@ export default function ReleasesList() {
             {shouldShowQuickstart ? null : (
               <SortAndFilterWrapper>
                 <StyledSearchQueryBuilder
-                  searchOnChange={organization.features.includes('ui-search-on-change')}
                   onSearch={handleSearch}
                   initialQuery={activeQuery}
                   filterKeys={RELEASE_FILTER_KEYS}
