@@ -44,6 +44,7 @@ describe('add to dashboard modal', () => {
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgetDisplay: [DisplayType.AREA],
     widgetPreview: [],
+    projects: [],
   };
   const testDashboard: DashboardDetails = {
     id: '1',
