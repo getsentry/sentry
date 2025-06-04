@@ -237,9 +237,12 @@
     "typescript-eslint": "^8.26.0",
     "webpack-dev-server": "5.2.1"
   },
-  "resolutions": {
-    "react-mentions/@babel/runtime": "*",
-    "**/react-is": "19.1.0"
+  "pnpm": {
+    "overrides": {
+      "jest-runtime>cjs-module-lexer": "1.2.3",
+      "react-mentions>@babel/runtime": "7.26.10",
+      "react-is": "19.1.0"
+    }
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
@@ -252,44 +255,42 @@
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "node scripts/test.js --bail --findRelatedTests -u",
     "test-staged": "node scripts/test.js --findRelatedTests $(git diff --name-only --cached)",
-    "lint": "yarn lint:prettier && yarn lint:js && yarn lint:css",
+    "lint": "pnpm run lint:prettier && pnpm run lint:js && pnpm run lint:css",
     "lint:js": "eslint",
     "lint:css": "stylelint '**/*.[jt]sx'",
-    "lint:prettier": "prettier \"**/*.md(x)?\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --check --log-level=error",
-    "fix": "yarn fix:prettier && yarn fix:eslint",
+    "lint:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --check --log-level=error",
+    "fix": "pnpm run fix:prettier && pnpm run fix:eslint",
     "fix:eslint": "eslint --fix",
-    "fix:prettier": "prettier \"**/*.md(x)?\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --write --log-level=error",
-    "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
-    "dev-ui": "yarn dev-ui-rspack",
-    "dev-ui-webpack": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 webpack serve",
-    "dev-ui-rspack": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 rspack serve",
-    "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 yarn dev-ui",
-    "dev-ui-storybook": "STORYBOOK_TYPES=1 yarn dev-ui",
-    "dev-ui-storybook-rspack": "STORYBOOK_TYPES=1 yarn dev-ui-rspack",
+    "fix:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --write --log-level=error",
+    "dev": "pnpm install --frozen-lockfile && sentry devserver",
+    "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 webpack serve",
+    "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 pnpm run dev-ui",
+    "dev-ui-storybook": "STORYBOOK_TYPES=1 pnpm run dev-ui",
+    "dev-ui-storybook-rspack": "STORYBOOK_TYPES=1 pnpm run dev-ui-rspack",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development webpack --watch",
     "dev-acceptance-rspack": "NO_DEV_SERVER=1 NODE_ENV=development rspack --watch",
     "webpack-profile": "NO_TS_FORK=1 webpack --profile --json > stats.json",
+    "install-api-docs": "pnpm install --frozen-lockfile --dir ./api-docs",
+    "build-deprecated-docs": "pnpm run install-api-docs && ts-node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
+    "diff-docs": "pnpm run install-api-docs && ts-node api-docs/openapi-diff.ts",
     "webpack-profile-rspack": "NO_TS_FORK=1 rspack build --json > stats.json",
-    "install-api-docs": "yarn install --cwd ./api-docs",
-    "build-deprecated-docs": "yarn install-api-docs && ts-node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
-    "diff-docs": "yarn install-api-docs && ts-node api-docs/openapi-diff.ts",
     "deref-api-docs": "ts-node api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-chartcuterie-config": "node --experimental-strip-types config/build-chartcuterie.ts",
-    "build-acceptance": "yarn build-acceptance-rspack",
+    "build-acceptance": "pnpm run build-acceptance-rspack",
     "build-acceptance-webpack": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production webpack",
     "build-acceptance-rspack": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
-    "build-production": "yarn build-production-rspack",
+    "build-production": "pnpm run build-production-rspack",
     "build-production-webpack": "NODE_ENV=production webpack --mode production",
     "build-production-rspack": "NODE_ENV=production rspack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 webpack",
     "build-rspack": "NODE_OPTIONS=--max-old-space-size=4096 rspack",
     "build-js-loader": "ts-node scripts/build-js-loader.ts",
     "build-js-po": "node --experimental-strip-types build-utils/ts-extract-gettext.ts",
-    "validate-api-examples": "yarn --cwd api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
+    "validate-api-examples": "pnpm run --dir api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
     "knip": "knip --treat-config-hints-as-errors",
-    "knip:prod": "yarn run knip --production --exclude exports,types,dependencies,unresolved"
+    "knip:prod": "pnpm run knip --production --exclude exports,types,dependencies,unresolved"
   },
   "browserslist": {
     "production": [

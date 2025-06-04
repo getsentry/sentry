@@ -52,6 +52,10 @@ jobs:
         with:
           node-version-file: '.volta.json'
 
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
+        with:
+          version: 10.10.0
+
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -63,7 +67,7 @@ jobs:
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          yarn add ts-node && make test-api-docs
+          pnpm add ts-node && make test-api-docs
 
       - name: Inspect failure
         if: failure()
