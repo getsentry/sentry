@@ -24,11 +24,11 @@ from sentry.utils.db import atomic_transaction
 
 
 @instrumented_task(
-    name="sentry.demo_mode.tasks.sync_artifact_bundles",
+    name="sentry.demo_mode.tasks.sync_debug_artifacts",
     queue="demo_mode",
     taskworker_config=TaskworkerConfig(namespace=demomode_tasks),
 )
-def sync_artifact_bundles():
+def sync_debug_artifacts():
 
     if (
         not options.get("sentry.demo_mode.sync_artifact_bundles.enable")
@@ -44,6 +44,8 @@ def sync_artifact_bundles():
     lookback_days = options.get("sentry.demo_mode.sync_artifact_bundles.lookback_days")
 
     _sync_artifact_bundles(source_org, target_org, lookback_days)
+    _sync_project_debug_files(source_org, target_org, lookback_days)
+    _sync_proguard_artifact_releases(source_org, target_org, lookback_days)
 
 
 def _sync_artifact_bundles(source_org: Organization, target_org: Organization, lookback_days=1):
@@ -67,6 +69,11 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
     for source_artifact_bundle in different_artifact_bundles:
         _sync_artifact_bundle(source_artifact_bundle, target_org)
 
+
+def _sync_project_debug_files(source_org: Organization, target_org: Organization, lookback_days=1):
+    if not source_org or not target_org:
+        return
+
     source_project_ids = Project.objects.filter(
         organization_id=source_org.id,
     ).values_list("id", flat=True)
@@ -89,6 +96,15 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
 
     for source_project_debug_file in different_project_debug_files:
         _sync_project_debug_file(source_project_debug_file, target_org)
+
+
+def _sync_proguard_artifact_releases(
+    source_org: Organization, target_org: Organization, lookback_days=1
+):
+    if not source_org or not target_org:
+        return
+
+    cutoff_date = timezone.now() - timedelta(days=lookback_days)
 
     proguard_artifact_releases = ProguardArtifactRelease.objects.filter(
         Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
@@ -187,7 +203,9 @@ def _sync_release_artifact_bundle(
     )
 
 
-def _sync_project_debug_file(source_project_debug_file: ProjectDebugFile, target_org: Organization):
+def _sync_project_debug_file(
+    source_project_debug_file: ProjectDebugFile, target_org: Organization
+) -> ProjectDebugFile | None:
     try:
         with atomic_transaction(using=(router.db_for_write(ProjectDebugFile))):
             target_project = _find_matching_project(
@@ -198,7 +216,7 @@ def _sync_project_debug_file(source_project_debug_file: ProjectDebugFile, target
             if not target_project:
                 return
 
-            ProjectDebugFile.objects.create(
+            return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
                 file=source_project_debug_file.file,
                 checksum=source_project_debug_file.checksum,
@@ -211,6 +229,7 @@ def _sync_project_debug_file(source_project_debug_file: ProjectDebugFile, target
             )
     except IntegrityError as e:
         sentry_sdk.capture_exception(e)
+        return None
 
 
 def _sync_proguard_artifact_release(
@@ -226,10 +245,14 @@ def _sync_proguard_artifact_release(
             if not target_project:
                 return
 
-            project_debug_file = ProjectDebugFile.objects.get(
+            # project_debug_file _should_ already be synced, but we'll make sure it is
+            project_debug_file = ProjectDebugFile.objects.filter(
                 project_id=target_project.id,
                 debug_id=source_proguard_artifact_release.project_debug_file.debug_id,
+            ).first() or _sync_project_debug_file(
+                source_proguard_artifact_release.project_debug_file, target_org
             )
+
             ProguardArtifactRelease.objects.create(
                 organization_id=target_org.id,
                 project_id=target_project.id,

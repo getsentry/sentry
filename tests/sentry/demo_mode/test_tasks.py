@@ -5,7 +5,11 @@ from uuid import uuid1
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
-from sentry.demo_mode.tasks import _sync_artifact_bundles
+from sentry.demo_mode.tasks import (
+    _sync_artifact_bundles,
+    _sync_proguard_artifact_releases,
+    _sync_project_debug_files,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ProjectArtifactBundle,
@@ -173,7 +177,7 @@ class SyncArtifactBundlesTest(TestCase):
             debug_id=source_project_debug_file.debug_id,
         ).exists()
 
-        _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
+        _sync_project_debug_files(source_org=self.source_org, target_org=self.target_org)
 
         target_project_debug_file = ProjectDebugFile.objects.get(
             project_id=self.target_proj_foo.id,
@@ -195,7 +199,7 @@ class SyncArtifactBundlesTest(TestCase):
             debug_id=source_project_debug_file.debug_id,
         ).exists()
 
-        _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
+        _sync_project_debug_files(source_org=self.source_org, target_org=self.target_org)
 
         assert ProjectDebugFile.objects.filter(
             project_id=self.target_proj_foo.id,
@@ -213,7 +217,7 @@ class SyncArtifactBundlesTest(TestCase):
             proguard_uuid=source_proguard_artifact_release.proguard_uuid,
         ).exists()
 
-        _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
+        _sync_proguard_artifact_releases(source_org=self.source_org, target_org=self.target_org)
 
         target_proguard_artifact_release = ProguardArtifactRelease.objects.get(
             organization_id=self.target_org.id,
