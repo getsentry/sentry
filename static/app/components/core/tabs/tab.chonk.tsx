@@ -21,9 +21,9 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     outline: none;
   }
 
-  &[aria-disabled],
-  &[aria-disabled]:hover {
-    color: ${p => p.theme.tokens.component.link.muted.active};
+  &[aria-disabled] {
+    color: ${p => p.theme.tokens.component.link.muted.default};
+    opacity: 0.6;
     cursor: default;
   }
 
@@ -46,9 +46,8 @@ export const ChonkStyledFocusLayer = chonkStyled('div')<{orientation: Orientatio
   border-radius: inherit;
   z-index: 0;
 
-  li[aria-disabled] &,
   li[aria-disabled]:hover & {
-    background-color: ${p => p.theme.gray200};
+    background-color: transparent;
   }
 
   li:focus-visible & {
