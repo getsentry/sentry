@@ -124,7 +124,7 @@ const StyledSlider = chonkStyled('input')`
     width: 100%;
     height: 16px;
     background: transparent;
-    border-radius: ${p => p.theme.radius.nano};
+    border-radius: ${p => p.theme.radius['2xs']};
     transition: box-shadow 0.1s;
     box-shadow:
       0 0 0 8px transparent,
