@@ -5,14 +5,15 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import bulk_delete_objects
 
 
 def delete_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     GroupOpenPeriod = apps.get_model("sentry", "GroupOpenPeriod")
 
-    for open_period in RangeQuerySetWrapperWithProgressBarApprox(GroupOpenPeriod.objects.all()):
-        open_period.delete()
+    ids = GroupOpenPeriod.objects.values_list("id", flat=True)
+
+    bulk_delete_objects(GroupOpenPeriod, id__in=ids)
 
 
 class Migration(CheckedMigration):
