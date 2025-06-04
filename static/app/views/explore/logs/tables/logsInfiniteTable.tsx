@@ -207,7 +207,7 @@ export function LogsInfiniteTable({
 
   const tableStaticCSS = useMemo(() => {
     return {
-      '#log-table-row-chevron-button': {
+      '.log-table-row-chevron-button': {
         width: theme.isChonk ? '24px' : '18px',
         height: theme.isChonk ? '24px' : '18px',
         marginRight: '4px',
@@ -262,6 +262,7 @@ export function LogsInfiniteTable({
                   highlightTerms={highlightTerms}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
+                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
