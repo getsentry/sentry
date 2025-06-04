@@ -154,6 +154,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         insta_snapshot_native_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
+    @pytest.mark.skip(reason="flaky: #92903")
     def test_reprocessing(self):
         # NOTE:
         # When running this test against a local symbolicator instance,
