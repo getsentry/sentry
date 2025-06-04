@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import json
 from sentry.utils.performance_issues.base import (
     DetectorType,
     PerformanceDetector,
@@ -28,15 +30,20 @@ class QueryInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
-        self.potential_unsafe_inputs = []
+        self.potential_unsafe_inputs: list[Sequence[Any]] = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
         self.request_data = event.get("request", {}).get("data", {})
         self.request_url = event.get("request", {}).get("url", "")
-        for key, value in self.request_data.items():
-            if not isinstance(value, (str, int, float, bool)) and value is not None:
-                self.potential_unsafe_inputs.append(key)
+        if not isinstance(self.request_data, dict):
+            return
+
+        for query_pair in self.request_data.items():
+            query_value = query_pair[1]
+            # Any JSON-like values being passed as query parameters are potential unsafe inputs
+            if not isinstance(query_value, (str, int, float, bool)) and query_value is not None:
+                self.potential_unsafe_inputs.append(query_pair)
 
     def visit_span(self, span: Span) -> None:
         if not QueryInjectionDetector.is_span_eligible(span):
@@ -46,14 +53,23 @@ class QueryInjectionDetector(PerformanceDetector):
             return
 
         description = span.get("description", None) or ""
+        description_dict = json.loads(description)
         op = span.get("op", None) or ""
         spans_involved = [span["span_id"]]
 
         unsafe_inputs = []
-        for input in self.potential_unsafe_inputs:
-            if input in description:
-                description = description.replace(input, "?")
-                unsafe_inputs.append(input)
+        for input_key, input_value in self.potential_unsafe_inputs:
+            # Replace all value in pair with "?" since the query string is parameterized
+            if isinstance(input_value, dict):
+                for dict_key, dict_value in input_value.items():
+                    if not isinstance(dict_value, dict):
+                        input_value[dict_key] = "?"
+
+            # This is specific to MongoDB queries right now
+            filters = description_dict.get("filter", {})
+            if input_key in filters and input_value == filters[input_key]:
+                description = description.replace(json.dumps(input_value).replace(" ", ""), "?")
+                unsafe_inputs.append(input_key)
 
         if len(unsafe_inputs) == 0:
             return
