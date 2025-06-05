@@ -67,7 +67,6 @@ class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsV2End
             return Response({"detail": "missing required parameter yAxis"}, status=400)
 
         with sentry_sdk.start_span(op="discover.metrics.endpoint", name="get_full_metrics") as span:
-            # TODO-anton: split dict into multiple attributes
             span.set_attribute("organization", organization)
 
             try:

@@ -152,7 +152,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            # TODO-anton: split dict into multiple attributes
             span.set_attribute("organization", organization)
 
             top_events = self.get_top_events(request)

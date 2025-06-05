@@ -335,7 +335,6 @@ class SnubaTagStorage(TagStorage):
             ) as span:
                 result = cache.get(cache_key, None)
 
-                # TODO-anton: are array attributes really supported?
                 span.set_attribute("cache.key", [cache_key])
 
                 if result is not None:
@@ -365,7 +364,6 @@ class SnubaTagStorage(TagStorage):
                     op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
                 ) as span:
                     cache.set(cache_key, result, 300)
-                    # TODO-anton: are array attributes really supported?
                     span.set_attribute("cache.key", [cache_key])
                     span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))

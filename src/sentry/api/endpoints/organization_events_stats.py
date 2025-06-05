@@ -190,7 +190,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         query_source = self.get_request_source(request)
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            # TODO-anton: split dict into multiple attributes
             span.set_attribute("organization", organization)
 
             top_events = 0

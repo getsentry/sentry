@@ -163,7 +163,6 @@ def handle_message(
                 tags={"dataset": dataset},
             ),
         ):
-            # TODO-anton: split dict into multiple attributes
             span.set_attribute("payload", contents)
             span.set_attribute("subscription_dataset", subscription.snuba_query.dataset)
             span.set_attribute("subscription_query", subscription.snuba_query.query)
