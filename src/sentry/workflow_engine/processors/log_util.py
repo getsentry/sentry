@@ -126,3 +126,23 @@ def track_batch_performance(
         yield tracker
     finally:
         tracker.finalize()
+
+
+@contextmanager
+def log_if_slow(
+    logger: logging.Logger,
+    name: str,
+    extra: Mapping[str, Any],
+    *,
+    threshold_seconds: float,
+) -> Generator[None]:
+    """
+    Context manager that logs a message if the block takes longer than the threshold.
+    """
+    start_time = time.time()
+    try:
+        yield
+    finally:
+        duration = time.time() - start_time
+        if duration >= threshold_seconds:
+            logger.info(name, extra=extra)
