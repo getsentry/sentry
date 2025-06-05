@@ -77,13 +77,17 @@ def _sync_project_debug_files(
     if not source_org or not target_org:
         return
 
-    source_project_ids = Project.objects.filter(
-        organization_id=source_org.id,
-    ).values_list("id", flat=True)
+    source_project_ids = list(
+        Project.objects.filter(
+            organization_id=source_org.id,
+        ).values_list("id", flat=True)
+    )
 
-    target_project_ids = Project.objects.filter(
-        organization_id=target_org.id,
-    ).values_list("id", flat=True)
+    target_project_ids = list(
+        Project.objects.filter(
+            organization_id=target_org.id,
+        ).values_list("id", flat=True)
+    )
 
     project_debug_files = ProjectDebugFile.objects.filter(
         Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
