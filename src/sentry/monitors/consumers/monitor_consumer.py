@@ -100,6 +100,11 @@ def _ensure_monitor_with_config(
     except Monitor.DoesNotExist:
         monitor = None
 
+    # Monitor was previously marked as upserting, but no config is provided for
+    # this check-in, therefore it's no longer upserting.
+    if not config and monitor and monitor.is_upserting:
+        monitor.update(is_upserting=False)
+
     if not config:
         return monitor
 
@@ -156,6 +161,7 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
                 "owner_user_id": owner_user_id,
                 "owner_team_id": owner_team_id,
+                "is_upserting": True,
             },
         )
         if created:
@@ -165,6 +171,8 @@ def _ensure_monitor_with_config(
     if monitor and not created:
         if monitor.config != validated_config:
             monitor.update_config(config, validated_config)
+        if not monitor.is_upserting:
+            monitor.update(is_upserting=True)
         if (owner_user_id or owner_team_id) and (
             owner_user_id != monitor.owner_user_id or owner_team_id != monitor.owner_team_id
         ):

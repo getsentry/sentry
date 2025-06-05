@@ -243,6 +243,11 @@ class Monitor(Model):
     Human readable name of the monitor. Used for display purposes.
     """
 
+    is_upserting = models.BooleanField(default=False, db_default=False)
+    """
+    Indicates that the most recently received check-in was an upsert check-in.
+    """
+
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     """
     The user assigned as the owner of this model.
