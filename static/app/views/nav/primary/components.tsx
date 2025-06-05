@@ -376,7 +376,7 @@ const ChonkNavLinkIconContainer = chonkStyled('span')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
-  border-radius: ${p => p.theme.radius.lg};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const NavLinkIconContainer = withChonk(
@@ -450,7 +450,7 @@ const ChonkNavLink = chonkStyled(Link, {
     left: 0px;
     width: 4px;
     height: 20px;
-    border-radius: ${p => p.theme.radius.micro};
+    border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
