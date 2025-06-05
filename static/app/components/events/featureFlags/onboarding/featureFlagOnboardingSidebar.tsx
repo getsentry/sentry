@@ -250,6 +250,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               {tct('I use a Feature Flag SDK from [sdkSelect]', {
                 sdkSelect: (
                   <CompactSelect
+                    size="xs"
                     triggerLabel={sdkProvider.label}
                     value={sdkProvider.value}
                     onChange={value => {
