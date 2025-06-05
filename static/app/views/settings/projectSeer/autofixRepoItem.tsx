@@ -1,6 +1,7 @@
 import {type ChangeEvent, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -14,7 +15,7 @@ import {
   IconCommit,
   IconDelete,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 
@@ -157,9 +158,16 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
               </SettingsGroup>
             </div>
             <FormActions>
-              <Button size="sm" icon={<IconDelete />} onClick={onRemove}>
-                {t('Remove Repository')}
-              </Button>
+              <Confirm
+                onConfirm={onRemove}
+                message={tct('Are you sure you want to remove [repo] from Seer?', {
+                  repo: <strong>{repo.name}</strong>,
+                })}
+              >
+                <Button size="sm" icon={<IconDelete />}>
+                  {t('Remove Repository')}
+                </Button>
+              </Confirm>
               {isDirty && (
                 <ButtonBar gap={0.5}>
                   <Button size="sm" onClick={cancelChanges}>
