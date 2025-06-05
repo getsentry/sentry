@@ -136,7 +136,7 @@ from sentry.utils.performance_issues.performance_detection import detect_perform
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
@@ -2605,8 +2605,8 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-    set_span_data("jobs", len(jobs))
-    set_span_data("projects", len(projects))
+    set_span_attribute("jobs", len(jobs))
+    set_span_attribute("projects", len(projects))
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 

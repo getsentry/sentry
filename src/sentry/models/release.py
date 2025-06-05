@@ -45,7 +45,7 @@ from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
-from sentry.utils.sdk import set_span_data
+from sentry.utils.sdk import set_span_attribute
 
 logger = logging.getLogger(__name__)
 
@@ -645,7 +645,7 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
-        set_span_data("release.set_commits", len(commit_list))
+        set_span_attribute("release.set_commits", len(commit_list))
 
         from sentry.models.releases.set_commits import set_commits
 
