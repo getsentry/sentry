@@ -125,6 +125,7 @@ export type DashboardPermissions = {
  */
 export type DashboardListItem = {
   id: string;
+  projects: number[];
   title: string;
   widgetDisplay: DisplayType[];
   widgetPreview: WidgetPreview[];
