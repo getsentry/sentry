@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import NamedTuple
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
@@ -9,10 +9,16 @@ from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
 from sentry.utils.snuba import raw_snql_query
 
 
-class Score(NamedTuple):
-    key: str
+class Distribution(TypedDict):
+    baseline: dict[str, float]
+    outliers: dict[str, float]
+
+
+class Score(TypedDict):
+    flag: str
     score: float
     baseline_percent: float
+    distribution: Distribution
 
 
 @sentry_sdk.trace
@@ -62,8 +68,19 @@ def get_suspect_flag_scores(
             if value == "true":
                 baseline_percent_dict[key] = count / baseline_count
 
+    distributions: dict[str, Distribution] = defaultdict(lambda: {"baseline": {}, "outliers": {}})
+    for key, value, count in baseline:
+        distributions[key]["baseline"][value] = count
+    for key, value, count in outliers:
+        distributions[key]["outliers"][value] = count
+
     return [
-        Score(key=key, score=score, baseline_percent=baseline_percent_dict[key])
+        {
+            "flag": key,
+            "score": score,
+            "baseline_percent": baseline_percent_dict[key],
+            "distribution": distributions[key],
+        }
         for key, score in keyed_scores
     ]
 

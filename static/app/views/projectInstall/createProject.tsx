@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -59,8 +60,8 @@ type FormData = {
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
-  alertRule: Partial<RequestDataFragment> | undefined;
   platform: OnboardingSelectedSDK;
+  alertRule?: Partial<RequestDataFragment>;
   team?: string;
 };
 
@@ -93,7 +94,10 @@ function getMissingValues({
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
     isMissingProjectName: projectName === '',
     isMissingAlertThreshold:
-      shouldCreateCustomRule && !conditions?.every?.(condition => !!condition.value),
+      shouldCreateCustomRule &&
+      (!conditions ||
+        conditions.length === 0 ||
+        !conditions.every(condition => !!condition.value)),
     isMissingMessagingIntegrationChannel:
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
@@ -252,11 +256,11 @@ export function CreateProject() {
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig?.defaultRules
-            ? 'Default'
-            : alertRuleConfig?.shouldCreateCustomRule
-              ? 'Custom'
-              : 'No Rule',
+          issue_alert: alertRuleConfig?.shouldCreateCustomRule
+            ? 'Custom'
+            : alertRuleConfig?.shouldCreateRule === false
+              ? 'No Rule'
+              : 'Default',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
@@ -277,8 +281,8 @@ export function CreateProject() {
           name: project.name,
           team: project.team?.slug,
           alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
+            shouldCreateRule: alertRuleConfig?.shouldCreateRule,
+            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule,
             conditions: alertRuleConfig?.conditions,
             actions: alertRuleConfig?.actions,
             actionMatch: alertRuleConfig?.actionMatch,
@@ -452,12 +456,20 @@ export function CreateProject() {
             alertSetting={
               formData.alertRuleConfig?.shouldCreateCustomRule
                 ? RuleAction.CUSTOMIZED_ALERTS
-                : formData.alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
+                : formData.alertRuleConfig?.shouldCreateRule === false
+                  ? RuleAction.CREATE_ALERT_LATER
+                  : RuleAction.DEFAULT_ALERT
             }
-            interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
-            threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
+            interval={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                : undefined
+            }
+            threshold={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.value)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.value)
+                : undefined
+            }
             metric={
               formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
                 'EventFrequencyCondition'

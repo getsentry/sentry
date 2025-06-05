@@ -341,6 +341,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
+    "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -947,6 +948,7 @@ CELERY_QUEUES_REGION = [
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
+    Queue("shortid.counters.refill", routing_key="shortid.counters.refill"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
@@ -1305,8 +1307,8 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
     },
-    "demo_mode_sync_artifact_bundles": {
-        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+    "demo_mode_sync_debug_artifacts": {
+        "task": "sentry.demo_mode.tasks.sync_debug_artifacts",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
     },
@@ -2406,7 +2408,7 @@ SENTRY_USE_PROFILING = False
 SENTRY_USE_SPANS = False
 
 # This flag activates spans consumer in the sentry backend in development environment
-SENTRY_USE_SPANS_BUFFER = False
+SENTRY_USE_SPANS_BUFFER = True
 
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
@@ -3420,6 +3422,11 @@ MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 400
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
+
+# Workflow limits; low-risk limit for general use, higher one
+# for orgs that need it.
+MAX_WORKFLOWS_PER_ORG = 1000
+MAX_MORE_WORKFLOWS_PER_ORG = 10000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 

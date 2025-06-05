@@ -11,6 +11,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
@@ -38,7 +39,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, installation) -> Response:
+    def post(self, request: Request, installation: SentryAppInstallation) -> Response:
         scope = sentry_sdk.Scope.get_isolation_scope()
 
         scope.set_tag("organization", installation.organization_id)

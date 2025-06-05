@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -17,14 +17,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
+import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
@@ -73,7 +72,7 @@ function AuthTokenCreateForm({
     },
 
     onSuccess: (token: OrgAuthTokenWithToken) => {
-      addSuccessMessage(t('Created auth token.'));
+      addSuccessMessage(t('Created organization token.'));
 
       queryClient.invalidateQueries({
         queryKey: makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
@@ -90,7 +89,7 @@ function AuthTokenCreateForm({
           ? t(
               'You have to configure `system.url-prefix` in your Sentry instance in order to generate tokens.'
             )
-          : t('Failed to create a new auth token.');
+          : t('Failed to create a new organization token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);
     },
@@ -105,7 +104,7 @@ function AuthTokenCreateForm({
         submitToken({name});
       }}
       onCancel={handleGoBack}
-      submitLabel={t('Create Auth Token')}
+      submitLabel={t('Create Token')}
       requireChanges
       submitDisabled={isPending}
     >
@@ -118,7 +117,7 @@ function AuthTokenCreateForm({
 
       <FieldGroup
         label={t('Scopes')}
-        help={t('Organization auth tokens currently have a limited set of scopes.')}
+        help={t('Organization tokens currently have a limited set of scopes.')}
       >
         <div>
           <div>org:ci</div>
@@ -132,7 +131,6 @@ function AuthTokenCreateForm({
 export default function OrganizationAuthTokensNewAuthToken() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const [newToken, setNewToken] = useState<OrgAuthTokenWithToken | null>(null);
 
   const handleGoBack = useCallback(
     () => navigate(`/settings/${organization.slug}/auth-tokens/`),
@@ -141,12 +139,12 @@ export default function OrganizationAuthTokensNewAuthToken() {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Create New Auth Token')} />
-      <SettingsPageHeader title={t('Create New Auth Token')} />
+      <SentryDocumentTitle title={t('Create New Organization Token')} />
+      <SettingsPageHeader title={t('Create New Organization Token')} />
 
       <TextBlock>
         {t(
-          'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+          'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
         )}
       </TextBlock>
       <TextBlock>
@@ -158,20 +156,13 @@ export default function OrganizationAuthTokensNewAuthToken() {
         )}
       </TextBlock>
       <Panel>
-        <PanelHeader>{t('Create New Auth Token')}</PanelHeader>
+        <PanelHeader>{t('Create New Organization Token')}</PanelHeader>
 
         <PanelBody>
-          {newToken ? (
-            <NewTokenHandler
-              token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
-              handleGoBack={handleGoBack}
-            />
-          ) : (
-            <AuthTokenCreateForm
-              organization={organization}
-              onCreatedToken={setNewToken}
-            />
-          )}
+          <AuthTokenCreateForm
+            organization={organization}
+            onCreatedToken={token => displayNewToken(token.token, handleGoBack)}
+          />
         </PanelBody>
       </Panel>
     </div>
