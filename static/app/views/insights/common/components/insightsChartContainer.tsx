@@ -5,3 +5,7 @@ export const ChartContainer = styled('div')<{height?: string | number}>`
   height: ${p =>
     p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
 `;
+
+export const ModalChartContainer = styled('div')`
+  height: 360px;
+`;
