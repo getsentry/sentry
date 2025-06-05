@@ -336,8 +336,8 @@ function builtInIssuesFields({
     [FieldKey.FIRST_RELEASE]: {
       ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
-      values: ['latest'],
-      predefined: true,
+      values: [],
+      predefined: false,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
       ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
@@ -364,6 +364,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
       name: 'Issue Fixability',
       values: [
+        FixabilityScoreThresholds.SUPER_HIGH,
         FixabilityScoreThresholds.HIGH,
         FixabilityScoreThresholds.MEDIUM,
         FixabilityScoreThresholds.LOW,

@@ -126,11 +126,23 @@ class AMCheckout extends Component<Props, State> {
         }
       }
     } else if (
-      // skip 'Choose Your Plan' if customer is already on Business plan
+      // skip 'Choose Your Plan' if customer is already on Business plan and they have all additional products enabled
       isBizPlanFamily(props.subscription.planDetails) &&
       props.checkoutTier === props.subscription.planTier
     ) {
-      step = 2;
+      const selectedAll = props.subscription.reservedBudgets?.every(budget => {
+        if (
+          Object.values(SelectableProduct).includes(
+            budget.apiName as string as SelectableProduct
+          )
+        ) {
+          return budget.reservedBudget > 0;
+        }
+        return !props.organization.features.includes(budget.billingFlag || '');
+      });
+      if (selectedAll) {
+        step = 2;
+      }
     }
     this.initialStep = step;
     this.state = {

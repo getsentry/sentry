@@ -7,7 +7,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -68,6 +67,7 @@ type LogsRowProps = {
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  canDeferRenderElements?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
   onExpand?: (logItemId: string) => void;
@@ -100,6 +100,7 @@ export const LogRowContent = memo(function LogRowContent({
   onExpand,
   onCollapse,
   onExpandHeight,
+  canDeferRenderElements,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -109,7 +110,18 @@ export const LogRowContent = memo(function LogRowContent({
   const isTableFrozen = useLogsIsTableFrozen();
   const blockRowExpanding = useLogsBlockRowExpanding();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
+  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
+    canDeferRenderElements ? false : true
+  );
+
+  const setShouldRenderHoverElements = useCallback(
+    (value: boolean) => {
+      if (canDeferRenderElements) {
+        _setShouldRenderHoverElements(value);
+      }
+    },
+    [canDeferRenderElements, _setShouldRenderHoverElements]
+  );
 
   function onPointerUp(event: SyntheticEvent) {
     if (event.target instanceof Element && isInsideButton(event.target)) {
@@ -209,6 +221,11 @@ export const LogRowContent = memo(function LogRowContent({
         isClickable: true,
       };
 
+  const buttonSize = 'xs';
+  const chevronIcon = (
+    <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
+  );
+
   return (
     <Fragment>
       <LogTableRow
@@ -229,19 +246,7 @@ export const LogRowContent = memo(function LogRowContent({
                 onClick={() => toggleExpanded()}
               />
             ) : (
-              <span
-                style={{
-                  marginRight: space(0.5),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  whiteSpace: 'nowrap',
-                  height: '24px',
-                  padding: `${space(0.5)} ${space(0.75)}`,
-                }}
-              >
-                <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-              </span>
+              <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
@@ -375,9 +380,11 @@ function LogRowDetails({
     );
   }
 
+  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
+
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
-      <LogDetailTableBodyCell colSpan={fields.length}>
+      <LogDetailTableBodyCell colSpan={colSpan}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>
