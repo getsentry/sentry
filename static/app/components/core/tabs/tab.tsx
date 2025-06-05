@@ -29,6 +29,7 @@ interface TabProps extends AriaTabProps {
    * menu.
    */
   overflowing: boolean;
+  size: BaseTabProps['size'];
   state: TabListState<any>;
   as?: React.ElementType;
   ref?: React.Ref<HTMLLIElement>;
@@ -52,7 +53,7 @@ function InnerWrap({
   to,
   disabled,
   ...props
-}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled'> & {
+}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled' | 'size'> & {
   selected: boolean;
   variant: NonNullable<BaseTabProps['variant']>;
 }) {
@@ -81,6 +82,7 @@ function BaseTab({
   hidden,
   disabled,
   isSelected,
+  size,
   variant = 'flat',
   as = 'li',
 }: BaseTabProps) {
@@ -116,6 +118,7 @@ function BaseTab({
         disabled={disabled}
         variant={variant}
         selected={isSelected}
+        size={size}
       >
         {!theme.isChonk && (
           <Fragment>
@@ -151,6 +154,7 @@ export function Tab({
   orientation,
   overflowing,
   variant,
+  size,
   as = 'li',
 }: TabProps) {
   const objectRef = useObjectRef(ref);
@@ -175,6 +179,7 @@ export function Tab({
       ref={objectRef}
       variant={variant}
       as={as}
+      size={size}
     >
       {rendered}
     </BaseTab>
@@ -274,6 +279,7 @@ const innerWrapStyles = ({
 const TabLink = styled(Link)<{
   orientation: Orientation;
   selected: boolean;
+  size: BaseTabProps['size'];
   variant: BaseTabProps['variant'];
 }>`
   ${p =>
@@ -283,6 +289,7 @@ const TabLink = styled(Link)<{
           selected: p.selected,
           orientation: p.orientation,
           theme: p.theme,
+          size: p.size,
         })
       : innerWrapStyles(p)}
 
@@ -295,6 +302,7 @@ const TabLink = styled(Link)<{
 const TabInnerWrap = styled('span')<{
   orientation: Orientation;
   selected: boolean;
+  size: BaseTabProps['size'];
   variant: BaseTabProps['variant'];
 }>`
   ${p =>
@@ -303,6 +311,7 @@ const TabInnerWrap = styled('span')<{
           variant: p.variant,
           selected: p.selected,
           orientation: p.orientation,
+          size: p.size,
           theme: p.theme,
         })
       : innerWrapStyles(p)}

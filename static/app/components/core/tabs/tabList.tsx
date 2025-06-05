@@ -156,7 +156,8 @@ function BaseTabList({
     defaultValue,
     onChange,
     disabled,
-    orientation = 'horizontal',
+    orientation,
+    size,
     keyboardActivation = 'manual',
     disableOverflow,
     ...otherRootProps
@@ -236,6 +237,7 @@ function BaseTabList({
             item={item}
             state={state}
             orientation={orientation}
+            size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
             ref={element => {
               tabItemsRef.current[item.key] = element;

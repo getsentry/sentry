@@ -13,6 +13,7 @@ export interface BaseTabProps {
   isSelected: boolean;
   orientation: Orientation;
   overflowing: boolean;
+  size: 'md' | 'sm' | 'xs';
   tabProps: DOMAttributes;
   as?: React.ElementType;
   ref?: React.Ref<HTMLLIElement>;
@@ -47,24 +48,32 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
+const paddingPerSize = {
+  md: '10px 16px',
+  sm: '8px 12px',
+  xs: '6px 8px',
+};
+
 export const chonkInnerWrapStyles = ({
   theme,
   orientation,
   variant,
+  size,
   selected,
 }: {
   orientation: Orientation;
   selected: boolean;
+  size: BaseTabProps['size'];
   theme: DO_NOT_USE_ChonkTheme;
   variant: BaseTabProps['variant'];
 }) => css`
   display: flex;
   align-items: center;
   position: relative;
-  ${theme.form.md};
+  ${theme.form[size]};
+  padding: ${paddingPerSize[size]};
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
-  padding: 10px ${orientation === 'horizontal' ? theme.space.xl : theme.space.md};
   margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
     ? theme.space.mini
     : 0};
