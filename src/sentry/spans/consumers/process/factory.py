@@ -144,6 +144,7 @@ def process_batch(
             "standalone-spans.drop-in-buffer",
             {
                 "org_id": val.get("organization_id"),
+                "project_id": val.get("project_id"),
                 "trace_id": val.get("trace_id"),
                 "partition_id": partition_id,
             },
