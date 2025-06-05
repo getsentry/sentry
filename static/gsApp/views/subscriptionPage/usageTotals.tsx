@@ -43,7 +43,6 @@ import {
   getChunkCategoryFromDuration,
   getPlanCategoryName,
   isContinuousProfiling,
-  isSeer,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
@@ -155,6 +154,10 @@ type CombinedUsageProps = {
    * The reserved spend if any
    */
   reservedSpend?: number | null;
+  /**
+   * Show all totals
+   */
+  showAllTotals?: boolean;
   /**
    * If soft cap is enabled, the type of soft cap in use: true forward or on-demand
    */
@@ -776,6 +779,7 @@ export function CombinedUsageTotals({
   softCapType = null,
   allTotalsByCategory = {},
   trueForward = false,
+  showAllTotals = true,
 }: CombinedUsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
@@ -869,8 +873,6 @@ export function CombinedUsageTotals({
     (acc, categoryHistory) => acc + categoryHistory.reservedSpend,
     0
   );
-
-  const showAllTotals = !isSeer(firstCategory);
 
   function getTitle(): React.ReactNode | null {
     if (productTrial?.isStarted) {

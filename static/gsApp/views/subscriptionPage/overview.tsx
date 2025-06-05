@@ -270,9 +270,13 @@ function Overview({location, subscription, promotionData}: Props) {
         {subscription.reservedBudgets?.map(reservedBudget => {
           let softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null = null;
           let trueForward = false;
+          let showAllTotals = true;
 
           Object.keys(reservedBudget.categories).forEach(category => {
             const categoryHistory = subscription.categories[category as DataCategory];
+            if (categoryHistory?.category && isSeer(categoryHistory?.category)) {
+              showAllTotals = false;
+            }
             if (softCapType === null) {
               if (categoryHistory?.softCapType) {
                 softCapType = categoryHistory.softCapType;
@@ -294,6 +298,7 @@ function Overview({location, subscription, promotionData}: Props) {
               allTotalsByCategory={usageData.totals}
               softCapType={softCapType}
               trueForward={trueForward}
+              showAllTotals={showAllTotals}
             />
           );
         })}
