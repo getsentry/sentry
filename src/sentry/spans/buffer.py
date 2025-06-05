@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import math
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -147,6 +148,7 @@ class SpansBuffer:
         segment_page_size: int = 100,
         max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
         max_segment_spans: int = 1001,
+        max_flush_segments: int = 500,
         redis_ttl: int = 3600,
     ):
         self.assigned_shards = list(assigned_shards)
@@ -155,6 +157,7 @@ class SpansBuffer:
         self.segment_page_size = segment_page_size
         self.max_segment_bytes = max_segment_bytes
         self.max_segment_spans = max_segment_spans
+        self.max_flush_segments = max_flush_segments
         self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
@@ -171,6 +174,10 @@ class SpansBuffer:
                 self.assigned_shards,
                 self.span_buffer_timeout_secs,
                 self.span_buffer_root_timeout_secs,
+                self.segment_page_size,
+                self.max_segment_bytes,
+                self.max_segment_spans,
+                self.max_flush_segments,
                 self.redis_ttl,
             ),
         )
@@ -340,18 +347,18 @@ class SpansBuffer:
     def get_memory_info(self) -> Generator[ServiceMemory]:
         return iter_cluster_memory_usage(self.client)
 
-    def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentKey, FlushedSegment]:
+    def flush_segments(self, now: int) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now
 
         queue_keys = []
+        shard_factor = max(1, len(self.assigned_shards))
+        max_segments_per_shard = math.ceil(self.max_flush_segments / shard_factor)
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = self._get_queue_key(shard)
-                    p.zrangebyscore(
-                        key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
-                    )
+                    p.zrangebyscore(key, 0, cutoff, start=0, num=max_segments_per_shard)
                     queue_keys.append(key)
 
                 result = p.execute()
@@ -372,7 +379,7 @@ class SpansBuffer:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
 
-            if max_segments > 0 and len(segment) >= max_segments:
+            if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 
             output_spans = []
@@ -445,7 +452,7 @@ class SpansBuffer:
                 sizes[key] += sum(len(span) for span in spans)
                 if sizes[key] > self.max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.error("Skipping too large segment, byte size %s", sizes[key])
+                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
                     del payloads[key]
                     del cursors[key]
@@ -454,7 +461,7 @@ class SpansBuffer:
                 payloads[key].extend(spans)
                 if len(payloads[key]) > self.max_segment_spans:
                     metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
-                    logger.error("Skipping too large segment, span count %s", len(payloads[key]))
+                    logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
 
                     del payloads[key]
                     del cursors[key]
@@ -471,7 +478,7 @@ class SpansBuffer:
                 # partitioned by trace_id so multiple consumers are writing
                 # over each other. The consequence is duplicated segments,
                 # worst-case.
-                metrics.incr("sentry.spans.buffer.empty_segments")
+                metrics.incr("spans.buffer.empty_segments")
 
         return payloads
 
