@@ -62,7 +62,8 @@ def eventclass(
     return wrapper
 
 
-@eventclass
+# unfortunately we cannot directly use `eventclass` here, as it is making a typecheck to Event
+@dataclass(slots=True, kw_only=True)
 class Event:
     """
     Base class for custom analytics Events. Subclasses *must* use the `eventclass` decorator.
