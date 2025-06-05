@@ -45,7 +45,7 @@ import {
   useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
-  IssueAlertOptionsProps,
+  AlertRuleOptions,
   RequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
@@ -55,19 +55,14 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
   projectName: string;
-  alertRule?: Pick<
-    IssueAlertOptionsProps,
-    'alertSetting' | 'interval' | 'metric' | 'threshold'
-  >;
+  alertRule?: Partial<AlertRuleOptions>;
   platform?: Partial<OnboardingSelectedSDK>;
   team?: string;
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
-  alertRule?: NonNullable<
-    Pick<IssueAlertOptionsProps, 'alertSetting' | 'interval' | 'metric' | 'threshold'>
-  >;
+  alertRule?: Partial<AlertRuleOptions>;
   team?: string;
 };
 

@@ -28,7 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueAlertOptionsProps} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
@@ -36,10 +36,6 @@ import IssueAlertOptions, {
 type Props = ModalRenderProps & {
   defaultCategory?: Category;
 };
-
-type AlertForm = Partial<
-  Pick<IssueAlertOptionsProps, 'alertSetting' | 'interval' | 'metric' | 'threshold'>
->;
 
 export default function ProjectCreationModal({
   Header,
@@ -51,7 +47,7 @@ export default function ProjectCreationModal({
   const [projectName, setProjectName] = useState('');
   const [team, setTeam] = useState<string | undefined>(undefined);
   const [creating, setCreating] = useState(false);
-  const [alertForm, setAlertForm] = useState<AlertForm>();
+  const [alertForm, setAlertForm] = useState<Partial<AlertRuleOptions>>();
 
   const api = useApi();
   const organization = useOrganization();

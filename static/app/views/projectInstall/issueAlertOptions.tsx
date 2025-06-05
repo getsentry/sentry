@@ -78,17 +78,19 @@ export type RequestDataFragment = {
   shouldCreateRule: boolean;
 };
 
+export interface AlertRuleOptions {
+  alertSetting: RuleAction;
+  interval: string;
+  metric: MetricValues;
+  threshold: string;
+}
+
 export function getRequestDataFragment({
   alertSetting = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.alertSetting,
   interval = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.interval,
   metric = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.metric,
   threshold = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.threshold,
-}: {
-  alertSetting?: RuleAction;
-  interval?: string;
-  metric?: MetricValues;
-  threshold?: string;
-} = {}): RequestDataFragment {
+}: Partial<AlertRuleOptions> = {}): RequestDataFragment {
   return {
     defaultRules: alertSetting === RuleAction.DEFAULT_ALERT,
     shouldCreateRule: alertSetting !== RuleAction.CREATE_ALERT_LATER,
@@ -116,18 +118,12 @@ export function getRequestDataFragment({
   };
 }
 
-export interface IssueAlertOptionsProps {
-  onFieldChange: <
-    K extends keyof NonNullable<Omit<IssueAlertOptionsProps, 'onFieldChange'>>,
-  >(
+export interface IssueAlertOptionsProps extends Partial<AlertRuleOptions> {
+  onFieldChange: <K extends keyof AlertRuleOptions>(
     key: K,
-    value: IssueAlertOptionsProps[K]
+    value: AlertRuleOptions[K]
   ) => void;
-  alertSetting?: RuleAction;
-  interval?: string;
-  metric?: MetricValues;
   notificationProps?: IssueAlertNotificationProps;
-  threshold?: string;
 }
 
 export default function IssueAlertOptions({
