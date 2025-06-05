@@ -471,7 +471,7 @@ class SpansBuffer:
                 # partitioned by trace_id so multiple consumers are writing
                 # over each other. The consequence is duplicated segments,
                 # worst-case.
-                metrics.incr("sentry.spans.buffer.empty_segments")
+                metrics.incr("spans.buffer.empty_segments")
 
         return payloads
 
