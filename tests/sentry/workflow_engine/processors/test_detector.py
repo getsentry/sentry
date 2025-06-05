@@ -5,6 +5,7 @@ from unittest.mock import call
 
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorStateData
@@ -101,7 +102,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             result=StatusChangeMessage(
                 fingerprint=["detector:1"],
                 project_id=self.project.id,
-                new_status=1,  # resolved, TODO import groupstatus enum
+                new_status=GroupStatus.RESOLVED,
                 new_substatus=None,
                 id=str(self.mock_uuid4.return_value),
             ),
