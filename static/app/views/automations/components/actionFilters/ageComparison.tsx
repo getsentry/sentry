@@ -37,7 +37,7 @@ export function AgeComparisonDetails({condition}: AgeComparisonDetailsProps) {
   });
 }
 
-export default function AgeComparisonNode() {
+export function AgeComparisonNode() {
   return tct('The issue is [comparisonType] [value] [time]', {
     comparisonType: <ComparisonField />,
     value: <ValueField />,

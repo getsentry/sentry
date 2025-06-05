@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0920_convert_org_saved_searches_to_views_revised"),
+        ("sentry", "0921_convert_org_saved_searches_to_views_rerevised"),
     ]
 
     operations = [

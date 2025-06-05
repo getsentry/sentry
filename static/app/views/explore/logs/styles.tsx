@@ -375,6 +375,12 @@ export const FloatingBackToTopContainer = styled('div')<{
   width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   display: flex;
   justify-content: center;
+
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
 `;
 
 export const HoveringRowLoadingRendererContainer = styled('div')<{
