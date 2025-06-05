@@ -5,6 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {IssueAlertOptionsProps} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
+  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
@@ -26,9 +27,10 @@ describe('IssueAlertOptions', function () {
   const mockOnChange = jest.fn();
   const getComponent = (props: Partial<IssueAlertOptionsProps> = {}) => (
     <IssueAlertOptions
-      {...props}
+      {...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES}
       notificationProps={notificationProps}
-      onChange={mockOnChange}
+      onFieldChange={mockOnChange}
+      {...props}
     />
   );
 

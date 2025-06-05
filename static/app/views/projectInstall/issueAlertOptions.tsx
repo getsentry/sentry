@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
@@ -61,6 +60,13 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
+export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
+  alertSetting: RuleAction.DEFAULT_ALERT,
+  interval: '1m',
+  metric: MetricValues.ERRORS,
+  threshold: '10',
+};
+
 export type RequestDataFragment = {
   actionMatch: string;
   actions: Array<Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>>;
@@ -72,16 +78,7 @@ export type RequestDataFragment = {
   shouldCreateRule: boolean;
 };
 
-export interface IssueAlertOptionsProps {
-  onChange: (updatedData: RequestDataFragment) => void;
-  alertSetting?: RuleAction;
-  interval?: string;
-  metric?: MetricValues;
-  notificationProps?: IssueAlertNotificationProps;
-  threshold?: string;
-}
-
-const getRequestDataFragment = ({
+export function getRequestDataFragment({
   alertSetting,
   interval,
   metric,
@@ -91,7 +88,7 @@ const getRequestDataFragment = ({
   interval: string;
   metric: MetricValues;
   threshold: string;
-}): RequestDataFragment => {
+}): RequestDataFragment {
   return {
     defaultRules: alertSetting === RuleAction.DEFAULT_ALERT,
     shouldCreateRule: alertSetting !== RuleAction.CREATE_ALERT_LATER,
@@ -117,28 +114,30 @@ const getRequestDataFragment = ({
     actionMatch: 'all',
     frequency: 5,
   };
-};
+}
+
+export interface IssueAlertOptionsProps {
+  alertSetting: RuleAction;
+  interval: string;
+  metric: MetricValues;
+  onFieldChange: <
+    K extends keyof NonNullable<Omit<IssueAlertOptionsProps, 'onFieldChange'>>,
+  >(
+    key: K,
+    value: IssueAlertOptionsProps[K]
+  ) => void;
+  threshold: string;
+  notificationProps?: IssueAlertNotificationProps;
+}
 
 export default function IssueAlertOptions({
-  onChange,
-  alertSetting = RuleAction.DEFAULT_ALERT,
-  interval = '1m',
-  metric = MetricValues.ERRORS,
+  alertSetting,
+  interval,
+  metric,
+  threshold,
   notificationProps,
-  threshold = '10',
+  onFieldChange,
 }: IssueAlertOptionsProps) {
-  useEffect(() => {
-    onChange(
-      getRequestDataFragment({
-        alertSetting,
-        interval,
-        metric,
-        threshold,
-      })
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const issueAlertOptionsChoices: Array<[RuleAction, React.ReactNode]> = [
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
@@ -154,14 +153,7 @@ export default function IssueAlertOptions({
               placeholder="10"
               value={threshold}
               onChange={e => {
-                onChange(
-                  getRequestDataFragment({
-                    alertSetting,
-                    interval,
-                    metric,
-                    threshold: e.target.value,
-                  })
-                );
+                onFieldChange('threshold', e.target.value);
               }}
               data-test-id="range-input"
             />
@@ -173,14 +165,7 @@ export default function IssueAlertOptions({
               value={metric}
               options={METRIC_CHOICES}
               onChange={(option: (typeof METRIC_CHOICES)[number]) => {
-                onChange(
-                  getRequestDataFragment({
-                    alertSetting,
-                    interval,
-                    metric: option.value,
-                    threshold,
-                  })
-                );
+                onFieldChange('metric', option.value);
               }}
             />
           </div>
@@ -191,14 +176,7 @@ export default function IssueAlertOptions({
               value={interval}
               options={INTERVAL_CHOICES}
               onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {
-                onChange(
-                  getRequestDataFragment({
-                    alertSetting,
-                    interval: option.value,
-                    metric,
-                    threshold,
-                  })
-                );
+                onFieldChange('interval', option.value);
               }}
             />
           </div>
@@ -218,14 +196,7 @@ export default function IssueAlertOptions({
         label={t('Options for creating an alert')}
         onChange={val => {
           const selectedAlertSetting = parseRuleAction(val);
-          onChange(
-            getRequestDataFragment({
-              alertSetting: selectedAlertSetting,
-              interval,
-              metric,
-              threshold,
-            })
-          );
+          onFieldChange('alertSetting', selectedAlertSetting);
         }}
         value={alertSetting.toString()}
       />
