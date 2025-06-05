@@ -129,7 +129,7 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-export const Frame = styled('div')<{
+const Frame = styled('div')<{
   borderless?: boolean;
   height?: number;
   revealActions?: 'always' | 'hover';
