@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
@@ -14,7 +15,6 @@ import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 import type {BaseTabProps} from './tab.chonk';
 import {
   chonkInnerWrapStyles,
-  ChonkStyledFocusLayer,
   ChonkStyledTabSelectionIndicator,
   ChonkStyledTabWrap,
 } from './tab.chonk';
@@ -53,6 +53,7 @@ function InnerWrap({
   disabled,
   ...props
 }: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled'> & {
+  selected: boolean;
   variant: NonNullable<BaseTabProps['variant']>;
 }) {
   return to && !disabled ? (
@@ -109,14 +110,26 @@ function BaseTab({
       ref={ref}
       as={as}
     >
-      <InnerWrap to={to} orientation={orientation} disabled={disabled} variant={variant}>
+      <InnerWrap
+        to={to}
+        orientation={orientation}
+        disabled={disabled}
+        variant={variant}
+        selected={isSelected}
+      >
         {!theme.isChonk && (
-          <StyledInteractionStateLayer
-            orientation={orientation}
-            higherOpacity={isSelected}
-          />
+          <Fragment>
+            <StyledInteractionStateLayer
+              orientation={orientation}
+              higherOpacity={isSelected}
+            />
+            <FocusLayer
+              orientation={orientation}
+              variant={variant}
+              selected={isSelected}
+            />
+          </Fragment>
         )}
-        <FocusLayer orientation={orientation} variant={variant} selected={isSelected} />
         {children}
         {variant === 'flat' ? (
           <TabSelectionIndicator orientation={orientation} selected={isSelected} />
@@ -260,12 +273,14 @@ const innerWrapStyles = ({
 
 const TabLink = styled(Link)<{
   orientation: Orientation;
+  selected: boolean;
   variant: BaseTabProps['variant'];
 }>`
   ${p =>
     isChonkTheme(p.theme)
       ? chonkInnerWrapStyles({
           variant: p.variant,
+          selected: p.selected,
           orientation: p.orientation,
           theme: p.theme,
         })
@@ -279,12 +294,14 @@ const TabLink = styled(Link)<{
 
 const TabInnerWrap = styled('span')<{
   orientation: Orientation;
+  selected: boolean;
   variant: BaseTabProps['variant'];
 }>`
   ${p =>
     isChonkTheme(p.theme)
       ? chonkInnerWrapStyles({
           variant: p.variant,
+          selected: p.selected,
           orientation: p.orientation,
           theme: p.theme,
         })
@@ -315,31 +332,28 @@ const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
   bottom: 0;
 `;
 
-const FocusLayer = withChonk(
-  styled('div')<{
-    orientation: Orientation;
-    selected: boolean;
-    variant: BaseTabProps['variant'];
-  }>`
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
+const FocusLayer = styled('div')<{
+  orientation: Orientation;
+  selected: boolean;
+  variant: BaseTabProps['variant'];
+}>`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-    transition: box-shadow 0.1s ease-out;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+  transition: box-shadow 0.1s ease-out;
 
-    li:focus-visible & {
-      box-shadow:
-        ${p => p.theme.focusBorder} 0 0 0 1px,
-        inset ${p => p.theme.focusBorder} 0 0 0 1px;
-    }
-  `,
-  ChonkStyledFocusLayer
-);
+  li:focus-visible & {
+    box-shadow:
+      ${p => p.theme.focusBorder} 0 0 0 1px,
+      inset ${p => p.theme.focusBorder} 0 0 0 1px;
+  }
+`;
 
 const VariantFocusLayer = styled('div')`
   position: absolute;

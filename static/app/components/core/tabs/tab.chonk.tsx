@@ -48,89 +48,75 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
-export const ChonkStyledFocusLayer = chonkStyled('div')<{
-  orientation: Orientation;
-  selected: boolean;
-  variant: BaseTabProps['variant'];
-}>`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
-
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 0;
-
-  li[aria-disabled]:hover & {
-    background-color: transparent;
-  }
-
-  li:focus-visible & {
-    ${p => p.theme.focusRing}
-  }
-
-  li:hover & {
-    background-color: ${p => (p.variant === 'floating' ? p.theme.colors.blue200 : p.theme.colors.gray100)};
-    color: ${p => (p.variant === 'floating' ? p.theme.tokens.component.link.accent.hover : p.theme.tokens.component.link.muted.hover)};
-  }
-
-  li:active & {
-    background-color: ${p => (p.variant === 'floating' ? p.theme.colors.blue300 : p.theme.colors.gray200)};
-    color: ${p => (p.variant === 'floating' ? p.theme.tokens.component.link.accent.active : p.theme.tokens.component.link.muted.active)};
-  }
-
-  ${p =>
-    p.variant === 'floating' &&
-    p.selected &&
-    css`
-      background-color: ${p.theme.colors.blue100};
-    `}
-`;
-
 export const chonkInnerWrapStyles = ({
   theme,
   orientation,
   variant,
+  selected,
 }: {
   orientation: Orientation;
+  selected: boolean;
   theme: DO_NOT_USE_ChonkTheme;
   variant: BaseTabProps['variant'];
 }) => css`
   display: flex;
   align-items: center;
   position: relative;
-  height: calc(
-    ${theme.form.sm.height} + ${orientation === 'horizontal' ? space(0.75) : '0px'}
-  );
+  ${theme.form.md};
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
   padding: 10px 16px;
+  margin-bottom: ${theme.space.mini};
 
   ${orientation === 'horizontal'
     ? css`
         gap: ${theme.space.md};
         /**
-         * Extra padding + negative margin trick, to expand click area
-         * Flat Variant gets and extra 4px padding-bottom:
-         * 2px width of the SelectionIndicator and 2px spacing towards it
+         * negative margin trick, to expand click area
          */
-        ${variant === 'flat' &&
-        css`
-          padding-bottom: 14px;
-        `}
         margin-left: -${space(1)};
         margin-right: -${space(1)};
       `
     : css`
         gap: ${theme.space.sm};
-        padding: 10px 16px;
         /**
           * To align the SelectionIndicator (2px width, 4px spacing)
           */
         margin-left: 6px;
       `};
+
+  li[aria-disabled]:hover & {
+    background-color: transparent;
+  }
+
+  li:focus-visible & {
+    outline: none;
+    box-shadow: inset 0 0 0 2px ${theme.focusBorder};
+  }
+
+  li:not([aria-disabled]):hover & {
+    background-color: ${variant === 'floating'
+      ? theme.colors.blue200
+      : theme.colors.gray100};
+    color: ${variant === 'floating'
+      ? theme.tokens.component.link.accent.hover
+      : theme.tokens.component.link.muted.hover};
+  }
+
+  li:not([aria-disabled]):active & {
+    background-color: ${variant === 'floating'
+      ? theme.colors.blue300
+      : theme.colors.gray200};
+    color: ${variant === 'floating'
+      ? theme.tokens.component.link.accent.active
+      : theme.tokens.component.link.muted.active};
+  }
+
+  ${variant === 'floating' &&
+  selected &&
+  css`
+    background-color: ${theme.colors.blue100};
+  `}
 `;
 export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
   orientation: Orientation;
@@ -153,7 +139,7 @@ export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
 
           bottom: 0;
           left: 50%;
-          transform: translateX(-50%);
+          transform: translate(-50%, ${p.theme.space.mini});
         `
       : css`
           width: 2px;
