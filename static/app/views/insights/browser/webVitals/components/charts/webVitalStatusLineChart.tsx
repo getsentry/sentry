@@ -95,7 +95,9 @@ export function WebVitalStatusLineChart({
           error={timeseriesError}
           series={[webVitalSeries]}
           extraPlottables={extraPlottables}
-          search={search}
+          queryInfo={{
+            search,
+          }}
           height={250}
         />
       )}

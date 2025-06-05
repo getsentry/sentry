@@ -116,8 +116,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       series={sortedSeries}
       isLoading={isSeriesLoading}
       error={seriesError}
-      search={search}
-      groupBy={[groupBy]}
+      queryInfo={{search, groupBy: [groupBy]}}
       showReleaseAs="none"
       showLegend="always"
       height={220}
