@@ -78,6 +78,6 @@ export const HeadSortCell = memo(function HeadCell({
  * Used to force the cell to expand take as much width as possible in the table layout
  * otherwise grid editable will let the last column grow
  */
-export const CellExpander = styled('div')`
+const CellExpander = styled('div')`
   width: 100vw;
 `;
