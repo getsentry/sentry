@@ -160,6 +160,7 @@ type SpanStringFields =
   | 'project'
   | 'http.request.method'
   | 'messaging.destination.name'
+  | 'command'
   | 'user'
   | 'user.display'
   | 'user.id'
