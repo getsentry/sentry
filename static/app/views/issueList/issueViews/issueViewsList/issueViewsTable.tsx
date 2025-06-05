@@ -17,6 +17,7 @@ import {
   type GroupSearchView,
   GroupSearchViewCreatedBy,
 } from 'sentry/views/issueList/types';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;
@@ -41,6 +42,7 @@ export function IssueViewsTable({
 }: IssueViewsTableProps) {
   const organization = useOrganization();
   const user = useUser();
+  const hasIssueViews = useHasIssueViews();
 
   return (
     <SavedEntityTableWithColumns
@@ -155,7 +157,7 @@ export function IssueViewsTable({
                         />
                       ));
                     },
-                    hidden: !canEdit,
+                    hidden: !canEdit || !hasIssueViews,
                   },
                   {
                     key: 'duplicate',
@@ -170,6 +172,7 @@ export function IssueViewsTable({
                         />
                       ));
                     },
+                    hidden: !hasIssueViews,
                   },
                   {
                     key: 'delete',

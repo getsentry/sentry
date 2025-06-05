@@ -1493,3 +1493,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         queries = widgets[0].dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_response_includes_project_ids(self):
+        project = self.create_project()
+        self.dashboard.projects.add(project)
+        self.dashboard.save()
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+
+        overview_dashboard = response.data[0]
+        assert overview_dashboard["projects"] == []
+
+        current_dashboard = response.data[1]
+        assert current_dashboard["projects"] == [project.id]
+
+        starred_dashboard = response.data[2]
+        assert starred_dashboard["projects"] == []

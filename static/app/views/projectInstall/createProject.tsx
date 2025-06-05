@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
@@ -18,8 +19,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
+import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -59,8 +60,8 @@ type FormData = {
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
-  alertRule: Partial<RequestDataFragment> | undefined;
   platform: OnboardingSelectedSDK;
+  alertRule?: Partial<RequestDataFragment>;
   team?: string;
 };
 
@@ -93,7 +94,10 @@ function getMissingValues({
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
     isMissingProjectName: projectName === '',
     isMissingAlertThreshold:
-      shouldCreateCustomRule && !conditions?.every?.(condition => !!condition.value),
+      shouldCreateCustomRule &&
+      (!conditions ||
+        conditions.length === 0 ||
+        !conditions.every(condition => !!condition.value)),
     isMissingMessagingIntegrationChannel:
       shouldCreateRule &&
       notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION) &&
@@ -135,13 +139,11 @@ const keyToErrorText: Record<string, string> = {
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
-  const createProject = useCreateProject();
-  const createProjectRules = useCreateProjectRules();
+  const createProjectAndRules = useCreateProjectAndRules();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -149,44 +151,6 @@ export function CreateProject() {
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
     'created-project-context',
     null
-  );
-
-  const createRules = useCallback(
-    async ({
-      project,
-      alertRuleConfig,
-    }: {project: Project} & Pick<FormData, 'alertRuleConfig'>) => {
-      const ruleIds = [];
-
-      if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await createProjectRules.mutateAsync({
-          projectSlug: project.slug,
-          name: project.name,
-          conditions: alertRuleConfig?.conditions,
-          actions: alertRuleConfig?.actions,
-          actionMatch: alertRuleConfig?.actionMatch,
-          frequency: alertRuleConfig?.frequency,
-        });
-
-        ruleIds.push(ruleData.id);
-      }
-
-      const notificationRule = await createNotificationAction({
-        shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-        name: project.name,
-        projectSlug: project.slug,
-        conditions: alertRuleConfig?.conditions,
-        actionMatch: alertRuleConfig?.actionMatch,
-        frequency: alertRuleConfig?.frequency,
-      });
-
-      if (notificationRule) {
-        ruleIds.push(notificationRule.id);
-      }
-
-      return ruleIds;
-    },
-    [createNotificationAction, createProjectRules]
   );
 
   const autoFill = useMemo(() => {
@@ -235,9 +199,6 @@ export function CreateProject() {
     missingValues.isMissingMessagingIntegrationChannel,
   ].filter(value => value).length;
 
-  const canSubmitForm =
-    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
-
   const submitTooltipText = getSubmitTooltipText({
     ...missingValues,
     formErrorCount,
@@ -284,24 +245,22 @@ export function CreateProject() {
       let projectToRollback: Project | undefined;
 
       try {
-        const project = await createProject.mutateAsync({
-          name: projectName,
+        const {project, ruleIds} = await createProjectAndRules.mutateAsync({
+          projectName,
           platform: selectedPlatform,
-          default_rules: alertRuleConfig?.defaultRules ?? true,
-          firstTeamSlug: team,
+          team,
+          alertRuleConfig,
+          createNotificationAction,
         });
-
         projectToRollback = project;
-
-        const ruleIds = await createRules({project, alertRuleConfig});
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig?.defaultRules
-            ? 'Default'
-            : alertRuleConfig?.shouldCreateCustomRule
-              ? 'Custom'
-              : 'No Rule',
+          issue_alert: alertRuleConfig?.shouldCreateCustomRule
+            ? 'Custom'
+            : alertRuleConfig?.shouldCreateRule === false
+              ? 'No Rule'
+              : 'Default',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
@@ -322,8 +281,8 @@ export function CreateProject() {
           name: project.name,
           team: project.team?.slug,
           alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
+            shouldCreateRule: alertRuleConfig?.shouldCreateRule,
+            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule,
             conditions: alertRuleConfig?.conditions,
             actions: alertRuleConfig?.actions,
             actionMatch: alertRuleConfig?.actionMatch,
@@ -341,7 +300,6 @@ export function CreateProject() {
           )
         );
       } catch (error) {
-        setErrors(error.responseJSON);
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
@@ -373,7 +331,14 @@ export function CreateProject() {
         }
       }
     },
-    [createRules, organization, createProject, setCreatedProject, navigate, api]
+    [
+      organization,
+      setCreatedProject,
+      navigate,
+      api,
+      createProjectAndRules,
+      createNotificationAction,
+    ]
   );
 
   const handleProjectCreation = useCallback(
@@ -426,6 +391,11 @@ export function CreateProject() {
       );
     },
     [configurePlatform, organization]
+  );
+
+  const debounceHandleProjectCreation = useMemo(
+    () => debounce(handleProjectCreation, 2000, {leading: true, trailing: false}),
+    [handleProjectCreation]
   );
 
   const handlePlatformChange = useCallback(
@@ -486,12 +456,20 @@ export function CreateProject() {
             alertSetting={
               formData.alertRuleConfig?.shouldCreateCustomRule
                 ? RuleAction.CUSTOMIZED_ALERTS
-                : formData.alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
+                : formData.alertRuleConfig?.shouldCreateRule === false
+                  ? RuleAction.CREATE_ALERT_LATER
+                  : RuleAction.DEFAULT_ALERT
             }
-            interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
-            threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
+            interval={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                : undefined
+            }
+            threshold={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.value)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.value)
+                : undefined
+            }
             metric={
               formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
                 'EventFrequencyCondition'
@@ -549,21 +527,22 @@ export function CreateProject() {
                 <Button
                   data-test-id="create-project"
                   priority="primary"
-                  disabled={!canSubmitForm}
-                  onClick={() => handleProjectCreation(formData)}
+                  disabled={!(canUserCreateProject && formErrorCount === 0)}
+                  busy={createProjectAndRules.isPending}
+                  onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
                 </Button>
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {errors && (
+          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
               <Alert type="error">
-                {Object.keys(errors).map(key => (
+                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(errors as any)[key]}
+                    {(createProjectAndRules.error.responseJSON as any)[key]}
                   </div>
                 ))}
               </Alert>

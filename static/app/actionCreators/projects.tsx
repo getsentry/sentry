@@ -287,7 +287,7 @@ export function changeProjectSlug(prev: string, next: string) {
  * @param orgSlug Organization Slug
  * @param projectSlug Project Slug
  */
-export function removeProject({
+export async function removeProject({
   api,
   orgSlug,
   projectSlug,
@@ -298,14 +298,13 @@ export function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  return api
-    .requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-      method: 'DELETE',
-      data: {origin},
-    })
-    .then(() => {
-      ProjectsStore.onDeleteProject(projectSlug);
-    });
+  const response = await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+    method: 'DELETE',
+    data: {origin},
+  });
+  ProjectsStore.onDeleteProject(projectSlug);
+
+  return response;
 }
 
 /**
@@ -321,21 +320,25 @@ export function fetchProjectsCount(api: Client, orgSlug: string) {
 function makeProjectTeamsQueryKey({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/teams/`];
+  return [`/projects/${orgSlug}/${projectSlug}/teams/`, {query: {cursor}}];
 }
 
 export function useFetchProjectTeams({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }) {
-  return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug}), {
+  return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}), {
     staleTime: 0,
     retry: false,
     enabled: Boolean(orgSlug && projectSlug),
@@ -345,9 +348,11 @@ export function useFetchProjectTeams({
 export function useAddTeamToProject({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -358,20 +363,22 @@ export function useAddTeamToProject({
 
       setApiQueryData<Team[]>(
         queryClient,
-        makeProjectTeamsQueryKey({orgSlug, projectSlug}),
-        prevData => (Array.isArray(prevData) ? [...prevData, team] : [team])
+        makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}),
+        prevData => (Array.isArray(prevData) ? [team, ...prevData] : [team])
       );
     },
-    [api, orgSlug, projectSlug, queryClient]
+    [api, orgSlug, projectSlug, cursor, queryClient]
   );
 }
 
 export function useRemoveTeamFromProject({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -382,11 +389,11 @@ export function useRemoveTeamFromProject({
 
       setApiQueryData<Team[]>(
         queryClient,
-        makeProjectTeamsQueryKey({orgSlug, projectSlug}),
+        makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}),
         prevData =>
           Array.isArray(prevData) ? prevData.filter(team => team?.slug !== teamSlug) : []
       );
     },
-    [api, orgSlug, projectSlug, queryClient]
+    [api, orgSlug, projectSlug, cursor, queryClient]
   );
 }

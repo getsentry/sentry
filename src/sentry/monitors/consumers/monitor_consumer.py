@@ -100,6 +100,11 @@ def _ensure_monitor_with_config(
     except Monitor.DoesNotExist:
         monitor = None
 
+    # Monitor was previously marked as upserting, but no config is provided for
+    # this check-in, therefore it's no longer upserting.
+    if not config and monitor and monitor.is_upserting:
+        monitor.update(is_upserting=False)
+
     if not config:
         return monitor
 
@@ -156,6 +161,7 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
                 "owner_user_id": owner_user_id,
                 "owner_team_id": owner_team_id,
+                "is_upserting": True,
             },
         )
         if created:
@@ -165,6 +171,8 @@ def _ensure_monitor_with_config(
     if monitor and not created:
         if monitor.config != validated_config:
             monitor.update_config(config, validated_config)
+        if not monitor.is_upserting:
+            monitor.update(is_upserting=True)
         if (owner_user_id or owner_team_id) and (
             owner_user_id != monitor.owner_user_id or owner_team_id != monitor.owner_team_id
         ):
@@ -426,6 +434,22 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     monitor_slug = item.valid_monitor_slug
     environment = params.get("environment")
+
+    # XXX(epurkhiser): Adding VERY early logging specific to a sentry monitor
+    # that we're seeing have intermittent missed in-progress check-ins. We
+    # would like to verify that these check-ins truley are NOT being received
+    # at all (and not being drooped somewhere in this consumer)
+    if project_id == 1 and monitor_slug == "monitors-clock-pulse":
+        clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
+        logger.info(
+            "monitors.consumer.sentry_clock_pulse_debug_entry",
+            extra={
+                "clock_time": clock_time,
+                "item_ts": item.ts,
+                "start_time": start_time,
+                **params,
+            },
+        )
 
     project = Project.objects.get_from_cache(id=project_id)
 
