@@ -80,6 +80,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
             DetectorParams.QUERY,
             DetectorParams.SORT,
+            DetectorParams.ID,
         ],
         responses={
             201: DetectorSerializer,
@@ -99,6 +100,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = Detector.objects.filter(
             project_id__in=projects,
         )
+
+        if raw_idlist := request.GET.getlist("id"):
+            try:
+                ids = [int(id) for id in raw_idlist]
+            except ValueError:
+                raise ValidationError({"id": ["Invalid ID format"]})
+            queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
             tokenized_query = tokenize_query(raw_query)
