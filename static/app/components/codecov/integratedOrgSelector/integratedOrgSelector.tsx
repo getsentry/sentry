@@ -1,36 +1,18 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {Link} from 'react-router-dom';
+import {Link, useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface IntegratedOrgSelectorProps
-  extends Omit<
-    SingleSelectProps<string>,
-    | 'multiple'
-    | 'searchable'
-    | 'disableSearchFilter'
-    | 'hideOptions'
-    | 'value'
-    | 'defaultValue'
-    | 'onChange'
-    | 'onInteractOutside'
-    | 'closeOnSelect'
-    | 'onKeyDown'
-    | 'options'
-  > {
-  /**
-   * Message to show in the menu footer
-   */
-  chosenOrg?: string | null;
-  menuFooterMessage?: React.ReactNode;
-  onChange?: (data: string) => void;
+export interface IntegratedOrgSelectorProps {
+  onClose?: () => void;
 }
 
 const SAMPLE_ORG_ITEMS = ['codecov', 'sentry', 'my-other-org-with-a-super-long-name'];
@@ -50,7 +32,7 @@ function AddIntegratedOrgButton() {
 
 function OrgFooterMessage() {
   return (
-    <div>
+    <Fragment>
       <AddIntegratedOrgButton />
       <MenuFooterDivider />
       <FlexContainer>
@@ -64,23 +46,20 @@ function OrgFooterMessage() {
           </FooterInfoSubheading>
         </div>
       </FlexContainer>
-    </div>
+    </Fragment>
   );
 }
 
 export function IntegratedOrgSelector({
-  onChange,
   onClose,
-  trigger,
-  menuBody,
-  menuFooter,
-  menuFooterMessage,
-  chosenOrg,
   ...selectProps
 }: IntegratedOrgSelectorProps) {
+  const {integratedOrg} = useCodecovContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
-      ...(chosenOrg ? [chosenOrg] : []),
+      ...(integratedOrg ? [integratedOrg] : []),
       ...(SAMPLE_ORG_ITEMS.length ? SAMPLE_ORG_ITEMS : []),
     ]);
 
@@ -93,61 +72,45 @@ export function IntegratedOrgSelector({
     };
 
     return [...optionSet].map(makeOption);
-  }, [chosenOrg]);
+  }, [integratedOrg]);
 
-  const handleChange = useCallback<NonNullable<SingleSelectProps<string>['onChange']>>(
-    newOrg => {
-      onChange?.(newOrg.value);
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      const currentParams = Object.fromEntries(searchParams.entries());
+      const updatedParams = {
+        ...currentParams,
+        integratedOrg: selectedOption.value,
+      };
+      setSearchParams(updatedParams);
     },
-    [onChange]
+    [searchParams, setSearchParams]
   );
 
   return (
     <CompactSelect
       {...selectProps}
       options={options}
-      value={chosenOrg ?? ''}
+      value={integratedOrg ?? ''}
       onChange={handleChange}
       onClose={onClose}
       closeOnSelect
-      trigger={
-        trigger ??
-        ((triggerProps, isOpen) => {
-          return (
-            <DropdownButton
-              isOpen={isOpen}
-              size={selectProps.size}
-              data-test-id="page-filter-integrated-org-selector"
-              {...triggerProps}
-              {...selectProps.triggerProps}
-            >
-              <TriggerLabelWrap>
-                <TriggerLabel>
-                  {chosenOrg || t('Select integrated organization')}
-                </TriggerLabel>
-              </TriggerLabelWrap>
-            </DropdownButton>
-          );
-        })
-      }
+      trigger={(triggerProps, isOpen) => {
+        return (
+          <DropdownButton
+            isOpen={isOpen}
+            data-test-id="page-filter-integrated-org-selector"
+            {...triggerProps}
+          >
+            <TriggerLabelWrap>
+              <TriggerLabel>
+                {integratedOrg || t('Select integrated organization')}
+              </TriggerLabel>
+            </TriggerLabelWrap>
+          </DropdownButton>
+        );
+      }}
       menuWidth={'22em'}
-      menuBody={menuBody}
-      menuFooter={
-        menuFooter || menuFooterMessage ? (
-          () => {
-            return (
-              <Fragment>
-                {menuFooterMessage && <FooterMessage>{menuFooterMessage}</FooterMessage>}
-                <FooterWrap>
-                  <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
-                </FooterWrap>
-              </Fragment>
-            );
-          }
-        ) : (
-          <OrgFooterMessage />
-        )
-      }
+      menuFooter={<OrgFooterMessage />}
     />
   );
 }
@@ -170,16 +133,6 @@ const OptionLabel = styled('span')`
   }
 `;
 
-const FooterMessage = styled('p')`
-  padding: ${space(0.75)} ${space(1)};
-  margin: ${space(0.5)} 0;
-  border-radius: ${p => p.theme.borderRadius};
-  border: solid 1px ${p => p.theme.alert.warning.border};
-  background: ${p => p.theme.alert.warning.backgroundLight};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
 const FooterInfoHeading = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.4;
@@ -190,38 +143,6 @@ const FooterInfoSubheading = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
   margin: 0;
-`;
-
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(2)};
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${space(1)};
-  }
-`;
-
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-
-  &:empty {
-    display: none;
-  }
-
-  &:last-of-type {
-    justify-self: end;
-    justify-items: end;
-  }
-  &:first-of-type,
-  &:only-child {
-    justify-self: start;
-    justify-items: start;
-  }
 `;
 
 const MenuFooterDivider = styled('div')`

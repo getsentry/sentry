@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
-import {IntegratedOrgPicker} from 'sentry/components/codecov/integratedOrgPicker/integratedOrgPicker';
+import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
@@ -61,7 +61,7 @@ export default function TestsPage() {
       <p>Test Analytics</p>
       <CodecovQueryParamsProvider>
         <PageFilterBar condensed>
-          <IntegratedOrgPicker />
+          <IntegratedOrgSelector />
           <RepoPicker />
           <DatePicker />
         </PageFilterBar>
