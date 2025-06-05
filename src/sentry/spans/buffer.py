@@ -452,7 +452,7 @@ class SpansBuffer:
                 sizes[key] += sum(len(span) for span in spans)
                 if sizes[key] > self.max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.error("Skipping too large segment, byte size %s", sizes[key])
+                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
                     del payloads[key]
                     del cursors[key]
@@ -461,7 +461,7 @@ class SpansBuffer:
                 payloads[key].extend(spans)
                 if len(payloads[key]) > self.max_segment_spans:
                     metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
-                    logger.error("Skipping too large segment, span count %s", len(payloads[key]))
+                    logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
 
                     del payloads[key]
                     del cursors[key]
