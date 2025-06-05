@@ -284,6 +284,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
+                        size="xs"
                         triggerLabel={jsFramework.label}
                         value={jsFramework.value}
                         onChange={setJsFramework}
