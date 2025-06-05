@@ -1884,7 +1884,12 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
-    @with_feature("organizations:dynamic-sampling-minimum-sample-rate")
+    @with_feature(
+        {
+            "organizations:dynamic-sampling-minimum-sample-rate": True,
+            "organizations:dynamic-sampling-custom": True,
+        }
+    )
     def test_dynamic_sampling_minimum_sample_rate_with_feature(self):
         """Test setting and getting dynamicSamplingMinimumSampleRate with feature flag enabled"""
         # Test setting to True
