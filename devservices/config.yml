@@ -62,13 +62,18 @@ x-sentry-service-config:
       description: Memcached used for caching
     spotlight:
       description: Spotlight server for local debugging
+    taskworker:
+      description: Taskworker
+    taskworker-scheduler:
+      description: Taskworker scheduler
 
   modes:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    taskbroker: [snuba, postgres, relay, taskbroker, spotlight]
+    taskbroker:
+      [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
@@ -88,6 +93,13 @@ x-sentry-service-config:
         vroom,
         spotlight,
       ]
+x-programs:
+  devserver:
+    command: sentry devserver
+  taskworker:
+    command: sentry run taskworker --autoreload
+  taskworker-scheduler:
+    command: sentry run taskworker-scheduler
 
 services:
   postgres:
