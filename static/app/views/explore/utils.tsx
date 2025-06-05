@@ -22,6 +22,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   BaseVisualize,
@@ -38,6 +39,7 @@ export function getExploreUrl({
   selection,
   interval,
   mode,
+  aggregateField,
   visualize,
   query,
   groupBy,
@@ -47,7 +49,7 @@ export function getExploreUrl({
   title,
 }: {
   organization: Organization;
-  visualize: BaseVisualize[];
+  aggregateField?: Array<GroupBy | BaseVisualize>;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -57,6 +59,7 @@ export function getExploreUrl({
   selection?: PageFilters;
   sort?: string;
   title?: string;
+  visualize?: BaseVisualize[];
 }) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -69,7 +72,8 @@ export function getExploreUrl({
     interval,
     mode,
     query,
-    visualize: visualize.map(v => JSON.stringify(v)),
+    aggregateField: aggregateField?.map(v => JSON.stringify(v)),
+    visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,
     sort,
     field,
