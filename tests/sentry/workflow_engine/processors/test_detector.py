@@ -42,7 +42,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         ]
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    def test_state_results(self, mock_produce_occurrence_to_kafka):
+    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
+    @mock.patch("sentry.workflow_engine.processors.detector.logger")
+    def test_state_results(self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka):
         detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
@@ -62,11 +64,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
         result = DetectorEvaluationResult(
-            None,
-            True,
-            DetectorPriorityLevel.HIGH,
-            issue_occurrence,
-            expected_event_data,
+            group_key=None,
+            is_triggered=True,
+            priority=DetectorPriorityLevel.HIGH,
+            result=issue_occurrence,
+            event_data=expected_event_data,
         )
         assert results == [
             (
@@ -80,6 +82,44 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             status_change=None,
             event_data=expected_event_data,
         )
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "workflow_engine.process_detector.triggered",
+                    tags={"detector_type": detector.type},
+                ),
+            ],
+        )
+        assert mock_logger.info.call_count == 1
+        assert mock_logger.info.call_args[0][0] == "detector_triggered"
+
+        data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
+        result = DetectorEvaluationResult(
+            group_key=None,
+            is_triggered=False,
+            priority=DetectorPriorityLevel.OK,
+            result=StatusChangeMessage(
+                fingerprint=["detector:1"],
+                project_id=self.project.id,
+                new_status=1,  # resolved, TODO import groupstatus enum
+                new_substatus=None,
+                id=str(self.mock_uuid4.return_value),
+            ),
+            event_data=None,
+        )
+        results = process_detectors(data_packet, [detector])
+
+        assert results == [(detector, {result.group_key: result})]
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "workflow_engine.process_detector.resolved",
+                    tags={"detector_type": detector.type},
+                ),
+            ],
+        )
+        assert mock_logger.info.call_count == 2
+        assert mock_logger.info.call_args[0][0] == "detector_resolved"
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
@@ -446,7 +486,8 @@ class TestEvaluate(BaseDetectorHandlerTest):
             DetectorPriorityLevel.HIGH,
         )
 
-    def test_above_below_threshold(self):
+    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    def test_above_below_threshold(self, mock_produce_occurrence_to_kafka):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
 
@@ -464,8 +505,8 @@ class TestEvaluate(BaseDetectorHandlerTest):
             detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
-
-        assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == {
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})
+        result = {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
                 is_triggered=True,
@@ -474,6 +515,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 event_data=event_data,
             )
         }
+        assert handler.evaluate(data_packet) == result
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
         assert handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}})) == {
             "val1": DetectorEvaluationResult(
