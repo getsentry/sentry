@@ -67,6 +67,7 @@ type LogsRowProps = {
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  canDeferRenderElements?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
   onExpand?: (logItemId: string) => void;
@@ -99,6 +100,7 @@ export const LogRowContent = memo(function LogRowContent({
   onExpand,
   onCollapse,
   onExpandHeight,
+  canDeferRenderElements,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -108,7 +110,18 @@ export const LogRowContent = memo(function LogRowContent({
   const isTableFrozen = useLogsIsTableFrozen();
   const blockRowExpanding = useLogsBlockRowExpanding();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
+  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
+    canDeferRenderElements ? false : true
+  );
+
+  const setShouldRenderHoverElements = useCallback(
+    (value: boolean) => {
+      if (canDeferRenderElements) {
+        _setShouldRenderHoverElements(value);
+      }
+    },
+    [canDeferRenderElements, _setShouldRenderHoverElements]
+  );
 
   function onPointerUp(event: SyntheticEvent) {
     if (event.target instanceof Element && isInsideButton(event.target)) {
@@ -233,7 +246,7 @@ export const LogRowContent = memo(function LogRowContent({
                 onClick={() => toggleExpanded()}
               />
             ) : (
-              <span id="log-table-row-chevron-button">{chevronIcon}</span>
+              <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
@@ -367,9 +380,11 @@ function LogRowDetails({
     );
   }
 
+  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
+
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
-      <LogDetailTableBodyCell colSpan={fields.length}>
+      <LogDetailTableBodyCell colSpan={colSpan}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>

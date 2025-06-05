@@ -1,7 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,18 +20,18 @@ type ConditionsPanelProps = {
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      <Flex column gap={space(1)}>
-        <div>
+      <ConditionGroupWrapper>
+        <ConditionGroupHeader>
           {tct('[when:When] any of the following occur', {
             when: <ConditionBadge />,
           })}
-        </div>
+        </ConditionGroupHeader>
         {triggers.conditions.map((trigger, index) => (
           <div key={index}>
             <DataConditionDetails condition={trigger} />
           </div>
         ))}
-      </Flex>
+      </ConditionGroupWrapper>
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
           <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
@@ -49,12 +48,12 @@ interface ActionFilterProps {
 
 function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
   return (
-    <ActionFilterWrapper showDivider={totalFilters > 1}>
-      <div>
+    <ConditionGroupWrapper showDivider={totalFilters > 1}>
+      <ConditionGroupHeader>
         {tct('[if:If] any of these filters match', {
           if: <ConditionBadge />,
         })}
-      </div>
+      </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
         ? actionFilter.conditions.map((filter, index) => (
             <div key={index}>
@@ -62,17 +61,17 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
             </div>
           ))
         : t('Any event')}
-      <div>
+      <ConditionGroupHeader>
         {tct('[then:Then] perform these actions', {
           then: <ConditionBadge />,
         })}
-      </div>
+      </ConditionGroupHeader>
       {actionFilter.actions?.map((action, index) => (
         <div key={index}>
           <ActionDetails action={action} />
         </div>
       ))}
-    </ActionFilterWrapper>
+    </ConditionGroupWrapper>
   );
 }
 
@@ -108,10 +107,15 @@ const Panel = styled('div')`
   padding: ${space(1.5)};
 `;
 
-const ActionFilterWrapper = styled('div')<{showDivider?: boolean}>`
+const ConditionGroupHeader = styled('div')`
+  color: ${p => p.theme.textColor};
+`;
+
+const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  color: ${p => p.theme.subText};
 
   ${p =>
     p.showDivider &&
