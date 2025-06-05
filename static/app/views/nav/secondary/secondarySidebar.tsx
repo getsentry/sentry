@@ -30,10 +30,10 @@ export function SecondarySidebar() {
       <AnimatePresence mode="wait" initial={false}>
         <MotionDiv
           key={activeNavGroup}
-          initial={{x: -10, opacity: 0}}
+          initial={{x: -4, opacity: 0}}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 10, opacity: 0}}
-          transition={{duration: 0.08, ease: 'easeOut'}}
+          exit={{x: 4, opacity: 0}}
+          transition={{duration: 0.06}}
         >
           <SecondarySidebarInner>
             <SecondaryNavContent group={activeNavGroup} />
