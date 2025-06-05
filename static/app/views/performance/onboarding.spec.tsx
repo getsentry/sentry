@@ -1,9 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {LegacyOnboarding, Onboarding} from './onboarding';
 
@@ -34,7 +37,7 @@ describe('Testing new onboarding ui', function () {
     features: ['tracing-onboarding-new-ui'],
   });
 
-  it('Renders updated ui', async function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/keys/`,
       method: 'GET',
@@ -42,22 +45,23 @@ describe('Testing new onboarding ui', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
-      method: 'GET',
-      body: ProjectFixture({platform: 'javascript-react', firstEvent: null}),
-    });
-
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sdks/`,
       method: 'GET',
     });
+  });
 
-    render(
-      <Onboarding
-        organization={organization}
-        project={ProjectFixture({platform: 'javascript-react'})}
-      />
-    );
+  it('Renders updated ui', async function () {
+    const projectMock = ProjectFixture({
+      platform: 'javascript-react',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/`,
+      method: 'GET',
+      body: projectMock,
+    });
+
+    render(<Onboarding organization={organization} project={projectMock} />);
     expect(await screen.findByText('Query for Traces, Get Answers')).toBeInTheDocument();
     expect(await screen.findByText('Preview a Sentry Trace')).toBeInTheDocument();
 
@@ -96,5 +100,45 @@ describe('Testing new onboarding ui', function () {
     expect(
       screen.getByRole('button', {name: 'Take me to an example'})
     ).toBeInTheDocument();
+  });
+
+  it('when the first trace is received, display the button "Take me to traces"', async function () {
+    const projectMock = ProjectFixture({
+      platform: 'javascript-react',
+      firstTransactionEvent: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/`,
+      method: 'GET',
+      body: projectMock,
+    });
+
+    const {router} = render(
+      <Onboarding organization={organization} project={projectMock} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: RouterFixture().location.pathname,
+            query: {
+              guidedStep: '4',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Take me to traces'}));
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          query: {
+            guidedStep: undefined,
+            table: Tab.TRACE,
+          },
+        })
+      );
+    });
+    expect(window.location.reload).toHaveBeenCalled();
   });
 });
