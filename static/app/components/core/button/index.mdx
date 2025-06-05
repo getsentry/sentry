@@ -1,0 +1,112 @@
+import {APIReference} from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/button';
+
+# Button
+
+Buttons are clickable elements that trigger an action that does not change the current URL
+
+# Usage
+
+To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
+
+```jsx
+<Button onClick={() => alert('Hello world')}>Click here</Button>
+```
+
+### Variants
+
+Buttons come in a few different styles: `muted` (default), `primary`, `warning`, `danger`, and `transparent`.
+
+```jsx
+<Button variant="muted">Muted (default)</Button>
+<Button variant="primary">Primary</Button>
+<Button variant="warning">Warning</Button>
+<Button variant="danger">Danger</Button>
+<Button variant="transparent">Transparent</Button>
+```
+
+### Sizes
+
+Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`.
+
+```jsx
+<Button size="md">Medium (default)</Button>
+<Button size="sm">Small</Button>
+<Button size="xs">Extra-small</Button>
+<Button size="zero">Zero</Button>
+```
+
+### Icons
+
+Buttons support an optional leading icon.
+
+```jsx
+<Button icon={<IconPlus />}>Add</Button>
+```
+
+We have standardized icon and CTA copy combinations across the app
+
+| Icon                 | Copy              | Meaning                                                   |
+| -------------------- | ----------------- | --------------------------------------------------------- |
+| plus                 | Create            | Spawn something from nothing                              |
+| plus                 | Add               | Append another thing in the group                         |
+| trash                | Delete            | Destroy thing in the group                                |
+| minus                | Remove            | Disconnect thing in the group                             |
+|                      | Manage            | Broader meaning, includes bulk order, add, remove, etc.   |
+| pencil               | Edit              | Modifies fundamental attribute of the thing               |
+| open                 | Open in [Product] | Leaves existing view and goes to another product          |
+| close                | Close             | Potentially reopen this again later                       |
+| docs                 | Read Docs         | Similar to “Open In” but always goes to Sentry Docs       |
+| ellipses             | More [Samples]    | See more of the same thing                                |
+|                      | Show More         | Accordions down to reveal more content                    |
+| chevron-up           | Expand            | Content is completely hidden except for title             |
+| chevron-down         | Collapse          | Content is completely shown and need to hide except title |
+| chevron-left-double  | Expand            | Content is completely hidden (depends on direction)       |
+| chevron-right-double | Collapse          | Content is completely shown (depends on direction)        |
+|                      | Dismiss           | Get rid of forever                                        |
+| clock                | Remind Me Later   | Get rid of temporarily                                    |
+| arrow-left           | Back              | Go to previous screen                                     |
+| lightning            | Upgrade           | Upgrade to Business Plan                                  |
+|                      | Save [Object]     | Preserving changes                                        |
+| close                | Cancel            | Do not save changes and exit                              |
+| link                 | Share             | Copies link to paste anywhere                             |
+|                      | Connect           | Create link between two objects                           |
+|                      | Disconnect        | Break link between two objects                            |
+| zoom-in              | Zoom In           | Applies to charts and zooms to fit                        |
+| zoom-out             | Zoom Out          | Applies to charts and zooms out (i.e. 200%)               |
+| star                 | Favorite          | Hoisting item to primary view                             |
+
+### Icon-only Buttons
+
+In scenarios where high information density is critical, buttons may be displayed without text.
+
+> [!WARNING]
+> Buttons with icons and no `children` **must** include a `label` for screen readers!
+
+```jsx
+<Button icon={<IconPlus />} label="Add" />
+```
+
+### Loading
+
+Enforce spinner and disable callback?
+
+### Accessibility
+
+To meet WCAG 2.2 AA compliance, `<Button>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
+
+Developers should take care to ensure that their implementations additionally follow the https://www.w3.org/WAI/ARIA/apg/patterns/button/ and properly handle focus changes when an action is triggered.
+
+### API Reference
+
+<APIReference types={types} />
+
+## Resources
+
+| **Platform**  | Link                                                                                                                                                                                                                                                                                                                             |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Figma         | https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4                                                                                                                                                                                                          |
+| JS            | ???                                                                                                                                                                                                                                                                                                                              |
+| Accessibility | [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) and [WAI-ARIA Button Practices](https://www.w3.org/WAI/ARIA/apg/patterns/button/) |
+| Source Code   | https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/button/index.tsx#L22                                                                                                                                                                                                |
