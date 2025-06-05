@@ -360,6 +360,11 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/feedback/            @getsentry/feedback-backend
 ## End of Feedback v2
 
+## Sentiment Analysis
+/src/sentry/sentiment_analysis/              @getsentry/feedback-backend
+/tests/sentry/sentiment_analysis/            @getsentry/feedback-backend
+## Sentiment Analysis
+
 
 ## DevToolbar
 /src/sentry/templates/sentry/toolbar/        @getsentry/replay-frontend @getsentry/replay-backend
