@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
@@ -53,6 +54,8 @@ class SQLInjectionDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
+        self.stored_problems = {}
+        self.request_parameters: list[Sequence[Any]] = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
@@ -71,9 +74,9 @@ class SQLInjectionDetector(PerformanceDetector):
         valid_parameters = []
         request_data = []
 
-        if self.query_string:
+        if self.query_string and isinstance(self.query_string, list):
             request_data.extend(self.query_string)
-        if self.request_body:
+        if self.request_body and isinstance(self.request_body, dict):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
@@ -91,7 +94,7 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not SQLInjectionDetector.is_span_eligible(span):
+        if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
             return
 
         description = span.get("description") or ""
