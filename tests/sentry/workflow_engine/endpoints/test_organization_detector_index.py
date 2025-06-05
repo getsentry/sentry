@@ -138,7 +138,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert "id" in response.data
+        assert response.data == {"id": ["Invalid ID format"]}
 
     def test_invalid_sort_by(self):
         response = self.get_error_response(

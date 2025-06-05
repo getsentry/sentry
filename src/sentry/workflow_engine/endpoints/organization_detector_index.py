@@ -80,6 +80,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
             DetectorParams.QUERY,
             DetectorParams.SORT,
+            DetectorParams.ID,
         ],
         responses={
             201: DetectorSerializer,

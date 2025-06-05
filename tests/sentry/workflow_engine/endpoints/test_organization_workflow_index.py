@@ -64,7 +64,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert "id" in response.data
+        assert response.data == {"id": ["Invalid ID format"]}
 
     def test_sort_by_name(self):
         response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
