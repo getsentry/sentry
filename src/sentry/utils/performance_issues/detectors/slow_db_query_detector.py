@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 from datetime import timedelta
-from typing import Any
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -31,15 +30,8 @@ class SlowDBQueryDetector(PerformanceDetector):
     Check for slow spans in a certain type of span.op (eg. slow db spans)
     """
 
-    __slots__ = "stored_problems"
-
     type = DetectorType.SLOW_DB_QUERY
     settings_key = DetectorType.SLOW_DB_QUERY
-
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
-
-        self.stored_problems = {}
 
     def visit_span(self, span: Span) -> None:
         settings_for_span = self.settings_for_span(span)

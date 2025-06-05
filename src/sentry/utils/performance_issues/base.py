@@ -12,8 +12,9 @@ from urllib.parse import parse_qs, urlparse
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
-from .types import PerformanceProblemsMap, Span
+from .types import Span
 
 
 class DetectorType(Enum):
@@ -60,11 +61,11 @@ class PerformanceDetector(ABC):
     """
 
     type: ClassVar[DetectorType]
-    stored_problems: PerformanceProblemsMap
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
+        self.stored_problems: dict[str, PerformanceProblem] = {}
 
     def find_span_prefix(self, settings, span_op: str):
         allowed_span_ops = settings.get("allowed_span_ops", [])

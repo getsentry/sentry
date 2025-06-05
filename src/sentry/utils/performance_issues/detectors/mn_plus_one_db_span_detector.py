@@ -263,7 +263,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     Uses a small state machine internally.
     """
 
-    __slots__ = ("stored_problems", "state")
+    __slots__ = ("state",)
 
     type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
@@ -271,7 +271,6 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.state: MNPlusOneState = SearchingForMNPlusOne(self.settings, self.event())
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
