@@ -36,18 +36,18 @@ class FeedbackSummaryParseError(Exception):
 
 @metrics.wraps("feedback.summaries", sample_rate=1.0)
 def generate_summary(
-    feedbacks,
+    feedbacks: list[str],
 ):
-    response = complete_prompt(  # this can throw
-        usecase=LLMUseCase.SUMMARIES,
+    response = complete_prompt(
+        usecase=LLMUseCase.FEEDBACK_SUMMARIES,
         message=make_input_prompt(feedbacks),
         temperature=0.3,
     )
 
     if response:
-        summary = parse_response(response)  # this can throw a FeedbackSummaryParseError
+        summary = parse_response(response)
     else:
-        raise Exception("Invalid response from LLM")  # if no response from LLM, this throws
+        raise Exception("Invalid response from LLM")
 
     return summary
 
@@ -57,7 +57,8 @@ def parse_response(
 ):
     summary_match = SUMMARY_REGEX.search(text)
     if summary_match:
-        summary_text = summary_match.group(1).strip()
+        raw_summary_text = summary_match.group(1)
+        summary_text = re.sub(r"\s+", " ", raw_summary_text).strip()
         return summary_text
     else:
         logger.error("Error parsing AI feedback summary")

@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.feedback.usecases.summaries import FeedbackSummaryParseError, parse_response
+from sentry.feedback.usecases.feedback_summaries import FeedbackSummaryParseError, parse_response
 
 
 def test_parse_response_valid():
@@ -10,16 +10,12 @@ def test_parse_response_valid():
 
 
 def test_parse_response_valid_extra_whitespace():
-    response = """Summary:   This is a test summary.
+    response = """Summary:   This is a test  summary.
 
-    And this is a continuation of the summary."""
+    And this is a       continuation of the
+    summary."""
     summary = parse_response(response)
-    assert (
-        summary
-        == """This is a test summary.
-
-    And this is a continuation of the summary."""
-    )
+    assert summary == "This is a test summary. And this is a continuation of the summary."
 
 
 def test_parse_response_response_invalid():
