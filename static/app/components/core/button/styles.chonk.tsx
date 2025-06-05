@@ -308,7 +308,7 @@ function getChonkButtonSizeTheme(
     case 'zero':
       return {
         borderRadius: theme.radius.sm,
-        padding: `${theme.space.mini} ${theme.space.sm}`,
+        padding: `${theme.space.xs} ${theme.space.sm}`,
       };
     default:
       return {};
