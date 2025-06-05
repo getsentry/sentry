@@ -11,6 +11,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -379,8 +380,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Upload Source Maps'),
+    getUploadSourceMapsStep({
       description: tct(
         'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
         {
@@ -389,7 +389,8 @@ const onboarding: OnboardingConfig = {
           ),
         }
       ),
-    },
+      ...params,
+    }),
   ],
   verify: () => [
     {

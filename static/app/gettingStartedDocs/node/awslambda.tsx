@@ -110,7 +110,6 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ],
       },
       getUploadSourceMapsStep({
-        title: t('Upload Source Maps (Optional)'),
         description: tct(
           'If you want to upload source maps for your Lambda function, you can do so by running the following command and following the instructions. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
           {
