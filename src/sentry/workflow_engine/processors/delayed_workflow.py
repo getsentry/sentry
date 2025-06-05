@@ -50,7 +50,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.processors.log_util import track_batch_performance
+from sentry.workflow_engine.processors.log_util import log_if_slow, track_batch_performance
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflows_action_filters,
@@ -453,9 +453,14 @@ def fire_actions_for_groups(
                     Workflow.objects.filter(when_condition_group_id__in=workflow_triggers)
                 )
 
-                filtered_actions = filtered_actions.union(
-                    evaluate_workflows_action_filters(workflows, event_data)
-                )
+                with log_if_slow(
+                    logger,
+                    "workflow_engine.delayed_workflow.slow_evaluate_workflows_action_filters",
+                    extra={"group_id": group.id, "event_data": event_data},
+                    threshold_seconds=1,
+                ):
+                    workflow_actions = evaluate_workflows_action_filters(workflows, event_data)
+                filtered_actions = filtered_actions.union(workflow_actions)
 
                 # temporary fetching of organization, so not passing in as parameter
                 organization = group.project.organization
