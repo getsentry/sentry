@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,

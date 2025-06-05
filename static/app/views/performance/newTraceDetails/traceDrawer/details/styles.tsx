@@ -73,12 +73,8 @@ import {
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {
-  getTraceKeyValueActions,
-  KeyValueActionParams,
-  TraceDrawerActionKind,
-  TraceDrawerActionValueKind,
-} from './utils';
+import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
+import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;
