@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useId} from 'react';
 
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -15,6 +15,8 @@ interface Props
 }
 
 function ConfirmDelete({message, confirmInput, ...props}: Props) {
+  const id = useId();
+
   return (
     <Confirm
       {...props}
@@ -29,6 +31,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
             flexibleControlStateSize
             inline={false}
             stacked
+            id={id}
             label={t(
               'Please enter %s to confirm the deletion',
               <code>{confirmInput}</code>
@@ -36,6 +39,8 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
           >
             <Input
               type="text"
+              id={id}
+              aria-labelledby="confirm-delte"
               placeholder={confirmInput}
               onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
             />

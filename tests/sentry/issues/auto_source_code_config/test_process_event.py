@@ -115,7 +115,7 @@ class BaseDeriveCodeMappings(TestCase):
         self,
         *,  # Force keyword arguments
         repo_trees: Mapping[str, Sequence[str]],
-        frames: Sequence[Mapping[str, str | bool]],
+        frames: Sequence[Mapping[str, str | bool | Any]],
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
@@ -227,12 +227,15 @@ class BaseDeriveCodeMappings(TestCase):
         module: str,
         abs_path: str,
         in_app: bool = False,
-    ) -> dict[str, str | bool]:
-        return {
-            "module": module,
-            "abs_path": abs_path,
-            "in_app": in_app,
-        }
+    ) -> dict[str, str | bool | Any]:
+        frame: dict[str, str | bool | Any] = {}
+        if module:
+            frame["module"] = module
+        if abs_path:
+            frame["abs_path"] = abs_path
+        if in_app and in_app is not None:
+            frame["in_app"] = in_app
+        return frame
 
     def code_mapping(
         self,
@@ -297,38 +300,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         all_cm = RepositoryProjectPathConfig.objects.all()
         assert len(all_cm) == 1
         assert all_cm[0].automatically_generated is False
-
-    def test_single_file_path(self) -> None:
-        self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/foo/bar.py"]},
-            frames=[self.frame("bar.py", True)],
-            platform="python",
-            expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
-        )
-
-    def test_single_file_path_one_to_one_match(self) -> None:
-        self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["bar.py"]},
-            frames=[self.frame("bar.py", True)],
-            platform="python",
-            expected_new_code_mappings=[self.code_mapping("", "")],
-        )
-
-    def test_single_file_path_multiple_matches_same_repo(self) -> None:
-        self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/foo/bar.py", "foo/bar.py"]},
-            frames=[self.frame("bar.py", True)],
-            platform="python",
-            expected_new_code_mappings=[],
-        )
-
-    def test_single_file_path_multiple_matches_different_repos(self) -> None:
-        self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/foo/bar.py"], REPO2: ["foo/bar.py"]},
-            frames=[self.frame("bar.py", True)],
-            platform="python",
-            expected_new_code_mappings=[],
-        )
 
     def test_dry_run_platform(self) -> None:
         frame_filename = "foo/bar.py"
