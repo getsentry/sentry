@@ -37,12 +37,15 @@ class DemoModeGuardMiddleware:
             # only in "sentry.io/"
             if not request.subdomain and request.path in ("", "/"):
                 session = getattr(request, "session", None)
-                logger.debug("Maybe blocking redirect for org: %s", session.get("activeorg"))
-                if session and is_demo_org(_get_org(session.get("activeorg"))):
+                if session:
                     logger.debug(
-                        "Found or, deleting activeog session variable for %s",
-                        session.get("activeorg"),
+                        "Maybe blocking redirect for org: %s", session and session.get("activeorg")
                     )
-                    del session["activeorg"]
+                    if is_demo_org(_get_org(session.get("activeorg"))):
+                        logger.debug(
+                            "Found or, deleting activeog session variable for %s",
+                            session.get("activeorg"),
+                        )
+                        del session["activeorg"]
 
         return self.get_response(request)
