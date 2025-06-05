@@ -81,7 +81,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 
         title = self.construct_title(snuba_query, detector_trigger, priority)
         event_data = {
-            "project_id": self.detector.project_id,
             "environment": self.detector.config.get("environment"),
             "platform": None,
             "sdk": None,
@@ -93,8 +92,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
                 subtitle=title,
                 resource_id=None,
                 evidence_data={
-                    "detector_id": self.detector.id,
-                    "value": priority,
                     "data_condition_ids": [detector_trigger.id],
                     "data_condition_type": detector_trigger.type,
                     "data_condition_comparison_value": self.extract_value(data_packet),

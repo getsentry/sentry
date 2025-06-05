@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler, DetectorOccurrence
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
 
@@ -50,7 +50,7 @@ class DetectorEvaluationResult:
     is_triggered: bool
     priority: DetectorPriorityLevel
     # TODO: This is only temporarily optional. We should always have a value here if returning a result
-    result: IssueOccurrence | StatusChangeMessage | DetectorOccurrence | None = None
+    result: IssueOccurrence | StatusChangeMessage | None = None
     # Event data to supplement the `IssueOccurrence`, if passed.
     event_data: dict[str, Any] | None = None
 
