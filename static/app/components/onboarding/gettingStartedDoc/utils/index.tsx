@@ -10,16 +10,15 @@ export function getUploadSourceMapsStep({
   projectId,
   newOrg,
   isSelfHosted,
-  title,
   description,
 }: DocsParams & {
   description?: React.ReactNode;
   guideLink?: string;
-  title?: string;
 }) {
   const urlParam = isSelfHosted ? '' : '--saas';
   return {
-    title: title ?? t('Upload Source Maps'),
+    collapsible: true,
+    title: t('Upload Source Maps (Optional)'),
     description: description ?? (
       <p>
         {tct(
