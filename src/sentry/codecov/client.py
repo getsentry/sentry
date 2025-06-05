@@ -104,7 +104,7 @@ class CodecovApiClient:
 
         return response
 
-    def post(self, endpoint: str, data=None, headers=None) -> requests.Response | None:
+    def post(self, endpoint: str, data=None, json=None, headers=None) -> requests.Response | None:
         """
         Makes a POST request to the specified endpoint of the configured Codecov
         API host with the provided data and headers.
@@ -119,7 +119,9 @@ class CodecovApiClient:
         headers.update(jwt.authorization_header(token))
         url = f"{self.base_url}{endpoint}"
         try:
-            response = requests.post(url, data=data, headers=headers, timeout=TIMEOUT_SECONDS)
+            response = requests.post(
+                url, data=data, json=json, headers=headers, timeout=TIMEOUT_SECONDS
+            )
         except Exception:
             logger.exception("Error when making POST request")
             raise
@@ -141,16 +143,16 @@ class CodecovApiClient:
         :return: The response from the Codecov API.
         """
 
-        data = {
+        json = {
             "query": query,
             "variables": variables,
         }
 
         return self.post(
-            f"/graphql/sentry/{provider.value}",
-            data=data,
+            f"graphql/sentry/{provider.value}",
+            json=json,
             headers={
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
                 "Token-Type": f"{provider.value}-token",
             },

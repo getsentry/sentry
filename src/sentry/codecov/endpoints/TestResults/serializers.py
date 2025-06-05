@@ -20,36 +20,55 @@ class TestResultNodeSerializer(serializers.Serializer):
     lastDuration = serializers.FloatField()
 
 
-class TestResultSerializer(serializers.ListSerializer):
+class PageInfoSerializer(serializers.Serializer):
     """
-    Serializer for a list of test results - inherits from ListSerializer to handle arrays
+    Serializer for pagination information
     """
 
-    child = TestResultNodeSerializer()
+    endCursor = serializers.CharField(allow_null=True)
+    hasNextPage = serializers.BooleanField()
+
+
+class TestResultSerializer(serializers.Serializer):
+    """
+    Serializer for test results response including pagination metadata
+    """
+
+    results = TestResultNodeSerializer(many=True)
+    pageInfo = PageInfoSerializer()
+    totalCount = serializers.IntegerField()
 
     def to_representation(self, graphql_response):
         """
-        Transform the GraphQL response to the expected client format
+        Transform the GraphQL response to the serialized format
         """
         try:
-            # Extract test result nodes from the nested GraphQL structure
-            test_results = graphql_response["data"]["owner"]["repository"]["testAnalytics"][
+            test_results_data = graphql_response["data"]["owner"]["repository"]["testAnalytics"][
                 "testResults"
-            ]["edges"]
+            ]
+            test_results = test_results_data["edges"]
 
-            # Transform each edge to just the node data
             nodes = []
             for edge in test_results:
                 node = edge["node"]
-                # Add lastDuration fallback if not present
                 if "lastDuration" not in node:
                     node["lastDuration"] = node["avgDuration"]
                 nodes.append(node)
 
-            # Use the parent ListSerializer to serialize each test result
-            return super().to_representation(nodes)
+            response_data = {
+                "results": nodes,
+                "pageInfo": test_results_data.get(
+                    "pageInfo", {"endCursor": None, "hasNextPage": False}
+                ),
+                "totalCount": test_results_data.get("totalCount", len(nodes)),
+            }
+
+            return super().to_representation(response_data)
 
         except (KeyError, TypeError) as e:
-            # Handle malformed GraphQL response
             sentry_sdk.capture_exception(e)
-            return []
+            return {
+                "results": [],
+                "pageInfo": {"endCursor": None, "hasNextPage": False},
+                "totalCount": 0,
+            }

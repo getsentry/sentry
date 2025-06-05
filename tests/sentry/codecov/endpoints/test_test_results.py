@@ -27,8 +27,6 @@ class TestResultsEndpointTest(APITestCase):
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
     def test_get_returns_mock_response(self, mock_codecov_client_class):
-        """Test that GET request returns the expected mock GraphQL response structure"""
-        # Mock GraphQL response structure
         mock_graphql_response = {
             "data": {
                 "owner": {
@@ -66,31 +64,35 @@ class TestResultsEndpointTest(APITestCase):
                                         }
                                     },
                                 ],
+                                "pageInfo": {"endCursor": "cursor123", "hasNextPage": False},
+                                "totalCount": 2,
                             }
                         },
                     }
                 }
             }
         }
-
-        # Create a mock instance and configure its query method
         mock_codecov_client_instance = Mock()
-        mock_codecov_client_instance.query.return_value = mock_graphql_response
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
         response = self.client.get(url)
 
-        # Verify the client was instantiated with the correct parameters
         mock_codecov_client_class.assert_called_once_with(git_provider_org="codecov")
-        # Verify the query method was called
         assert mock_codecov_client_instance.query.call_count == 1
         assert response.status_code == 200
-        assert len(response.data) == 2
 
-        # Assert that response data keys match the serializer fields
+        assert len(response.data["results"]) == 2
+
+        assert response.data["pageInfo"]["endCursor"] == "cursor123"
+        assert response.data["pageInfo"]["hasNextPage"] is False
+        assert response.data["totalCount"] == 2
+
         serializer_fields = set(NodeSerializer().fields.keys())
-        response_keys = set(response.data[0].keys())
+        response_keys = set(response.data["results"][0].keys())
 
         assert (
             response_keys == serializer_fields

@@ -80,14 +80,14 @@ class TestResultsEndpoint(CodecovEndpoint):
             "filters": {
                 "branch": branch,
                 "flags": None,
-                "interval": MeasurementInterval.INTERVAL_1_DAY.value,
-                "parameter": TestResultsFilterParameter.FLAKY_TESTS.value,
+                "interval": MeasurementInterval.INTERVAL_30_DAY.value,
+                "parameter": None,
                 "term": None,
                 "test_suites": None,
             },
             "ordering": {
                 "direction": OrderingDirection.DESC.value,
-                "parameter": OrderingParameter.UPDATED_AT.value,
+                "parameter": OrderingParameter.COMMITS_WHERE_FAIL.value,
             },
             "first": 10,
         }
@@ -95,6 +95,6 @@ class TestResultsEndpoint(CodecovEndpoint):
         client = CodecovApiClient(git_provider_org="codecov")
         graphql_response = client.query(query=query, variables=variables)
 
-        test_results = TestResultSerializer().to_representation(graphql_response)
+        test_results = TestResultSerializer().to_representation(graphql_response.json())
 
         return Response(test_results)
