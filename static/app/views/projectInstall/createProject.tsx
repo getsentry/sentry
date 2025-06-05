@@ -460,6 +460,7 @@ export function CreateProject() {
             interval={formData.alertRule.interval}
             metric={formData.alertRule.metric}
             threshold={formData.alertRule.threshold}
+            notificationProps={notificationProps}
             onFieldChange={(field, value) => {
               updateFormData('alertRule', {
                 ...formData.alertRule,

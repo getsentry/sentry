@@ -47,17 +47,7 @@ describe('IssueAlertOptions', function () {
   it('should provide fallthroughType with issue action', async () => {
     render(getComponent());
     await userEvent.click(screen.getByLabelText(/When there are more than/i));
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actions: [
-          {
-            id: 'sentry.mail.actions.NotifyEmailAction',
-            targetType: 'IssueOwners',
-            fallthroughType: 'ActiveMembers',
-          },
-        ],
-      })
-    );
+    expect(mockOnChange).toHaveBeenCalledWith('alertSetting', 1);
   });
 
   it('should render alert configuration if `Default` or `Custom` alerts are selected', async () => {
