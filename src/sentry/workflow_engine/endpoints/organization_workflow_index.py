@@ -1,6 +1,7 @@
 from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -64,6 +65,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
             WorkflowParams.QUERY,
+            WorkflowParams.ID,
             OrganizationParams.PROJECT,
         ],
         responses={
@@ -81,6 +83,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
         queryset = Workflow.objects.filter(organization_id=organization.id)
+
+        if raw_idlist := request.GET.getlist("id"):
+            try:
+                ids = [int(id) for id in raw_idlist]
+            except ValueError:
+                raise ValidationError({"id": ["Invalid ID format"]})
+            queryset = queryset.filter(id__in=ids)
 
         if raw_query := request.GET.get("query"):
             tokenized_query = tokenize_query(raw_query)
@@ -104,7 +113,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             )
                         ).distinct()
                     case _:
-                        # TODO: What about unreecognized keys?
+                        # TODO: What about unrecognized keys?
                         pass
 
         projects = self.get_projects(request, organization)
