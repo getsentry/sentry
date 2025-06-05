@@ -232,7 +232,7 @@ const config: Config.InitialOptions = {
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
-      '<rootDir>/tests/js/sentry-test/importStyleMock.js',
+      '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
@@ -240,12 +240,12 @@ const config: Config.InitialOptions = {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
-    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
-    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
+    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
