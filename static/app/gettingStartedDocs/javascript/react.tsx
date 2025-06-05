@@ -403,7 +403,7 @@ ReactDOM.render(<App />, document.getElementById("root"));
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [Sentry.browserTracingIntegration()],
-  tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]
 });
 `,
         },
