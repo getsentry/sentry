@@ -318,7 +318,7 @@ class TestActionSerializer(TestCase):
             "id": str(action.id),
             "type": "opsgenie",
             "data": {"priority": "P1"},
-            "integrationId": self.integration.id,
+            "integrationId": str(self.integration.id),
             "config": {"target_type": 0, "target_identifier": "123"},
         }
 
@@ -341,7 +341,7 @@ class TestActionSerializer(TestCase):
             "id": str(action2.id),
             "type": "slack",
             "data": {"tags": "bar"},
-            "integrationId": self.integration.id,
+            "integrationId": str(self.integration.id),
             "config": {
                 "target_type": 0,
                 "target_display": "freddy frog",
