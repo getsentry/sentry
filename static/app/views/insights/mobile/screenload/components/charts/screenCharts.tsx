@@ -15,11 +15,9 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 // TODO(release-drawer): Only used in mobile/screenload/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {type DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
-import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -28,7 +26,6 @@ import {
   CHART_TITLES,
   YAXIS_COLUMNS,
 } from 'sentry/views/insights/mobile/screenload/constants';
-import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 
 enum YAxis {
   WARM_START = 0,
@@ -52,11 +49,6 @@ export function ScreenCharts({additionalFilters}: Props) {
   const useEap = useInsightsEap();
   const theme = useTheme();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-  const yAxisCols = [
-    'avg(measurements.time_to_initial_display)',
-    'avg(measurements.time_to_full_display)',
-    'count()',
-  ] as const;
 
   const {
     primaryRelease,
@@ -178,16 +170,6 @@ export function ScreenCharts({additionalFilters}: Props) {
     });
   }
 
-  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useMetrics(
-    {
-      enabled: !isReleasesLoading,
-      search: queryString,
-      orderby: yAxisCols[0],
-      fields: ['device.class', 'release', ...yAxisCols],
-    },
-    'api.starfish.mobile-device-breakdown'
-  );
-
   if (isReleasesLoading) {
     return <LoadingContainer />;
   }
@@ -202,40 +184,11 @@ export function ScreenCharts({additionalFilters}: Props) {
     );
   }
 
-  const transformedEvents = transformDeviceClassEvents({
-    yAxes,
-    primaryRelease,
-    secondaryRelease,
-    data: deviceClassEvents,
-    theme,
-  });
-
   function renderCharts() {
     return (
       <Fragment>
         <ChartContainer>
-          <ScreensBarChart
-            chartOptions={[
-              {
-                title: t('TTID by Device Class'),
-                yAxis: YAXIS_COLUMNS[yAxes[0]!],
-                series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
-                xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                subtitle: primaryRelease
-                  ? t(
-                      '%s v. %s',
-                      formatVersionAndCenterTruncate(primaryRelease, 12),
-                      secondaryRelease
-                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                        : ''
-                    )
-                  : '',
-              },
-            ]}
-            chartKey="spansChart"
-            chartHeight={150}
-            isLoading={isDeviceClassEventsLoading}
-          />
+          <ScreensBarChart search={search} type="ttid" chartHeight={150} />
           <InsightsLineChartWidget
             search={search}
             title={t('Average TTID')}
@@ -258,28 +211,7 @@ export function ScreenCharts({additionalFilters}: Props) {
             showLegend="always"
             height={'100%'}
           />
-          <ScreensBarChart
-            chartOptions={[
-              {
-                title: t('TTFD by Device Class'),
-                yAxis: YAXIS_COLUMNS[yAxes[1]!],
-                series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
-                xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                subtitle: primaryRelease
-                  ? t(
-                      '%s v. %s',
-                      formatVersionAndCenterTruncate(primaryRelease, 12),
-                      secondaryRelease
-                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                        : ''
-                    )
-                  : '',
-              },
-            ]}
-            chartKey="spansChart"
-            chartHeight={150}
-            isLoading={isDeviceClassEventsLoading}
-          />
+          <ScreensBarChart search={search} type="ttfd" chartHeight={150} />
           <InsightsLineChartWidget
             search={search}
             title={t('Average TTFD')}

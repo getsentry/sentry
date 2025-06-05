@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -35,7 +34,10 @@ import {
 } from 'sentry/views/insights/colors';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
-import {ChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
+import {
+  ChartContainer,
+  ModalChartContainer,
+} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -251,7 +253,3 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => {
     'avg(span.duration)': colors[2],
   };
 };
-
-const ModalChartContainer = styled('div')`
-  height: 360px;
-`;
