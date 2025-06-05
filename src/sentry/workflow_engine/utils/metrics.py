@@ -1,4 +1,3 @@
-import inspect
 from typing import Any
 
 from sentry.utils import metrics
@@ -8,7 +7,7 @@ METRIC_PREFIX = "workflow_engine"
 MetricTags = dict[str, Any]
 
 
-def get_metric_name(caller_method: str, metric_name: str) -> str:
+def get_metric_name(metric_name: str) -> str:
     """
     Add the prefix to the metric name
     metric_name (str): The name of the metric.
@@ -16,7 +15,8 @@ def get_metric_name(caller_method: str, metric_name: str) -> str:
     Returns:
         str: The full metric name with the prefix.
     """
-    return f"{METRIC_PREFIX}.{caller_method}.{metric_name}"
+    # TODO - should this include the caller? would probably require us changing a lot of metrics.
+    return f"{METRIC_PREFIX}.{metric_name}"
 
 
 def metrics_incr(
@@ -34,8 +34,7 @@ def metrics_incr(
     ctx = WorkflowContext.get()
     ctx_tags = {}
 
-    caller_method_name = inspect.stack()[1].function
-    full_metric_name = get_metric_name(caller_method_name, metric_name)
+    full_metric_name = get_metric_name(metric_name)
 
     if tags is None:
         tags = {}
