@@ -410,5 +410,50 @@ describe('CreateProject', function () {
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
       expect(getSubmitButton()).toBeEnabled();
     });
+
+    it('should create an issue alert rule by default', async function () {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      expect(screen.getByLabelText(/Alert me on high priority issues/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: true,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
+    });
+
+    it('should NOT create alerts if the user opt out', async function () {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      await userEvent.click(screen.getByText(/create my own alerts later/i));
+      expect(screen.getByLabelText(/create my own alerts later/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: false,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
+    });
   });
 });

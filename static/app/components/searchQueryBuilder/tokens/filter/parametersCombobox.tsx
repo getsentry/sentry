@@ -1,5 +1,6 @@
 import {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Item} from '@react-stately/collections';
+import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
@@ -8,13 +9,20 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
-import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
+import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  AggregateFilter,
+  ParseResultToken,
+} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 type ParametersComboboxProps = {
   onCommit: () => void;
   onDelete: () => void;
+  state: ListState<ParseResultToken>;
   token: AggregateFilter;
 };
 
@@ -32,6 +40,37 @@ function getInitialInputValue(token: AggregateFilter) {
   return '';
 }
 
+function splitParameters(text: string): string[] {
+  const parameters = [];
+
+  let escaped = false;
+
+  let i = 0;
+  let j = 0;
+
+  for (j = 0; j < text.length; j++) {
+    const c = text[j];
+    if (escaped) {
+      if (c === ']') {
+        escaped = false;
+        continue;
+      }
+    } else {
+      if (c === '[') {
+        escaped = true;
+        continue;
+      } else if (c === ',') {
+        parameters.push(text.slice(i, j));
+        i = j + 1;
+      }
+    }
+  }
+
+  parameters.push(text.slice(i, j));
+
+  return parameters;
+}
+
 function getParameterAtCursorPosition(
   text: string,
   cursorPosition: number | null
@@ -40,7 +79,7 @@ function getParameterAtCursorPosition(
     return {parameterIndex: 0, textValue: ''};
   }
 
-  const items = text.split(',');
+  const items = splitParameters(text);
 
   let characterCount = 0;
   for (let i = 0; i < items.length; i++) {
@@ -54,11 +93,31 @@ function getParameterAtCursorPosition(
 }
 
 function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number): number {
-  const items = text.split(',');
+  const items = splitParameters(text);
   const charactersBefore =
     items.slice(0, parameterIndex).join('').length + parameterIndex;
 
   return charactersBefore + items[parameterIndex]!.length;
+}
+
+function calculateNextFocus(
+  state: ListState<ParseResultToken>,
+  definition: FieldDefinition | null,
+  parameterIndex?: number
+): FocusOverride | undefined {
+  if (
+    defined(parameterIndex) &&
+    definition &&
+    definition.kind === FieldKind.FUNCTION &&
+    definition.parameters?.length &&
+    parameterIndex + 1 < definition.parameters.length
+  ) {
+    return undefined;
+  }
+
+  return state.selectionManager.focusedKey
+    ? {itemKey: `${state.selectionManager.focusedKey}`, part: 'value'}
+    : undefined;
 }
 
 function useSelectionIndex({
@@ -171,10 +230,13 @@ function useParameterSuggestions({
 }
 
 export function SearchQueryBuilderParametersCombobox({
+  state,
   token,
   onCommit,
   onDelete,
 }: ParametersComboboxProps) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilder();
   const initialValue = getInitialInputValue(token);
@@ -215,12 +277,16 @@ export function SearchQueryBuilderParametersCombobox({
           type: 'UPDATE_AGGREGATE_ARGS',
           token,
           value,
+          focusOverride: calculateNextFocus(
+            state,
+            getFieldDefinition(token.key.name.text)
+          ),
         });
 
         onCommit();
       }
     },
-    [inputChanged, dispatch, token, onCommit]
+    [inputChanged, dispatch, token, onCommit, state, getFieldDefinition]
   );
 
   const handleOptionSelected = useCallback(
@@ -235,6 +301,11 @@ export function SearchQueryBuilderParametersCombobox({
         type: 'UPDATE_AGGREGATE_ARGS',
         token,
         value: newValue,
+        focusOverride: calculateNextFocus(
+          state,
+          getFieldDefinition(token.key.name.text),
+          parameterIndex
+        ),
       });
       updateInputValue(newValue);
       const newCursorPosition = getCursorPositionAtEndOfParameter(
@@ -246,7 +317,15 @@ export function SearchQueryBuilderParametersCombobox({
         inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
       }
     },
-    [dispatch, inputValue, parameterIndex, selectionIndex, token]
+    [
+      dispatch,
+      inputValue,
+      parameterIndex,
+      selectionIndex,
+      token,
+      state,
+      getFieldDefinition,
+    ]
   );
 
   return (

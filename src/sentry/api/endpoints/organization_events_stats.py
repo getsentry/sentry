@@ -260,6 +260,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_indexed,
                         spans_metrics,
                         spans_rpc,
+                        ourlogs,
                         errors,
                         transactions,
                     ]
@@ -295,9 +296,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 if use_rpc:
-                    if scoped_dataset == ourlogs:
-                        raise NotImplementedError("You can not use top_events with logs for now.")
-                    return spans_rpc.run_top_events_timeseries_query(
+                    return scoped_dataset.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
                         y_axes=query_columns,

@@ -31,6 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -71,9 +72,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const isAutomationAllowed = organization.features.includes(
     'trigger-autofix-on-issue-summary'
   );
-  const isStarredViewAllowed = organization.features.includes(
-    'issue-stream-custom-views'
-  );
+  const prefersStackedNav = usePrefersStackedNav();
+  const isStarredViewAllowed = prefersStackedNav;
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -127,7 +127,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     }
     createIssueView({
       name: 'Easy Fixes 🤖',
-      query: 'is:unresolved issue.seer_actionability:high',
+      query: 'is:unresolved issue.seer_actionability:[high,super_high]',
       querySort: IssueSortOptions.DATE,
       projects,
       environments: [],

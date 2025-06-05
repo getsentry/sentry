@@ -64,7 +64,7 @@ describe('SeerAutomation', function () {
     expect(orgPutRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/`,
       expect.objectContaining({
-        data: {defaultAutofixAutomationTuning: 'low'},
+        data: {defaultAutofixAutomationTuning: 'super_low'},
       })
     );
   });

@@ -1177,7 +1177,7 @@ type TraceFields =
   | SpanIndexedField.SPAN_DOMAIN
   | SpanIndexedField.SPAN_DURATION
   | SpanIndexedField.SPAN_GROUP
-  | SpanIndexedField.SPAN_MODULE
+  | SpanIndexedField.SPAN_CATEGORY
   | SpanIndexedField.SPAN_OP
   | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
@@ -1224,9 +1224,9 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_MODULE]: {
+  [SpanIndexedField.SPAN_CATEGORY]: {
     desc: t(
-      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+      'The prefix of the span operation, e.g if `span.op` is `http.client`, then `span.category` is `http`'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -1526,7 +1526,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     allowWildcard: false,
   },
   [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
-    desc: t('How actionable the issue is, determined by Seer'),
+    desc: t('How easily you can fix the issue with a code change, estimated by Seer'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
@@ -2582,33 +2582,28 @@ export const getFieldDefinition = (
   switch (type) {
     case 'replay':
       if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return REPLAY_FIELD_DEFINITIONS[key];
+        return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
       if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
+        return REPLAY_CLICK_FIELD_DEFINITIONS[
+          key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
+        ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
     case 'feedback':
       if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return FEEDBACK_FIELD_DEFINITIONS[key];
+        return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return EVENT_FIELD_DEFINITIONS[key];
+        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
       }
       return null;
     case 'span':
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      if (SPAN_FIELD_DEFINITIONS[key]) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        return SPAN_FIELD_DEFINITIONS[key];
+      if (SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS]) {
+        return SPAN_FIELD_DEFINITIONS[key as keyof typeof SPAN_FIELD_DEFINITIONS];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to

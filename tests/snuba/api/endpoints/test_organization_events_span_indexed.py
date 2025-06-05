@@ -3521,6 +3521,160 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         assert meta["dataset"] == self.dataset
 
+    def test_total_performance_score_missing_vital(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.0},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.02},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.04},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.cls": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.inp": {"value": 0.5},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.cls)",
+                    "performance_score(measurements.score.ttfb)",
+                    "performance_score(measurements.score.fcp)",
+                    "performance_score(measurements.score.inp)",
+                    "performance_score(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.02
+        assert data[0]["performance_score(measurements.score.cls)"] == 0.08
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.0
+        assert data[0]["performance_score(measurements.score.fcp)"] == 0.08
+        assert data[0]["performance_score(measurements.score.inp)"] == 0.5
+        self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.20)
+
+        assert meta["dataset"] == self.dataset
+
+    def test_total_performance_score_multiple_transactions(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.8},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.cls": {"value": 0.7},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.total)",
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.cls)",
+                    "performance_score(measurements.score.fcp)",
+                    "opportunity_score(measurements.score.total)",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.cls)",
+                    "opportunity_score(measurements.score.fcp)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "-transaction",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "foo_transaction"
+        self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.8)
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.8
+        assert data[0]["performance_score(measurements.score.cls)"] == 0.0
+        assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
+        self.assertAlmostEqual(
+            data[0]["opportunity_score(measurements.score.total)"], 0.13333333333333333
+        )
+        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], 0.2)
+        assert data[0]["opportunity_score(measurements.score.cls)"] == 0.0
+        assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.0
+        assert data[1]["transaction"] == "bar_transaction"
+        self.assertAlmostEqual(data[1]["performance_score(measurements.score.total)"], 0.7)
+        assert data[1]["performance_score(measurements.score.lcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.cls)"] == 0.7
+        assert data[1]["performance_score(measurements.score.fcp)"] == 0.0
+        self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.1)
+        assert data[1]["opportunity_score(measurements.score.lcp)"] == 0.0
+        self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.cls)"], 0.3)
+        assert data[1]["opportunity_score(measurements.score.fcp)"] == 0.0
+
+        assert meta["dataset"] == self.dataset
+
     def test_division(self):
         self.store_spans(
             [
@@ -4619,6 +4773,40 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["dataset"] == self.dataset
 
+    def test_typed_attributes_with_colons(self):
+        span = self.create_span(
+            {
+                "data": {
+                    "flag.evaluation.feature.organizations:foo": True,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans(
+            [
+                self.create_span(start_ts=self.ten_mins_ago),
+                span,
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["tags[flag.evaluation.feature.organizations:foo,number]"],
+                "query": "has:tags[flag.evaluation.feature.organizations:foo,number] tags[flag.evaluation.feature.organizations:foo,number]:1",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span["span_id"],
+                "project.name": self.project.slug,
+                "tags[flag.evaluation.feature.organizations:foo,number]": 1,
+            },
+        ]
+
     def test_count_if_two_args(self):
         self.store_spans(
             [
@@ -4738,6 +4926,139 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["sum(ai.total_tokens.used)"] == 150
         assert meta["dataset"] == self.dataset
         assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"
+
+    def test_equation_simple(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|count() * 2"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "invalid_argument",
+                "description": "bar",
+                equation: 2,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                equation: 2,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "number"
+
+    @pytest.mark.xfail(reason="Confidence isn't being returned by the RPC currently")
+    def test_equation_with_extrapolation(self):
+        """Extrapolation only changes the number when there's a sample rate"""
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+        equation = "equation|count() * (2)"
+        response = self.do_request(
+            {
+                "field": ["description", equation],
+                "orderby": f"-{equation}",
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        confidence = meta["accuracy"]["confidence"]
+        assert len(data) == 2
+        assert len(confidence) == 2
+        assert data[0][equation] == 20
+        assert confidence[0][equation] == "low"
+        assert data[1][equation] == 2
+        assert confidence[1][equation] in ("high", "low")
+
+    def test_equation_all_symbols(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        equation = "equation|count() * 2 + 2 - 2 / 2"
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", equation],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.status": "invalid_argument",
+                "description": "bar",
+                equation: 3,
+            },
+            {
+                "span.status": "success",
+                "description": "foo",
+                equation: 3,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"][equation] == "number"
 
     def test_release(self):
         span1 = self.create_span(
