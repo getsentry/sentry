@@ -29,7 +29,7 @@ export function CacheHitMissChart({search}: Props) {
 
   // explore/alerts doesn't support `cache_miss_rate`, so this is used as a comparable query
   const queryInfo = {
-    yAxis: [`${SpanFunction.COUNT}()`],
+    yAxis: [`${SpanFunction.COUNT}(span.duration)`],
     search,
     groupBy: [SpanFields.CACHE_HIT],
   };

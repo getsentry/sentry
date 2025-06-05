@@ -23,7 +23,7 @@ export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps
 
   // explore/alerts doesn't support `cache_miss_rate`, so this is used as a comparable query
   const queryInfo = {
-    yAxis: [`${COUNT}()`],
+    yAxis: [`${COUNT}(span.duration)`],
     search,
     groupBy: [SpanFields.CACHE_HIT],
   };
