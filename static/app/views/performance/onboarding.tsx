@@ -65,6 +65,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -636,7 +637,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
         setReceived(true);
       }}
     >
-      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      {({firstIssue}) =>
+        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
+      }
     </EventWaiter>
   );
 
@@ -733,14 +736,36 @@ export function Onboarding({organization, project}: OnboardingProps) {
             </div>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
-              <SampleButton
-                triggerText={t('Take me to an example')}
-                loadingMessage={t('Processing sample trace...')}
-                errorMessage={t('Failed to create sample trace')}
-                organization={organization}
-                project={project}
-                api={api}
-              />
+              {received ? (
+                <Button
+                  priority="primary"
+                  onClick={() => {
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          guidedStep: undefined,
+                          table: Tab.TRACE,
+                        },
+                      },
+                      {replace: true}
+                    );
+                    window.location.reload();
+                  }}
+                >
+                  {t('Take me to traces')}
+                </Button>
+              ) : (
+                <SampleButton
+                  triggerText={t('Take me to an example')}
+                  loadingMessage={t('Processing sample trace...')}
+                  errorMessage={t('Failed to create sample trace')}
+                  organization={organization}
+                  project={project}
+                  api={api}
+                />
+              )}
             </GuidedSteps.ButtonWrapper>
           </GuidedSteps.Step>
         ) : (
