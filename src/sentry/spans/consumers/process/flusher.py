@@ -50,7 +50,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
         self.backpressure_since = multiprocessing.Value("i", 0)
-        self.healthy_since = multiprocessing.Value("i", int(time.time()))
+        self.healthy_since = multiprocessing.Value("i", 0)
         self.process_restarts = 0
         self.produce_to_pipe = produce_to_pipe
 
