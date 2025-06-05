@@ -474,24 +474,37 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
     def test_check_in_update_terminal_in_progress(self):
+        now = datetime.now()
+        now_tz = now.replace(tzinfo=UTC)
+
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_checkin(monitor.slug, duration=10.0)
+        self.send_checkin(monitor.slug, duration=10.0, ts=now - timedelta(minutes=5))
         self.send_checkin(
             monitor.slug,
             guid=self.guid,
             status="in_progress",
             expected_error=ExpectNoProcessingError(),
+            ts=now - timedelta(minutes=4),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
+
+        # date_in_progress and duration are updated
+        assert checkin.date_in_progress == now_tz - timedelta(minutes=4)
         assert checkin.duration == int(10.0 * 1000)
 
-        self.send_checkin(monitor.slug, duration=20.0, status="error")
+        self.send_checkin(
+            monitor.slug,
+            duration=20.0,
+            status="error",
+            ts=now - timedelta(minutes=3),
+        )
         self.send_checkin(
             monitor.slug,
             guid=self.guid,
             status="in_progress",
             expected_error=ExpectNoProcessingError(),
+            ts=now - timedelta(minutes=2),
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
