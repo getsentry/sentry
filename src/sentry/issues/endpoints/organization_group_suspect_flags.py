@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.issues.suspect_flags import get_suspect_flag_scores
+from sentry.issues.suspect_flags import Distribution, get_suspect_flag_scores
 from sentry.models.group import Group
 from sentry.utils import metrics
 
@@ -20,6 +20,7 @@ class ResponseDataItem(TypedDict):
     flag: str
     score: float
     baseline_percent: float
+    distribution: Distribution
 
 
 class ResponseData(TypedDict):
@@ -54,17 +55,14 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
             end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
 
         response_data: ResponseData = {
-            "data": [
-                {"flag": flag, "score": score, "baseline_percent": baseline_percent}
-                for flag, score, baseline_percent in get_suspect_flag_scores(
-                    organization_id,
-                    project_id,
-                    start,
-                    end,
-                    environments,
-                    group_id,
-                )
-            ]
+            "data": get_suspect_flag_scores(
+                organization_id,
+                project_id,
+                start,
+                end,
+                environments,
+                group_id,
+            )
         }
 
         # Record a distribution of suspect flag scores.

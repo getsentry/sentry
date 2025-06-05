@@ -10,10 +10,13 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {
+  AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
+  AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
-  getLLMGenerationsFilter,
+  getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -40,11 +43,16 @@ export default function TokenUsageWidget() {
     granularity: 'spans-low',
   });
 
-  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
+  const fullQuery = `${getAIGenerationsFilter()} ${query}`.trim();
 
   const tokensRequest = useEAPSpans(
     {
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      fields: [
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+      ],
       sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -56,16 +64,21 @@ export default function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
-      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
+      fields: [
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+      ],
+      yAxis: [AI_INPUT_TOKENS_ATTRIBUTE_SUM],
+      sort: {field: AI_INPUT_TOKENS_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
       enabled: !!tokensRequest.data,
     },
     Referrer.QUERIES_CHART // TODO: add referrer
   );
 
-  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
+  const timeSeries = timeSeriesRequest.data;
 
   const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
   const error = timeSeriesRequest.error || tokensRequest.error;
@@ -90,7 +103,7 @@ export default function TokenUsageWidget() {
         plottables: timeSeries.map(
           (ts, index) =>
             new Bars(convertSeriesToTimeseries(ts), {
-              color: colorPalette[index],
+              color: ts.seriesName === 'Other' ? theme.gray200 : colorPalette[index],
               alias: ts.seriesName,
               stack: 'stack',
             })
@@ -101,21 +114,29 @@ export default function TokenUsageWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {tokens?.map((item, index) => (
-        <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
-          <div>
-            <SeriesColorIndicator
-              style={{
-                backgroundColor: colorPalette[index],
-              }}
-            />
-          </div>
-          <div>
-            <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
-          </div>
-          <span>{formatAbbreviatedNumber(item['sum(ai.total_tokens.used)'] || 0)}</span>
-        </Fragment>
-      ))}
+      {tokens?.map((item, index) => {
+        const modelId = `${item[AI_MODEL_ID_ATTRIBUTE]}`;
+        return (
+          <Fragment key={modelId}>
+            <div>
+              <SeriesColorIndicator
+                style={{
+                  backgroundColor: colorPalette[index],
+                }}
+              />
+            </div>
+            <ModelText>
+              <ModelName modelId={modelId} />
+            </ModelText>
+            <span>
+              {formatAbbreviatedNumber(
+                Number(item[AI_INPUT_TOKENS_ATTRIBUTE_SUM] || 0) +
+                  Number(item[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM] || 0)
+              )}
+            </span>
+          </Fragment>
+        );
+      })}
     </WidgetFooterTable>
   );
 
@@ -132,7 +153,7 @@ export default function TokenUsageWidget() {
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: ['sum(ai.total_tokens.used)'],
+                  yAxes: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
                 },
               ],
               groupBy: [AI_MODEL_ID_ATTRIBUTE],
@@ -161,7 +182,6 @@ export default function TokenUsageWidget() {
 }
 
 const ModelText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;

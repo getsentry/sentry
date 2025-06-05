@@ -2237,6 +2237,25 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'release.version:>1.0'})
         ).toBeInTheDocument();
       });
+
+      it('string filters have the correct operator options', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: 'does not contain'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+      });
     });
 
     describe('numeric', function () {
@@ -3271,6 +3290,38 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count(');
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
+
+      it('focuses on the filter value after only argument is specified', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('p95(');
+        expect(
+          screen.getByLabelText('p95(transaction.duration):>300ms')
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+        await userEvent.keyboard('transaction');
+        await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
+
+      it('focuses on the filter value after all arguments is specified', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('count_if(');
+        expect(
+          screen.getByLabelText('count_if(transaction.duration,greater,300ms):>100')
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+        await userEvent.keyboard('transaction');
+        await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+        await userEvent.keyboard(',');
+        await userEvent.click(screen.getByRole('option', {name: 'greater'}));
+        await userEvent.keyboard(',100{Enter}');
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
     });

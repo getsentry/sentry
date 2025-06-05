@@ -72,3 +72,19 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
 
         self.browser.get(f"/organizations/{self.organization.slug}/")
         self.browser.wait_until('[aria-label="Onboarding"]')
+
+    @with_feature("organizations:onboarding")
+    def test_record_works_when_already_exists(self):
+        OrganizationOnboardingTask.objects.create(
+            organization_id=self.organization.id,
+            task=OnboardingTask.FIRST_TRANSACTION,
+            status=OnboardingTaskStatus.SKIPPED,
+            date_completed=datetime(year=2024, month=12, day=25, tzinfo=timezone.utc),
+        )
+
+        assert not OrganizationOnboardingTask.objects.record(
+            organization_id=self.organization.id,
+            task=OnboardingTask.FIRST_TRANSACTION,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=datetime(year=2024, month=12, day=25, tzinfo=timezone.utc),
+        )

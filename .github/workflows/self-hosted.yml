@@ -29,6 +29,8 @@ jobs:
         with:
           node-version-file: '.volta.json'
 
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
+
       - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
         with:
           python-version: 3.13.1
@@ -52,11 +54,11 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('pnpm-lock.yaml', '.volta.json') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --production
+        run: pnpm install --frozen-lockfile --production
 
       - run: |
           python3 -m tools.fast_editable --path .

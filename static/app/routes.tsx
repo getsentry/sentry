@@ -415,18 +415,18 @@ function buildRoutes() {
       />
       <Route path="api/" name={t('API')}>
         <IndexRedirect to="auth-tokens/" />
-        <Route path="auth-tokens/" name={t('User Auth Tokens')}>
+        <Route path="auth-tokens/" name={t('Personal Tokens')}>
           <IndexRoute
             component={make(() => import('sentry/views/settings/account/apiTokens'))}
           />
           <Route
             path="new-token/"
-            name={t('Create New Token')}
+            name={t('Create Personal Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
           <Route
             path=":tokenId/"
-            name={t('Edit User Auth Token')}
+            name={t('Edit Personal Token')}
             component={make(
               () => import('sentry/views/settings/account/apiTokenDetails')
             )}
@@ -983,20 +983,20 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="auth-tokens/" name={t('Auth Tokens')}>
+      <Route path="auth-tokens/" name={t('Organization Tokens')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationAuthTokens'))}
         />
         <Route
           path="new-token/"
-          name={t('Create New Auth Token')}
+          name={t('Create New Organization Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
           )}
         />
         <Route
           path=":tokenId/"
-          name={t('Edit Auth Token')}
+          name={t('Edit Organization Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           )}

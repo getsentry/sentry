@@ -304,7 +304,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
     defaultAutofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "low", "medium", "high", "always"],
+        choices=["off", "super_low", "low", "medium", "high", "always"],
         required=False,
         help_text="The default automation tuning setting for new projects.",
     )
