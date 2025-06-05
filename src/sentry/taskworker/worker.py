@@ -15,12 +15,9 @@ import grpc
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import FetchNextTask
 
-from sentry.taskworker.client import (
-    HostTemporarilyUnavailable,
-    InflightTaskActivation,
-    ProcessingResult,
-    TaskworkerClient,
-)
+from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
 from sentry.taskworker.workerchild import child_process
 from sentry.utils import metrics

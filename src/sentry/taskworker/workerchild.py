@@ -23,7 +23,8 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
 from sentry_sdk.crons import MonitorStatus, capture_checkin
 
-from sentry.taskworker.client import InflightTaskActivation, ProcessingResult
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
 
 logger = logging.getLogger("sentry.taskworker.worker")
 

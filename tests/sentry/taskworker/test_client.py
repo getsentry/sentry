@@ -17,7 +17,8 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.client import HostTemporarilyUnavailable, ProcessingResult, TaskworkerClient
+from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -120,7 +121,7 @@ def test_get_task_ok():
             )
         ),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task()
@@ -154,7 +155,7 @@ def test_get_task_with_interceptor():
             ),
         ),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task()
@@ -181,7 +182,7 @@ def test_get_task_with_namespace():
             )
         ),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task(namespace="testing")
@@ -199,7 +200,7 @@ def test_get_task_not_found():
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
         MockGrpcError(grpc.StatusCode.NOT_FOUND, "no pending task found"),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.get_task()
@@ -214,7 +215,7 @@ def test_get_task_failure():
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
         MockGrpcError(grpc.StatusCode.INTERNAL, "something bad"),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         with pytest.raises(grpc.RpcError):
@@ -237,7 +238,7 @@ def test_update_task_ok_with_next():
             )
         ),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         assert set(client._host_to_stubs.keys()) == {"localhost-0:50051"}
@@ -267,7 +268,7 @@ def test_update_task_ok_with_next_namespace():
             )
         ),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
@@ -290,7 +291,7 @@ def test_update_task_ok_no_next():
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus", SetTaskStatusResponse()
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
@@ -312,7 +313,7 @@ def test_update_task_not_found():
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
         MockGrpcError(grpc.StatusCode.NOT_FOUND, "no pending tasks found"),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         result = client.update_task(
@@ -334,7 +335,7 @@ def test_update_task_unavailable_retain_task_to_host():
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
         MockGrpcError(grpc.StatusCode.UNAVAILABLE, "broker down"),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
         with pytest.raises(MockGrpcError) as err:
@@ -424,9 +425,9 @@ def test_client_loadbalance():
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
         SetTaskStatusResponse(task=None),
     )
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.side_effect = [channel_0, channel_1, channel_2, channel_3]
-        with patch("sentry.taskworker.client.random.choice") as mock_randchoice:
+        with patch("sentry.taskworker.client.client.random.choice") as mock_randchoice:
             mock_randchoice.side_effect = [
                 "localhost-0:50051",
                 "localhost-1:50051",
@@ -514,9 +515,9 @@ def test_client_loadbalance_on_notfound():
         ),
     )
 
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.side_effect = [channel_0, channel_1, channel_2]
-        with patch("sentry.taskworker.client.random.choice") as mock_randchoice:
+        with patch("sentry.taskworker.client.client.random.choice") as mock_randchoice:
             mock_randchoice.side_effect = [
                 "localhost-0:50051",
                 "localhost-1:50051",
@@ -579,9 +580,9 @@ def test_client_loadbalance_on_unavailable():
         ),
     )
 
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.side_effect = [channel_0, channel_1]
-        with patch("sentry.taskworker.client.random.choice") as mock_randchoice:
+        with patch("sentry.taskworker.client.client.random.choice") as mock_randchoice:
             mock_randchoice.side_effect = [
                 "localhost-0:50051",
                 "localhost-1:50051",
@@ -640,7 +641,7 @@ def test_client_single_host_unavailable():
         ),
     )
 
-    with (patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel,):
+    with (patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel,):
         mock_channel.return_value = channel
         client = TaskworkerClient(
             "localhost:50051",
@@ -687,7 +688,7 @@ def test_client_reset_errors_after_success():
         MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
     )
 
-    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+    with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient(
             "localhost:50051", num_brokers=1, max_consecutive_unavailable_errors=3
@@ -741,8 +742,8 @@ def test_client_update_task_host_unavailable():
         return current_time
 
     with (
-        patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel,
-        patch("sentry.taskworker.client.time.time", side_effect=mock_time),
+        patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel,
+        patch("sentry.taskworker.client.client.time.time", side_effect=mock_time),
     ):
         mock_channel.return_value = channel
         client = TaskworkerClient(

@@ -16,7 +16,8 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.crons import MonitorStatus
 from usageaccountant import UsageUnit
 
-from sentry.taskworker.client import InflightTaskActivation, ProcessingResult
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import TaskWorker
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded, child_process

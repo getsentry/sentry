@@ -1,4 +1,3 @@
-import dataclasses
 import hashlib
 import hmac
 import logging
@@ -14,12 +13,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     FetchNextTask,
     GetTaskRequest,
     SetTaskStatusRequest,
-    TaskActivation,
-    TaskActivationStatus,
 )
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import (
     DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
     DEFAULT_REBALANCE_AFTER,
@@ -61,23 +60,6 @@ if TYPE_CHECKING:
 else:
     InterceptorBase = grpc.UnaryUnaryClientInterceptor
     CallFuture = Any
-
-
-@dataclasses.dataclass
-class InflightTaskActivation:
-    activation: TaskActivation
-    host: str
-    receive_timestamp: float
-
-
-@dataclasses.dataclass
-class ProcessingResult:
-    """Result structure from child processess to parent"""
-
-    task_id: str
-    status: TaskActivationStatus.ValueType
-    host: str
-    receive_timestamp: float
 
 
 class RequestSignatureInterceptor(InterceptorBase):
