@@ -195,7 +195,7 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
 
 export const FilterBarContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
