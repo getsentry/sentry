@@ -44,17 +44,11 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
-  SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
-} from 'sentry/views/explore/constants';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {getIsAiNode} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -79,11 +73,8 @@ import {
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {
-  getSearchInExploreTarget,
-  TraceDrawerActionKind,
-  TraceDrawerActionValueKind,
-} from './utils';
+import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
+import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;
@@ -847,117 +838,26 @@ function DropdownMenuWithPortal(props: DropdownMenuProps) {
   );
 }
 
-type KeyValueActionProps = {
-  rowKey: string;
-  rowValue: React.ReactNode;
-  kind?: TraceDrawerActionValueKind;
-  projectIds?: string | string[];
-};
-
 function KeyValueAction({
   rowKey,
   rowValue,
   projectIds,
   kind = TraceDrawerActionValueKind.SENTRY_TAG,
-}: KeyValueActionProps) {
+}: Pick<KeyValueActionParams, 'rowKey' | 'rowValue' | 'kind' | 'projectIds'>) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const [isVisible, setIsVisible] = useState(false);
+  const dropdownOptions = getTraceKeyValueActions({
+    rowKey,
+    rowValue,
+    kind,
+    projectIds,
+    location,
+    organization,
+  });
 
-  if (
-    !hasExploreEnabled ||
-    !defined(rowValue) ||
-    !defined(rowKey) ||
-    !['string', 'number'].includes(typeof rowValue)
-  ) {
+  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
     return null;
-  }
-
-  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
-  // Any other key must exist in the static list of sentry tags to be deemed searchable.
-  if (
-    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
-    !(
-      SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS.includes(rowKey) ||
-      SENTRY_SEARCHABLE_SPAN_STRING_TAGS.includes(rowKey)
-    )
-  ) {
-    return null;
-  }
-
-  const dropdownOptions = [
-    {
-      key: 'include',
-      label: t('Find more samples with this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        rowValue.toString(),
-        TraceDrawerActionKind.INCLUDE
-      ),
-    },
-    {
-      key: 'exclude',
-      label: t('Find samples excluding this value'),
-      to: getSearchInExploreTarget(
-        organization,
-        location,
-        projectIds,
-        rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        rowValue.toLocaleString(),
-        TraceDrawerActionKind.EXCLUDE
-      ),
-    },
-  ];
-
-  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
-  const isNumeric =
-    typeof rowValue === 'number' ||
-    (valueType &&
-      [
-        FieldValueType.DURATION,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-        FieldValueType.PERCENTAGE,
-        FieldValueType.DATE,
-        FieldValueType.RATE,
-        FieldValueType.PERCENT_CHANGE,
-      ].includes(valueType));
-
-  if (isNumeric) {
-    dropdownOptions.push(
-      {
-        key: 'includeGreaterThan',
-        label: t('Find samples with values greater than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          rowValue.toString(),
-          TraceDrawerActionKind.GREATER_THAN
-        ),
-      },
-      {
-        key: 'includeLessThan',
-        label: t('Find samples with values less than'),
-        to: getSearchInExploreTarget(
-          organization,
-          location,
-          projectIds,
-          rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          rowValue.toString(),
-          TraceDrawerActionKind.LESS_THAN
-        ),
-      }
-    );
   }
 
   return (
