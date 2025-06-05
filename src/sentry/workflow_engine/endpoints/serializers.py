@@ -29,7 +29,7 @@ from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, Da
 class ActionSerializerResponse(TypedDict):
     id: str
     type: str
-    integration_id: int | None
+    integrationId: int | None
     data: dict
     config: dict
 
@@ -40,7 +40,7 @@ class ActionSerializer(Serializer):
         return {
             "id": str(obj.id),
             "type": obj.type,
-            "integration_id": obj.integration_id,
+            "integrationId": obj.integration_id,
             "data": obj.data,
             "config": obj.config,
         }
