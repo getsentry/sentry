@@ -54,7 +54,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params: SnubaParams,
         trace_ids: list[str],
         orderby: list[str],
-        additional_query: str,
+        additional_query: str | None,
         offset: int,
         limit: int,
     ) -> EventsResponse:
