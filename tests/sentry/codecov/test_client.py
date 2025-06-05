@@ -12,7 +12,7 @@ from sentry.utils import jwt
 @override_settings(CODECOV_API_BASE_URL="http://example.com")
 class TestCodecovApiClient(TestCase):
     def setUp(self):
-        self.test_git_provider_user = "12345"
+        self.test_git_provider_org = "test-org"
         self.test_secret = "test-secret-" + "a" * 20
 
         self.test_timestamp = datetime.datetime.now(datetime.UTC)
@@ -23,7 +23,7 @@ class TestCodecovApiClient(TestCase):
                 "codecov.api-bridge-signing-secret": self.test_secret,
             }
         ):
-            self.codecov_client = CodecovApiClient(self.test_git_provider_user)
+            self.codecov_client = CodecovApiClient(self.test_git_provider_org)
 
     def test_raises_configuration_error_without_signing_secret(self):
         with self.options(
@@ -32,7 +32,7 @@ class TestCodecovApiClient(TestCase):
             }
         ):
             with pytest.raises(ConfigurationError):
-                CodecovApiClient(self.test_git_provider_user)
+                CodecovApiClient(self.test_git_provider_org)
 
     def test_creates_valid_jwt(self):
         encoded_jwt = self.codecov_client._create_jwt()
@@ -49,7 +49,7 @@ class TestCodecovApiClient(TestCase):
         expected_iat = int(self.test_timestamp.timestamp())
         expected_exp = expected_iat + 300
         assert claims == {
-            "g_u": self.test_git_provider_user,
+            "g_o": self.test_git_provider_org,
             "g_p": GitProvider.GitHub.value,
             "iss": "https://sentry.io",
             "iat": expected_iat,
