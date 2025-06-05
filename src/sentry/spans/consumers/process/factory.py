@@ -12,6 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
+from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -133,6 +134,23 @@ def process_batch(
             min_timestamp = timestamp
 
         val = rapidjson.loads(payload.value)
+
+        partition_id = None
+
+        if len(value.committable) == 1:
+            partition_id = value.committable[next(iter(value.committable))]
+
+        if killswitches.killswitch_matches_context(
+            "standalone-spans.drop-in-buffer",
+            {
+                "org_id": val.get("organization_id"),
+                "project_id": val.get("project_id"),
+                "trace_id": val.get("trace_id"),
+                "partition_id": partition_id,
+            },
+        ):
+            continue
+
         span = Span(
             trace_id=val["trace_id"],
             span_id=val["span_id"],
