@@ -26,7 +26,7 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
       ? css`
           grid-auto-flow: column;
           justify-content: start;
-          gap: ${space(3)};
+          gap: ${p.theme.space.mini};
           ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
         `
       : css`

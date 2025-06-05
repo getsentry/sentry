@@ -2,7 +2,6 @@ import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 import type {DOMAttributes, Orientation} from '@react-types/shared';
 
-import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 import {tabsShouldForwardProp} from './utils';
@@ -71,11 +70,6 @@ export const chonkInnerWrapStyles = ({
   ${orientation === 'horizontal'
     ? css`
         gap: ${theme.space.md};
-        /**
-         * negative margin trick, to expand click area
-         */
-        margin-left: -${space(1)};
-        margin-right: -${space(1)};
       `
     : css`
         gap: ${theme.space.sm};
