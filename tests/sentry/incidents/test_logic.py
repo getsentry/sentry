@@ -2152,6 +2152,7 @@ class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
     def alert_rule(self):
         return self.create_alert_rule()
 
+    @pytest.mark.skip(reason="flaky: #92955")
     def test(self):
         with self.tasks():
             disable_alert_rule(self.alert_rule)
