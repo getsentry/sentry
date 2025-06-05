@@ -19,7 +19,7 @@ const Breadcrumbs = styled('div')`
     gap: ${space(1)};
 
     &:before {
-      content: '\u203A';
+      content: '\203A';
     }
   }
 `;
