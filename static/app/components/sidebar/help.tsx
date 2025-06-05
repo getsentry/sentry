@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -110,7 +111,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try New Navigation')} <Badge type="beta">{t('Beta')}</Badge>
+                  {t('Try New Navigation')} <FeatureBadge type="new" />
                 </SidebarMenuItem>
               )}
               {organization?.features?.includes('chonk-ui') ? (
