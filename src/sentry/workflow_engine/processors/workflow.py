@@ -21,6 +21,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.log_util import LogExtraContext, with_log_context
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -180,7 +181,8 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_actions(filtered_action_groups, event_data)
 
 
-def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
+@with_log_context(logger)
+def process_workflows(log_ctx: LogExtraContext, event_data: WorkflowEventData) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -188,6 +190,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
+    log_ctx.update(event_id=event_data.event.event_id, group_id=event_data.event.group_id)
     # Check to see if the GroupEvent has an issue occurrence
     try:
         detector = get_detector_by_event(event_data)
@@ -199,20 +202,17 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.exception(
             "Detector not found for event",
             extra={
-                "event_id": evt.event_id,
-                "group_id": evt.group_id,
                 "detector_id": detector_id,
             },
         )
         return set()
 
+    log_ctx.update(detector_type=detector.type)
     try:
         environment = event_data.event.get_environment()
     except Environment.DoesNotExist:
         metrics.incr("workflow_engine.process_workflows.error")
-        logger.exception(
-            "Missing environment for event", extra={"event_id": event_data.event.event_id}
-        )
+        logger.exception("Missing environment for event")
         return set()
 
     # TODO: remove fetching org, only used for feature flag checks
@@ -238,11 +238,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             "workflow_engine.process_workflows",
             extra={
                 "payload": event_data,
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
                 "event_environment_id": environment.id,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_type": detector.type,
                 "detector_id": detector.id,
             },
         )
@@ -260,8 +257,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             logger.info(
                 "workflow_engine.process_workflows.triggered_workflows",
                 extra={
-                    "group_id": event_data.event.group_id,
-                    "event_id": event_data.event.event_id,
                     "event_data": asdict(event_data),
                     "event_environment_id": environment.id,
                     "triggered_workflows": [workflow.id for workflow in triggered_workflows],
@@ -281,11 +276,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.info(
             "workflow_engine.process_workflows.actions (all)",
             extra={
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "action_ids": [action.id for action in actions],
-                "detector_type": detector.type,
             },
         )
 
@@ -305,11 +297,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.info(
             "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "action_ids": [action.id for action in actions],
-                "detector_type": detector.type,
             },
         )
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action

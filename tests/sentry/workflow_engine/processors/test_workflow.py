@@ -100,11 +100,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_logger.info.assert_called_with(
             "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
-                "group_id": self.group.id,
-                "event_id": self.event.event_id,
                 "workflow_ids": [self.error_workflow.id],
                 "action_ids": [self.action.id],
-                "detector_type": self.error_detector.type,
             },
         )
 
@@ -240,8 +237,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
             extra={
-                "event_id": self.event.event_id,
-                "group_id": self.group_event.group_id,
                 "detector_id": None,
             },
         )
@@ -257,7 +252,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
         mock_logger.exception.assert_called_once_with(
             "Missing environment for event",
-            extra={"event_id": self.event.event_id},
         )
 
     @patch("sentry.utils.metrics.incr")
