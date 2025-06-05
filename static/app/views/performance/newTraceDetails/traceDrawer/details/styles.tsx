@@ -860,7 +860,7 @@ function KeyValueAction({
     organization,
   });
 
-  if (!dropdownOptions || dropdownOptions.length === 0 || !rowValue || !rowKey) {
+  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
     return null;
   }
 
