@@ -1,6 +1,8 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode, useCallback} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Switch} from 'sentry/components/core/switch';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
@@ -16,7 +18,32 @@ type HeaderParams = {
   tooltip?: string | ReactNode;
 };
 
+function WrapToggle() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wrapValue = searchParams.get('wrap') || 'false';
+
+  const toggle = useCallback(() => {
+    const currentParams = Object.fromEntries(searchParams.entries());
+    const wrap = wrapValue === 'false' ? 'true' : 'false';
+    const updatedParams = {
+      ...currentParams,
+      wrap,
+    };
+    setSearchParams(updatedParams);
+  }, [searchParams, setSearchParams, wrapValue]);
+
+  return (
+    <Fragment>
+      | <WrapText>{wrapValue === 'true' ? 'Wrap' : 'No Wrap'}</WrapText>
+      <span>
+        <Switch checked={wrapValue === 'true'} size="sm" onChange={toggle} />{' '}
+      </span>
+    </Fragment>
+  );
+}
+
 function SortableHeader({fieldName, label, sort, tooltip, alignment}: HeaderParams) {
+  // TODO: refactor once API is done to use either or useLocation/useSearchParams
   const location = useLocation();
 
   const arrowDirection = sort?.kind === 'asc' ? 'up' : 'down';
@@ -47,22 +74,26 @@ function SortableHeader({fieldName, label, sort, tooltip, alignment}: HeaderPara
       >
         {label} {sort?.field === fieldName && sortArrow}
       </StyledLink>
+      {fieldName === 'testName' ? <WrapToggle /> : null}
       {tooltip ? (
-        <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
+        <span>
+          <QuestionTooltip size="xs" title={tooltip} isHoverable />
+        </span>
       ) : null}
     </HeaderCell>
   );
 }
 
 const HeaderCell = styled('div')<{alignment: string}>`
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
   width: 100%;
-  text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
+  justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
 `;
 
 const StyledLink = styled(Link)`
   color: inherit;
-  text-transform: capitalize;
 
   :hover {
     color: inherit;
@@ -73,7 +104,7 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const StyledQuestionTooltip = styled(QuestionTooltip)`
+const WrapText = styled('span')`
   margin-left: ${space(0.5)};
 `;
 
