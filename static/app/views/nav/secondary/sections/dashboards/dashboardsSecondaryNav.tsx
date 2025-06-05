@@ -4,11 +4,10 @@ import * as Sentry from '@sentry/react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
@@ -20,19 +19,7 @@ export function DashboardsSecondaryNav() {
   const {projects} = useProjects();
   const user = useUser();
 
-  const {data: starredDashboards = []} = useApiQuery<DashboardListItem[]>(
-    [
-      `/organizations/${organization.slug}/dashboards/`,
-      {
-        query: {
-          filter: 'onlyFavorites',
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {data: starredDashboards = []} = useGetStarredDashboards();
 
   return (
     <Fragment>
