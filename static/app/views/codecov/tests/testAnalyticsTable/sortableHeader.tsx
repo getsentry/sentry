@@ -20,23 +20,23 @@ type HeaderParams = {
 
 function WrapToggle() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const wrapValue = searchParams.get('wrap') || 'false';
+  const wrapValue = searchParams.get('wrap') === 'true';
 
   const toggle = useCallback(() => {
     const currentParams = Object.fromEntries(searchParams.entries());
-    const wrap = wrapValue === 'false' ? 'true' : 'false';
+    // const wrap = wrapValue === 'false' ? 'true' : 'false';
     const updatedParams = {
       ...currentParams,
-      wrap,
+      wrap: (!wrapValue).toString(),
     };
     setSearchParams(updatedParams);
   }, [searchParams, setSearchParams, wrapValue]);
 
   return (
     <Fragment>
-      | <WrapText>{wrapValue === 'true' ? 'Wrap' : 'No Wrap'}</WrapText>
+      | <WrapText>{wrapValue ? 'Wrap' : 'No Wrap'}</WrapText>
       <span>
-        <Switch checked={wrapValue === 'true'} size="sm" onChange={toggle} />{' '}
+        <Switch checked={wrapValue} size="sm" onChange={toggle} />{' '}
       </span>
     </Fragment>
   );
