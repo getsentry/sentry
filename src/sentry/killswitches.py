@@ -223,7 +223,7 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={
             "org_id": "An org ID to filter spans by.",
-            "project_id": "An project ID.",
+            "project_id": "A project ID.",
             "trace_id": "A trace ID.",
             "partition_id": "A kafka partition index.",
         },
