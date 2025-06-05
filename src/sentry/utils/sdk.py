@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import sys
+import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -238,7 +239,12 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
 
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
 
-    data = event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {})
+    # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
+    data = typing.cast(
+        dict[str, object],
+        event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {}),
+    )
     data["num_of_spans"] = num_of_spans
 
     return event
