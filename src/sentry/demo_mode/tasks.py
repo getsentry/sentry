@@ -214,7 +214,7 @@ def _sync_project_debug_file(
             )
 
             if not target_project:
-                return
+                return None
 
             return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
