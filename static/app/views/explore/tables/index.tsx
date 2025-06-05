@@ -147,5 +147,6 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: ${space(1)};
 `;
