@@ -227,7 +227,7 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle />
                 </Feature>
-                <Button onClick={openColumnEditor} icon={<IconTable />}>
+                <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
               </TableActionsContainer>
