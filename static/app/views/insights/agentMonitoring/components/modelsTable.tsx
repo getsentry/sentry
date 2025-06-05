@@ -19,7 +19,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
-  CellExpander,
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
@@ -124,8 +123,11 @@ export function ModelsTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'model' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="modelsCursor"
+        forceCellGrow={column.key === 'model'}
+      >
         {column.name}
       </HeadSortCell>
     );
