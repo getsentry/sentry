@@ -26,7 +26,7 @@ export default function HttpDurationChartWidget(props: LoadableChartWidgetProps)
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="httpDurationChartWidget"
       title={getDurationChartTitle('http')}
       series={[durationData['avg(span.self_time)']]}
