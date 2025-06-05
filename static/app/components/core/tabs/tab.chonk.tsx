@@ -48,11 +48,11 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
-const paddingPerSize = {
-  md: '10px 16px',
-  sm: '8px 12px',
-  xs: '6px 8px',
-};
+const paddingPerSize = (orientation: Orientation) => ({
+  md: orientation === 'horizontal' ? '10px 16px' : '10px 8px',
+  sm: orientation === 'horizontal' ? '8px 12px' : '8px 6px',
+  xs: orientation === 'horizontal' ? '6px 8px' : '6px 4px',
+});
 
 export const chonkInnerWrapStyles = ({
   theme,
@@ -71,7 +71,7 @@ export const chonkInnerWrapStyles = ({
   align-items: center;
   position: relative;
   ${theme.form[size]};
-  padding: ${paddingPerSize[size]};
+  padding: ${paddingPerSize(orientation)[size]};
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
   margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
@@ -88,6 +88,8 @@ export const chonkInnerWrapStyles = ({
           * To align the SelectionIndicator (2px width, 4px spacing)
           */
         margin-left: ${variant === 'flat' ? '6px' : 0};
+        /* static padding towards SelectionIndicator */
+        padding-left: ${theme.space.md};
       `};
 
   li[aria-disabled]:hover & {

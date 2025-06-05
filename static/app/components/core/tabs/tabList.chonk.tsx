@@ -19,20 +19,19 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
+  gap: ${p => p.theme.space.mini};
 
   ${p =>
     p.orientation === 'horizontal'
       ? css`
           grid-auto-flow: column;
           justify-content: start;
-          gap: ${p.theme.space.mini};
           ${p.variant === 'flat' && `border-bottom: solid 1px ${p.theme.border};`}
         `
       : css`
           height: 100%;
           grid-auto-flow: row;
           align-content: start;
-          gap: 1px;
           padding-right: ${space(0.5)};
           ${p.variant === 'flat' && `border-right: solid 1px ${p.theme.border};`}
         `};
