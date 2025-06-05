@@ -2,15 +2,67 @@ import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRo
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   CountBranch,
   PercentBranch,
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
-import {SubfiltersList} from 'sentry/views/automations/components/actionFilters/subfiltersList';
+import {
+  COMPARISON_INTERVAL_CHOICES,
+  INTERVAL_CHOICES,
+} from 'sentry/views/automations/components/actionFilters/constants';
+import {
+  SubfilterDetailsList,
+  SubfiltersList,
+} from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-export default function EventFrequencyNode() {
+export function EventFrequencyCountDetails({condition}: {condition: DataCondition}) {
+  const hasSubfilters = condition.comparison.filters?.length > 0;
+  return (
+    <div>
+      {tct('Number of events in an issue is more than [value] [interval] [where]', {
+        value: condition.comparison.value,
+        interval:
+          INTERVAL_CHOICES.find(choice => choice.value === condition.comparison.interval)
+            ?.label || condition.comparison.interval,
+        where: hasSubfilters ? t('where') : null,
+      })}
+      {hasSubfilters && (
+        <SubfilterDetailsList subfilters={condition.comparison.filters} />
+      )}
+    </div>
+  );
+}
+
+export function EventFrequencyPercentDetails({condition}: {condition: DataCondition}) {
+  const hasSubfilters = condition.comparison.filters?.length > 0;
+  return (
+    <div>
+      {tct(
+        'Number of events in an issue is [value]% higher [interval] compared to [comparison_interval] [where]',
+        {
+          value: condition.comparison.value,
+          interval:
+            INTERVAL_CHOICES.find(
+              choice => choice.value === condition.comparison.interval
+            )?.label || condition.comparison.interval,
+          comparison_interval:
+            COMPARISON_INTERVAL_CHOICES.find(
+              choice => choice.value === condition.comparison.comparison_interval
+            )?.label || condition.comparison.comparison_interval,
+          where: hasSubfilters ? t('where') : null,
+        }
+      )}
+      {hasSubfilters && (
+        <SubfilterDetailsList subfilters={condition.comparison.filters} />
+      )}
+    </div>
+  );
+}
+
+export function EventFrequencyNode() {
   const {condition} = useDataConditionNodeContext();
   const hasSubfilters = condition.comparison.filters?.length > 0;
 

@@ -28,6 +28,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
           <FieldGroup
             flexibleControlStateSize
             inline={false}
+            stacked
             label={t(
               'Please enter %s to confirm the deletion',
               <code>{confirmInput}</code>

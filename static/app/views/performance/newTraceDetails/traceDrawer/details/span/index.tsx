@@ -376,7 +376,7 @@ function EAPSpanNodeDetails({
 
   const {
     data: eventTransaction,
-    isPending: isEventTransactionPending,
+    isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
     event_id: node.value.transaction_id,
@@ -388,7 +388,7 @@ function EAPSpanNodeDetails({
 
   const traceState = useTraceState();
 
-  if (isTraceItemPending || isEventTransactionPending) {
+  if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;
   }
 
@@ -403,8 +403,8 @@ function EAPSpanNodeDetails({
       ? 1
       : undefined;
 
-  const isTransaction = isEAPTransactionNode(node);
-  const profileMeta = getProfileMeta(eventTransaction) || '';
+  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 

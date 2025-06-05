@@ -143,7 +143,7 @@ function Node() {
   const node = dataConditionNodesMap.get(condition.type);
 
   const Component = node?.dataCondition;
-  return Component ? Component : node?.label;
+  return Component ? <Component /> : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

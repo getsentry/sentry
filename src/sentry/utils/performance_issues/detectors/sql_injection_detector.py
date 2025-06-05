@@ -47,15 +47,12 @@ SQL_KEYWORDS = [
 
 
 class SQLInjectionDetector(PerformanceDetector):
-    __slots__ = "stored_problems"
-
     type = DetectorType.SQL_INJECTION
     settings_key = DetectorType.SQL_INJECTION
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
