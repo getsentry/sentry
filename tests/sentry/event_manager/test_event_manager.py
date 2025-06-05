@@ -2864,6 +2864,77 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
+    def test_derive_client_error_sampling_rate_with_option_enabled(self) -> None:
+        """Test that sample_rate is extracted from contexts when option is enabled."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": 0.1}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was extracted and stored
+            assert event.data["sample_rate"] == 0.1
+
+    def test_derive_client_error_sampling_rate_with_option_disabled(self) -> None:
+        """Test that sample_rate is not extracted when option is disabled."""
+        # Option disabled (project not in allowlist)
+        event_data = make_event(
+            contexts={"error_sampling": {"client_sample_rate": 0.1}}, platform="python"
+        )
+
+        manager = EventManager(event_data)
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        # Check that sample_rate was not extracted
+        assert "sample_rate" not in event.data
+
+    def test_derive_client_error_sampling_rate_malformed_context(self) -> None:
+        """Test that sample_rate extraction handles malformed error_sampling context gracefully."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test with error_sampling as a number instead of a dict
+            event_data = make_event(
+                contexts={"error_sampling": 0.1},
+                platform="python",  # Should be a dict, not a number
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that no sample_rate was added due to malformed context
+            assert "sample_rate" not in event.data
+
+    def test_derive_client_error_sampling_rate_invalid_range(self) -> None:
+        """Test that sample_rate is not set when client_sample_rate is outside valid range (0-1)."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test with sample rate > 1
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": 1.5}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was not set due to invalid range
+            assert "sample_rate" not in event.data
+
+            # Test with negative sample rate
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": -0.1}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was not set due to invalid range
+            assert "sample_rate" not in event.data
+
 
 class ReleaseIssueTest(TestCase):
     def setUp(self) -> None:

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
@@ -31,10 +30,7 @@ export function OptInBanner({collapsed, organization}: Props) {
 
   return (
     <TranslucentBackgroundPanel isDarkMode={isDarkMode}>
-      <Title>
-        {t('New Navigation')}
-        <FeatureBadge type="beta" />
-      </Title>
+      <Title>{t('New Navigation')}</Title>
       <Description>
         {t('Say hello to your improved sidebar — less clutter, clearer workflows.')}
       </Description>

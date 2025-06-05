@@ -879,11 +879,36 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
+        assert monitor.is_upserting
 
         env = Environment.objects.get(
             organization_id=monitor.organization_id, name="my-environment"
         )
         assert MonitorEnvironment.objects.filter(monitor=monitor, environment_id=env.id).exists()
+
+    def test_upsert_existing_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        assert not monitor.is_upserting
+
+        # Update schedule via upsert
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+        assert monitor.schedule.type == "crontab"
+        assert monitor.schedule.crontab == "13 * * * *"
+
+        # Check-in does not upsert resets is_upserting back to false
+        self.send_checkin(monitor.slug)
+
+        monitor.refresh_from_db()
+        assert not monitor.is_upserting
+        assert monitor.schedule.crontab == "13 * * * *"
 
     def test_monitor_upsert_empty_timezone(self):
         self.send_checkin(

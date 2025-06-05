@@ -92,6 +92,7 @@ export enum SpanFields {
   RELEASE = 'release',
   PROJECT_ID = 'project.id',
   RESPONSE_CODE = 'span.status_code',
+  DEVICE_CLASS = 'device.class',
 }
 
 type WebVitalsMeasurements =
@@ -159,6 +160,7 @@ type SpanStringFields =
   | 'project'
   | 'http.request.method'
   | 'messaging.destination.name'
+  | 'command'
   | 'user'
   | 'user.display'
   | 'user.id'

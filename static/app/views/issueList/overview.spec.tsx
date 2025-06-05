@@ -63,6 +63,7 @@ const initialRouterConfig = {
   routes: [
     '/organizations/:orgId/issues/',
     '/organizations/:orgId/issues/searches/:searchId/',
+    '/organizations/:orgId/issues/views/:viewId/',
   ],
   location: {
     pathname: '/organizations/org-slug/issues/',
