@@ -65,7 +65,7 @@ export const chonkInnerWrapStyles = ({
   ${theme.form.md};
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
-  padding: 10px 16px;
+  padding: 10px ${orientation === 'horizontal' ? theme.space.xl : theme.space.md};
   margin-bottom: ${theme.space.mini};
 
   ${orientation === 'horizontal'
