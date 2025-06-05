@@ -1,4 +1,6 @@
 import {
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -28,6 +30,39 @@ const ssrTrace = makeTrace({
     }),
   ],
 });
+
+const ssrEAPTrace = makeEAPTrace([
+  makeEAPSpan({
+    event_id: '000',
+    op: 'http.server',
+    start_timestamp: start,
+    end_timestamp: start + 2,
+    is_transaction: true,
+    children: [
+      makeEAPSpan({
+        event_id: '001',
+        op: 'pageload',
+        start_timestamp: start,
+        is_transaction: true,
+        end_timestamp: start + 2,
+        parent_span_id: '000',
+        children: [
+          makeEAPSpan({
+            op: 'tls.connect',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+          }),
+          makeEAPSpan({
+            op: 'browser.request',
+            description: 'browser',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+          }),
+        ],
+      }),
+    ],
+  }),
+]);
 
 const ssrSpans = [
   makeSpan({
@@ -120,5 +155,27 @@ describe('server side rendering', () => {
     expect(browserRequestSpan).toBeDefined();
     expect(serverHandler.parent).toBe(pageload);
     expect(browserRequestSpan?.children).not.toContain(serverHandler);
+  });
+
+  describe('eap traces', () => {
+    it('reparents pageload transaction as parent of server handler', () => {
+      const tree = TraceTree.FromTrace(ssrEAPTrace, traceMetadata);
+
+      const pageload = tree.root.children[0]!.children[0]!;
+      const serverHandler = pageload.children[0]!;
+
+      expect(serverHandler.parent).toBe(pageload);
+      expect(pageload.parent).toBe(tree.root.children[0]);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('reparents server handler under browser request span', () => {
+      const tree = TraceTree.FromTrace(ssrEAPTrace, traceMetadata);
+
+      const pageload = tree.root.children[0]!.children[0]!;
+      tree.expand(pageload, true);
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
   });
 });
