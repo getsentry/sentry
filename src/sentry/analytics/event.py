@@ -1,42 +1,86 @@
 from __future__ import annotations
 
-import datetime as dt
+import typing
 from base64 import b64encode
-from collections.abc import Mapping, Sequence
-from typing import Any
-from uuid import uuid1
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, field
+from datetime import datetime as dt
+from typing import Any, ClassVar, overload
+from uuid import UUID, uuid1
 
 from django.utils import timezone
 
-from sentry.analytics.attribute import Attribute
-from sentry.analytics.utils import get_data
+
+# for using it with parenthesis, first parameter is optional
+@overload
+def eventclass(event_name_or_class: str | None = None) -> Callable[[type[Event]], type[Event]]: ...
 
 
+# for using it without parenthesis
+@overload
+def eventclass(event_name_or_class: type[Event]) -> type[Event]: ...
+
+
+@typing.dataclass_transform()
+def eventclass(
+    event_name_or_class: str | type[Event] | None = None,
+) -> Callable[[type[Event]], type[Event]] | type[Event]:
+    """
+    Decorator for marking an Event as a dataclass. Sets default arguments for the dataclass underneath and sets
+    the classes `type` property if specified.
+
+    Use it either without paranthesis:
+
+    >>> @eventclass
+    ... class MyEvent(Event):
+    ...     ...
+
+    With parenthesis (but no type name):
+
+    >>> @eventclass()
+    ... class MyEvent(Event):
+    ...     ...
+
+    Or with an event type name:
+
+    >>> @eventclass("my-event")
+    ... class MyEvent(Event):
+    ...     ...
+    """
+
+    def wrapper(cls: type[Event]) -> type[Event]:
+        # set the Event subclass `type` attribute, if it is set to anything
+        if isinstance(event_name_or_class, str):
+            cls.type = event_name_or_class
+        return dataclass(slots=True, kw_only=True)
+
+    # for using without parenthesis, wrap the passed class
+    if isinstance(event_name_or_class, type) and issubclass(event_name_or_class, Event):
+        return wrapper(event_name_or_class)
+
+    # for usage with parenthesis return the wrapper itself
+    return wrapper
+
+
+@eventclass
 class Event:
-    __slots__ = ("uuid", "data", "datetime")
+    """
+    Base class for custom analytics Events. Subclasses *must* use the `eventclass` decorator.
+    """
 
-    # These should be overridden by child classes.
-    type: str  # abstract
-    attributes: Sequence[Attribute] = ()
+    type: ClassVar[str]
 
-    def __init__(self, datetime: dt.datetime | None = None, **items: Any) -> None:
-        self.uuid = uuid1()
-        self.datetime = datetime or timezone.now()
-        self.data = get_data(self.attributes, items)
+    uuid: UUID = field(default_factory=uuid1)
+    datetime: dt = field(default_factory=timezone.now)
 
-    def serialize(self) -> Mapping[str, Any]:
-        return {
-            "uuid": b64encode(self.uuid.bytes),
-            "timestamp": self.datetime.timestamp(),
-            "type": self.type,
-            "data": self.data,
-        }
+    def serialize(self) -> dict[str, Any]:
+        return serialize_event(self)
 
-    @classmethod
-    def from_instance(cls, instance: Any, **kwargs: Any) -> Event:
-        return cls(
-            **{
-                attr.name: kwargs.get(attr.name, getattr(instance, attr.name, None))
-                for attr in cls.attributes
-            }
-        )
+
+def serialize_event(event: Event) -> dict[str, Any]:
+    return {
+        "type": event.type,
+        "uuid": b64encode(event.uuid.bytes),
+        "timestamp": event.datetime.timestamp(),
+        "data": {k: v for k, v in asdict(event).items() if k not in ("type", "uuid", "datetime")},
+    }
