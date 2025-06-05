@@ -153,11 +153,7 @@ describe('StartDurationWidget', () => {
 
       // com.example.vu.android@2.10.5 is noted as the primary, so the series with
       // com.example.vu.android@2.10.3+42 should be colored differently.
-      const transformedData = transformData(
-        mockData,
-        'avg(measurements.app_start_cold)',
-        'com.example.vu.android@2.10.5'
-      );
+      const transformedData = transformData(mockData, 'com.example.vu.android@2.10.5');
       expect(transformedData).toEqual({
         'com.example.vu.android@2.10.5': {
           seriesName: 'com.example.vu.android@2.10.5',
