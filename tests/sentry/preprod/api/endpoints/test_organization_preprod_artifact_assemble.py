@@ -16,6 +16,7 @@ from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import 
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -147,6 +148,38 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             "sentry-api-0-assemble-preprod-artifact-files",
             args=[self.organization.slug, self.project.slug],
         )
+        # Enable the feature flag for all tests in this class
+        self.feature_context = Feature("organizations:preprod-artifact-assemble")
+        self.feature_context.__enter__()
+
+    def tearDown(self):
+        # Clean up the feature flag
+        self.feature_context.__exit__(None, None, None)
+        super().tearDown()
+
+    def test_feature_flag_disabled_returns_404(self):
+        """Test that endpoint returns 404 when feature flag is disabled."""
+        # Exit the current feature context to disable the flag
+        self.feature_context.__exit__(None, None, None)
+
+        try:
+            content = b"test content"
+            total_checksum = sha1(content).hexdigest()
+
+            # Should get 404 when feature flag is disabled
+            response = self.client.post(
+                self.url,
+                data={
+                    "checksum": total_checksum,
+                    "chunks": [],
+                },
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            )
+            assert response.status_code == 404
+        finally:
+            # Re-enable the feature flag for any subsequent tests
+            self.feature_context = Feature("organizations:preprod-artifact-assemble")
+            self.feature_context.__enter__()
 
     def test_assemble_json_schema_integration(self):
         """Integration test for schema validation through the endpoint."""
