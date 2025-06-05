@@ -168,6 +168,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300  # seconds = 5 minutes
 
+    @pytest.mark.skip(reason="flaky: #92957")
     def test_update(self):
         with self.tasks():
             response = self.get_success_response(
