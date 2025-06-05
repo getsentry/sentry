@@ -113,6 +113,8 @@ export function useCreateNotificationAction({
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
 
   useEffect(() => {
+    // Initializes form state based on the first default action and available integrations.
+    // Sets provider, integration, selected actions, and channel if present.
     const firstAction = defaultActions?.[0];
     if (!firstAction) {
       return;
