@@ -1000,10 +1000,6 @@ export default typescript.config([
         },
         // --- specifics ---
         {
-          type: 'devtoolbar',
-          pattern: 'sentry/components/devtoolbar',
-        },
-        {
           type: 'core-button',
           pattern: 'static/app/components/core/button',
         },
@@ -1085,10 +1081,6 @@ export default typescript.config([
               from: ['gsAdmin*'],
               disallow: ['sentry-locale'],
               allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
-            },
-            {
-              from: ['devtoolbar'],
-              allow: ['devtoolbar', 'sentry*'],
             },
             {
               from: ['test-sentry'],
