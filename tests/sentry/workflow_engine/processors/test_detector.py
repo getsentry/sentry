@@ -486,8 +486,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             DetectorPriorityLevel.HIGH,
         )
 
-    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    def test_above_below_threshold(self, mock_produce_occurrence_to_kafka):
+    def test_above_below_threshold(self):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
 
@@ -505,8 +504,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
-        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})
-        result = {
+        assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
                 is_triggered=True,
@@ -515,7 +513,6 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 event_data=event_data,
             )
         }
-        assert handler.evaluate(data_packet) == result
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
         assert handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}})) == {
             "val1": DetectorEvaluationResult(
