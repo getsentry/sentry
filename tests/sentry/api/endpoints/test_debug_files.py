@@ -100,7 +100,7 @@ class DebugFilesTest(DebugFilesTestCases):
         # `self.user` has access to these files
         response = self.client.get(f"{self.url}?id={download_id}")
         assert response.status_code == 200, response.content
-        assert PROGUARD_SOURCE == b"".join(response.streaming_content)
+        assert PROGUARD_SOURCE == close_streaming_response(response)
 
         # with another user on a different org
         other_user = self.create_user()
@@ -146,7 +146,7 @@ class DebugFilesTest(DebugFilesTestCases):
         )
         assert response.get("Content-Length") == str(len(PROGUARD_SOURCE))
         assert response.get("Content-Type") == "application/octet-stream"
-        assert PROGUARD_SOURCE == b"".join(response.streaming_content)
+        assert PROGUARD_SOURCE == close_streaming_response(response)
 
         # Download as a superuser
         superuser = self.create_user(is_superuser=True)

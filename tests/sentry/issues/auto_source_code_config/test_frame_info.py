@@ -15,18 +15,12 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
-    "O$t",
-    "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "README",  # top level file
-    # XXX: Top level files will need to be supported
-    "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
-    "ssl.py",
-    "initialization.dart",
-    "backburner.js",
 ]
 
 NO_EXTENSION_FRAME_FILENAMES = [
-    "/foo/bar/baz",  # no extension
+    "/foo/bar/baz",
+    "README",
+    "O$t",
 ]
 
 
@@ -40,10 +34,10 @@ class TestFrameInfo:
         with pytest.raises(UnsupportedFrameInfo):
             FrameInfo({"filename": filepath})
 
-    def test_raises_no_extension(self) -> None:
-        for filepath in NO_EXTENSION_FRAME_FILENAMES:
-            with pytest.raises(NeedsExtension):
-                FrameInfo({"filename": filepath})
+    @pytest.mark.parametrize("filepath", NO_EXTENSION_FRAME_FILENAMES)
+    def test_raises_no_extension(self, filepath: str) -> None:
+        with pytest.raises(NeedsExtension):
+            FrameInfo({"filename": filepath})
 
     @pytest.mark.parametrize(
         "frame, expected_exception",

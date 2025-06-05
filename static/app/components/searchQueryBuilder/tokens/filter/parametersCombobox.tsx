@@ -1,5 +1,6 @@
 import {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Item} from '@react-stately/collections';
+import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
@@ -8,13 +9,22 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
-import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
+import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  AggregateFilter,
+  ParseResultToken,
+} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 type ParametersComboboxProps = {
   onCommit: () => void;
   onDelete: () => void;
+  state: ListState<ParseResultToken>;
   token: AggregateFilter;
 };
 
@@ -32,6 +42,37 @@ function getInitialInputValue(token: AggregateFilter) {
   return '';
 }
 
+function splitParameters(text: string): string[] {
+  const parameters = [];
+
+  let escaped = false;
+
+  let i = 0;
+  let j = 0;
+
+  for (j = 0; j < text.length; j++) {
+    const c = text[j];
+    if (escaped) {
+      if (c === ']') {
+        escaped = false;
+        continue;
+      }
+    } else {
+      if (c === '[') {
+        escaped = true;
+        continue;
+      } else if (c === ',') {
+        parameters.push(text.slice(i, j));
+        i = j + 1;
+      }
+    }
+  }
+
+  parameters.push(text.slice(i, j));
+
+  return parameters;
+}
+
 function getParameterAtCursorPosition(
   text: string,
   cursorPosition: number | null
@@ -40,7 +81,7 @@ function getParameterAtCursorPosition(
     return {parameterIndex: 0, textValue: ''};
   }
 
-  const items = text.split(',');
+  const items = splitParameters(text);
 
   let characterCount = 0;
   for (let i = 0; i < items.length; i++) {
@@ -54,11 +95,31 @@ function getParameterAtCursorPosition(
 }
 
 function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number): number {
-  const items = text.split(',');
+  const items = splitParameters(text);
   const charactersBefore =
     items.slice(0, parameterIndex).join('').length + parameterIndex;
 
   return charactersBefore + items[parameterIndex]!.length;
+}
+
+function calculateNextFocus(
+  state: ListState<ParseResultToken>,
+  definition: FieldDefinition | null,
+  parameterIndex?: number
+): FocusOverride | undefined {
+  if (
+    defined(parameterIndex) &&
+    definition &&
+    definition.kind === FieldKind.FUNCTION &&
+    definition.parameters?.length &&
+    parameterIndex + 1 < definition.parameters.length
+  ) {
+    return undefined;
+  }
+
+  return state.selectionManager.focusedKey
+    ? {itemKey: `${state.selectionManager.focusedKey}`, part: 'value'}
+    : undefined;
 }
 
 function useSelectionIndex({
@@ -110,26 +171,23 @@ function useParameterSuggestions({
         });
         const {columnTypes} = parameterDefinition;
 
-        if (typeof columnTypes === 'function') {
-          return potentialColumns
-            .filter(col =>
-              columnTypes({
-                key: col.key,
-                valueType:
-                  getFieldDefinition(col.key, col.kind)?.valueType ??
-                  FieldValueType.STRING,
-              })
-            )
-            .map(col => ({value: col.key, label: col.key}));
-        }
+        const filterFn: (field: {key: string; valueType: FieldValueType}) => boolean =
+          typeof columnTypes === 'function'
+            ? columnTypes
+            : field => columnTypes.includes(field.valueType);
 
         return potentialColumns
-          .filter(col =>
-            columnTypes.includes(
-              getFieldDefinition(col.key)?.valueType ?? FieldValueType.STRING
-            )
+          .map(col => [col, getFieldDefinition(col.key, col.kind)] as const)
+          .filter(([col, definition]) =>
+            filterFn({
+              key: col.key,
+              valueType: definition?.valueType ?? FieldValueType.STRING,
+            })
           )
-          .map(col => ({value: col.key, label: col.key}));
+          .map(([col, definition]) => ({
+            value: col.key,
+            label: getKeyLabel(col, definition),
+          }));
       }
       case 'value':
         if (parameterDefinition.options) {
@@ -171,15 +229,20 @@ function useParameterSuggestions({
 }
 
 export function SearchQueryBuilderParametersCombobox({
+  state,
   token,
   onCommit,
   onDelete,
 }: ParametersComboboxProps) {
+  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilder();
   const initialValue = getInitialInputValue(token);
   const [inputValue, setInputValue] = useState('');
   const [inputChanged, setInputChanged] = useState(false);
+
+  const placeholder = useAggregateParamVisual({token});
 
   function updateInputValue(value: string) {
     setInputValue(value);
@@ -211,16 +274,32 @@ export function SearchQueryBuilderParametersCombobox({
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
       if (inputChanged) {
+        const definition = getFieldDefinition(token.key.name.text);
+        const parameters = splitParameters(value).map((parameter, i) => {
+          return definition?.parameters?.[i]?.kind === 'column'
+            ? getSuggestedFilterKey(parameter)
+            : parameter;
+        });
+
         dispatch({
           type: 'UPDATE_AGGREGATE_ARGS',
           token,
-          value,
+          value: parameters.join(','),
+          focusOverride: calculateNextFocus(state, definition),
         });
 
         onCommit();
       }
     },
-    [inputChanged, dispatch, token, onCommit]
+    [
+      inputChanged,
+      dispatch,
+      token,
+      onCommit,
+      state,
+      getFieldDefinition,
+      getSuggestedFilterKey,
+    ]
   );
 
   const handleOptionSelected = useCallback(
@@ -231,29 +310,46 @@ export function SearchQueryBuilderParametersCombobox({
         option.value
       );
 
+      const focusOverride = calculateNextFocus(
+        state,
+        getFieldDefinition(token.key.name.text),
+        parameterIndex
+      );
+
       dispatch({
         type: 'UPDATE_AGGREGATE_ARGS',
         token,
         value: newValue,
+        focusOverride,
       });
       updateInputValue(newValue);
-      const newCursorPosition = getCursorPositionAtEndOfParameter(
-        newValue,
-        parameterIndex
-      );
-      if (inputRef.current) {
-        inputRef.current.value = newValue;
-        inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+      if (!defined(focusOverride)) {
+        const newCursorPosition = getCursorPositionAtEndOfParameter(
+          newValue,
+          parameterIndex
+        );
+        if (inputRef.current) {
+          inputRef.current.value = newValue;
+          inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+        }
       }
     },
-    [dispatch, inputValue, parameterIndex, selectionIndex, token]
+    [
+      dispatch,
+      inputValue,
+      parameterIndex,
+      selectionIndex,
+      token,
+      state,
+      getFieldDefinition,
+    ]
   );
 
   return (
     <SearchQueryBuilderCombobox
       ref={inputRef}
       items={items}
-      placeholder={initialValue}
+      placeholder={placeholder}
       onOptionSelected={handleOptionSelected}
       onCustomValueBlurred={handleInputValueConfirmed}
       onCustomValueCommitted={handleInputValueConfirmed}

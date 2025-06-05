@@ -13,6 +13,10 @@ import {
 } from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {
+  isEAPError,
+  isTraceError,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -43,10 +47,16 @@ export function useTraceRootEvent({
   const hasOnlyLogs = !!(tree.type === 'empty' && logs && logs.length > 0);
   const enabledBase =
     !treeIsLoading && (tree.type === 'trace' || hasOnlyLogs) && !!rep?.event && !!traceId;
+
+  const isRepEventError =
+    rep.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
+      ? false
+      : isTraceError(rep.event) || isEAPError(rep.event);
   const isEAPEnabled =
-    (organization.features.includes('trace-spans-format') &&
+    !isRepEventError && // Errors are not supported in EAP yet
+    ((organization.features.includes('trace-spans-format') &&
       storedTraceFormat === 'eap') ||
-    (!treeIsLoading && hasOnlyLogs);
+      (!treeIsLoading && hasOnlyLogs));
 
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [

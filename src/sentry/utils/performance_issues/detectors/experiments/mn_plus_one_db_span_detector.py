@@ -231,7 +231,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.no_parent_span")
             return None
 
-        db_span = self._first_db_span()
+        db_span = self._first_relevant_db_span()
         if not db_span:
             metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
@@ -274,9 +274,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
             ],
         )
 
-    def _first_db_span(self) -> Span | None:
+    def _first_relevant_db_span(self) -> Span | None:
         for span in self.spans:
-            if span["op"].startswith("db"):
+            if (
+                span["op"].startswith("db")
+                and get_span_evidence_value(span, include_op=False) != "prisma:engine:connection"
+            ):
                 return span
         return None
 
@@ -368,7 +371,7 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     Uses a small state machine internally.
     """
 
-    __slots__ = ("stored_problems", "state")
+    __slots__ = ("state",)
 
     type = DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES
@@ -376,7 +379,6 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.state: MNPlusOneState = SearchingForMNPlusOne(
             settings=self.settings,
             event=event,

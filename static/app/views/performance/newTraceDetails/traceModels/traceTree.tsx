@@ -232,14 +232,21 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutogroup extends Span {
+
+  interface BaseAutogroup {
+    op: string;
+    span_id: string;
+    description?: string;
+  }
+
+  interface SiblingAutogroup extends BaseAutogroup {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutogroup extends Span {
+  interface ChildrenAutogroup extends BaseAutogroup {
     autogrouped_by: {
       op: string;
     };
@@ -349,6 +356,25 @@ export class TraceTree extends TraceTreeEventDispatcher {
     t.type = 'error';
     t.build();
     return t;
+  }
+
+  static ApplyPreferences(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    options: {
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    }
+  ): void {
+    if (options?.preferences?.missing_instrumentation) {
+      TraceTree.DetectMissingInstrumentation(root);
+    }
+
+    if (options?.preferences?.autogroup.parent) {
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+    }
+
+    if (options?.preferences?.autogroup.sibling) {
+      TraceTree.AutogroupSiblingSpanNodes(root);
+    }
   }
 
   static FromTrace(
@@ -568,11 +594,28 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
-    if (isEAPTraceNode(traceNode) && options?.preferences?.missing_instrumentation) {
-      TraceTree.DetectMissingInstrumentation(tree.root);
+    if (isEAPTraceNode(traceNode)) {
+      TraceTree.ApplyPreferences(tree.root, options);
     }
 
     return tree;
+  }
+
+  static ReparentSSRUnderBrowserRequestSpan(
+    node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+  ): void {
+    if (isBrowserRequestSpan(node.value)) {
+      const serverRequestHandler = node.parent?.children.find(n =>
+        isServerRequestHandlerTransactionNode(n)
+      );
+
+      if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+        serverRequestHandler.parent!.children =
+          serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+        node.children.push(serverRequestHandler);
+        serverRequestHandler.parent = node;
+      }
+    }
   }
 
   static FromSpans(
@@ -674,20 +717,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.errors.add(error);
         }
 
-        if (isBrowserRequestSpan(c.value)) {
-          const serverRequestHandler = c.parent?.children.find(n =>
-            isServerRequestHandlerTransactionNode(n)
-          );
-
-          if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-            serverRequestHandler.parent!.children =
-              serverRequestHandler.parent!.children.filter(
-                n => n !== serverRequestHandler
-              );
-            c.children.push(serverRequestHandler);
-            serverRequestHandler.parent = c;
-          }
-        }
+        TraceTree.ReparentSSRUnderBrowserRequestSpan(c);
       }
 
       c.children.sort(traceChronologicalSort);
@@ -888,7 +918,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (!isSpanNode(node) || node.children.length > 1) {
+      if ((!isSpanNode(node) && !isEAPSpanNode(node)) || node.children.length > 1) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -908,7 +938,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        isSpanNode(tail.children[0]!) &&
+        (isSpanNode(tail.children[0]!) || isEAPSpanNode(tail.children[0]!)) &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
@@ -930,10 +960,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
+      const spanId = isEAPSpanNode(head) ? head.value.event_id : head.value.span_id;
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
-          ...head.value,
+          span_id: spanId,
+          op: head.value.op ?? '',
+          description: head.value.description,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
@@ -1040,18 +1073,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       while (index < node.children.length) {
         // Skip until we find a span candidate
-        if (!isSpanNode(node.children[index]!)) {
+        if (!isSpanNode(node.children[index]!) && !isEAPSpanNode(node.children[index]!)) {
           index++;
           matchCount = 0;
           continue;
         }
 
-        const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
-        const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
+        const current = node.children[index] as
+          | TraceTreeNode<TraceTree.Span>
+          | TraceTreeNode<TraceTree.EAPSpan>;
+        const next = node.children[index + 1] as
+          | TraceTreeNode<TraceTree.Span>
+          | TraceTreeNode<TraceTree.EAPSpan>;
 
         if (
           next &&
-          isSpanNode(next) &&
+          (isSpanNode(next) || isEAPSpanNode(next)) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans
@@ -1071,7 +1108,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
-              ...current.value,
+              span_id: isEAPSpanNode(current)
+                ? current.value.event_id
+                : current.value.span_id,
+              op: current.value.op ?? '',
+              description: current.value.description,
               autogrouped_by: {
                 op: current.value.op ?? '',
                 description: current.value.description ?? '',
@@ -1365,11 +1406,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (type === 'ag' && isAutogroupedNode(node)) {
         if (isParentAutogroupedNode(node)) {
-          return (
-            node.value.span_id === id ||
-            node.head.value.span_id === id ||
-            node.tail.value.span_id === id
-          );
+          const headSpanId = isEAPSpanNode(node.head)
+            ? node.head.value.event_id
+            : node.head.value.span_id;
+          const tailSpanId = isEAPSpanNode(node.tail)
+            ? node.tail.value.event_id
+            : node.tail.value.span_id;
+          return headSpanId === id || tailSpanId === id;
         }
         if (isSiblingAutogroupedNode(node)) {
           const child = node.children[0]!;
@@ -1455,11 +1498,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return previousSpanId === eventId || nextSpanId === eventId;
       }
       if (isParentAutogroupedNode(n)) {
-        return (
-          n.value.span_id === eventId ||
-          n.head.value.span_id === eventId ||
-          n.tail.value.span_id === eventId
-        );
+        const headSpanId = isEAPSpanNode(n.head)
+          ? n.head.value.event_id
+          : n.head.value.span_id;
+        const tailSpanId = isEAPSpanNode(n.tail)
+          ? n.tail.value.event_id
+          : n.tail.value.span_id;
+        return headSpanId === eventId || tailSpanId === eventId;
       }
 
       if (isSiblingAutogroupedNode(n)) {
@@ -1608,6 +1653,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
           t => t.children.filter(c => isEAPTransactionNode(c)),
           t => TraceTree.FindByID(node, t.value.parent_span_id)
         );
+
+        const browserRequestSpan = node.children.find(
+          c => isEAPSpanNode(c) && isBrowserRequestSpan(c.value)
+        ) as TraceTreeNode<TraceTree.EAPSpan> | undefined;
+        if (browserRequestSpan) {
+          TraceTree.ReparentSSRUnderBrowserRequestSpan(browserRequestSpan);
+        }
       }
 
       // Flip expanded so that we can collect visible children
@@ -1773,15 +1825,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           this.dispatch('trace timeline change', this.root.space);
         }
 
-        if (options.preferences.missing_instrumentation) {
-          TraceTree.DetectMissingInstrumentation(root);
-        }
-        if (options.preferences.autogroup.sibling) {
-          TraceTree.AutogroupSiblingSpanNodes(root);
-        }
-        if (options.preferences.autogroup.parent) {
-          TraceTree.AutogroupDirectChildrenSpanNodes(root);
-        }
+        TraceTree.ApplyPreferences(root, options);
 
         if (index !== -1) {
           this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
@@ -2187,7 +2231,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
-      return `ag-${n.head.value.span_id}`;
+      const headSpanId = isEAPSpanNode(n.head)
+        ? n.head.value.event_id
+        : n.head.value.span_id;
+      return `ag-${headSpanId}`;
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0]!;

@@ -1,6 +1,7 @@
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {t, tct} from 'sentry/locale';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   Attributes,
   MATCH_CHOICES,
@@ -8,7 +9,17 @@ import {
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-export default function EventAttributeNode() {
+export function EventAttributeDetails({condition}: {condition: DataCondition}) {
+  return tct("The event's [attribute] [match] [value]", {
+    attribute: condition.comparison.attribute,
+    match:
+      MATCH_CHOICES.find(choice => choice.value === condition.comparison.match)?.label ||
+      condition.comparison.match,
+    value: condition.comparison.value,
+  });
+}
+
+export function EventAttributeNode() {
   return tct("The event's [attribute] [match] [value]", {
     attribute: <AttributeField />,
     match: <MatchField />,
