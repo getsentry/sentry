@@ -1,6 +1,5 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -21,6 +20,9 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import packageJson from './package.json' with {type: 'json'};
+
+const remarkFrontmatter = import('remark-frontmatter');
+const remarkGfm = import('remark-gfm');
 
 const {env} = process;
 
@@ -284,6 +286,9 @@ const appConfig: Configuration = {
           },
           {
             loader: '@mdx-js/loader',
+            options: {
+              remarkPlugins: [remarkFrontmatter, remarkGfm],
+            },
           },
         ],
       },

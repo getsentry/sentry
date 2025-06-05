@@ -164,6 +164,8 @@
     "react-textarea-autosize": "8.5.7",
     "react-virtualized": "^9.22.6",
     "reflux": "0.4.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
     "screenfull": "^6.0.2",
     "scroll-to-element": "^2.0.0",
     "sprintf-js": "1.0.3",
