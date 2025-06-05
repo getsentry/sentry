@@ -9,7 +9,7 @@ def test_parse_response_valid():
     assert summary == "This is a test summary"
 
 
-def test_parse_response_valid_with_newlines():
+def test_parse_response_valid_extra_whitespace():
     response = """Summary:   This is a test summary.
 
     And this is a continuation of the summary."""

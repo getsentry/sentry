@@ -38,17 +38,16 @@ class FeedbackSummaryParseError(Exception):
 def generate_summary(
     feedbacks,
 ):
-    response = complete_prompt(
+    response = complete_prompt(  # this can throw
         usecase=LLMUseCase.SUMMARIES,
         message=make_input_prompt(feedbacks),
         temperature=0.3,
-        # max_output_tokens=20, # figure out what this does and what to set it to
     )
 
     if response:
-        summary = parse_response(response)
+        summary = parse_response(response)  # this can throw a FeedbackSummaryParseError
     else:
-        raise Exception("Invalid response from LLM")
+        raise Exception("Invalid response from LLM")  # if no response from LLM, this throws
 
     return summary
 
