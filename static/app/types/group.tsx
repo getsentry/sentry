@@ -466,7 +466,6 @@ export enum GroupActivityType {
 interface GroupActivityBase {
   dateCreated: string;
   id: string;
-  project: Project;
   assignee?: string;
   issue?: Group;
   user?: null | User;
@@ -856,6 +855,7 @@ export const enum PriorityLevel {
 }
 
 export const enum FixabilityScoreThresholds {
+  SUPER_HIGH = 'super_high',
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',

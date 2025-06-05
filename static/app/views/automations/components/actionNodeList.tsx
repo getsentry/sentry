@@ -23,7 +23,7 @@ interface ActionNodeListProps {
   onAddRow: (actionId: string, actionHandler: ActionHandler) => void;
   onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateAction: (id: string, data: Record<string, any>) => void;
+  updateAction: (id: string, params: Record<string, any>) => void;
 }
 
 interface Option {
@@ -134,8 +134,8 @@ function Node() {
   const {action} = useActionNodeContext();
   const node = actionNodesMap.get(action.type);
 
-  const component = node?.action;
-  return component ? component : node?.label;
+  const Component = node?.action;
+  return Component ? <Component /> : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

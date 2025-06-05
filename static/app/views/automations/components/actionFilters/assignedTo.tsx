@@ -5,8 +5,11 @@ import TeamSelector from 'sentry/components/teamSelector';
 import AutomationBuilderSelectField, {
   selectControlStyles,
 } from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import useUserFromId from 'sentry/utils/useUserFromId';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 enum TargetType {
@@ -20,6 +23,29 @@ const TARGET_TYPE_CHOICES = [
   {value: TargetType.TEAM, label: 'Team'},
   {value: TargetType.MEMBER, label: 'Member'},
 ];
+
+export function AssignedToDetails({condition}: {condition: DataCondition}) {
+  const {target_type, target_identifier} = condition.comparison;
+
+  if (target_type === TargetType.TEAM) {
+    return <AssignedToTeam teamId={String(target_identifier)} />;
+  }
+  if (target_type === TargetType.MEMBER) {
+    return <AssignedToMember memberId={target_identifier} />;
+  }
+  return tct('Issue is unassigned', {});
+}
+
+function AssignedToTeam({teamId}: {teamId: string}) {
+  const {teams} = useTeamsById({ids: [teamId]});
+  const team = teams.find(tm => tm.id === teamId);
+  return t('Issue is assigned to team %s', `#${team?.slug ?? 'unknown'}`);
+}
+
+function AssignedToMember({memberId}: {memberId: number}) {
+  const {data: user} = useUserFromId({id: memberId});
+  return t('Issue is assigned to member %s', `${user?.email ?? 'unknown'}`);
+}
 
 export function AssignedToNode() {
   return tct('Issue is assigned to [targetType] [identifier]', {

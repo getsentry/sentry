@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 
 import rapidjson
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
@@ -11,6 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
+from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -59,16 +61,20 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        sentry_sdk.set_tag("sentry_spans_buffer_component", "consumer")
+
         committer = CommitOffsets(commit)
 
-        buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
+        buffer = SpansBuffer(
+            assigned_shards=[p.index for p in partitions],
+            max_flush_segments=self.max_flush_segments,
+        )
 
         # patch onto self just for testing
         flusher: ProcessingStrategy[FilteredPayload | int]
 
         flusher = self._flusher = SpanFlusher(
             buffer,
-            max_flush_segments=self.max_flush_segments,
             max_memory_percentage=self.max_memory_percentage,
             produce_to_pipe=self.produce_to_pipe,
             next_step=committer,
@@ -130,6 +136,23 @@ def process_batch(
             min_timestamp = timestamp
 
         val = rapidjson.loads(payload.value)
+
+        partition_id = None
+
+        if len(value.committable) == 1:
+            partition_id = value.committable[next(iter(value.committable))]
+
+        if killswitches.killswitch_matches_context(
+            "standalone-spans.drop-in-buffer",
+            {
+                "org_id": val.get("organization_id"),
+                "project_id": val.get("project_id"),
+                "trace_id": val.get("trace_id"),
+                "partition_id": partition_id,
+            },
+        ):
+            continue
+
         span = Span(
             trace_id=val["trace_id"],
             span_id=val["span_id"],

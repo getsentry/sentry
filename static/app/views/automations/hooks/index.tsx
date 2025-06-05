@@ -5,8 +5,16 @@ import type {
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+const makeAutomationsQueryKey = (orgSlug: string): ApiQueryKey => [
+  `/organizations/${orgSlug}/workflows/`,
+];
+
+const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
+  `/organizations/${orgSlug}/workflows/${automationId}/`,
+];
 
 interface UseAutomationsQueryOptions {
   query?: string;
@@ -16,6 +24,15 @@ export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
   const {slug} = useOrganization();
 
   return useApiQuery<Automation[]>(makeAutomationsQueryKey(slug), {
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+export function useAutomationQuery(automationId: string) {
+  const {slug} = useOrganization();
+
+  return useApiQuery<Automation>(makeAutomationQueryKey(slug, automationId), {
     staleTime: 0,
     retry: false,
   });
@@ -33,10 +50,6 @@ export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType)
   );
 }
 
-const makeAutomationsQueryKey = (orgSlug: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/workflows/`,
-];
-
 export function useAvailableActionsQuery() {
   const {slug} = useOrganization();
 
@@ -44,4 +57,16 @@ export function useAvailableActionsQuery() {
     staleTime: Infinity,
     retry: false,
   });
+}
+
+export function useDetectorQueriesByIds(automationIds: string[]) {
+  const org = useOrganization();
+
+  return useApiQueries<Automation>(
+    automationIds.map(id => makeAutomationQueryKey(org.slug, id)),
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
 }

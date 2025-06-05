@@ -55,7 +55,8 @@ from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.sdk import set_span_data
+from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.sdk import set_span_attribute
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -238,9 +239,9 @@ def process_profile_task(
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
-        set_span_data("profile.samples", len(profile["profile"]["samples"]))
-        set_span_data("profile.stacks", len(profile["profile"]["stacks"]))
-        set_span_data("profile.frames", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
     else:
@@ -266,9 +267,9 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if "version" in profile:
-        set_span_data("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_span_data("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_span_data("profile.frames.processed", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if options.get("profiling.stack_trace_rules.enabled"):
         try:
@@ -291,8 +292,7 @@ def process_profile_task(
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
-            if not project.flags.has_profiles:
-                first_profile_received.send_robust(project=project, sender=Project)
+            set_project_flag_and_signal(project, "has_profiles", first_profile_received)
             try:
                 if quotas.backend.should_emit_profile_duration_outcome(
                     organization=organization, profile=profile
@@ -386,7 +386,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-                set_span_data(
+                set_span_attribute(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )

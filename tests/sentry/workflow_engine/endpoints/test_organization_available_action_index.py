@@ -304,7 +304,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                         "name": self.opsgenie_integration.name,
                         "services": [
                             {
-                                "id": self.og_team["id"],
+                                "id": str(self.og_team["id"]),
                                 "name": self.og_team["team"],
                             },
                         ],
@@ -322,11 +322,11 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                         "name": self.pagerduty_integration.name,
                         "services": [
                             {
-                                "id": self.pagerduty_service_1["id"],
+                                "id": str(self.pagerduty_service_1["id"]),
                                 "name": self.pagerduty_service_1["service_name"],
                             },
                             {
-                                "id": self.pagerduty_service_2["id"],
+                                "id": str(self.pagerduty_service_2["id"]),
                                 "name": self.pagerduty_service_2["service_name"],
                             },
                         ],
@@ -495,7 +495,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                         "name": self.opsgenie_integration.name,
                         "services": [
                             {
-                                "id": self.og_team["id"],
+                                "id": str(self.og_team["id"]),
                                 "name": self.og_team["team"],
                             },
                         ],
@@ -513,11 +513,11 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                         "name": self.pagerduty_integration.name,
                         "services": [
                             {
-                                "id": self.pagerduty_service_1["id"],
+                                "id": str(self.pagerduty_service_1["id"]),
                                 "name": self.pagerduty_service_1["service_name"],
                             },
                             {
-                                "id": self.pagerduty_service_2["id"],
+                                "id": str(self.pagerduty_service_2["id"]),
                                 "name": self.pagerduty_service_2["service_name"],
                             },
                         ],

@@ -233,6 +233,9 @@ from sentry.monitors.endpoints.organization_monitor_environment_details import (
     OrganizationMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
+from sentry.monitors.endpoints.organization_monitor_index_count import (
+    OrganizationMonitorIndexCountEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
 )
@@ -282,6 +285,9 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 )
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
+)
+from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
+    ProjectPreprodArtifactAssembleEndpoint,
 )
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
@@ -371,8 +377,12 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
 )
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
+from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
+)
+from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
+    OrganizationUptimeAlertIndexCountEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -1817,6 +1827,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-monitor-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors-count/$",
+        OrganizationMonitorIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-index-count",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors-stats/$",
         OrganizationMonitorIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index-stats",
@@ -2328,6 +2343,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-uptime-alert-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-count/$",
+        OrganizationUptimeAlertIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-index-count",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
         OrganizationUptimeStatsEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-stats",
@@ -2480,6 +2500,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/difs/assemble/$",
         DifAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-dif-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/preprodartifacts/assemble/$",
+        ProjectPreprodArtifactAssembleEndpoint.as_view(),
+        name="sentry-api-0-assemble-preprod-artifact-files",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/unknown/$",
@@ -3431,6 +3456,12 @@ urlpatterns = [
         r"^uptime-ips/$",
         UptimeIpsEndpoint.as_view(),
         name="sentry-api-0-uptime-ips",
+    ),
+    # Tempest public IP address list
+    re_path(
+        r"^tempest-ips/$",
+        TempestIpsEndpoint.as_view(),
+        name="sentry-api-0-tempest-ips",
     ),
     # Secret Scanning
     re_path(

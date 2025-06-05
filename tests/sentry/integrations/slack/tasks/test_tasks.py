@@ -78,7 +78,6 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "New Rule",
             "environment": None,
-            "project": self.project,
             "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
@@ -123,7 +122,6 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "New Rule",
             "environment": None,
-            "project": None,
             "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
@@ -173,7 +171,6 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "Test Rule",
             "environment": None,
-            "project": self.project,
             "project_id": self.project.id,
             "action_match": "all",
             "filter_match": "all",
