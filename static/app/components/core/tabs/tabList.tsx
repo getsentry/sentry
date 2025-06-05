@@ -19,7 +19,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
-import {Item} from './item';
+import {TabListItem} from './item';
 import {type BaseTabProps, Tab} from './tab';
 import {tabsShouldForwardProp} from './utils';
 
@@ -122,23 +122,20 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
   );
 }
 
-export interface TabListProps
-  extends AriaTabListOptions<TabListItemProps>,
-    TabListStateOptions<TabListItemProps> {
-  className?: string;
+export interface TabListProps {
+  children: TabListStateOptions<TabListItemProps>['children'];
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
   variant?: BaseTabProps['variant'];
 }
 
-interface BaseTabListProps extends TabListProps {
+interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabListProps {
   items: TabListItemProps[];
   variant?: BaseTabProps['variant'];
 }
 
 function BaseTabList({
   hideBorder = false,
-  className,
   outerWrapStyles,
   variant = 'flat',
   ...props
@@ -222,7 +219,6 @@ function BaseTabList({
         {...tabListProps}
         orientation={orientation}
         hideBorder={hideBorder}
-        className={className}
         ref={tabListRef}
         variant={variant}
       >
@@ -252,25 +248,26 @@ function BaseTabList({
   );
 }
 
-const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
+const collectionFactory = (nodes: Iterable<Node<TabListItemProps>>) =>
+  new ListCollection(nodes);
 
 /**
  * To be used as a direct child of the `<Tabs />` component. See example usage
  * in tabs.stories.js
  */
-export function TabList({items, variant, ...props}: TabListProps) {
+export function TabList({variant, ...props}: TabListProps) {
   /**
    * Initial, unfiltered list of tab items.
    */
-  const collection = useCollection({items, ...props}, collectionFactory);
+  const collection = useCollection(props, collectionFactory);
 
-  const parsedItems = useMemo(
+  const parsedItems: TabListItemProps[] = useMemo(
     () => [...collection].map(({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]
   );
 
   /**
-   * List of keys of disabled items (those with a `disbled` prop) to be passed
+   * List of keys of disabled items (those with a `disabled` prop) to be passed
    * into `BaseTabList`.
    */
   const disabledKeys = useMemo(
@@ -280,17 +277,17 @@ export function TabList({items, variant, ...props}: TabListProps) {
 
   return (
     <BaseTabList
+      {...props}
       items={parsedItems}
       disabledKeys={disabledKeys}
       variant={variant}
-      {...props}
     >
-      {item => <Item {...item} key={item.key} />}
+      {item => <TabListItem {...item} key={item.key} />}
     </BaseTabList>
   );
 }
 
-TabList.Item = Item;
+TabList.Item = TabListItem;
 
 const TabListOuterWrap = styled('div')`
   position: relative;

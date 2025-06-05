@@ -116,8 +116,8 @@ function ApiTokenDetails({params}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Edit User Auth Token')} />
-      <SettingsPageHeader title={t('Edit User Auth Token')} />
+      <SentryDocumentTitle title={t('Edit Personal Token')} />
+      <SettingsPageHeader title={t('Edit Personal Token')} />
 
       <TextBlock>
         {t(
@@ -133,12 +133,12 @@ function ApiTokenDetails({params}: Props) {
         )}
       </TextBlock>
       <Panel>
-        <PanelHeader>{t('User Auth Token Details')}</PanelHeader>
+        <PanelHeader>{t('Personal Token Details')}</PanelHeader>
 
         <PanelBody>
           {isError && (
             <LoadingError
-              message={t('Failed to load user auth token.')}
+              message={t('Failed to load personal token.')}
               onRetry={refetchToken}
             />
           )}

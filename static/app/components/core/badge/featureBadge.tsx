@@ -26,7 +26,6 @@ const labels: Record<FeatureBadgeProps['type'], string> = {
 export interface FeatureBadgeProps extends Omit<BadgeProps, 'children'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   tooltipProps?: Partial<TooltipProps>;
-  variant?: 'badge';
 }
 
 function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
