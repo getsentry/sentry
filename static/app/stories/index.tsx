@@ -1,4 +1,5 @@
 export {JSXNode, JSXProperty} from './jsx';
+export {APIReference} from './apiReference';
 export {PropMatrix} from './props';
 export {Section, Title} from './layout';
 export {SideBySide} from './layout';
