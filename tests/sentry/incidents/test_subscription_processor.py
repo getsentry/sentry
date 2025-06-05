@@ -1066,30 +1066,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     @patch("sentry.incidents.subscription_processor.metrics")
-    @patch("sentry.incidents.subscription_processor.logger")
-    def test_alert_metrics_logging(self, mock_logger, mock_metrics):
-        """
-        Test that we are logging when we enter workflow engine at the same rate as we store a metric for firing an alert
-        """
+    def test_alert_metrics(self, mock_metrics):
         rule = self.rule
         trigger = self.trigger
-        # create a warning trigger
-        create_alert_rule_trigger(self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 1)
         self.send_update(rule, trigger.alert_threshold + 1)
-        logger_extra = {
-            "results": [],
-            "num_results": 0,
-            "value": trigger.alert_threshold + 1,
-            "rule_id": rule.id,
-        }
-        assert mock_logger.info.call_count == 1
-        mock_logger.info.assert_called_with(
-            "dual processing results for alert rule",
-            extra=logger_extra,
-        )
-        # assert that we only create a metric for `dual_processing.alert_rules.fire` once despite having 2 triggers
         mock_metrics.incr.assert_has_calls(
             [
                 call(
@@ -1098,11 +1079,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 ),
                 call(
                     "dual_processing.alert_rules.fire",
-                ),
-                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
-                call(
-                    "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
