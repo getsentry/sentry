@@ -1,5 +1,9 @@
+import logging
+
 import sentry_sdk
 from rest_framework import serializers
+
+logger = logging.getLogger(__name__)
 
 
 class TestResultNodeSerializer(serializers.Serializer):
@@ -51,8 +55,6 @@ class TestResultSerializer(serializers.Serializer):
             nodes = []
             for edge in test_results:
                 node = edge["node"]
-                if "lastDuration" not in node:
-                    node["lastDuration"] = node["avgDuration"]
                 nodes.append(node)
 
             response_data = {
@@ -67,8 +69,15 @@ class TestResultSerializer(serializers.Serializer):
 
         except (KeyError, TypeError) as e:
             sentry_sdk.capture_exception(e)
-            return {
-                "results": [],
-                "pageInfo": {"endCursor": None, "hasNextPage": False},
-                "totalCount": 0,
-            }
+            logger.exception(
+                "Error parsing GraphQL response",
+                extra={
+                    "error": str(e),
+                    "response_keys": (
+                        list(graphql_response.keys())
+                        if isinstance(graphql_response, dict)
+                        else None
+                    ),
+                },
+            )
+            raise

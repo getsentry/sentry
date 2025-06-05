@@ -81,7 +81,7 @@ class CodecovApiClient:
             "g_p": git_provider,
         }
 
-    def get(self, endpoint: str, params=None, headers=None) -> requests.Response | None:
+    def get(self, endpoint: str, params=None, headers=None) -> requests.Response:
         """
         Makes a GET request to the specified endpoint of the configured Codecov
         API host with the provided params and headers.
