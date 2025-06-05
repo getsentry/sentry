@@ -76,28 +76,35 @@ from .utils import ACTION_TYPE, get_preinstall_client
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
 
+@analytics.eventclass()
 class MsTeamsIntegrationAnalytics(analytics.Event):
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+    actor_id: str
+    organization_id: str
 
 
+@analytics.eventclass("integrations.msteams.assign")
 class MsTeamsIntegrationAssign(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.assign"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.resolve")
 class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.resolve"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.archive")
 class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.archive"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.unresolve")
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.unresolve"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.unassign")
 class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.unassign"
+    pass
 
 
 analytics.register(MsTeamsIntegrationAssign)
