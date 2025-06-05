@@ -1,8 +1,8 @@
-import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
@@ -47,7 +47,7 @@ export function TransactionCell({
       allowActions={[Actions.ADD]}
       handleCellAction={() => setTransactionFilter(transaction)}
     >
-      <PathCell>
+      <CellWrapper>
         <Tooltip
           title={transaction}
           position="top"
@@ -58,12 +58,12 @@ export function TransactionCell({
           <TransactionLink to={transactionSummaryLink}>{transaction}</TransactionLink>
         </Tooltip>
         {details}
-      </PathCell>
+      </CellWrapper>
     </CellAction>
   );
 }
 
-const PathCell = styled('div')`
+const CellWrapper = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   flex-direction: column;
