@@ -50,13 +50,19 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
         self.backpressure_since = multiprocessing.Value("i", 0)
-        self.healthy_since = multiprocessing.Value("i", int(time.time()))
+        self.healthy_since = multiprocessing.Value("i", 0)
+        self.process_restarts = 0
         self.produce_to_pipe = produce_to_pipe
 
         self._create_process()
 
     def _create_process(self):
         from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
+
+        # Optimistically reset healthy_since to avoid a race between the
+        # starting process and the next flush cycle. Keep back pressure across
+        # the restart, however.
+        self.healthy_since.value = int(time.time())
 
         make_process: Callable[..., multiprocessing.Process | threading.Thread]
         if self.produce_to_pipe is None:
@@ -80,7 +86,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             daemon=True,
         )
 
-        self.process_restarts = 0
         self.process.start()
 
     @staticmethod
