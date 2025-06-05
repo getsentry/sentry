@@ -31,12 +31,12 @@ from sentry.utils.db import atomic_transaction
 def sync_debug_artifacts():
 
     if (
-        not options.get("sentry.demo_mode.sync_artifact_bundles.enable")
+        not options.get("sentry.demo_mode.sync_debug_artifacts.enable")
         or not is_demo_mode_enabled()
     ):
         return
 
-    source_org_id = options.get("sentry.demo_mode.sync_artifact_bundles.source_org_id")
+    source_org_id = options.get("sentry.demo_mode.sync_debug_artifacts.source_org_id")
     source_org = Organization.objects.get(id=source_org_id)
 
     target_org = get_demo_org()
