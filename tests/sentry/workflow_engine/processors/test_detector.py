@@ -43,9 +43,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         ]
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
-    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
-    @mock.patch("sentry.workflow_engine.processors.detector.logger")
-    def test_state_results(self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka):
+    def test_state_results(self, mock_produce_occurrence_to_kafka):
         detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
@@ -65,11 +63,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
         result = DetectorEvaluationResult(
-            group_key=None,
-            is_triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=expected_event_data,
+            None,
+            True,
+            DetectorPriorityLevel.HIGH,
+            issue_occurrence,
+            expected_event_data,
         )
         assert results == [
             (
@@ -83,44 +81,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             status_change=None,
             event_data=expected_event_data,
         )
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "workflow_engine.process_detector.triggered",
-                    tags={"detector_type": detector.type},
-                ),
-            ],
-        )
-        assert mock_logger.info.call_count == 1
-        assert mock_logger.info.call_args[0][0] == "detector_triggered"
-
-        data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
-        result = DetectorEvaluationResult(
-            group_key=None,
-            is_triggered=False,
-            priority=DetectorPriorityLevel.OK,
-            result=StatusChangeMessage(
-                fingerprint=["detector:1"],
-                project_id=self.project.id,
-                new_status=GroupStatus.RESOLVED,
-                new_substatus=None,
-                id=str(self.mock_uuid4.return_value),
-            ),
-            event_data=None,
-        )
-        results = process_detectors(data_packet, [detector])
-
-        assert results == [(detector, {result.group_key: result})]
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "workflow_engine.process_detector.resolved",
-                    tags={"detector_type": detector.type},
-                ),
-            ],
-        )
-        assert mock_logger.info.call_count == 2
-        assert mock_logger.info.call_args[0][0] == "detector_resolved"
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
@@ -234,17 +194,98 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 tags={"detector_type": detector.type},
             )
 
-    def test_sending_metric_with_results(self):
-        detector = self.create_detector(type=self.update_handler_type.slug)
-        data_packet = self.build_data_packet()
+    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
+    @mock.patch("sentry.workflow_engine.processors.detector.logger")
+    def test_metrics_and_logs_fire(
+        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
+    ):
+        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+        results = process_detectors(data_packet, [detector])
 
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_detectors(data_packet, [detector])
+        detector_occurrence, event_data = build_mock_occurrence_and_event(
+            detector.detector_handler, None, PriorityLevel.HIGH
+        )
 
-            mock_incr.assert_any_call(
-                "workflow_engine.process_detector.triggered",
-                tags={"detector_type": detector.type},
+        issue_occurrence, expected_event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=detector,
+            group_key=None,
+            value=6,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=datetime.now(UTC),
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
+        result = DetectorEvaluationResult(
+            group_key=None,
+            is_triggered=True,
+            priority=DetectorPriorityLevel.HIGH,
+            result=issue_occurrence,
+            event_data=expected_event_data,
+        )
+        assert results == [
+            (
+                detector,
+                {result.group_key: result},
             )
+        ]
+        mock_produce_occurrence_to_kafka.assert_called_once_with(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=issue_occurrence,
+            status_change=None,
+            event_data=expected_event_data,
+        )
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "workflow_engine.process_detector.triggered",
+                    tags={"detector_type": detector.type},
+                ),
+            ],
+        )
+        assert mock_logger.info.call_count == 1
+        assert mock_logger.info.call_args[0][0] == "detector_triggered"
+
+    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
+    @mock.patch("sentry.workflow_engine.processors.detector.logger")
+    def test_metrics_and_logs_resolve(
+        self, mock_logger, mock_metrics, mock_produce_occurrence_to_kafka
+    ):
+        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+        process_detectors(data_packet, [detector])
+
+        build_mock_occurrence_and_event(detector.detector_handler, None, PriorityLevel.HIGH)
+
+        data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
+        result = DetectorEvaluationResult(
+            group_key=None,
+            is_triggered=False,
+            priority=DetectorPriorityLevel.OK,
+            result=StatusChangeMessage(
+                fingerprint=["detector:1"],
+                project_id=self.project.id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+                id=str(self.mock_uuid4.return_value),
+            ),
+            event_data=None,
+        )
+        results = process_detectors(data_packet, [detector])
+        assert results == [(detector, {result.group_key: result})]
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "workflow_engine.process_detector.resolved",
+                    tags={"detector_type": detector.type},
+                ),
+            ],
+        )
+        assert mock_logger.info.call_count == 2
+        assert mock_logger.info.call_args[0][0] == "detector_resolved"
 
     def test_doesnt_send_metric(self):
         detector = self.create_detector(type=self.no_handler_type.slug)
@@ -505,6 +546,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
+
         assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",

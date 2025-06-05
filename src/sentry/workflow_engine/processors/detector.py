@@ -4,7 +4,6 @@ import logging
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import (
@@ -85,7 +84,7 @@ def process_detectors(
                         "detector_triggered",
                         extra=logger_extra,
                     )
-                elif isinstance(result.result, StatusChangeMessage):
+                else:
                     metrics.incr(
                         "workflow_engine.process_detector.resolved",
                         tags={"detector_type": detector.type},
