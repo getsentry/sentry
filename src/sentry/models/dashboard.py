@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -34,12 +35,21 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization", null=True)
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    position = models.PositiveSmallIntegerField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardfavoriteuser"
-        unique_together = (("user_id", "dashboard"),)
+        constraints = [
+            # A user can only favorite a dashboard once
+            UniqueConstraint(
+                fields=["user_id", "dashboard"],
+                name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
+            ),
+        ]
 
 
 @region_silo_model
@@ -84,7 +94,9 @@ class Dashboard(Model):
         )
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
             newly_favourited = [
-                DashboardFavoriteUser(dashboard=self, user_id=user_id)
+                DashboardFavoriteUser(
+                    dashboard=self, user_id=user_id, organization=self.organization
+                )
                 for user_id in set(user_ids) - set(existing_user_ids)
             ]
             DashboardFavoriteUser.objects.filter(
