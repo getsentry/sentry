@@ -28,7 +28,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     <InsightsLineChartWidget
       {...props}
       id="httpResponseCodesChartWidget"
-      search={search}
+      queryInfo={{search}}
       title={DataTitles.unsuccessfulHTTPCodes}
       series={[
         responseCodeData[`http_response_rate(3)`],

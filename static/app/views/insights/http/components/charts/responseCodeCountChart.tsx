@@ -50,8 +50,7 @@ export function ResponseCodeCountChart({
 
   return (
     <InsightsLineChartWidget
-      search={search}
-      groupBy={groupBy}
+      queryInfo={{search, groupBy}}
       title={t('Top 5 Response Codes')}
       series={seriesWithMeta}
       isLoading={isLoading}

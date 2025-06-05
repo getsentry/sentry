@@ -34,7 +34,7 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
 
   return (
     <InsightsLineChartWidget
-      search={search}
+      queryInfo={{search}}
       showLegend="never"
       title={t('Average Transaction Duration')}
       isLoading={isPending}
