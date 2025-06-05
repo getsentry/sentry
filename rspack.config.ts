@@ -467,7 +467,7 @@ const appConfig: Configuration = {
     preferAbsolute: true,
     modules: ['node_modules'],
     extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
-    symlinks: false,
+    symlinks: true,
   },
   output: {
     crossOriginLoading: 'anonymous',
