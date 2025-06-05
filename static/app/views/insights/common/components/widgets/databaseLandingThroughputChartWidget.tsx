@@ -16,7 +16,7 @@ export default function DatabaseLandingThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="databaseLandingThroughputChartWidget"
       title={getThroughputChartTitle('db')}
       series={[data['epm()']]}

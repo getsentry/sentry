@@ -172,7 +172,7 @@ function DurationChart({
 
   return (
     <InsightsLineChartWidget
-      search={search}
+      queryInfo={{search}}
       showLegend="never"
       title={t('Average Duration')}
       isLoading={isPending}

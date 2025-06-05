@@ -17,7 +17,7 @@ export default function DatabaseLandingDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="databaseLandingDurationChartWidget"
       title={getDurationChartTitle('db')}
       series={[data[`${DEFAULT_DURATION_AGGREGATE}(span.self_time)`]]}

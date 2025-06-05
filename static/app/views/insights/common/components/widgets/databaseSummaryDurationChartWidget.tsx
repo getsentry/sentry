@@ -29,7 +29,7 @@ export default function DatabaseSummaryDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="databaseSummaryDurationChartWidget"
       title={getDurationChartTitle('db')}
       series={[data[`${DEFAULT_DURATION_AGGREGATE}(${SpanMetricsField.SPAN_SELF_TIME})`]]}

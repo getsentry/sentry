@@ -43,7 +43,7 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
-import {type SpanFields} from 'sentry/views/insights/types';
+import type {SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
@@ -55,14 +55,21 @@ export interface InsightsTimeSeriesWidgetProps
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   extraPlottables?: Plottable[];
-  groupBy?: SpanFields[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   pageFilters?: PageFilters;
+  /**
+   * Query info to be used for the open in explore and create alert actions,
+   * yAxis should only be provided if it's expected to be different when opening in explore
+   */
+  queryInfo?: {
+    search: MutableSearch;
+    groupBy?: SpanFields[];
+    yAxis?: string[];
+  };
   samples?: Samples;
-  search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble' | 'none';
   stacked?: boolean;
@@ -84,7 +91,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const hasChartActionsEnabled =
-    organization.features.includes('insights-chart-actions') && useEap;
+    organization.features.includes('insights-chart-actions') && useEap && props.queryInfo;
   const yAxes = new Set<string>();
   const plottables = [
     ...(props.series.filter(Boolean) ?? []).map(serie => {
@@ -175,7 +182,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     chartType = ChartType.BAR;
   }
 
-  const yAxisArray = [...yAxes];
+  const yAxisArray = props.queryInfo?.yAxis || [...yAxes];
 
   return (
     <ChartContainer height={props.height}>
@@ -201,9 +208,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <ChartActionDropdown
                 chartType={chartType}
                 yAxes={yAxisArray}
-                groupBy={props.groupBy}
+                groupBy={props.queryInfo?.groupBy}
                 title={props.title}
-                search={props.search}
+                search={props.queryInfo?.search}
                 aliases={props.aliases}
               />
             )}

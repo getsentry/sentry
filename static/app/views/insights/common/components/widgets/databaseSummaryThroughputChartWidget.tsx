@@ -28,7 +28,7 @@ export default function DatabaseSummaryThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="databaseSummaryThroughputChartWidget"
       title={getThroughputChartTitle('db')}
       series={[data['epm()']]}

@@ -21,7 +21,7 @@ export default function CacheThroughputChartWidget(props: LoadableChartWidgetPro
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="cacheThroughputChartWidget"
       title={getThroughputChartTitle('cache.get_item')}
       series={[data['epm()']]}

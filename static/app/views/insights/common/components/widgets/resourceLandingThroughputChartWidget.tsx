@@ -19,7 +19,7 @@ export default function ResourceLandingThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="resourceLandingThroughputChartWidget"
       title={getThroughputChartTitle('resource')}
       series={[data['epm()']]}

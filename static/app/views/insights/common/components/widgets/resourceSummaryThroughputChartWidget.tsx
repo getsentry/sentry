@@ -23,7 +23,7 @@ export default function ResourceSummaryThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="resourceSummaryThroughputChartWidget"
       title={getThroughputChartTitle('resource')}
       series={[data?.[`epm()`]]}
