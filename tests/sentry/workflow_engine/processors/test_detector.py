@@ -266,7 +266,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             is_triggered=False,
             priority=DetectorPriorityLevel.OK,
             result=StatusChangeMessage(
-                fingerprint=["detector:1"],
+                fingerprint=[f"detector:{detector.id}"],
                 project_id=self.project.id,
                 new_status=GroupStatus.RESOLVED,
                 new_substatus=None,
