@@ -93,13 +93,6 @@ x-sentry-service-config:
         vroom,
         spotlight,
       ]
-x-programs:
-  devserver:
-    command: sentry devserver
-  taskworker:
-    command: sentry run taskworker --autoreload
-  taskworker-scheduler:
-    command: sentry run taskworker-scheduler
 
 services:
   postgres:
