@@ -287,7 +287,7 @@ export function changeProjectSlug(prev: string, next: string) {
  * @param orgSlug Organization Slug
  * @param projectSlug Project Slug
  */
-export function removeProject({
+export async function removeProject({
   api,
   orgSlug,
   projectSlug,
@@ -298,14 +298,13 @@ export function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  return api
-    .requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-      method: 'DELETE',
-      data: {origin},
-    })
-    .then(() => {
-      ProjectsStore.onDeleteProject(projectSlug);
-    });
+  const response = await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+    method: 'DELETE',
+    data: {origin},
+  });
+  ProjectsStore.onDeleteProject(projectSlug);
+
+  return response;
 }
 
 /**

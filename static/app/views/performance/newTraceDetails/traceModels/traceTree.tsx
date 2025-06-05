@@ -601,6 +601,23 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
+  static ReparentSSRUnderBrowserRequestSpan(
+    node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+  ): void {
+    if (isBrowserRequestSpan(node.value)) {
+      const serverRequestHandler = node.parent?.children.find(n =>
+        isServerRequestHandlerTransactionNode(n)
+      );
+
+      if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+        serverRequestHandler.parent!.children =
+          serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+        node.children.push(serverRequestHandler);
+        serverRequestHandler.parent = node;
+      }
+    }
+  }
+
   static FromSpans(
     node: TraceTreeNode<TraceTree.NodeValue>,
     spans: TraceTree.Span[],
@@ -700,20 +717,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.errors.add(error);
         }
 
-        if (isBrowserRequestSpan(c.value)) {
-          const serverRequestHandler = c.parent?.children.find(n =>
-            isServerRequestHandlerTransactionNode(n)
-          );
-
-          if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-            serverRequestHandler.parent!.children =
-              serverRequestHandler.parent!.children.filter(
-                n => n !== serverRequestHandler
-              );
-            c.children.push(serverRequestHandler);
-            serverRequestHandler.parent = c;
-          }
-        }
+        TraceTree.ReparentSSRUnderBrowserRequestSpan(c);
       }
 
       c.children.sort(traceChronologicalSort);
@@ -1649,6 +1653,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
           t => t.children.filter(c => isEAPTransactionNode(c)),
           t => TraceTree.FindByID(node, t.value.parent_span_id)
         );
+
+        const browserRequestSpan = node.children.find(
+          c => isEAPSpanNode(c) && isBrowserRequestSpan(c.value)
+        ) as TraceTreeNode<TraceTree.EAPSpan> | undefined;
+        if (browserRequestSpan) {
+          TraceTree.ReparentSSRUnderBrowserRequestSpan(browserRequestSpan);
+        }
       }
 
       // Flip expanded so that we can collect visible children
