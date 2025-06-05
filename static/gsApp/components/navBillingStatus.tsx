@@ -124,14 +124,16 @@ function QuotaExceededContent({
             handleRequestSent={() => onCheck({checked: true, eventTypes})}
           />
           <DismissContainer>
-            <Checkbox
-              name="dismiss"
-              checked={isDismissed}
-              onChange={e => {
-                onCheck({checked: e.target.checked, eventTypes, isManual: true});
-              }}
-            />
-            <CheckboxLabel>{t("Don't annoy me again")}</CheckboxLabel>
+            <CheckboxLabel>
+              <Checkbox
+                name="dismiss"
+                checked={isDismissed}
+                onChange={e => {
+                  onCheck({checked: e.target.checked, eventTypes, isManual: true});
+                }}
+              />
+              <span>{t("Don't annoy me again")}</span>
+            </CheckboxLabel>
           </DismissContainer>
         </ActionContainer>
       </Body>
@@ -389,6 +391,13 @@ const DismissContainer = styled('div')`
   align-items: center;
 `;
 
-const CheckboxLabel = styled('span')`
-  margin-left: ${space(1)};
+const CheckboxLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  cursor: pointer;
+
+  > span {
+    margin-left: ${space(1)};
+  }
 `;
