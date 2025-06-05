@@ -17,6 +17,7 @@ import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/use
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 
 const COLD_START_CONDITIONS = [
@@ -82,6 +83,7 @@ function StartDurationWidget({additionalFilters}: Props) {
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
   const search = new MutableSearch(queryString);
   const groupBy = SpanFields.RELEASE;
+  const yAxis: SpanMetricsProperty = 'avg(span.duration)';
 
   const {
     data,
@@ -89,7 +91,7 @@ function StartDurationWidget({additionalFilters}: Props) {
     error: seriesError,
   } = useTopNSpanMetricsSeries(
     {
-      yAxis: ['avg(span.duration)'],
+      yAxis: [yAxis],
       fields: [groupBy, 'avg(span.duration)'],
       topN: 2,
       search,
@@ -99,9 +101,12 @@ function StartDurationWidget({additionalFilters}: Props) {
   );
 
   // Only transform the data is we know there's at least one release
-  const sortedSeries = data.sort((releaseA, _releaseB) =>
-    releaseA.seriesName === primaryRelease ? -1 : 1
-  );
+  const sortedSeries = data
+    .sort((releaseA, _releaseB) => (releaseA.seriesName === primaryRelease ? -1 : 1))
+    .map(serie => ({
+      ...serie,
+      seriesName: `${yAxis} ${serie.seriesName}`,
+    }));
 
   return (
     <InsightsLineChartWidget
@@ -112,6 +117,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       isLoading={isSeriesLoading}
       error={seriesError}
       search={search}
+      groupBy={[groupBy]}
       showReleaseAs="none"
       showLegend="always"
       height={220}
