@@ -95,19 +95,23 @@ export const chonkInnerWrapStyles = ({
   }
 
   li:not([aria-disabled]):hover & {
-    background-color: ${variant === 'floating'
-      ? theme.colors.blue200
+    background-color: ${selected
+      ? variant === 'floating'
+        ? theme.colors.blue200
+        : theme.colors.blue100
       : theme.colors.gray100};
-    color: ${variant === 'floating'
+    color: ${selected
       ? theme.tokens.component.link.accent.hover
       : theme.tokens.component.link.muted.hover};
   }
 
   li:not([aria-disabled]):active & {
-    background-color: ${variant === 'floating'
-      ? theme.colors.blue300
+    background-color: ${selected
+      ? variant === 'floating'
+        ? theme.colors.blue300
+        : theme.colors.blue200
       : theme.colors.gray200};
-    color: ${variant === 'floating'
+    color: ${selected
       ? theme.tokens.component.link.accent.active
       : theme.tokens.component.link.muted.active};
   }
