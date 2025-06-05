@@ -1,22 +1,19 @@
 from sentry import analytics
 
 
+@analytics.eventclass("alert.sent")
 class AlertSentEvent(analytics.Event):
-    type = "alert.sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        # The id of the Alert or AlertRule
-        analytics.Attribute("alert_id"),
-        # "issue_alert" or "metric_alert"
-        analytics.Attribute("alert_type"),
-        # Slack, msteams, email, etc.
-        analytics.Attribute("provider"),
-        # User_id if sent via email, channel id if sent via slack, etc.
-        analytics.Attribute("external_id", type=str, required=False),
-        analytics.Attribute("notification_uuid", required=False),
-    )
+    organization_id: str
+    project_id: str
+    # The id of the Alert or AlertRule
+    alert_id: str
+    # "issue_alert" or "metric_alert"
+    alert_type: str
+    # Slack, msteams, email, etc.
+    provider: str
+    # User_id if sent via email, channel id if sent via slack, etc.
+    external_id: str | None = None
+    notification_uuid: str | None = None
 
 
 analytics.register(AlertSentEvent)

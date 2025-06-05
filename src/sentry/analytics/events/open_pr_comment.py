@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("open_pr_comment.created")
 class OpenPRCommentCreatedEvent(analytics.Event):
-    type = "open_pr_comment.created"
-
-    attributes = (
-        analytics.Attribute("comment_id"),
-        analytics.Attribute("org_id"),
-        analytics.Attribute("pr_id"),
-        analytics.Attribute("language"),
-    )
+    comment_id: str
+    org_id: str
+    pr_id: str
+    language: str
 
 
 analytics.register(OpenPRCommentCreatedEvent)

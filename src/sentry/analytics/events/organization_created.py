@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("organization.created")
 class OrganizationCreatedEvent(analytics.Event):
-    type = "organization.created"
-
-    attributes = (
-        analytics.Attribute("id"),
-        analytics.Attribute("name"),
-        analytics.Attribute("slug"),
-        analytics.Attribute("actor_id", required=False),
-    )
+    id: str
+    name: str
+    slug: str
+    actor_id: str | None = None
 
 
 analytics.register(OrganizationCreatedEvent)

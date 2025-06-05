@@ -1,36 +1,30 @@
 from sentry import analytics
 
 
+@analytics.eventclass("integrations.failed_to_fetch_commit_context_all_frames")
 class IntegrationsFailedToFetchCommitContextAllFrames(analytics.Event):
-    type = "integrations.failed_to_fetch_commit_context_all_frames"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("event_id"),
-        analytics.Attribute("num_frames", type=int),
-        analytics.Attribute("num_successfully_mapped_frames", type=int),
-        analytics.Attribute("reason"),
-    )
+    organization_id: str
+    project_id: str
+    group_id: str
+    event_id: str
+    num_frames: int
+    num_successfully_mapped_frames: int
+    reason: str
 
 
+@analytics.eventclass("integrations.successfully_fetched_commit_context_all_frames")
 class IntegrationsSuccessfullyFetchedCommitContextAllFrames(analytics.Event):
-    type = "integrations.successfully_fetched_commit_context_all_frames"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("event_id"),
-        analytics.Attribute("num_frames", type=int),
-        analytics.Attribute("num_unique_commits", type=int),
-        analytics.Attribute("num_unique_commit_authors", type=int),
-        analytics.Attribute("num_successfully_mapped_frames", type=int),
-        analytics.Attribute("selected_frame_index", type=int),
-        analytics.Attribute("selected_provider", type=str),
-        analytics.Attribute("selected_code_mapping_id"),
-    )
+    organization_id: str
+    project_id: str
+    group_id: str
+    event_id: str
+    num_frames: int
+    num_unique_commits: int
+    num_unique_commit_authors: int
+    num_successfully_mapped_frames: int
+    selected_frame_index: int
+    selected_provider: str
+    selected_code_mapping_id: str
 
 
 analytics.register(IntegrationsSuccessfullyFetchedCommitContextAllFrames)

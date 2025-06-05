@@ -1,65 +1,50 @@
 from sentry import analytics
 
 
+@analytics.eventclass("integrations.discord.notification_sent")
 class DiscordIntegrationNotificationSent(analytics.Event):
-    type = "integrations.discord.notification_sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("category"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("notification_uuid"),
-        analytics.Attribute("alert_id", required=False),
-    )
+    organization_id: str
+    project_id: str
+    category: str
+    group_id: str
+    notification_uuid: str
+    alert_id: str | None = None
 
 
+@analytics.eventclass("integrations.discord.command_interaction")
 class DiscordIntegrationCommandInteractionReceived(analytics.Event):
-    type = "integrations.discord.command_interaction"
-
-    attributes = (analytics.Attribute("command_name"),)
+    command_name: str
 
 
+@analytics.eventclass("integrations.discord.identity_linked")
 class DiscordIntegrationIdentityLinked(analytics.Event):
-    type = "integrations.discord.identity_linked"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("actor_id"),
-        analytics.Attribute("actor_type"),
-    )
+    provider: str
+    actor_id: str
+    actor_type: str
 
 
+@analytics.eventclass("integrations.discord.identity_unlinked")
 class DiscordIntegrationIdentityUnlinked(analytics.Event):
-    type = "integrations.discord.identity_unlinked"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("actor_id"),
-        analytics.Attribute("actor_type"),
-    )
+    provider: str
+    actor_id: str
+    actor_type: str
 
 
+@analytics.eventclass("integrations.discord.message_interaction")
 class DiscordIntegrationMessageInteractionReceived(analytics.Event):
-    type = "integrations.discord.message_interaction"
-
-    attributes = (analytics.Attribute("custom_id"),)
+    custom_id: str
 
 
+@analytics.eventclass("integrations.discord.assign")
 class DiscordIntegrationAssign(analytics.Event):
-    type = "integrations.discord.assign"
-
-    attributes = (analytics.Attribute("actor_id"),)
+    actor_id: str
 
 
+@analytics.eventclass("integrations.discord.status")
 class DiscordIntegrationStatus(analytics.Event):
-    type = "integrations.discord.status"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id"),
-        analytics.Attribute("status"),
-    )
+    organization_id: str
+    user_id: str
+    status: str
 
 
 analytics.register(DiscordIntegrationCommandInteractionReceived)

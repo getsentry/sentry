@@ -1,77 +1,58 @@
 from sentry import analytics
 
 
+@analytics.eventclass("integrations.slack.assign")
 class SlackIntegrationAssign(analytics.Event):
-    type = "integrations.slack.assign"
-
-    attributes = (analytics.Attribute("actor_id", required=False),)
+    actor_id: str | None = None
 
 
+@analytics.eventclass("integrations.slack.status")
 class SlackIntegrationStatus(analytics.Event):
-    type = "integrations.slack.status"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("status"),
-        analytics.Attribute("resolve_type", required=False),
-        analytics.Attribute("user_id", required=False),
-    )
+    organization_id: str
+    status: str
+    resolve_type: str | None = None
+    user_id: str | None = None
 
 
+@analytics.eventclass("integrations.slack.notification_sent")
 class SlackIntegrationNotificationSent(analytics.Event):
-    type = "integrations.slack.notification_sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id", required=False),
-        analytics.Attribute("category"),
-        analytics.Attribute("actor_id", required=False),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("group_id", required=False),
-        analytics.Attribute("notification_uuid"),
-        analytics.Attribute("alert_id", required=False),
-        analytics.Attribute("actor_type", required=False),
-    )
+    organization_id: str
+    project_id: str | None = None
+    category: str
+    actor_id: str | None = None
+    user_id: str | None = None
+    group_id: str | None = None
+    notification_uuid: str
+    alert_id: str | None = None
+    actor_type: str | None = None
 
 
+@analytics.eventclass("integrations.identity_linked")
 class IntegrationIdentityLinked(analytics.Event):
-    type = "integrations.identity_linked"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("actor_id"),
-        analytics.Attribute("actor_type"),
-    )
+    provider: str
+    actor_id: str
+    actor_type: str
 
 
+@analytics.eventclass("integrations.slack.chart_unfurl")
 class IntegrationSlackChartUnfurl(analytics.Event):
-    type = "integrations.slack.chart_unfurl"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("unfurls_count", type=int),
-    )
+    user_id: str | None = None
+    organization_id: str
+    unfurls_count: int
 
 
+@analytics.eventclass("integrations.slack.chart_unfurl_action")
 class IntegrationSlackLinkIdentity(analytics.Event):
-    type = "integrations.slack.chart_unfurl_action"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("action"),
-    )
+    organization_id: str
+    action: str
 
 
+@analytics.eventclass("integrations.slack.approve_member_invitation")
 class IntegrationSlackApproveMemberInvitation(analytics.Event):
-    type = "integrations.slack.approve_member_invitation"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("actor_id"),
-        analytics.Attribute("invitation_type"),
-        analytics.Attribute("invited_member_id"),
-    )
+    organization_id: str
+    actor_id: str
+    invitation_type: str
+    invited_member_id: str
 
 
 class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvitation):
