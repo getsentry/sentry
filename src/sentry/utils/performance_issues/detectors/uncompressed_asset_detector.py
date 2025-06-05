@@ -28,7 +28,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     Checks for large assets that are affecting load time.
     """
 
-    __slots__ = ("stored_problems", "any_compression")
+    __slots__ = ("any_compression",)
 
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type = DetectorType.UNCOMPRESSED_ASSETS
@@ -36,7 +36,6 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.any_compression = False
 
     def visit_span(self, span: Span) -> None:

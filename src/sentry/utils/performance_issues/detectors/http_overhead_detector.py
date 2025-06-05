@@ -47,15 +47,12 @@ class HTTPOverheadDetector(PerformanceDetector):
         ...
     """
 
-    __slots__ = "stored_problems"
-
     type = DetectorType.HTTP_OVERHEAD
     settings_key = DetectorType.HTTP_OVERHEAD
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems: dict[str, PerformanceProblem] = {}
         self.location_to_indicators: dict[str, list[list[ProblemIndicator]]] = defaultdict(list)
 
     def visit_span(self, span: Span) -> None:

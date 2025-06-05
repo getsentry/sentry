@@ -30,8 +30,6 @@ from ..types import Span
 
 
 class BaseIOMainThreadDetector(PerformanceDetector):
-    __slots__ = ("stored_problems",)
-
     SPAN_PREFIX: str  # abstract
     group_type: type[GroupType]  # abstract
 
@@ -44,7 +42,6 @@ class BaseIOMainThreadDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.mapper: ProguardMapper | None = None
         self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
 
@@ -112,8 +109,6 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     """
     Checks for a file io span on the main thread
     """
-
-    __slots__ = ("stored_problems",)
 
     IGNORED_SUFFIXES = [".nib", ".plist", "kblayout_iphone.dat"]
     SPAN_PREFIX = "file"
@@ -203,8 +198,6 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     Checks for a DB span on the main thread
     """
 
-    __slots__ = ("stored_problems",)
-
     SPAN_PREFIX = "db"
     type = DetectorType.DB_MAIN_THREAD
     settings_key = DetectorType.DB_MAIN_THREAD
@@ -213,7 +206,6 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)
 

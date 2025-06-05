@@ -47,7 +47,6 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     """
 
     __slots__ = (
-        "stored_problems",
         "potential_parents",
         "source_span",
         "n_hash",
@@ -61,7 +60,6 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.potential_parents = {}
         self.previous_span: Span | None = None
         self.n_spans: list[Span] = []
