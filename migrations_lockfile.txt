@@ -15,7 +15,7 @@ hybridcloud: 0001_squashed_0021_django_arrayfield_scope_list
 
 insights: 0001_squashed_0001_add_starred_transactions_model
 
-monitors: 0001_squashed_0005_record_date_in_progress_state
+monitors: 0006_add_is_upserting
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
