@@ -177,16 +177,7 @@ export function transferProject(
 }
 
 /**
- * Associate a team with a project
- */
-
-/**
  *  Adds a team to a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param team Team data object
  */
 export function addTeamToProject(
   api: Client,
@@ -227,11 +218,6 @@ export function addTeamToProject(
 
 /**
  * Removes a team from a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param teamSlug Team Slug
  */
 function removeTeamFromProject(
   api: Client,
@@ -272,9 +258,6 @@ function removeTeamFromProject(
 
 /**
  * Change a project's slug
- *
- * @param prev Previous slug
- * @param next New slug
  */
 export function changeProjectSlug(prev: string, next: string) {
   ProjectsStore.onChangeSlug(prev, next);
@@ -282,10 +265,6 @@ export function changeProjectSlug(prev: string, next: string) {
 
 /**
  * Deletes a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
  */
 export async function removeProject({
   api,
@@ -309,9 +288,6 @@ export async function removeProject({
 
 /**
  * Load the counts of my projects and all projects for the current user
- *
- * @param api API Client
- * @param orgSlug Organization Slug
  */
 export function fetchProjectsCount(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
