@@ -85,8 +85,12 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
+        handler = self.get_handler()
+        handler.execute(event_data, self, detector)
+
         metrics_incr(
-            "action.trigger", tags={"detector_type": detector.type, "action_type": self.type}
+            "action.trigger",
+            tags={"action_type": self.type},
         )
         logger.info(
             "workflow_engine.action.trigger",
@@ -96,9 +100,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 "event_data": asdict(event_data),
             },
         )
-
-        handler = self.get_handler()
-        handler.execute(event_data, self, detector)
 
 
 @receiver(pre_save, sender=Action)
