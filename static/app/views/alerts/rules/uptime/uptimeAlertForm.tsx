@@ -79,10 +79,13 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project.slug, method: 'GET', headers: [], body: null};
 
   const [formModel] = useState(() => new FormModel());
 
+  const [isBodyVisible, setIsBodyVisible] = useState<boolean>(
+    !(initialData.method === 'GET' || initialData.method === 'HEAD')
+  );
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
   const environments = [newEnvironment, ...knownEnvironments].filter(Boolean);
@@ -245,6 +248,15 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                 value: option,
                 label: option,
               }))}
+              onChange={(value: any) => {
+                if (value === 'GET' || value === 'HEAD') {
+                  setIsBodyVisible(false);
+                  formModel.setValue('body', null as any);
+                } else {
+                  setIsBodyVisible(true);
+                }
+                formModel.setValue('method', value);
+              }}
               flexibleControlStateSize
               required
             />
@@ -256,9 +268,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <TextareaField
               name="body"
               label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
+              visible={isBodyVisible}
               rows={4}
               maxRows={15}
               autosize
