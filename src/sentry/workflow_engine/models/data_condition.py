@@ -1,6 +1,7 @@
 import logging
 import operator
 import time
+from datetime import timedelta
 from enum import StrEnum
 from typing import Any, TypeVar, cast
 
@@ -107,7 +108,7 @@ T = TypeVar("T")
 # be long enough to be worth logging. Our systems are designed on the
 # assumption that fast conditions should be fast, and if they aren't,
 # it's worth investigating.
-FAST_CONDITION_TOO_SLOW_THRESHOLD_SECONDS = 1
+FAST_CONDITION_TOO_SLOW_THRESHOLD = timedelta(milliseconds=500)
 
 
 @region_silo_model
@@ -223,7 +224,7 @@ class DataCondition(DefaultFieldsModel):
             return None
         finally:
             duration = time.time() - start_time
-            if should_be_fast and duration >= FAST_CONDITION_TOO_SLOW_THRESHOLD_SECONDS:
+            if should_be_fast and duration >= FAST_CONDITION_TOO_SLOW_THRESHOLD.total_seconds():
                 logger.error(
                     "Fast condition evaluation too slow; took %s seconds",
                     duration,
@@ -231,6 +232,7 @@ class DataCondition(DefaultFieldsModel):
                         "condition_id": self.id,
                         "duration": duration,
                         "type": self.type,
+                        "value": value,
                         "comparison": self.comparison,
                     },
                 )
