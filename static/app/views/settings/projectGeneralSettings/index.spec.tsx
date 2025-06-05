@@ -132,7 +132,7 @@ describe('projectGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+    const {router} = render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -150,6 +150,7 @@ describe('projectGeneralSettings', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(removePageFiltersStorage).toHaveBeenCalledWith('org-slug');
+    expect(router.location.pathname).toBe('/settings/org-slug/projects/');
   });
 
   it('project admins can transfer project', async function () {

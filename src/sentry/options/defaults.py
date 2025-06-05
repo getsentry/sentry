@@ -499,6 +499,13 @@ register(
     default=5000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Release health enable bulk queries.
+register(
+    "release-health.tasks.adopt-releases.bulk",
+    type=Bool,
+    default=True,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Disables viewed by queries for a list of project ids.
 register(
     "replay.viewed-by.project-denylist",
@@ -2693,6 +2700,11 @@ register(
 register(
     "standalone-spans.buffer.flusher.backpressure_seconds",
     default=10,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.buffer.flusher.max_unhealthy_seconds",
+    default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
