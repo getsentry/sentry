@@ -149,7 +149,7 @@ class CodecovApiClient:
         }
 
         return self.post(
-            f"graphql/sentry/{provider.value}",
+            f"/graphql/sentry/{provider.value}",
             json=json,
             headers={
                 "Content-Type": "application/json; charset=utf-8",
