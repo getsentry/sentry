@@ -21,7 +21,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
-import {type BaseTabProps, Tab} from './tab';
+import {Tab} from './tab';
+import type {BaseTabProps} from './tab.chonk';
 import {ChonkStyledTabListWrap} from './tabList.chonk';
 import {tabsShouldForwardProp} from './utils';
 
