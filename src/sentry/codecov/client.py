@@ -104,7 +104,7 @@ class CodecovApiClient:
 
         return response
 
-    def post(self, endpoint: str, data=None, json=None, headers=None) -> requests.Response | None:
+    def post(self, endpoint: str, data=None, json=None, headers=None) -> requests.Response:
         """
         Makes a POST request to the specified endpoint of the configured Codecov
         API host with the provided data and headers.
@@ -130,7 +130,7 @@ class CodecovApiClient:
 
     def query(
         self, query: str, variables: dict, provider: GitProvider = GitProvider.GitHub
-    ) -> requests.Response | None:
+    ) -> requests.Response:
         """
         Convenience method for making a GraphQL query to the Codecov API, using the post method of this client.
         This method is used to make GraphQL queries to the Codecov API. Adds headers similar to what's done in Gazebo,
