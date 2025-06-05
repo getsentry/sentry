@@ -13,12 +13,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     FetchNextTask,
     GetTaskRequest,
     SetTaskStatusRequest,
-    TaskActivation,
-    TaskActivationStatus,
 )
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
+from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
+from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import (
     DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
     DEFAULT_REBALANCE_AFTER,
@@ -127,7 +127,6 @@ class TaskworkerClient:
         self._host_to_stubs: dict[str, ConsumerServiceStub] = {
             self._cur_host: self._connect_to_host(self._cur_host)
         }
-        self._task_id_to_host: dict[str, str] = {}
 
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
         self._num_tasks_before_rebalance = max_tasks_before_rebalance
@@ -209,7 +208,7 @@ class TaskworkerClient:
         self._num_tasks_before_rebalance -= 1
         return self._cur_host, self._host_to_stubs[self._cur_host]
 
-    def get_task(self, namespace: str | None = None) -> TaskActivation | None:
+    def get_task(self, namespace: str | None = None) -> InflightTaskActivation | None:
         """
         Fetch a pending task.
 
@@ -240,16 +239,16 @@ class TaskworkerClient:
                 "taskworker.client.get_task",
                 tags={"namespace": response.task.namespace},
             )
-            self._task_id_to_host[response.task.id] = host
-            return response.task
+            return InflightTaskActivation(
+                activation=response.task, host=host, receive_timestamp=time.monotonic()
+            )
         return None
 
     def update_task(
         self,
-        task_id: str,
-        status: TaskActivationStatus.ValueType,
+        processing_result: ProcessingResult,
         fetch_next_task: FetchNextTask | None = None,
-    ) -> TaskActivation | None:
+    ) -> InflightTaskActivation | None:
         """
         Update the status for a given task activation.
 
@@ -258,31 +257,26 @@ class TaskworkerClient:
         metrics.incr("taskworker.client.fetch_next", tags={"next": fetch_next_task is not None})
         self._clear_temporary_unavailable_hosts()
         request = SetTaskStatusRequest(
-            id=task_id,
-            status=status,
+            id=processing_result.task_id,
+            status=processing_result.status,
             fetch_next_task=fetch_next_task,
         )
 
-        host = self._task_id_to_host.get(task_id, None)
-        if host is None:
-            metrics.incr("taskworker.client.task_id_not_in_client")
-            return None
         try:
-            if host in self._temporary_unavailable_hosts:
+            if processing_result.host in self._temporary_unavailable_hosts:
                 metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
-                raise HostTemporarilyUnavailable(f"Host: {host} is temporarily unavailable")
+                raise HostTemporarilyUnavailable(
+                    f"Host: {processing_result.host} is temporarily unavailable"
+                )
 
-            with metrics.timer("taskworker.update_task.rpc", tags={"host": host}):
-                response = self._host_to_stubs[host].SetTaskStatus(request)
-                del self._task_id_to_host[task_id]
+            with metrics.timer("taskworker.update_task.rpc", tags={"host": processing_result.host}):
+                response = self._host_to_stubs[processing_result.host].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
-                del self._task_id_to_host[task_id]
-
                 # The current broker is empty, switch.
                 self._num_tasks_before_rebalance = 0
 
@@ -293,8 +287,11 @@ class TaskworkerClient:
             raise
 
         self._num_consecutive_unavailable_errors = 0
-        self._temporary_unavailable_hosts.pop(host, None)
+        self._temporary_unavailable_hosts.pop(processing_result.host, None)
         if response.HasField("task"):
-            self._task_id_to_host[response.task.id] = host
-            return response.task
+            return InflightTaskActivation(
+                activation=response.task,
+                host=processing_result.host,
+                receive_timestamp=time.monotonic(),
+            )
         return None
