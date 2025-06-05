@@ -791,10 +791,8 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
-      'tests/js/sentry-test/echartsMock.js',
-      'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
-      'tests/js/sentry-test/svgMock.js',
       'tests/js/setup.ts',
     ],
     languageOptions: {

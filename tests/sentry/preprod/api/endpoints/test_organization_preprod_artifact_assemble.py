@@ -148,7 +148,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             "sentry-api-0-assemble-preprod-artifact-files",
             args=[self.organization.slug, self.project.slug],
         )
-
         # Enable the feature flag for all tests in this class
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()

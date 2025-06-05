@@ -704,7 +704,7 @@ def set_measurement(measurement_name, value, unit=None):
         pass
 
 
-def set_span_data(data_name, value):
+def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
         span.set_data(data_name, value)
