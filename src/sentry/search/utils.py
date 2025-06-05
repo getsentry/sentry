@@ -440,7 +440,7 @@ def _run_latest_release_query(
     extra_conditions = ""
     if environments:
         env_join = "INNER JOIN sentry_releaseprojectenvironment srpe on srpe.release_id = sr.id"
-        env_where = "AND srpe.environment_id in %s"
+        env_where = "AND srpe.environment_id in %s AND srpe.project_id in %s"
         adopted_table_alias = "srpe"
     else:
         adopted_table_alias = "srp"
@@ -473,6 +473,7 @@ def _run_latest_release_query(
     query_args: list[int | tuple[int, ...]] = [organization_id, tuple(project_ids)]
     if environments:
         query_args.append(tuple(e.id for e in environments))
+        query_args.append(tuple(project_ids))
     cursor.execute(query, query_args)
     return [row[0] for row in cursor.fetchall()]
 
