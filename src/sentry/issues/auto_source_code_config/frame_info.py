@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 
@@ -20,14 +23,53 @@ UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
 UNSUPPORTED_NORMALIZED_PATH_PATTERN = re.compile(r"^[^/]*$")
 
 
-class FrameInfo:
-    def __init__(self, frame: Mapping[str, Any], platform: str | None = None) -> None:
-        if platform:
-            platform_config = PlatformConfig(platform)
-            if platform_config.extracts_filename_from_module():
-                self.frame_info_from_module(frame)
-                return
+def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
+    """Factory function to create the appropriate FrameInfo instance."""
+    frame_info: FrameInfo | None = None
+    if platform:
+        platform_config = PlatformConfig(platform)
+        if platform_config.extracts_filename_from_module():
+            frame_info = ModuleBasedFrameInfo()
+            frame_info.process_frame(frame)
+            return frame_info
 
+    frame_info = PathBasedFrameInfo()
+    frame_info.process_frame(frame)
+    return frame_info
+
+
+class FrameInfo(ABC):
+    raw_path: str
+    normalized_path: str
+    stack_root: str
+
+    def __repr__(self) -> str:
+        return f"FrameInfo: {self.raw_path}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FrameInfo):
+            return False
+        return self.raw_path == other.raw_path
+
+    @abstractmethod
+    def process_frame(self, frame: Mapping[str, Any]) -> None:
+        """Process the frame and set the necessary attributes."""
+        raise NotImplementedError("Subclasses must implement process_frame")
+
+
+class ModuleBasedFrameInfo(FrameInfo):
+    def process_frame(self, frame: Mapping[str, Any]) -> None:
+        if frame.get("module") and frame.get("abs_path"):
+            stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
+            self.stack_root = stack_root
+            self.raw_path = filepath
+            self.normalized_path = filepath
+        else:
+            raise MissingModuleOrAbsPath("Investigate why the data is missing.")
+
+
+class PathBasedFrameInfo(FrameInfo):
+    def process_frame(self, frame: Mapping[str, Any]) -> None:
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
 
@@ -68,23 +110,6 @@ class FrameInfo:
                 frame_file_path = frame_file_path[1:]
 
         return frame_file_path
-
-    def frame_info_from_module(self, frame: Mapping[str, Any]) -> None:
-        if frame.get("module") and frame.get("abs_path"):
-            stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
-            self.stack_root = stack_root
-            self.raw_path = filepath
-            self.normalized_path = filepath
-        else:
-            raise MissingModuleOrAbsPath("Investigate why the data is missing.")
-
-    def __repr__(self) -> str:
-        return f"FrameInfo: {self.raw_path}"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, FrameInfo):
-            return False
-        return self.raw_path == other.raw_path
 
 
 PREFIXES_TO_REMOVE = ["app:///", "./", "../", "/"]
