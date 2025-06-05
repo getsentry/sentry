@@ -17,7 +17,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
-  CellExpander,
   CellLink,
   GridEditableContainer,
   LoadingOverlay,
@@ -112,8 +111,11 @@ export function ToolsTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'tool' && <CellExpander />}
+      <HeadSortCell
+        sortKey={column.key}
+        cursorParamName="toolsCursor"
+        forceCellGrow={column.key === 'tool'}
+      >
         {column.name}
       </HeadSortCell>
     );

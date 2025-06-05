@@ -73,8 +73,7 @@ export function TracesTable() {
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
-      <HeadSortCell column={column}>
-        {column.key === 'agentFlow' && <CellExpander />}
+      <HeadSortCell sortKey={column.key} forceCellGrow={column.key === 'agentFlow'}>
         {column.name}
       </HeadSortCell>
     );
@@ -158,14 +157,6 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
 
 const GridEditableContainer = styled('div')`
   position: relative;
