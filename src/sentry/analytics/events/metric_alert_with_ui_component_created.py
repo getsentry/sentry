@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("metric_alert_with_ui_component.created")
 class MetricAlertWithUiComponentCreatedEvent(analytics.Event):
-    type = "metric_alert_with_ui_component.created"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("alert_rule_id"),
-        analytics.Attribute("organization_id"),
-    )
+    user_id: str | None = None
+    alert_rule_id: str
+    organization_id: str
 
 
 analytics.register(MetricAlertWithUiComponentCreatedEvent)

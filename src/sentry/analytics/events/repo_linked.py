@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("repo.linked")
 class RepoLinkedEvent(analytics.Event):
-    type = "repo.linked"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("repository_id"),
-        analytics.Attribute("provider"),
-    )
+    user_id: str | None = None
+    default_user_id: str
+    organization_id: str
+    repository_id: str
+    provider: str
 
 
 analytics.register(RepoLinkedEvent)

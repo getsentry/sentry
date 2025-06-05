@@ -1,16 +1,13 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue.auto_resolved")
 class IssueAutoResolvedEvent(analytics.Event):
-    type = "issue.auto_resolved"
-
-    attributes = (
-        analytics.Attribute("project_id", required=False),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("issue_category", required=False),
-        analytics.Attribute("issue_type", required=False),
-    )
+    project_id: str | None = None
+    organization_id: str
+    group_id: str
+    issue_category: str | None = None
+    issue_type: str | None = None
 
 
 analytics.register(IssueAutoResolvedEvent)

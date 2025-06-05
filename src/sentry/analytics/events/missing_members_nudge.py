@@ -3,11 +3,9 @@ import abc
 from sentry import analytics
 
 
+@analytics.eventclass("missing_members_nudge.sent")
 class MissingMembersNudgeEvent(analytics.Event, abc.ABC):
-    type = "missing_members_nudge.sent"
-    attributes = [
-        analytics.Attribute("organization_id"),
-    ]
+    organization_id: str
 
 
 analytics.register(MissingMembersNudgeEvent)

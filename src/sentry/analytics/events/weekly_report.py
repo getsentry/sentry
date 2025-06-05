@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("weekly_report.sent")
 class WeeklyReportSent(analytics.Event):
-    type = "weekly_report.sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id"),
-        analytics.Attribute("notification_uuid"),
-        analytics.Attribute("user_project_count", type=int),
-    )
+    organization_id: str
+    user_id: str
+    notification_uuid: str
+    user_project_count: int
 
 
 analytics.register(WeeklyReportSent)

@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("alert_rule_ui_component_webhook.sent")
 class AlertRuleUiComponentWebhookSentEvent(analytics.Event):
-    type = "alert_rule_ui_component_webhook.sent"
-
-    attributes = (
-        # organization_id refers to the organization that installed the sentryapp
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("sentry_app_id"),
-        analytics.Attribute("event"),
-    )
+    # organization_id refers to the organization that installed the sentryapp
+    organization_id: str
+    sentry_app_id: str
+    event: str
 
 
 analytics.register(AlertRuleUiComponentWebhookSentEvent)

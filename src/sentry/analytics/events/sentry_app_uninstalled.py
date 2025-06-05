@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sentry_app.uninstalled")
 class SentryAppUninstalledEvent(analytics.Event):
-    type = "sentry_app.uninstalled"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("sentry_app"),
-    )
+    user_id: str
+    organization_id: str
+    sentry_app: str
 
 
 analytics.register(SentryAppUninstalledEvent)

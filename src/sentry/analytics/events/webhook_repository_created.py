@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("webhook.repository_created")
 class WebHookRepositoryCreatedEvent(analytics.Event):
-    type = "webhook.repository_created"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("repository_id"),
-        analytics.Attribute("integration"),
-    )
+    organization_id: str
+    repository_id: str
+    integration: str
 
 
 analytics.register(WebHookRepositoryCreatedEvent)

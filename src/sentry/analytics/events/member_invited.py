@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("member.invited")
 class MemberInvitedEvent(analytics.Event):
-    type = "member.invited"
-
-    attributes = (
-        analytics.Attribute("inviter_user_id"),
-        analytics.Attribute("invited_member_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("referrer", required=False),
-    )
+    inviter_user_id: str
+    invited_member_id: str
+    organization_id: str
+    referrer: str | None = None
 
 
 analytics.register(MemberInvitedEvent)

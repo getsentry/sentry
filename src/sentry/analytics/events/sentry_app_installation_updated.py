@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("sentry_app_installation.updated")
 class SentryAppInstallationUpdatedEvent(analytics.Event):
-    type = "sentry_app_installation.updated"
-
-    attributes = (
-        analytics.Attribute("sentry_app_installation_id"),
-        analytics.Attribute("sentry_app_id"),
-        analytics.Attribute("organization_id"),
-    )
+    sentry_app_installation_id: str
+    sentry_app_id: str
+    organization_id: str
 
 
 analytics.register(SentryAppInstallationUpdatedEvent)

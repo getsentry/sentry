@@ -1,14 +1,11 @@
 from sentry import analytics
 
 
+@analytics.eventclass("first_flag.sent")
 class FirstFlagSentEvent(analytics.Event):
-    type = "first_flag.sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("platform", required=False),
-    )
+    organization_id: str
+    project_id: str
+    platform: str | None = None
 
 
 analytics.register(FirstFlagSentEvent)
