@@ -168,26 +168,34 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def poll(self) -> None:
         self.next_step.poll()
 
+    def _ensure_process_alive(self) -> None:
+        max_unhealthy_seconds = options.get("standalone-spans.buffer.flusher.max_unhealthy_seconds")
+        if not self.process.is_alive():
+            cause = "no_process"
+        elif int(time.time()) - self.healthy_since.value > max_unhealthy_seconds:
+            cause = "hang"
+        else:
+            return  # healthy
+
+        metrics.incr("spans.buffer.flusher_unhealthy", tags={"cause": cause})
+        if self.process_restarts > MAX_PROCESS_RESTARTS:
+            raise RuntimeError("flusher process crashed repeatedly, restarting consumer")
+
+        try:
+            self.process.kill()
+        except ValueError:
+            pass  # Process already closed, ignore
+
+        self.process_restarts += 1
+        self._create_process()
+
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         # Note that submit is not actually a hot path. Their message payloads
         # are mapped from *batches* of spans, and there are a handful of spans
         # per second at most. If anything, self.poll() might even be called
         # more often than submit()
-        if not self.process.is_alive():
-            metrics.incr("sentry.spans.buffer.flusher_dead", tags={"reason": "no_process"})
-            if self.process_restarts < MAX_PROCESS_RESTARTS:
-                self._create_process()
-                self.process_restarts += 1
-            else:
-                raise RuntimeError(
-                    "flusher process has crashed.\n\nSearch for sentry_spans_buffer_component:flusher in Sentry to get the original error."
-                )
 
-        if int(time.time()) - self.healthy_since.value > options.get(
-            "standalone-spans.buffer.flusher.max_unhealthy_seconds"
-        ):
-            metrics.incr("sentry.spans.buffer.flusher_dead", tags={"reason": "hang"})
-            raise RuntimeError("flusher process is hanging.")
+        self._ensure_process_alive()
 
         self.buffer.record_stored_segments()
 
@@ -200,7 +208,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if int(time.time()) - self.backpressure_since.value > options.get(
                 "standalone-spans.buffer.flusher.backpressure_seconds"
             ):
-                metrics.incr("sentry.spans.buffer.flusher.backpressure")
+                metrics.incr("spans.buffer.flusher.backpressure")
                 raise MessageRejected()
 
         # We set the drift. The backpressure based on redis memory comes after.
@@ -208,7 +216,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # negative value, effectively pausing flushing as well.
         if isinstance(message.payload, int):
             self.current_drift.value = drift = message.payload - int(time.time())
-            metrics.timing("sentry.spans.buffer.flusher.drift", drift)
+            metrics.timing("spans.buffer.flusher.drift", drift)
 
         # We also pause insertion into Redis if Redis is too full. In this case
         # we cannot allow the flusher to progress either, as it would write
@@ -221,7 +229,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if available > 0 and used / available > self.max_memory_percentage:
                 if not self.redis_was_full:
                     logger.fatal("Pausing consumer due to Redis being full")
-                metrics.incr("sentry.spans.buffer.flusher.hard_backpressure")
+                metrics.incr("spans.buffer.flusher.hard_backpressure")
                 self.redis_was_full = True
                 # Pause consumer if Redis memory is full. Because the drift is
                 # set before we emit backpressure, the flusher effectively
