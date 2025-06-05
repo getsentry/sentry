@@ -1307,8 +1307,8 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
     },
-    "demo_mode_sync_artifact_bundles": {
-        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+    "demo_mode_sync_debug_artifacts": {
+        "task": "sentry.demo_mode.tasks.sync_debug_artifacts",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
     },
