@@ -70,6 +70,11 @@ const config: KnipConfig = {
     '@types/webpack-env', // needed to make require.context work
     '@types/stripe-v3', // needed for global `stripe` namespace typings
     '@types/gtag.js', // needed for global `gtag` namespace typings
+    '@babel/plugin-transform-runtime', // Still used in jest
+    '@babel/preset-env', // Still used in jest
+    '@babel/preset-react', // Still used in jest
+    '@babel/preset-typescript', // Still used in jest
+    '@emotion/babel-plugin', // Still used in jest
   ],
   rules: {
     binaries: 'off',

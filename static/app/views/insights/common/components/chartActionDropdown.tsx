@@ -11,6 +11,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
@@ -33,6 +34,9 @@ export function ChartActionDropdown({
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
+  const hasChartActionsEnabled =
+    organization.features.includes('insights-chart-actions') && useEap;
 
   const project =
     projects.length === 1
@@ -83,6 +87,11 @@ export function ChartActionDropdown({
       children: alertsUrls,
     },
   ];
+
+  if (!hasChartActionsEnabled) {
+    return null;
+  }
+
   return (
     <DropdownMenu
       items={menuOptions}

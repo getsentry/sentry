@@ -195,7 +195,7 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
 
 export const FilterBarContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
@@ -375,6 +375,12 @@ export const FloatingBackToTopContainer = styled('div')<{
   width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   display: flex;
   justify-content: center;
+
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
 `;
 
 export const HoveringRowLoadingRendererContainer = styled('div')<{

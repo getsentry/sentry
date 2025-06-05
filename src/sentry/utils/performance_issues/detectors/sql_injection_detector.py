@@ -48,8 +48,6 @@ SQL_KEYWORDS = [
 
 
 class SQLInjectionDetector(PerformanceDetector):
-    __slots__ = "stored_problems"
-
     type = DetectorType.SQL_INJECTION
     settings_key = DetectorType.SQL_INJECTION
 
