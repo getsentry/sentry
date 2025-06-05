@@ -12,6 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 type HeaderParams = {
   alignment: string;
+  enableToggle: boolean;
   fieldName: string;
   label: string;
   sort: undefined | Sort;
@@ -42,7 +43,14 @@ function WrapToggle() {
   );
 }
 
-function SortableHeader({fieldName, label, sort, tooltip, alignment}: HeaderParams) {
+function SortableHeader({
+  fieldName,
+  label,
+  sort,
+  tooltip,
+  alignment,
+  enableToggle,
+}: HeaderParams) {
   // TODO: refactor once API is done to use either or useLocation/useSearchParams
   const location = useLocation();
 
@@ -74,7 +82,7 @@ function SortableHeader({fieldName, label, sort, tooltip, alignment}: HeaderPara
       >
         {label} {sort?.field === fieldName && sortArrow}
       </StyledLink>
-      {fieldName === 'testName' ? <WrapToggle /> : null}
+      {enableToggle ? <WrapToggle /> : null}
       {tooltip ? (
         <span>
           <QuestionTooltip size="xs" title={tooltip} isHoverable />
