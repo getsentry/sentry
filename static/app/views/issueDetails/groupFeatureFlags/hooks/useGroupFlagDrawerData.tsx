@@ -7,6 +7,10 @@ import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/ho
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 interface SuspectGroupTag extends GroupTag {
+  distribution: {
+    baseline: Record<string, number>;
+    outliers: Record<string, number>;
+  };
   suspect: {
     baselinePercent: undefined | number;
     score: undefined | number;
@@ -73,6 +77,10 @@ export default function useGroupFlagDrawerData({
         baselinePercent: suspectScoresMap[flag.key]?.baseline_percent,
         score: suspectScoresMap[flag.key]?.score,
       },
+      distribution: suspectScoresMap[flag.key]?.distribution ?? {
+        baseline: {},
+        outliers: {},
+      },
     }));
   }, [groupFlags, suspectScores]);
 
@@ -107,11 +115,11 @@ export default function useGroupFlagDrawerData({
       const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
       return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
     }
-    if (sortBy === SortBy.SUSPICION) {
-      return filteredFlags.toSorted(
-        (a, b) => (b.suspect.score ?? 0) - (a.suspect.score ?? 0)
-      );
-    }
+    // if (sortBy === SortBy.SUSPICION) {
+    //   return filteredFlags.toSorted(
+    //     (a, b) => (b.suspect.score ?? 0) - (a.suspect.score ?? 0)
+    //   );
+    // }
     if (sortBy === SortBy.DISTRIBUTION) {
       const sorted = filteredFlags.toSorted((a, b) => {
         const aTopPct = (a.topValues[0]?.count ?? 0) / a.totalValues;
