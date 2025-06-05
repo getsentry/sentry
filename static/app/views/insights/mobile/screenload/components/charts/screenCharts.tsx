@@ -26,6 +26,7 @@ import {
   CHART_TITLES,
   YAXIS_COLUMNS,
 } from 'sentry/views/insights/mobile/screenload/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 enum YAxis {
   WARM_START = 0,
