@@ -39,6 +39,7 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
+
     def test_simple(self):
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
@@ -105,6 +106,39 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"project": 512345},
             status_code=403,
         )
+
+    def test_filter_by_ids(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+        )
+        self.create_detector(
+            project_id=self.project.id, name="Test Detector 3", type=MetricIssue.slug
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(detector.id)), ("id", str(detector_2.id))],
+        )
+        assert len(response.data) == 2
+        assert {d["id"] for d in response.data} == {str(detector.id), str(detector_2.id)}
+
+        # Test with non-existent ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+        )
+        assert len(response.data) == 0
+
+        # Test with invalid ID format
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": "not-an-id"},
+            status_code=400,
+        )
+        assert response.data == {"id": ["Invalid ID format"]}
 
     def test_invalid_sort_by(self):
         response = self.get_error_response(

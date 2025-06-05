@@ -443,6 +443,14 @@ Available fields are:
 Prefix with `-` to sort in descending order.
         """,
     )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+        many=True,
+    )
 
 
 class WorkflowParams:
@@ -479,6 +487,14 @@ Available fields are:
 
 Prefix with `-` to sort in descending order.
     """,
+    )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+        many=True,
     )
 
 
