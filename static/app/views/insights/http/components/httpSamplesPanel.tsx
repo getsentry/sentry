@@ -419,7 +419,7 @@ export function HTTPSamplesPanel() {
                 <ModuleLayout.Full>
                   <InsightsLineChartWidget
                     showLegend="never"
-                    search={search}
+                    queryInfo={{search}}
                     title={getDurationChartTitle('http')}
                     isLoading={isDurationDataFetching}
                     error={durationError}

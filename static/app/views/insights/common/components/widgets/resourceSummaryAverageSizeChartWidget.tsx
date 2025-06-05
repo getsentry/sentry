@@ -39,7 +39,7 @@ export default function ResourceSummaryAverageSizeChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="resourceSummaryAverageSizeChartWidget"
       title={t('Average %s Size', DATA_TYPE)}
       series={[

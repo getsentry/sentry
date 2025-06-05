@@ -26,7 +26,7 @@ export default function HttpThroughputChartWidget(props: LoadableChartWidgetProp
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="httpThroughputChartWidget"
       title={getThroughputChartTitle('http')}
       series={[throughputData['epm()']]}

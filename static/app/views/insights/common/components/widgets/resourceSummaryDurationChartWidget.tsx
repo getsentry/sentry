@@ -25,7 +25,7 @@ export default function ResourceSummaryDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="resourceSummaryDurationChartWidget"
       title={getDurationChartTitle('resource')}
       series={[data?.[`avg(${SPAN_SELF_TIME})`]]}
