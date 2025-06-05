@@ -1,5 +1,5 @@
 import peggy from 'peggy';
-import type {LoaderDefinitionFunction} from 'webpack';
+import type {LoaderDefinitionFunction} from '@rspack/core';
 
 const peggyLoader: LoaderDefinitionFunction = source => {
   // https://peggyjs.org/documentation.html#generating-a-parser-javascript-api

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -8,7 +8,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconTable} from 'sentry/icons';
+import {IconChevron, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -26,7 +26,10 @@ import {
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAggregateFunction,
+  useLogsAggregateParam,
   useLogsFields,
+  useLogsGroupBy,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsPageParams,
@@ -37,14 +40,17 @@ import {getIntervalOptionsForPageFilter} from 'sentry/views/explore/hooks/useCha
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   BottomSectionBody,
   FilterBarContainer,
   LogsGraphContainer,
   LogsItemContainer,
+  LogsSidebarCollapseButton,
   LogsTableActionsContainer,
   StyledPageFilterBar,
   TableActionsContainer,
+  ToolbarAndBodyContainer,
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
@@ -64,8 +70,10 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
+  const groupBy = useLogsGroupBy();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
@@ -78,11 +86,18 @@ export function LogsTabContent({
   // always use the smallest interval possible (the most bars)
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
+  const aggregateFunction = useLogsAggregateFunction();
+  const _aggregateParam = useLogsAggregateParam();
+  const aggregateParam =
+    (aggregateFunction === 'count' ? null : _aggregateParam) ||
+    OurLogKnownFieldKey.MESSAGE;
   const timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
-      yAxis: [`count(${OurLogKnownFieldKey.MESSAGE})`],
+      yAxis: [`${aggregateFunction}(${aggregateParam})`],
       interval,
+      fields: [...(groupBy ? [groupBy] : []), `${aggregateFunction}(${aggregateParam})`],
+      topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
@@ -182,40 +197,61 @@ export function LogsTabContent({
           </SchemaHintsSection>
         </Layout.Main>
       </TopSectionBody>
-      <BottomSectionBody noRowGap>
-        <Layout.Main fullWidth>
-          <LogsGraphContainer>
-            <LogsGraph timeseriesResult={timeseriesResult} />
-          </LogsGraphContainer>
-          <LogsTableActionsContainer>
-            <TableActionsContainer>
-              <Feature features="organizations:ourlogs-live-refresh">
-                <AutorefreshToggle />
-              </Feature>
-              <Button onClick={openColumnEditor} icon={<IconTable />}>
-                {t('Edit Table')}
-              </Button>
-            </TableActionsContainer>
-          </LogsTableActionsContainer>
 
-          <LogsItemContainer>
-            <Feature
-              features="organizations:ourlogs-live-refresh"
-              renderDisabled={() => (
-                <LogsTable
+      <ToolbarAndBodyContainer sidebarOpen={sidebarOpen}>
+        {sidebarOpen && (
+          <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
+        )}
+        <BottomSectionBody>
+          <section>
+            <Feature features="organizations:ourlogs-visualize-sidebar">
+              <LogsSidebarCollapseButton
+                sidebarOpen={sidebarOpen}
+                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                size="xs"
+                icon={
+                  <IconChevron
+                    isDouble
+                    direction={sidebarOpen ? 'left' : 'right'}
+                    size="xs"
+                  />
+                }
+                onClick={() => setSidebarOpen(x => !x)}
+              />
+            </Feature>
+            <LogsGraphContainer>
+              <LogsGraph timeseriesResult={timeseriesResult} />
+            </LogsGraphContainer>
+            <LogsTableActionsContainer>
+              <TableActionsContainer>
+                <Feature features="organizations:ourlogs-live-refresh">
+                  <AutorefreshToggle />
+                </Feature>
+                <Button onClick={openColumnEditor} icon={<IconTable />}>
+                  {t('Edit Table')}
+                </Button>
+              </TableActionsContainer>
+            </LogsTableActionsContainer>
+
+            <LogsItemContainer>
+              <Feature
+                features="organizations:ourlogs-infinite-scroll"
+                renderDisabled={() => (
+                  <LogsTable
+                    stringAttributes={stringAttributes}
+                    numberAttributes={numberAttributes}
+                  />
+                )}
+              >
+                <LogsInfiniteTable
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
                 />
-              )}
-            >
-              <LogsInfiniteTable
-                stringAttributes={stringAttributes}
-                numberAttributes={numberAttributes}
-              />
-            </Feature>
-          </LogsItemContainer>
-        </Layout.Main>
-      </BottomSectionBody>
+              </Feature>
+            </LogsItemContainer>
+          </section>
+        </BottomSectionBody>
+      </ToolbarAndBodyContainer>
     </SearchQueryBuilderProvider>
   );
 }

@@ -60,12 +60,9 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <Tooltip
-            title={t('This user has asked to join your organization.')}
-            skipWrapper
-          >
-            <JoinRequestIndicator>{t('Join request')}</JoinRequestIndicator>
-          </Tooltip>
+          <Tag title={t('This user has asked to join your organization.')}>
+            {t('Join request')}
+          </Tag>
         )}
       </div>
 
@@ -157,10 +154,6 @@ function InviteRequestRow({
     </InviteModalHook>
   );
 }
-
-const JoinRequestIndicator = styled(Tag)`
-  text-transform: uppercase;
-`;
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;

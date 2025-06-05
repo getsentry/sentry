@@ -10,7 +10,7 @@ import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItem
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
-import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 import type {Integration, IntegrationProvider} from './integrations';
 import type {
@@ -193,6 +193,7 @@ type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
+  'component:seer-beta-closing-alert': () => React.ComponentType;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
@@ -283,7 +284,6 @@ type OnboardingHooks = {
  * Settings navigation hooks.
  */
 type SettingsHooks = {
-  'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
 };
@@ -453,11 +453,6 @@ type OrganizationSettingsHook = (organization: Organization) => React.ReactEleme
  * Provides additional setting configurations
  */
 type SettingsConfigHook = (organization: Organization) => NavigationSection;
-
-/**
- * Provides additional setting navigation items
- */
-type SettingsItemsHook = (organization?: Organization) => NavigationItem[];
 
 /**
  * Each sidebar label is wrapped with this hook, to allow sidebar item

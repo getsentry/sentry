@@ -117,6 +117,7 @@ export default function ExternalIssueForm({
     {
       staleTime: Infinity,
       retry: false,
+      refetchOnMount: 'always',
     }
   );
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({

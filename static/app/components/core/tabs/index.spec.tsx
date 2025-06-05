@@ -165,7 +165,7 @@ describe('Tabs', () => {
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
     // Press Arrow Right to select the next tab below (Activity)
-    await userEvent.keyboard('{arrowDown}{enter}');
+    await userEvent.keyboard('{arrowRight}{enter}');
 
     // The Activity tab should now be selected and its contents rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
@@ -251,5 +251,29 @@ describe('Tabs', () => {
       'aria-selected',
       'true'
     );
+  });
+
+  it('should not allow disabled tabs to be links', () => {
+    render(
+      <Tabs>
+        <TabList>
+          {TABS.map(tab => (
+            <TabList.Item key={tab.key} to="/#some-link" disabled>
+              {tab.label}
+            </TabList.Item>
+          ))}
+        </TabList>
+        <TabPanels>
+          {TABS.map(tab => (
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+          ))}
+        </TabPanels>
+      </Tabs>
+    );
+
+    TABS.forEach(tab => {
+      const tabEl = screen.getByRole('tab', {name: tab.label});
+      expect(within(tabEl).queryByRole('link', {hidden: true})).not.toBeInTheDocument();
+    });
   });
 });

@@ -635,7 +635,7 @@ export function UsageTotals({
             <LegendPriceWrapper>
               {hasReservedQuota && (
                 <LegendContainer>
-                  {<LegendDot style={{backgroundColor: COLORS.reserved}} />}
+                  <LegendDot style={{backgroundColor: COLORS.reserved}} />
                   {isDisplayingSpend ? (
                     prepaidPrice === 0 ? (
                       <div>
@@ -651,7 +651,6 @@ export function UsageTotals({
                       </div>
                     ) : (
                       <LegendContainer>
-                        <LegendDot style={{backgroundColor: COLORS.reserved}} />
                         <div>
                           <LegendTitle>{t('Included in Subscription')}</LegendTitle>
                           <LegendPrice>
@@ -903,6 +902,95 @@ export function CombinedUsageTotals({
     return reservedInfo;
   }
 
+  function getLegendGroup(legendType: 'reserved' | 'ondemand') {
+    return (
+      <CombinedLegendContainer>
+        {Object.entries(productGroup.categories)
+          .filter(
+            ([category, _]) =>
+              !shouldCompressCategories || category === parentCategoryForCompression
+          )
+          .map(([category, categoryInfo]) => {
+            const {reserved: reservedColor, ondemand: ondemandColor} =
+              categoryToColors[category as DataCategory] ?? {};
+            const categoryName = getPlanCategoryName({
+              plan: subscription.planDetails,
+              category: category as DataCategory,
+              hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+              title: true,
+              capitalize: false,
+            });
+            const {
+              onDemandCategorySpend,
+              onDemandCategoryMax,
+              onDemandTotalAvailable,
+            }: {
+              onDemandCategoryMax: number;
+              onDemandCategorySpend: number;
+              onDemandTotalAvailable: number;
+            } =
+              legendType === 'reserved'
+                ? {
+                    onDemandCategorySpend: 0,
+                    onDemandCategoryMax: 0,
+                    onDemandTotalAvailable: 0,
+                  }
+                : calculateCategoryOnDemandUsage(category as DataCategory, subscription);
+
+            return (
+              <LegendBudgetContainer key={category}>
+                <LegendDot
+                  style={{
+                    backgroundColor:
+                      legendType === 'reserved' ? reservedColor : ondemandColor,
+                  }}
+                />
+                <LegendTitle>
+                  {legendType === 'reserved'
+                    ? `${categoryName} ${t('Included in Subscription')}`
+                    : `${displayBudgetName(subscription.planDetails, {title: true})} ${categoryName}`}
+                </LegendTitle>
+                <div />
+                <LegendPriceSubText>
+                  {legendType === 'reserved'
+                    ? productTrial?.isStarted &&
+                      getDaysSinceDate(productTrial.endDate ?? '') <= 0
+                      ? `0 of ${UNLIMITED}`
+                      : `${formatPercentage(
+                          Math.round(
+                            (shouldCompressCategories
+                              ? productGroup.percentUsed
+                              : categoryInfo.reservedSpend /
+                                (prepaidBudget === 0 ? 1 : prepaidBudget)) * 100
+                          ) / 100
+                        )} of
+                ${
+                  prepaidBudget === 0
+                    ? 0
+                    : formatCurrency(roundUpToNearestDollar(prepaidBudget))
+                }`
+                    : /* Shared on demand was used in another category, display the max */
+                      `${formatCurrency(onDemandCategorySpend)} of
+                    ${formatCurrency(onDemandCategoryMax)}
+                    ${
+                      onDemandTotalAvailable === onDemandCategoryMax
+                        ? ''
+                        : ` (${formatCurrency(onDemandTotalAvailable)} max)`
+                    }
+                    `}
+                </LegendPriceSubText>
+              </LegendBudgetContainer>
+            );
+          })}
+      </CombinedLegendContainer>
+    );
+  }
+
+  // match the unused bar to the last category in category order that has been used
+  // for that budget; otherwise default to the first category in category 0order
+  let categoryForUnusedPrepaid = firstCategory;
+  let categoryForUnusedOnDemand = firstCategory;
+
   return (
     <SubscriptionCard data-test-id={`usage-card-${apiName}`}>
       <CardBody>
@@ -1029,6 +1117,7 @@ export function CombinedUsageTotals({
                           )
                           .map(([rbCategory, rbInfo]) => {
                             if (rbInfo.reservedSpend > 0) {
+                              categoryForUnusedPrepaid = rbCategory as DataCategory;
                               return (
                                 <PlanUseBar
                                   style={{
@@ -1051,7 +1140,7 @@ export function CombinedUsageTotals({
                       style={{
                         width: `${unusedPrepaidWidth}%`,
                         backgroundColor: colorFn(
-                          categoryToColors[firstCategory]?.reserved
+                          categoryToColors[categoryForUnusedPrepaid]?.reserved
                         )
                           .fade(0.5)
                           .string(),
@@ -1068,6 +1157,7 @@ export function CombinedUsageTotals({
                       );
 
                       if (ondemandPercentUsed >= 1) {
+                        categoryForUnusedOnDemand = rbCategory as DataCategory;
                         return (
                           <PlanUseBar
                             key={rbCategory}
@@ -1086,7 +1176,7 @@ export function CombinedUsageTotals({
                         style={{
                           width: `${unusedOnDemandWidth}%`,
                           backgroundColor: colorFn(
-                            categoryToColors[firstCategory]?.ondemand
+                            categoryToColors[categoryForUnusedOnDemand]?.ondemand
                           )
                             .fade(0.5)
                             .string(),
@@ -1098,112 +1188,8 @@ export function CombinedUsageTotals({
               </PlanUseBarContainer>
               <LegendFooterWrapper>
                 <LegendPriceWrapper>
-                  {
-                    <LegendContainer>
-                      {Object.entries(productGroup.categories)
-                        .filter(
-                          ([category, _]) =>
-                            !shouldCompressCategories ||
-                            category === parentCategoryForCompression
-                        )
-                        .map(([category, categoryInfo]) => {
-                          const {reserved: reservedColor} =
-                            categoryToColors[category as DataCategory] ?? {};
-                          const categoryName = getPlanCategoryName({
-                            plan: subscription.planDetails,
-                            category: category as DataCategory,
-                            hadCustomDynamicSampling:
-                              subscription.hadCustomDynamicSampling,
-                            title: true,
-                            capitalize: false,
-                          });
-                          return (
-                            <Fragment key={category}>
-                              <LegendBudgetContainer>
-                                <LegendDot style={{backgroundColor: reservedColor}} />
-                                <LegendTitle>
-                                  {categoryName}
-                                  {t(' Included in Subscription')}
-                                </LegendTitle>
-                              </LegendBudgetContainer>
-                              <LegendPriceSubText>
-                                {productTrial?.isStarted &&
-                                getDaysSinceDate(productTrial.endDate ?? '') <= 0
-                                  ? `0 of ${UNLIMITED}`
-                                  : `${formatPercentage(
-                                      Math.round(
-                                        (shouldCompressCategories
-                                          ? productGroup.percentUsed
-                                          : categoryInfo.reservedSpend /
-                                            (prepaidBudget === 0 ? 1 : prepaidBudget)) *
-                                          100
-                                      ) / 100
-                                    )} of
-                                  ${
-                                    prepaidBudget === 0
-                                      ? 0
-                                      : formatCurrency(
-                                          roundUpToNearestDollar(prepaidBudget)
-                                        )
-                                  }`}
-                              </LegendPriceSubText>
-                            </Fragment>
-                          );
-                        })}
-                      {showOnDemand &&
-                        Object.keys(productGroup.categories)
-                          .filter(
-                            category =>
-                              !shouldCompressCategories ||
-                              category === parentCategoryForCompression
-                          )
-                          .map(category => {
-                            const {ondemand: ondemandColor} =
-                              categoryToColors[category as DataCategory] ?? {};
-                            const categoryName = getPlanCategoryName({
-                              plan: subscription.planDetails,
-                              category: category as DataCategory,
-                              hadCustomDynamicSampling:
-                                subscription.hadCustomDynamicSampling,
-                              title: true,
-                              capitalize: false,
-                            });
-                            const {
-                              onDemandCategorySpend,
-                              onDemandCategoryMax,
-                              onDemandTotalAvailable,
-                            } = calculateCategoryOnDemandUsage(
-                              category as DataCategory,
-                              subscription
-                            );
-                            return (
-                              <Fragment key={category}>
-                                {
-                                  <LegendBudgetContainer>
-                                    <LegendDot style={{backgroundColor: ondemandColor}} />
-                                    <LegendTitle>
-                                      {displayBudgetName(subscription.planDetails, {
-                                        title: true,
-                                      })}{' '}
-                                      {categoryName}
-                                    </LegendTitle>
-                                    <LegendPrice>
-                                      {formatCurrency(onDemandCategorySpend)} of{' '}
-                                      {formatCurrency(onDemandCategoryMax)}{' '}
-                                      {/* Shared on demand was used in another category, display the max */}
-                                      {onDemandTotalAvailable !== onDemandCategoryMax && (
-                                        <Fragment>
-                                          ({formatCurrency(onDemandTotalAvailable)} max)
-                                        </Fragment>
-                                      )}
-                                    </LegendPrice>
-                                  </LegendBudgetContainer>
-                                }
-                              </Fragment>
-                            );
-                          })}
-                    </LegendContainer>
-                  }
+                  {getLegendGroup('reserved')}
+                  {showOnDemand && getLegendGroup('ondemand')}
                 </LegendPriceWrapper>
                 {
                   <TotalSpendWrapper>
@@ -1337,6 +1323,13 @@ const LegendContainer = styled('div')`
   align-items: baseline;
 `;
 
+const CombinedLegendContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: baseline;
+  flex-wrap: wrap;
+`;
+
 const LegendTitle = styled('div')`
   font-weight: 700;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -1352,9 +1345,10 @@ const LegendPriceSubText = styled(LegendPrice)`
 `;
 
 const LegendBudgetContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  align-items: baseline;
+  column-gap: ${space(1)};
   white-space: nowrap;
 `;
 const PlanUseBarContainer = styled('div')`

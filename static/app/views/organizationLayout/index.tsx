@@ -66,7 +66,7 @@ interface LayoutProps extends Props {
   organization: Organization | null;
 }
 
-function AppLayout({children, organization}: LayoutProps) {
+function AppDrawers() {
   useFeedbackOnboardingDrawer();
   useReplaysOnboardingDrawer();
   usePerformanceOnboardingDrawer();
@@ -74,6 +74,10 @@ function AppLayout({children, organization}: LayoutProps) {
   useFeatureFlagOnboardingDrawer();
   useReleasesDrawer();
 
+  return null;
+}
+
+function AppLayout({children, organization}: LayoutProps) {
   return (
     <NavContextProvider>
       <AppContainer>
@@ -87,6 +91,7 @@ function AppLayout({children, organization}: LayoutProps) {
           <Footer />
         </BodyContainer>
       </AppContainer>
+      {organization ? <AppDrawers /> : null}
     </NavContextProvider>
   );
 }

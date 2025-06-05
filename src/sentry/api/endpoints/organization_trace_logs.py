@@ -12,7 +12,7 @@ from sentry.api.utils import handle_query_errors, update_snuba_params_with_times
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.search.events.types import SnubaParams, SnubaRow
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import ourlogs
 from sentry.snuba.referrer import Referrer
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
@@ -56,7 +56,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         orderby: list[str],
         offset: int,
         limit: int,
-    ) -> list[SnubaRow]:
+    ) -> EventsResponse:
         """Queries log data for a given trace"""
         selected_columns = [
             "sentry.item_id",
@@ -84,7 +84,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             limit=limit,
             referrer=Referrer.API_TRACE_VIEW_LOGS.value,
         )
-        return results["data"]
+        return results
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         try:
@@ -104,11 +104,12 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
-        def data_fn(offset: int, limit: int) -> list[SnubaRow]:
+        def data_fn(offset: int, limit: int) -> EventsResponse:
             with handle_query_errors():
                 return self.query_logs_data(snuba_params, trace_ids, orderby, offset, limit)
 
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
+            max_per_page=1000,
         )

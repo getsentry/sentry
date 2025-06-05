@@ -425,7 +425,8 @@ describe('SearchQueryBuilder', function () {
         expect(recentFilterKeys[1]).toHaveTextContent('browser');
         expect(recentFilterKeys[2]).toHaveTextContent('is');
 
-        await userEvent.click(recentFilterKeys[0]!);
+        await userEvent.hover(recentFilterKeys[0]!);
+        await userEvent.keyboard('{enter}{enter}');
 
         expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
       });
@@ -877,14 +878,14 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByLabelText('browser.name:""')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
 
-      await userEvent.click(await screen.findByLabelText('Firefox'));
+      await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
-      expect(screen.getByLabelText('browser.name:Firefox')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -932,7 +933,7 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(screen.getByLabelText('browser.name:foo')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -1021,7 +1022,9 @@ describe('SearchQueryBuilder', function () {
 
       // Clicking it should add the filter and put focus at the end
       await userEvent.click(suggestionItem);
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:Firefox'})
+      ).toBeInTheDocument();
       expect(getLastInput()).toHaveFocus();
     });
 
@@ -1537,6 +1540,38 @@ describe('SearchQueryBuilder', function () {
         await screen.findByRole('row', {name: 'browser.name:firefox'})
       ).toBeInTheDocument();
     });
+
+    it('selects the value when pressing enter after typing it in', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('combobox'), 'randomValue');
+
+      const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
+      expect(listBox).not.toBeChecked();
+
+      await userEvent.keyboard('{arrowdown}{enter}');
+
+      // Re-open filter value
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      const updatedListBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
+      expect(updatedListBox).toBeChecked();
+    });
   });
 
   describe('token values', function () {
@@ -1590,6 +1625,44 @@ describe('SearchQueryBuilder', function () {
         await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
       ).toBeInTheDocument();
     });
+
+    it('sets the value as not selected when no comma is present', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('combobox'), 'randomValue');
+
+      const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
+      expect(listBox).not.toBeChecked();
+    });
+
+    it('sets the value as selected when a trailing comma is present', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('combobox'), 'randomValue,');
+
+      const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
+      expect(listBox).toBeChecked();
+    });
   });
 
   describe('filter types', function () {
@@ -1636,6 +1709,16 @@ describe('SearchQueryBuilder', function () {
         // Should be is:unresolved
         expect(
           await screen.findByRole('row', {name: 'is:unresolved'})
+        ).toBeInTheDocument();
+      });
+
+      it('shows tooltip with field description when hovering over operator label', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+
+        await userEvent.hover(screen.getByText('assigned'));
+
+        expect(
+          await screen.findByText('Assignee of the issue as a user ID')
         ).toBeInTheDocument();
       });
     });
@@ -2154,6 +2237,25 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'release.version:>1.0'})
         ).toBeInTheDocument();
       });
+
+      it('string filters have the correct operator options', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />,
+          {organization: {features: ['search-query-builder-wildcard-operators']}}
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('option', {name: 'does not contain'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+      });
     });
 
     describe('numeric', function () {
@@ -2250,7 +2352,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(await screen.findByLabelText('duration:>10ms')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('row', {name: 'duration:>10ms'})
+        ).toBeInTheDocument();
       });
 
       it('duration filters have the correct operator options', async function () {
@@ -2385,7 +2489,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(await screen.findByLabelText('size:>10bytes')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('row', {name: 'size:>10bytes'})
+        ).toBeInTheDocument();
       });
 
       it('size filters have the correct operator options', async function () {
@@ -2518,7 +2624,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
         // Should start with the > operator and a value of 50%
-        expect(await screen.findByLabelText('rate:>0.5')).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
       });
 
       it('percentage filters have the correct operator options', async function () {
@@ -3019,9 +3125,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
-          await screen.findByLabelText(
-            'count_if(transaction.duration,greater,300ms):>100'
-          )
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,greater,300ms):>100',
+          })
         ).toBeInTheDocument();
       });
 
@@ -3166,6 +3272,57 @@ describe('SearchQueryBuilder', function () {
             within(descriptionTooltip).getByTestId('focused-param')
           ).toHaveTextContent('operator: string');
         });
+      });
+
+      it('focuses on the filter value when user selects an aggregate filter with no arguments', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('count');
+        await userEvent.click(screen.getByRole('option', {name: 'count()'}));
+        expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
+
+      it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('count(');
+        expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
+
+      it('focuses on the filter value after only argument is specified', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('p95(');
+        expect(
+          screen.getByLabelText('p95(transaction.duration):>300ms')
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+        await userEvent.keyboard('transaction');
+        await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+      });
+
+      it('focuses on the filter value after all arguments is specified', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('count_if(');
+        expect(
+          screen.getByLabelText('count_if(transaction.duration,greater,300ms):>100')
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+        await userEvent.keyboard('transaction');
+        await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+        await userEvent.keyboard(',');
+        await userEvent.click(screen.getByRole('option', {name: 'greater'}));
+        await userEvent.keyboard(',100{Enter}');
+        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
     });
   });

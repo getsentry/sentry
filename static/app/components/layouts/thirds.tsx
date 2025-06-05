@@ -38,7 +38,12 @@ export const Header = styled('header')<{
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background-color: ${p => (p.unified ? p.theme.background : 'transparent')};
+  background-color: ${p =>
+    p.theme.isChonk
+      ? p.theme.background
+      : p.unified
+        ? p.theme.background
+        : 'transparent'};
 
   ${p =>
     !p.unified &&

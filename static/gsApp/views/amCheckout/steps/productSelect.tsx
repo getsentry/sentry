@@ -2,9 +2,12 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import largeStar from 'sentry-images/spot/product-select-star-l.svg';
-import mediumStar from 'sentry-images/spot/product-select-star-m.svg';
-import smallStar from 'sentry-images/spot/product-select-star-s.svg';
+import largeStarLight from 'sentry-images/spot/product-select-star-l.svg';
+import largeStarDark from 'sentry-images/spot/product-select-star-l-dark.svg';
+import mediumStarLight from 'sentry-images/spot/product-select-star-m.svg';
+import mediumStarDark from 'sentry-images/spot/product-select-star-m-dark.svg';
+import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
+import smallStarDark from 'sentry-images/spot/product-select-star-s-dark.svg';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
@@ -134,7 +137,7 @@ function ProductSelect({
                     color={
                       formData.selectedProducts?.[
                         productInfo.apiName as string as SelectableProduct
-                      ]?.enabled
+                      ]?.enabled && !prefersDarkMode
                         ? checkoutInfo.color
                         : theme.textColor
                     }
@@ -173,9 +176,9 @@ function ProductSelect({
                 </Subtitle>
               </Row>
               <IllustrationContainer>
-                <Star1 src={largeStar} />
-                <Star2 src={mediumStar} />
-                <Star3 src={smallStar} />
+                <Star1 src={prefersDarkMode ? largeStarDark : largeStarLight} />
+                <Star2 src={prefersDarkMode ? mediumStarDark : mediumStarLight} />
+                <Star3 src={prefersDarkMode ? smallStarDark : smallStarLight} />
               </IllustrationContainer>
             </ProductOptionContent>
           </ProductOption>
