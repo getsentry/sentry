@@ -229,6 +229,8 @@ describe('ProjectSeer', function () {
     await userEvent.click(repoItem);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Repository'}));
 
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+
     // Wait for the repo to disappear
     await waitFor(() => {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
