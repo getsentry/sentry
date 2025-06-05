@@ -283,7 +283,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
-  top: ${space(1)};
+  top: ${p => (p.theme.isChonk ? space(0.75) : space(1))};
 `;
 
 const SearchIcon = styled(IconSearch)`
