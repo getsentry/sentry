@@ -232,23 +232,21 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutogroup extends Span {
+
+  interface BaseAutogroup {
+    op: string;
+    span_id: string;
+    description?: string;
+  }
+
+  interface SiblingAutogroup extends BaseAutogroup {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutogroup {
-    autogrouped_by: {
-      op: string;
-    };
-    op: string;
-    span_id: string;
-    description?: string;
-  }
-
-  interface EAPChildrenAutogroup extends EAPSpan {
+  interface ChildrenAutogroup extends BaseAutogroup {
     autogrouped_by: {
       op: string;
     };
@@ -358,6 +356,25 @@ export class TraceTree extends TraceTreeEventDispatcher {
     t.type = 'error';
     t.build();
     return t;
+  }
+
+  static ApplyPreferences(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    options: {
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    }
+  ): void {
+    if (options?.preferences?.missing_instrumentation) {
+      TraceTree.DetectMissingInstrumentation(root);
+    }
+
+    if (options?.preferences?.autogroup.parent) {
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+    }
+
+    if (options?.preferences?.autogroup.sibling) {
+      TraceTree.AutogroupSiblingSpanNodes(root);
+    }
   }
 
   static FromTrace(
@@ -578,16 +595,27 @@ export class TraceTree extends TraceTreeEventDispatcher {
     tree.indicators.sort((a, b) => a.start - b.start);
 
     if (isEAPTraceNode(traceNode)) {
-      if (options?.preferences?.missing_instrumentation) {
-        TraceTree.DetectMissingInstrumentation(tree.root);
-      }
-
-      if (options?.preferences?.autogroup.parent) {
-        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
-      }
+      TraceTree.ApplyPreferences(tree.root, options);
     }
 
     return tree;
+  }
+
+  static ReparentSSRUnderBrowserRequestSpan(
+    node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+  ): void {
+    if (isBrowserRequestSpan(node.value)) {
+      const serverRequestHandler = node.parent?.children.find(n =>
+        isServerRequestHandlerTransactionNode(n)
+      );
+
+      if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+        serverRequestHandler.parent!.children =
+          serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+        node.children.push(serverRequestHandler);
+        serverRequestHandler.parent = node;
+      }
+    }
   }
 
   static FromSpans(
@@ -689,20 +717,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.errors.add(error);
         }
 
-        if (isBrowserRequestSpan(c.value)) {
-          const serverRequestHandler = c.parent?.children.find(n =>
-            isServerRequestHandlerTransactionNode(n)
-          );
-
-          if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
-            serverRequestHandler.parent!.children =
-              serverRequestHandler.parent!.children.filter(
-                n => n !== serverRequestHandler
-              );
-            c.children.push(serverRequestHandler);
-            serverRequestHandler.parent = c;
-          }
-        }
+        TraceTree.ReparentSSRUnderBrowserRequestSpan(c);
       }
 
       c.children.sort(traceChronologicalSort);
@@ -1058,18 +1073,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       while (index < node.children.length) {
         // Skip until we find a span candidate
-        if (!isSpanNode(node.children[index]!)) {
+        if (!isSpanNode(node.children[index]!) && !isEAPSpanNode(node.children[index]!)) {
           index++;
           matchCount = 0;
           continue;
         }
 
-        const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
-        const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
+        const current = node.children[index] as
+          | TraceTreeNode<TraceTree.Span>
+          | TraceTreeNode<TraceTree.EAPSpan>;
+        const next = node.children[index + 1] as
+          | TraceTreeNode<TraceTree.Span>
+          | TraceTreeNode<TraceTree.EAPSpan>;
 
         if (
           next &&
-          isSpanNode(next) &&
+          (isSpanNode(next) || isEAPSpanNode(next)) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans
@@ -1089,7 +1108,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
-              ...current.value,
+              span_id: isEAPSpanNode(current)
+                ? current.value.event_id
+                : current.value.span_id,
+              op: current.value.op ?? '',
+              description: current.value.description,
               autogrouped_by: {
                 op: current.value.op ?? '',
                 description: current.value.description ?? '',
@@ -1630,6 +1653,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
           t => t.children.filter(c => isEAPTransactionNode(c)),
           t => TraceTree.FindByID(node, t.value.parent_span_id)
         );
+
+        const browserRequestSpan = node.children.find(
+          c => isEAPSpanNode(c) && isBrowserRequestSpan(c.value)
+        ) as TraceTreeNode<TraceTree.EAPSpan> | undefined;
+        if (browserRequestSpan) {
+          TraceTree.ReparentSSRUnderBrowserRequestSpan(browserRequestSpan);
+        }
       }
 
       // Flip expanded so that we can collect visible children
@@ -1795,15 +1825,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           this.dispatch('trace timeline change', this.root.space);
         }
 
-        if (options.preferences.missing_instrumentation) {
-          TraceTree.DetectMissingInstrumentation(root);
-        }
-        if (options.preferences.autogroup.sibling) {
-          TraceTree.AutogroupSiblingSpanNodes(root);
-        }
-        if (options.preferences.autogroup.parent) {
-          TraceTree.AutogroupDirectChildrenSpanNodes(root);
-        }
+        TraceTree.ApplyPreferences(root, options);
 
         if (index !== -1) {
           this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
