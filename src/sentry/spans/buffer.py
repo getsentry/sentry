@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import math
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -147,6 +148,7 @@ class SpansBuffer:
         segment_page_size: int = 100,
         max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
         max_segment_spans: int = 1001,
+        max_flush_segments: int = 500,
         redis_ttl: int = 3600,
     ):
         self.assigned_shards = list(assigned_shards)
@@ -155,8 +157,10 @@ class SpansBuffer:
         self.segment_page_size = segment_page_size
         self.max_segment_bytes = max_segment_bytes
         self.max_segment_spans = max_segment_spans
+        self.max_flush_segments = max_flush_segments
         self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
+        self.any_shard_at_limit = False
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -170,9 +174,16 @@ class SpansBuffer:
                 self.assigned_shards,
                 self.span_buffer_timeout_secs,
                 self.span_buffer_root_timeout_secs,
+                self.segment_page_size,
+                self.max_segment_bytes,
+                self.max_segment_spans,
+                self.max_flush_segments,
                 self.redis_ttl,
             ),
         )
+
+    def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -181,9 +192,8 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
-        queue_keys = []
+        result_meta = []
         is_root_span_count = 0
-        has_root_span_count = 0
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
 
@@ -192,7 +202,7 @@ class SpansBuffer:
 
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}".encode("ascii")
+                    set_key = self._get_span_key(project_and_trace, parent_span_id)
                     p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
@@ -218,23 +228,23 @@ class SpansBuffer:
                     )
 
                     is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    shard = self.assigned_shards[
-                        int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
-                    ]
-                    queue_keys.append(self._get_queue_key(shard))
+                    result_meta.append((project_and_trace, parent_span_id))
 
                 results = p.execute()
-
-        num_subsegments = 0
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
 
-            assert len(queue_keys) == len(results)
+            assert len(result_meta) == len(results)
 
-            for queue_key, result in zip(queue_keys, results):
-                redirect_depth, set_key, has_root_span, *span_keys = result
+            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+                redirect_depth, set_key, has_root_span = result
+
+                shard = self.assigned_shards[
+                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
+                ]
+                queue_key = self._get_queue_key(shard)
 
                 min_redirect_depth = min(min_redirect_depth, redirect_depth)
                 max_redirect_depth = max(max_redirect_depth, redirect_depth)
@@ -242,22 +252,19 @@ class SpansBuffer:
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
                 # usual.
-                num_subsegments += 1
                 if has_root_span:
-                    has_root_span_count += 1
                     offset = self.span_buffer_root_timeout_secs
                 else:
                     offset = self.span_buffer_timeout_secs
 
-                delete_set = queue_deletes.setdefault(queue_key, set())
-
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
 
-                delete_set.update(span_keys)
-
-                # if we are going to add this item, we should not need to
-                # delete it from redis
+                subsegment_spans = trees[project_and_trace, parent_span_id]
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                delete_set.update(
+                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
+                )
                 delete_set.discard(set_key)
 
             with self.client.pipeline(transaction=False) as p:
@@ -274,10 +281,7 @@ class SpansBuffer:
 
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
-
-        metrics.timing("spans.buffer.process_spans.num_subsegments", num_subsegments)
-        metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
-
+        metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
         metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
 
@@ -343,18 +347,18 @@ class SpansBuffer:
     def get_memory_info(self) -> Generator[ServiceMemory]:
         return iter_cluster_memory_usage(self.client)
 
-    def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentKey, FlushedSegment]:
+    def flush_segments(self, now: int) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now
 
         queue_keys = []
+        shard_factor = max(1, len(self.assigned_shards))
+        max_segments_per_shard = math.ceil(self.max_flush_segments / shard_factor)
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = self._get_queue_key(shard)
-                    p.zrangebyscore(
-                        key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
-                    )
+                    p.zrangebyscore(key, 0, cutoff, start=0, num=max_segments_per_shard)
                     queue_keys.append(key)
 
                 result = p.execute()
@@ -369,10 +373,14 @@ class SpansBuffer:
 
         return_segments = {}
         num_has_root_spans = 0
+        any_shard_at_limit = False
 
         for shard, queue_key, segment_key in segment_keys:
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
+
+            if len(segment) >= max_segments_per_shard:
+                any_shard_at_limit = True
 
             output_spans = []
             has_root_span = False
@@ -415,6 +423,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
+        self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
     def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
@@ -469,7 +478,7 @@ class SpansBuffer:
                 # partitioned by trace_id so multiple consumers are writing
                 # over each other. The consequence is duplicated segments,
                 # worst-case.
-                metrics.incr("sentry.spans.buffer.empty_segments")
+                metrics.incr("spans.buffer.empty_segments")
 
         return payloads
 

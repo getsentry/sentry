@@ -84,6 +84,7 @@ export function AggregateKey({
         </UnfocusedText>
         <Parameters>
           <SearchQueryBuilderParametersCombobox
+            state={state}
             token={token}
             onDelete={() => {
               filterRef.current?.focus();

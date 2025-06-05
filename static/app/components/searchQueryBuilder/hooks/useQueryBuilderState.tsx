@@ -6,9 +6,11 @@ import {
   getArgsToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {
-  FieldDefinitionGetter,
-  FocusOverride,
+import {
+  type FieldDefinitionGetter,
+  type FocusOverride,
+  isTermOperator,
+  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -54,6 +56,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  shouldCommitQuery?: boolean;
 };
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
@@ -91,7 +94,7 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: TermOperator;
+  op: SearchQueryBuilderOperators;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -112,6 +115,7 @@ type UpdateAggregateArgsAction = {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
+  focusOverride?: FocusOverride;
 };
 
 export type QueryBuilderActions =
@@ -161,7 +165,7 @@ function deleteQueryTokens(
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: SearchQueryBuilderOperators
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
@@ -170,7 +174,13 @@ function modifyFilterOperatorQuery(
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  if (isTermOperator(newOperator)) {
+    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  } else {
+    // whenever we have a wildcard operator, we want to set the operator to the default,
+    // because there is no special characters for the wildcard operators just the asterisk
+    newToken.operator = TermOperator.DEFAULT;
+  }
   newToken.negated = isNotEqual;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
@@ -196,7 +206,7 @@ function modifyFilterOperator(
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: SearchQueryBuilderOperators
 ): string {
   switch (newOperator) {
     case TermOperator.GREATER_THAN:
@@ -471,11 +481,14 @@ function updateAggregateArgs(
   }
 ): QueryBuilderState {
   const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
+  const focusOverride =
+    action.focusOverride === undefined ? state.focusOverride : action.focusOverride;
 
   if (!fieldDefinition?.parameterDependentValueType) {
     return {
       ...state,
       query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
     };
   }
 
@@ -488,6 +501,7 @@ function updateAggregateArgs(
     return {
       ...state,
       query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
     };
   }
 
@@ -499,6 +513,7 @@ function updateAggregateArgs(
       {token: getArgsToken(action.token), replacement: action.value},
       {token: action.token.value, replacement: newValue},
     ]),
+    focusOverride,
   };
 }
 
@@ -557,13 +572,15 @@ export function useQueryBuilderState({
             ...state,
             committedQuery: state.query,
           };
-        case 'UPDATE_QUERY':
+        case 'UPDATE_QUERY': {
+          const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
             ...state,
             query: action.query,
-            committedQuery: action.query,
+            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
             focusOverride: action.focusOverride ?? null,
           };
+        }
         case 'RESET_FOCUS_OVERRIDE':
           return {
             ...state,

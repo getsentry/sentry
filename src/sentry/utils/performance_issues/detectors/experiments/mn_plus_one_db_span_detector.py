@@ -231,7 +231,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.no_parent_span")
             return None
 
-        db_span = self._first_db_span()
+        db_span = self._first_relevant_db_span()
         if not db_span:
             metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
@@ -274,9 +274,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
             ],
         )
 
-    def _first_db_span(self) -> Span | None:
+    def _first_relevant_db_span(self) -> Span | None:
         for span in self.spans:
-            if span["op"].startswith("db"):
+            if (
+                span["op"].startswith("db")
+                and get_span_evidence_value(span, include_op=False) != "prisma:engine:connection"
+            ):
                 return span
         return None
 
