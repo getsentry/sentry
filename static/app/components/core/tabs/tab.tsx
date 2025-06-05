@@ -51,20 +51,22 @@ function InnerWrap({
   children,
   to,
   disabled,
-  orientation,
-}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled'>) {
+  ...props
+}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled'> & {
+  variant: NonNullable<BaseTabProps['variant']>;
+}) {
   return to && !disabled ? (
     <TabLink
       to={to}
       onMouseDown={handleLinkClick}
       onPointerDown={handleLinkClick}
-      orientation={orientation}
       tabIndex={-1}
+      {...props}
     >
       {children}
     </TabLink>
   ) : (
-    <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+    <TabInnerWrap {...props}>{children}</TabInnerWrap>
   );
 }
 
@@ -107,7 +109,7 @@ function BaseTab({
       ref={ref}
       as={as}
     >
-      <InnerWrap to={to} orientation={orientation} disabled={disabled}>
+      <InnerWrap to={to} orientation={orientation} disabled={disabled} variant={variant}>
         {!theme.isChonk && (
           <StyledInteractionStateLayer
             orientation={orientation}
@@ -256,10 +258,17 @@ const innerWrapStyles = ({
       `};
 `;
 
-const TabLink = styled(Link)<{orientation: Orientation}>`
+const TabLink = styled(Link)<{
+  orientation: Orientation;
+  variant: BaseTabProps['variant'];
+}>`
   ${p =>
     isChonkTheme(p.theme)
-      ? chonkInnerWrapStyles({orientation: p.orientation, theme: p.theme})
+      ? chonkInnerWrapStyles({
+          variant: p.variant,
+          orientation: p.orientation,
+          theme: p.theme,
+        })
       : innerWrapStyles(p)}
 
   &,
@@ -268,10 +277,17 @@ const TabLink = styled(Link)<{orientation: Orientation}>`
   }
 `;
 
-const TabInnerWrap = styled('span')<{orientation: Orientation}>`
+const TabInnerWrap = styled('span')<{
+  orientation: Orientation;
+  variant: BaseTabProps['variant'];
+}>`
   ${p =>
     isChonkTheme(p.theme)
-      ? chonkInnerWrapStyles({orientation: p.orientation, theme: p.theme})
+      ? chonkInnerWrapStyles({
+          variant: p.variant,
+          orientation: p.orientation,
+          theme: p.theme,
+        })
       : innerWrapStyles(p)}
 `;
 

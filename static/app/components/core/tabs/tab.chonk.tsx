@@ -92,9 +92,11 @@ export const ChonkStyledFocusLayer = chonkStyled('div')<{
 export const chonkInnerWrapStyles = ({
   theme,
   orientation,
+  variant,
 }: {
   orientation: Orientation;
   theme: DO_NOT_USE_ChonkTheme;
+  variant: BaseTabProps['variant'];
 }) => css`
   display: flex;
   align-items: center;
@@ -104,16 +106,20 @@ export const chonkInnerWrapStyles = ({
   );
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
+  padding: 10px 16px;
 
   ${orientation === 'horizontal'
     ? css`
         gap: ${theme.space.md};
         /**
          * Extra padding + negative margin trick, to expand click area
-         * The difference between 10px and 14 is to account for
-         *  2px width of the SelectionIndicator and 2px spacing towards it
+         * Flat Variant gets and extra 4px padding-bottom:
+         * 2px width of the SelectionIndicator and 2px spacing towards it
          */
-        padding: 10px 16px 14px 16px;
+        ${variant === 'flat' &&
+        css`
+          padding-bottom: 14px;
+        `}
         margin-left: -${space(1)};
         margin-right: -${space(1)};
       `
