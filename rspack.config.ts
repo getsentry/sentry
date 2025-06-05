@@ -1,6 +1,5 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -19,6 +18,9 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import packageJson from './package.json';
+
+const remarkFrontmatter = import('remark-frontmatter');
+const remarkGfm = import('remark-gfm');
 
 const {env} = process;
 
@@ -280,6 +282,9 @@ const appConfig: Configuration = {
           },
           {
             loader: '@mdx-js/loader',
+            options: {
+              remarkPlugins: [remarkFrontmatter, remarkGfm],
+            },
           },
         ],
       },
