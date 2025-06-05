@@ -30,9 +30,8 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector | None:
                 id=issue_occurrence.evidence_data.get("detector_id", None)
             )
     except Detector.DoesNotExist:
-        metrics.incr("workflow_engine.process_workflows.error")
-        evt = event_data.event
-        detector_id = evt.occurrence.evidence_data.get("detector_id") if evt.occurrence else None
+        metrics.incr("workflow_engine.detectors.error")
+        detector_id = evt.occurrence.evidence_data.get("detector_id") if issue_occurrence else None
 
         logger.exception(
             "Detector not found for event",
