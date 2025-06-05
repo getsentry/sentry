@@ -20,7 +20,7 @@ import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
-import {useIntersectionFlags} from 'sentry/components/featureFlags/hooks/useIntersectionFlags';
+import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -269,14 +269,15 @@ export function EventGraph({
       staleTime: 0,
     }
   );
-
-  const {data: flags} = useIntersectionFlags({
-    event,
+  const {flags} = useFlagsInEvent({
+    eventId: event?.id,
+    groupId: group.id,
     query: {
       start: eventView.start,
       end: eventView.end,
-      period: eventView.statsPeriod,
+      statsPeriod: eventView.statsPeriod,
     },
+    enabled: Boolean(event?.id && group.id),
   });
 
   const handleReleaseLineClick = useCallback(
@@ -300,7 +301,7 @@ export function EventGraph({
 
   const flagSeries = useFlagSeries({
     event,
-    flags,
+    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -320,6 +321,7 @@ export function EventGraph({
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartId: EVENT_GRAPH_WIDGET_ID,
+    eventId: event?.id,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -329,6 +331,7 @@ export function EventGraph({
         ? lastEventSeriesTimestamp + eventSeriesInterval
         : undefined,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
