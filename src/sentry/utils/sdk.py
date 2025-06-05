@@ -238,9 +238,8 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
 
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
 
-    event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {})[
-        "num_of_spans"
-    ] = num_of_spans
+    data = event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {})
+    data["num_of_spans"] = num_of_spans
 
     return event
 
