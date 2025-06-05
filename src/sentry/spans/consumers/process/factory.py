@@ -65,14 +65,16 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         committer = CommitOffsets(commit)
 
-        buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
+        buffer = SpansBuffer(
+            assigned_shards=[p.index for p in partitions],
+            max_flush_segments=self.max_flush_segments,
+        )
 
         # patch onto self just for testing
         flusher: ProcessingStrategy[FilteredPayload | int]
 
         flusher = self._flusher = SpanFlusher(
             buffer,
-            max_flush_segments=self.max_flush_segments,
             max_memory_percentage=self.max_memory_percentage,
             produce_to_pipe=self.produce_to_pipe,
             next_step=committer,

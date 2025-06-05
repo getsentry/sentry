@@ -32,20 +32,17 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     message), which are then used as a clock to determine whether segments have expired.
 
     :param topic: The topic to send segments to.
-    :param max_flush_segments: How many segments to flush at once in a single Redis call.
     :param produce_to_pipe: For unit-testing, produce to this multiprocessing Pipe instead of creating a kafka consumer.
     """
 
     def __init__(
         self,
         buffer: SpansBuffer,
-        max_flush_segments: int,
         max_memory_percentage: float,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
     ):
         self.buffer = buffer
-        self.max_flush_segments = max_flush_segments
         self.max_memory_percentage = max_memory_percentage
         self.next_step = next_step
 
@@ -78,7 +75,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.backpressure_since,
                 self.healthy_since,
                 self.buffer,
-                self.max_flush_segments,
                 self.produce_to_pipe,
             ),
             daemon=True,
@@ -95,7 +91,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         backpressure_since,
         healthy_since,
         buffer: SpansBuffer,
-        max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
         if initializer:
@@ -124,7 +119,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             while not stopped.value:
                 system_now = int(time.time())
                 now = system_now + current_drift.value
-                flushed_segments = buffer.flush_segments(now=now, max_segments=max_flush_segments)
+                flushed_segments = buffer.flush_segments(now=now)
 
                 # Check backpressure flag set by buffer
                 if buffer.any_shard_at_limit:
