@@ -82,8 +82,15 @@ export function ScreenshotCard({
   return (
     <StyledCard>
       <CardHeader>
-        <div>
-          <AttachmentName>{eventAttachment.name}</AttachmentName>
+        <ScreenshotInfo>
+          <AttachmentName
+            position="top"
+            title={eventAttachment.name}
+            showOnlyOnOverflow
+            skipWrapper
+          >
+            {eventAttachment.name}
+          </AttachmentName>
           <div>
             <DateTime date={eventAttachment.dateCreated} /> &middot;{' '}
             <Link
@@ -94,7 +101,7 @@ export function ScreenshotCard({
               </Tooltip>
             </Link>
           </div>
-        </div>
+        </ScreenshotInfo>
         <DropdownMenu
           items={[
             {
@@ -155,24 +162,33 @@ export function ScreenshotCard({
   );
 }
 
-const StyledCard = styled(Card)`
-  margin: 0;
+const ScreenshotInfo = styled('div')`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 `;
 
-const AttachmentName = styled('div')`
-  font-weight: bold;
+const StyledCard = styled(Card)`
+  margin: 0;
+  padding: ${space(1)} ${space(1.5)};
+`;
+
+const AttachmentName = styled(Tooltip)`
+  display: flex;
   ${p => p.theme.overflowEllipsis};
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 const CardHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  padding-bottom: ${space(1)};
+  flex-shrink: 0;
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.gray100};
-  padding: ${space(1)} ${space(1.5)};
   max-height: 250px;
   min-height: 250px;
   overflow: hidden;
@@ -189,6 +205,7 @@ const StyledPanelBody = styled(PanelBody)`
   align-items: center;
   justify-content: center;
   flex: 1;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledLoadingIndicator = styled('div')`
