@@ -25,7 +25,7 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {isSeer, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -249,6 +249,7 @@ function Overview({location, subscription, promotionData}: Props) {
                 totals={categoryTotals}
                 eventTotals={eventTotals}
                 showEventBreakdown={showEventBreakdown}
+                showAllTotals={!isSeer(category)}
                 reservedUnits={categoryHistory.reserved}
                 prepaidUnits={categoryHistory.prepaid}
                 freeUnits={categoryHistory.free}
@@ -308,6 +309,7 @@ function Overview({location, subscription, promotionData}: Props) {
               totals={categoryTotals}
               eventTotals={eventTotals}
               showEventBreakdown={showProductTrialEventBreakdown}
+              showAllTotals={!isSeer(pt.category)}
               subscription={subscription}
               organization={organization}
               displayMode={displayMode}

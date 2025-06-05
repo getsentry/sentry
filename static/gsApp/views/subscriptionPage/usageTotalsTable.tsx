@@ -18,7 +18,6 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   isContinuousProfiling,
-  isSeer,
 } from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
@@ -142,9 +141,16 @@ type Props = {
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
+  showAllTotals?: boolean;
 };
 
-function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+function UsageTotalsTable({
+  category,
+  isEventBreakdown,
+  totals,
+  subscription,
+  showAllTotals,
+}: Props) {
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
       ? toTitleCase(category, {allowInnerUpperCase: true})
@@ -200,7 +206,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           category={category}
           totals={totals}
         />
-        {!isSeer(category) && (
+        {showAllTotals && (
           <OutcomeSection
             isEventBreakdown={isEventBreakdown}
             name={totalDropped}

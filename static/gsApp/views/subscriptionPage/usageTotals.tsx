@@ -43,6 +43,7 @@ import {
   getChunkCategoryFromDuration,
   getPlanCategoryName,
   isContinuousProfiling,
+  isSeer,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
@@ -109,6 +110,10 @@ type UsageProps = {
    * The reserved amount or null if the account doesn't have this category.
    */
   reservedUnits?: number | null;
+  /**
+   * Show all totals
+   */
+  showAllTotals?: boolean;
   /**
    * Show event breakdown
    */
@@ -351,15 +356,12 @@ export function UsageTotals({
   freeUnits = 0,
   prepaidUnits = 0,
   reservedUnits = null,
-  // freeBudget = null,
-  // prepaidBudget = null,
-  // reservedBudget = null,
-  // reservedSpend = null,
   softCapType = null,
   totals = EMPTY_STAT_TOTAL,
   eventTotals = {},
   trueForward = false,
   showEventBreakdown = false,
+  showAllTotals = true,
   disableTable,
   displayMode,
 }: UsageProps) {
@@ -744,6 +746,7 @@ export function UsageTotals({
             category={category}
             totals={total}
             subscription={subscription}
+            showAllTotals={showAllTotals}
           />
 
           {showEventBreakdown &&
@@ -756,6 +759,7 @@ export function UsageTotals({
                   totals={eventTotal}
                   subscription={subscription}
                   data-test-id={`event-breakdown-${key}`}
+                  showAllTotals={showAllTotals}
                 />
               );
             })}
@@ -865,6 +869,8 @@ export function CombinedUsageTotals({
     (acc, categoryHistory) => acc + categoryHistory.reservedSpend,
     0
   );
+
+  const showAllTotals = !isSeer(firstCategory);
 
   function getTitle(): React.ReactNode | null {
     if (productTrial?.isStarted) {
@@ -1231,6 +1237,7 @@ export function CombinedUsageTotals({
                 category={category as DataCategory}
                 totals={allTotalsByCategory?.[category] ?? EMPTY_STAT_TOTAL}
                 subscription={subscription}
+                showAllTotals={showAllTotals}
               />
             );
           })}
