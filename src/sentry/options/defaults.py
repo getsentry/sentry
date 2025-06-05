@@ -2708,12 +2708,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.drop-in-buffer",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "indexed-spans.agg-span-waterfall.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

@@ -217,17 +217,6 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
-    "standalone-spans.drop-in-buffer": KillswitchInfo(
-        description="""
-        Drop spans.
-        """,
-        fields={
-            "org_id": "An org ID to filter spans by.",
-            "project_id": "A project ID.",
-            "trace_id": "A trace ID.",
-            "partition_id": "A kafka partition index.",
-        },
-    ),
 }
 
 
