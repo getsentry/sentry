@@ -200,6 +200,32 @@ export function calculateCategoryPrepaidUsage(
     subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
+  // If reservedCpe or reservedSpend aren't provided but category is in reservedBudgetCategories,
+  // try to extract them from subscription.reservedBudgets
+  let effectiveReservedCpe = reservedCpe ?? undefined;
+  let effectiveReservedSpend = reservedSpend ?? undefined;
+
+  if (
+    (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
+    subscription.reservedBudgetCategories?.includes(category)
+  ) {
+    // Look for the category in reservedBudgets
+    for (const budget of subscription.reservedBudgets || []) {
+      if (category in budget.categories) {
+        const categoryBudget = budget.categories[category];
+        if (categoryBudget) {
+          if (effectiveReservedCpe === undefined) {
+            effectiveReservedCpe = categoryBudget.reservedCpe;
+          }
+          if (effectiveReservedSpend === undefined) {
+            effectiveReservedSpend = categoryBudget.reservedSpend;
+          }
+          break;
+        }
+      }
+    }
+  }
+
   // Calculate the prepaid total
   let prepaidTotal: any;
   if (isUnlimitedReserved(prepaid)) {
@@ -215,9 +241,13 @@ export function calculateCategoryPrepaidUsage(
           ? MILLISECONDS_IN_HOUR
           : 1);
   }
-  const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
+
+  const hasReservedBudget = Boolean(
+    reservedCpe || typeof effectiveReservedSpend === 'number'
+  ); // reservedSpend can be 0
+
   const prepaidUsed = hasReservedBudget
-    ? (reservedSpend ?? usage * (reservedCpe ?? 0))
+    ? (effectiveReservedSpend ?? usage * (effectiveReservedCpe ?? 0))
     : usage;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
