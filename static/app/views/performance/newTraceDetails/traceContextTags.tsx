@@ -12,7 +12,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {sortAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  findSpanAttributeValue,
+  getTraceAttributesTreeActions,
+  sortAttributes,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type Props = {
@@ -34,6 +38,7 @@ export function TraceContextTags({rootEventResults}: Props) {
   }
 
   const eventDetails = rootEventResults.data!;
+
   const rendered = isTraceItemDetailsResponse(eventDetails) ? (
     <AttributesTree
       attributes={sortAttributes(eventDetails.attributes)}
@@ -42,6 +47,11 @@ export function TraceContextTags({rootEventResults}: Props) {
         location,
         organization,
       }}
+      getCustomActions={getTraceAttributesTreeActions({
+        location,
+        organization,
+        projectIds: findSpanAttributeValue(eventDetails.attributes, 'project_id'),
+      })}
     />
   ) : (
     <EventTagsTree
