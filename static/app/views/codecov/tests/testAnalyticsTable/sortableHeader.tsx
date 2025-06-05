@@ -25,7 +25,6 @@ function WrapToggle() {
 
   const toggle = useCallback(() => {
     const currentParams = Object.fromEntries(searchParams.entries());
-    // const wrap = wrapValue === 'false' ? 'true' : 'false';
     const updatedParams = {
       ...currentParams,
       wrap: (!wrapValue).toString(),
