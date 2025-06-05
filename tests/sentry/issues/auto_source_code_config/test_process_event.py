@@ -115,7 +115,7 @@ class BaseDeriveCodeMappings(TestCase):
         self,
         *,  # Force keyword arguments
         repo_trees: Mapping[str, Sequence[str]],
-        frames: Sequence[Mapping[str, str | bool | Any]],
+        frames: Sequence[Mapping[str, str | bool]],
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
@@ -227,15 +227,12 @@ class BaseDeriveCodeMappings(TestCase):
         module: str,
         abs_path: str,
         in_app: bool = False,
-    ) -> dict[str, str | bool | Any]:
-        frame: dict[str, str | bool | Any] = {}
-        if module:
-            frame["module"] = module
-        if abs_path:
-            frame["abs_path"] = abs_path
-        if in_app and in_app is not None:
-            frame["in_app"] = in_app
-        return frame
+    ) -> dict[str, str | bool]:
+        return {
+            "module": module,
+            "abs_path": abs_path,
+            "in_app": in_app,
+        }
 
     def code_mapping(
         self,

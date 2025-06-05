@@ -428,9 +428,10 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         stack_path = stack_path[1:]
 
     if stack_path == source_path:
+        # e.g. stack_path: foo/foo.py -> source_path: foo/foo.py
         return (stack_root, "")
     elif source_path.endswith(stack_path):
-        if len(source_path) > len(stack_path):
+        if stack_path.find("/") == NOT_FOUND:
             # If the source path is a single file, return the source path as the source root
             # e.g. stack_path: foo.py -> source_path: src/foo.py
             return ("", source_path.replace(stack_path, ""))
