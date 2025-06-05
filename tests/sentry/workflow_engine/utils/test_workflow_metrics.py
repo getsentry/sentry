@@ -6,7 +6,7 @@ from sentry.workflow_engine.utils.workflow_context import WorkflowContext
 
 
 @mock.patch("sentry.utils.metrics.incr")
-class TestMetrics(TestCase):
+class TestWorkflowEngineMetrics(TestCase):
     def test(self, mock_incr):
         metrics_incr("example.metric")
         mock_incr.assert_called_once_with("workflow_engine.example.metric", 1)
