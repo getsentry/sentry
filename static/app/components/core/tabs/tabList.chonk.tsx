@@ -10,7 +10,6 @@ import {tabsShouldForwardProp} from './utils';
 export const ChonkStyledTabListWrap = chonkStyled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
-  hideBorder: boolean;
   orientation: Orientation;
   variant: BaseTabProps['variant'];
 }>`
@@ -27,7 +26,7 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
           grid-auto-flow: column;
           justify-content: start;
           gap: ${p.theme.space.mini};
-          ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+          ${p.variant === 'flat' && `border-bottom: solid 1px ${p.theme.border};`}
         `
       : css`
           height: 100%;
@@ -35,6 +34,6 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
           align-content: start;
           gap: 1px;
           padding-right: ${space(0.5)};
-          ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+          ${p.variant === 'flat' && `border-right: solid 1px ${p.theme.border};`}
         `};
 `;

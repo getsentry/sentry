@@ -123,30 +123,6 @@ export default Storybook.story('Tabs', story => {
     );
   });
 
-  story('Rendering', () => (
-    <Storybook.PropMatrix<TabsProps<string> & TabListProps>
-      render={props => (
-        <Tabs orientation={props.orientation}>
-          <TabList hideBorder={props.hideBorder}>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
-          <TabPanels>
-            {TABS.map(tab => (
-              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-            ))}
-          </TabPanels>
-        </Tabs>
-      )}
-      propMatrix={{
-        orientation: ['horizontal', 'vertical'],
-        hideBorder: [false, true],
-      }}
-      selectedProps={['orientation', 'hideBorder']}
-    />
-  ));
-
   story('Disabled', () => (
     <Storybook.SideBySide>
       <div>
@@ -196,9 +172,8 @@ export default Storybook.story('Tabs', story => {
 
   story('Variants', () => {
     const propMatrix: Storybook.PropMatrix<TabsProps<string> & TabListProps> = {
-      hideBorder: [undefined, false, true],
-      orientation: [undefined, 'horizontal', 'vertical'],
-      variant: [undefined, 'flat', 'floating'],
+      orientation: ['horizontal', 'vertical'],
+      variant: ['flat', 'floating'],
     };
 
     return (
@@ -240,25 +215,6 @@ export default Storybook.story('Tabs', story => {
           )}
           propMatrix={propMatrix}
           selectedProps={['orientation', 'variant']}
-        />
-        <br />
-        <Storybook.PropMatrix<TabsProps<string> & TabListProps>
-          render={props => (
-            <Tabs>
-              <TabList variant={props.variant} hideBorder={props.hideBorder}>
-                {TABS.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
-              <TabPanels>
-                {TABS.map(tab => (
-                  <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-                ))}
-              </TabPanels>
-            </Tabs>
-          )}
-          propMatrix={propMatrix}
-          selectedProps={['hideBorder', 'variant']}
         />
       </div>
     );

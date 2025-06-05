@@ -126,6 +126,12 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
 
 export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
+  /**
+   * @deprecated
+   * With chonk, `flat` variants always have a border and `floating` variants never do.
+   * Whether to hide the bottom border of the tab list.
+   * Defaults to `false`.
+   */
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
   variant?: BaseTabProps['variant'];

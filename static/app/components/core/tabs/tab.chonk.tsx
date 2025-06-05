@@ -65,7 +65,9 @@ export const chonkInnerWrapStyles = ({
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
   padding: 10px ${orientation === 'horizontal' ? theme.space.xl : theme.space.md};
-  margin-bottom: ${theme.space.mini};
+  margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
+    ? theme.space.mini
+    : 0};
 
   ${orientation === 'horizontal'
     ? css`
@@ -76,7 +78,7 @@ export const chonkInnerWrapStyles = ({
         /**
           * To align the SelectionIndicator (2px width, 4px spacing)
           */
-        margin-left: 6px;
+        margin-left: ${variant === 'flat' ? '6px' : 0};
       `};
 
   li[aria-disabled]:hover & {
