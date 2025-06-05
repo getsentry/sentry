@@ -62,6 +62,7 @@ class WorkflowContext:
     ) -> Any:
         return getattr(cls.get(), variable_name)
 
+    @classmethod
     def reset(cls) -> None:
         # Reset all context variables to None
         cls.set()

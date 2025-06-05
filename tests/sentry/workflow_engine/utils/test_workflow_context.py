@@ -8,12 +8,12 @@ class MockContextualClass:
 
 
 class TestWorkflowContextUsage(TestCase):
-    def setUp(self):
-        self.workflow_context = WorkflowContext()
+    def tearDown(self):
+        WorkflowContext.reset()
 
     def test_usage_in_contextual_class(self):
         detector = self.create_detector()
-        self.workflow_context.set(detector=detector)
+        WorkflowContext.set(detector=detector)
 
         mock_cls = MockContextualClass()
         result = mock_cls.run()
@@ -21,30 +21,30 @@ class TestWorkflowContextUsage(TestCase):
 
 
 class TestWorkflowContext(TestCase):
-    def setUp(self):
-        self.workflow_context = WorkflowContext()
+    def tearDown(self):
+        WorkflowContext.reset()
 
     def test_set_and_get(self):
         detector = self.create_detector()
         organization = self.organization
         environment = self.create_environment()
 
-        self.workflow_context.set(
+        WorkflowContext.set(
             detector=detector,
             organization=organization,
             environment=environment,
         )
 
-        ctx = self.workflow_context.get()
+        ctx = WorkflowContext.get()
 
         assert ctx.detector == detector
         assert ctx.organization == organization
         assert ctx.environment == environment
 
     def test_partial_set(self):
-        self.workflow_context.set(organization=self.organization)
+        WorkflowContext.set(organization=self.organization)
 
-        ctx = self.workflow_context.get()
+        ctx = WorkflowContext.get()
 
         assert ctx.detector is None
         assert ctx.environment is None
@@ -55,16 +55,16 @@ class TestWorkflowContext(TestCase):
         organization = self.organization
         environment = self.create_environment()
 
-        self.workflow_context.set(
+        WorkflowContext.set(
             detector=detector,
             organization=organization,
             environment=environment,
         )
 
         # Reset context
-        self.workflow_context.reset()
+        WorkflowContext.reset()
 
-        ctx = self.workflow_context.get()
+        ctx = WorkflowContext.get()
 
         assert ctx.detector is None
         assert ctx.organization is None
