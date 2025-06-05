@@ -28,14 +28,18 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {IssueAlertOptionsProps} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
-  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {
   defaultCategory?: Category;
 };
+
+type AlertForm = Partial<
+  Pick<IssueAlertOptionsProps, 'alertSetting' | 'interval' | 'metric' | 'threshold'>
+>;
 
 export default function ProjectCreationModal({
   Header,
@@ -47,7 +51,7 @@ export default function ProjectCreationModal({
   const [projectName, setProjectName] = useState('');
   const [team, setTeam] = useState<string | undefined>(undefined);
   const [creating, setCreating] = useState(false);
-  const [alertForm, setAlertForm] = useState(DEFAULT_ISSUE_ALERT_OPTIONS_VALUES);
+  const [alertForm, setAlertForm] = useState<AlertForm>();
 
   const api = useApi();
   const organization = useOrganization();
@@ -148,10 +152,10 @@ export default function ProjectCreationModal({
         <Fragment>
           <Subtitle>{t('Set your alert frequency')}</Subtitle>
           <IssueAlertOptions
-            alertSetting={alertForm.alertSetting}
-            interval={alertForm.interval}
-            metric={alertForm.metric}
-            threshold={alertForm.threshold}
+            alertSetting={alertForm?.alertSetting}
+            interval={alertForm?.interval}
+            metric={alertForm?.metric}
+            threshold={alertForm?.threshold}
             onFieldChange={(field, value) => {
               setAlertForm(prev => ({
                 ...prev,

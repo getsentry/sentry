@@ -60,7 +60,7 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
-export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
+const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   alertSetting: RuleAction.DEFAULT_ALERT,
   interval: '1m',
   metric: MetricValues.ERRORS,
@@ -79,16 +79,16 @@ export type RequestDataFragment = {
 };
 
 export function getRequestDataFragment({
-  alertSetting,
-  interval,
-  metric,
-  threshold,
+  alertSetting = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.alertSetting,
+  interval = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.interval,
+  metric = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.metric,
+  threshold = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.threshold,
 }: {
-  alertSetting: RuleAction;
-  interval: string;
-  metric: MetricValues;
-  threshold: string;
-}): RequestDataFragment {
+  alertSetting?: RuleAction;
+  interval?: string;
+  metric?: MetricValues;
+  threshold?: string;
+} = {}): RequestDataFragment {
   return {
     defaultRules: alertSetting === RuleAction.DEFAULT_ALERT,
     shouldCreateRule: alertSetting !== RuleAction.CREATE_ALERT_LATER,
@@ -117,24 +117,24 @@ export function getRequestDataFragment({
 }
 
 export interface IssueAlertOptionsProps {
-  alertSetting: RuleAction;
-  interval: string;
-  metric: MetricValues;
   onFieldChange: <
     K extends keyof NonNullable<Omit<IssueAlertOptionsProps, 'onFieldChange'>>,
   >(
     key: K,
     value: IssueAlertOptionsProps[K]
   ) => void;
-  threshold: string;
+  alertSetting?: RuleAction;
+  interval?: string;
+  metric?: MetricValues;
   notificationProps?: IssueAlertNotificationProps;
+  threshold?: string;
 }
 
 export default function IssueAlertOptions({
-  alertSetting,
-  interval,
-  metric,
-  threshold,
+  alertSetting = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.alertSetting,
+  interval = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.interval,
+  metric = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.metric,
+  threshold = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.threshold,
   notificationProps,
   onFieldChange,
 }: IssueAlertOptionsProps) {

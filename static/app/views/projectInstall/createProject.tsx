@@ -49,17 +49,16 @@ import type {
   RequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
-  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
-  alertRule: Pick<
+  projectName: string;
+  alertRule?: Pick<
     IssueAlertOptionsProps,
     'alertSetting' | 'interval' | 'metric' | 'threshold'
   >;
-  projectName: string;
   platform?: Partial<OnboardingSelectedSDK>;
   team?: string;
 };
@@ -169,7 +168,7 @@ export function CreateProject() {
         projectName: createdProject.name ?? '',
         platform: createdProject.platform,
         team: createdProject.team ?? defaultTeam,
-        alertRule: createdProject.alertRule ?? DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+        alertRule: createdProject.alertRule,
       };
     }
 
@@ -177,7 +176,6 @@ export function CreateProject() {
       projectName: '',
       platform: undefined,
       team: defaultTeam,
-      alertRule: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
     };
   }, [autoFill, defaultTeam, createdProject]);
 
@@ -456,10 +454,10 @@ export function CreateProject() {
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
-            alertSetting={formData.alertRule.alertSetting}
-            interval={formData.alertRule.interval}
-            metric={formData.alertRule.metric}
-            threshold={formData.alertRule.threshold}
+            alertSetting={formData.alertRule?.alertSetting}
+            interval={formData.alertRule?.interval}
+            metric={formData.alertRule?.metric}
+            threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
             onFieldChange={(field, value) => {
               updateFormData('alertRule', {
