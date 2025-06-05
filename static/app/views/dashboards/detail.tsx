@@ -1255,7 +1255,7 @@ class DashboardDetail extends Component<Props, State> {
                                     },
                                   });
                                 }}
-                                onSave={() => {
+                                onSave={async () => {
                                   const newModifiedDashboard = {
                                     ...cloneDashboard(modifiedDashboard ?? dashboard),
                                     ...getCurrentPageFilters(location),
@@ -1265,7 +1265,7 @@ class DashboardDetail extends Component<Props, State> {
                                   };
                                   this.setState({isSavingDashboardFilters: true});
                                   addLoadingMessage(t('Saving dashboard filters'));
-                                  updateDashboard(
+                                  await updateDashboard(
                                     api,
                                     organization.slug,
                                     newModifiedDashboard

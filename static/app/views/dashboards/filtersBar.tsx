@@ -21,6 +21,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
+import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions} from './types';
@@ -36,7 +37,7 @@ type FiltersBarProps = {
   dashboardCreator?: User;
   dashboardPermissions?: DashboardPermissions;
   onCancel?: () => void;
-  onSave?: () => void;
+  onSave?: () => Promise<void>;
   shouldBusySaveButton?: boolean;
 };
 
@@ -64,6 +65,8 @@ export default function FiltersBar({
     dashboardPermissions,
     dashboardCreator
   );
+
+  const invalidateStarredDashboards = useInvalidateStarredDashboards();
 
   const selectedReleases =
     (defined(location.query?.[DashboardFilterKeys.RELEASE])
@@ -124,7 +127,10 @@ export default function FiltersBar({
                 !hasEditAccess && t('You do not have permission to edit this dashboard')
               }
               priority="primary"
-              onClick={onSave}
+              onClick={async () => {
+                await onSave?.();
+                invalidateStarredDashboards();
+              }}
               disabled={!hasEditAccess}
               busy={shouldBusySaveButton}
             >
