@@ -141,7 +141,7 @@ def schedule_webhook_delivery() -> None:
             .order_by("id")
             .values("id")[:MAX_MAILBOX_DRAIN]
         )
-        updated_count = WebhookPayloadReplica.filter(id__in=Subquery(mailbox_batch)).update(
+        updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
             schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
         )
         # If we have 1/5 or more in a mailbox we should process in parallel as we're likely behind.
