@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -73,7 +75,7 @@ export function ChartActionDropdown({
 
 type BaseProps = {
   alertMenuOptions: MenuItemProps[];
-  exploreUrl: string;
+  exploreUrl: LocationDescriptor;
 };
 
 export function BaseChartActionDropdown({alertMenuOptions, exploreUrl}: BaseProps) {
