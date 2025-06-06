@@ -9,6 +9,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
+import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
@@ -28,7 +29,7 @@ type AggregateKeyProps = {
 
 export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
   const fnName = getKeyName(token.key);
-  const fnParams = token.key.args?.text ?? '';
+  const fnParams = useAggregateParamVisual({token});
 
   return (
     <Fragment>

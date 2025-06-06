@@ -22,7 +22,7 @@ export default function ResourceLandingDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search}}
       id="resourceLandingDurationChartWidget"
       title={getDurationChartTitle('resource')}
       series={[data[`avg(${SPAN_SELF_TIME})`]]}
