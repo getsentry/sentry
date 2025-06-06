@@ -25,19 +25,17 @@ type Installation = {
 };
 
 type GithubInstallationProps = {
-  has_scm_multi_org: boolean;
   installation_info: Installation[];
   organization: Organization;
-  organization_slug: string;
 };
 
-const renderInstallationButton = ({
+function InstallationButton({
   handleSubmit,
   isSaving,
   installationID,
-  has_scm_multi_org,
-}: GithubInstallationInstallButtonProps) => {
-  if (installationID !== '-1' && !has_scm_multi_org) {
+  hasSCMMultiOrg,
+}: GithubInstallationInstallButtonProps) {
+  if (installationID !== '-1' && !hasSCMMultiOrg) {
     return (
       <FeatureDisabled
         features={['integrations-scm-multi-org']}
@@ -56,26 +54,25 @@ const renderInstallationButton = ({
       {t('Install')}
     </Button>
   );
-};
+}
 
 const InstallButtonHook = HookOrDefault({
   hookName: 'component:scm-multi-org-install-button',
-  defaultComponent: renderInstallationButton,
+  defaultComponent: InstallationButton,
 });
 
 export function GithubInstallationSelect({
   installation_info,
-  has_scm_multi_org,
-  organization_slug,
   organization,
 }: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>('-1');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const hasSCMMultiOrg = organization.features.includes('integrations-scm-multi-org');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const source = 'github.multi_org';
 
   const doesntRequireUpgrade = (id: SelectKey): boolean => {
-    return has_scm_multi_org || isSelfHosted || id === '-1';
+    return hasSCMMultiOrg || isSelfHosted || id === '-1';
   };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -158,10 +155,10 @@ export function GithubInstallationSelect({
         priority="primary"
         onClick={() => {
           trackAnalytics(`${source}.upsell`, {
-            organization: organization_slug,
+            organization: organization.slug,
           });
         }}
-        href={`${origin}/settings/${organization_slug}/billing/overview/?referrer=upgrade-${source}`}
+        href={`${origin}/settings/${organization.slug}/billing/overview/?referrer=upgrade-${source}`}
         disabled={isSaving || !installationID || isSelfHosted}
       >
         {t('Upgrade')}
@@ -188,7 +185,7 @@ export function GithubInstallationSelect({
         <ButtonContainer>
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
-              has_scm_multi_org={has_scm_multi_org}
+              hasSCMMultiOrg={hasSCMMultiOrg}
               installationID={installationID}
               isSaving={isSaving}
               handleSubmit={handleSubmit}

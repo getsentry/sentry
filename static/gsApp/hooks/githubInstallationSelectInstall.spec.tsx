@@ -26,7 +26,7 @@ describe('GithubInstallationSelectInstallButton', () => {
 
   const defaultProps = {
     handleSubmit: jest.fn(),
-    has_scm_multi_org: true,
+    hasSCMMultiOrg: true,
     installationID: '-1',
     isSaving: false,
     subscription,
@@ -53,7 +53,7 @@ describe('GithubInstallationSelectInstallButton', () => {
       <GithubInstallationSelectInstallButton
         {...defaultProps}
         installationID="123"
-        has_scm_multi_org={false}
+        hasSCMMultiOrg={false}
       />
     );
     expect(screen.getByText('Upgrade')).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('GithubInstallationSelectInstallButton', () => {
       <GithubInstallationSelectInstallButton
         {...defaultProps}
         installationID="123"
-        has_scm_multi_org
+        hasSCMMultiOrg
       />
     );
     expect(screen.getByText('Install')).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('GithubInstallationSelectInstallButton', () => {
     render(
       <GithubInstallationSelectInstallButton
         {...defaultProps}
-        has_scm_multi_org={false}
+        hasSCMMultiOrg={false}
         installationID="1"
       />
     );

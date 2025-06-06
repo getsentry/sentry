@@ -16,14 +16,14 @@ import type {Subscription} from 'getsentry/types';
 
 type Props = {
   handleSubmit: (e: React.MouseEvent) => void;
-  has_scm_multi_org: boolean;
+  hasSCMMultiOrg: boolean;
   installationID: SelectKey;
   isSaving: boolean;
   subscription: Subscription;
 };
 
 function GithubInstallationSelectInstallButton({
-  has_scm_multi_org,
+  hasSCMMultiOrg,
   installationID,
   subscription,
   handleSubmit,
@@ -36,7 +36,7 @@ function GithubInstallationSelectInstallButton({
     mainContainerRef.current?.focus?.();
   }, []);
 
-  if (installationID === '-1' || has_scm_multi_org) {
+  if (installationID === '-1' || hasSCMMultiOrg) {
     return (
       <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
         {t('Install')}

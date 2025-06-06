@@ -14,9 +14,7 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org
-        organization_slug="le-org"
-        organization={OrganizationFixture()}
+        organization={OrganizationFixture({features: ['integrations-scm-multi-org']})}
       />
     );
 
@@ -45,9 +43,7 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org
-        organization_slug="le-org"
-        organization={OrganizationFixture()}
+        organization={OrganizationFixture({features: ['integrations-scm-multi-org']})}
       />
     );
     // Click the select dropdown
@@ -60,6 +56,7 @@ describe('GithubInstallationSelect', () => {
     // Select an installation
     await userEvent.click(screen.getByText('bufo-bot'));
 
+    screen.logTestingPlaygroundURL();
     // Install button should be enabled
     expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
@@ -77,8 +74,6 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org
-        organization_slug="le-org"
         organization={OrganizationFixture()}
       />
     );
@@ -98,12 +93,10 @@ describe('GithubInstallationSelect', () => {
     );
   });
 
-  it('renders tooltip and adds the upsell if user is not on biz plan', async () => {
+  it('renders the upsell if user is not on biz plan', async () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org={false}
-        organization_slug="le-org"
         organization={OrganizationFixture()}
       />
     );

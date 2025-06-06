@@ -155,7 +155,7 @@ export type MembershipSettingsProps = {
 };
 export type GithubInstallationInstallButtonProps = {
   handleSubmit: (e: React.MouseEvent) => void;
-  has_scm_multi_org: boolean;
+  hasSCMMultiOrg: boolean;
   installationID: SelectKey;
   isSaving: boolean;
 };
