@@ -8,56 +8,8 @@ import DontAccentColors from 'sentry-images/stories/color/dont-accent-colors.svg
 import DontContrast from 'sentry-images/stories/color/dont-contrast.svg';
 import DontDifferentiation from 'sentry-images/stories/color/dont-differentiation.svg';
 
-import {IconCheckmark, IconClose} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
-
-export const GRAY_PALETTES = [
-  [{color: 'gray500', text: 'lightModeWhite'}],
-  [{color: 'gray400', text: 'lightModeWhite'}],
-  [{color: 'gray300', text: 'lightModeWhite'}],
-  [{color: 'gray200', text: 'lightModeBlack'}],
-  [{color: 'gray100', text: 'lightModeBlack'}],
-];
-
-export const LEVELS_PALETTES = [
-  [
-    {color: 'purple400', text: 'lightModeWhite'},
-    {color: 'purple300', text: 'lightModeWhite'},
-    {color: 'purple200', text: 'lightModeBlack'},
-    {color: 'purple100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'blue400', text: 'lightModeWhite'},
-    {color: 'blue300', text: 'lightModeWhite'},
-    {color: 'blue200', text: 'lightModeBlack'},
-    {color: 'blue100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'green400', text: 'lightModeWhite'},
-    {color: 'green300', text: 'lightModeBlack'},
-    {color: 'green200', text: 'lightModeBlack'},
-    {color: 'green100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'yellow400', text: 'lightModeBlack'},
-    {color: 'yellow300', text: 'lightModeBlack'},
-    {color: 'yellow200', text: 'lightModeBlack'},
-    {color: 'yellow100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'red400', text: 'lightModeWhite'},
-    {color: 'red300', text: 'lightModeWhite'},
-    {color: 'red200', text: 'lightModeBlack'},
-    {color: 'red100', text: 'lightModeBlack'},
-  ],
-  [
-    {color: 'pink400', text: 'lightModeWhite'},
-    {color: 'pink300', text: 'lightModeWhite'},
-    {color: 'pink200', text: 'lightModeBlack'},
-    {color: 'pink100', text: 'lightModeBlack'},
-  ],
-];
 
 export const ExampleCardGrid = styled('figcaption')`
   display: grid;
@@ -123,7 +75,16 @@ Here are the recommended use cases:
 - **Gray 100:** dividers and borders around small elements (buttons, form inputs). \*/}
 
 <Storybook.ThemeToggle>
-  <ColorPalette name="grays" palette={GRAY_PALETTES} />
+  <ColorPalette
+    name="grays"
+    palette={[
+      [{color: 'gray500', text: 'lightModeWhite'}],
+      [{color: 'gray400', text: 'lightModeWhite'}],
+      [{color: 'gray300', text: 'lightModeWhite'}],
+      [{color: 'gray200', text: 'lightModeBlack'}],
+      [{color: 'gray100', text: 'lightModeBlack'}],
+    ]}
+  />
 </Storybook.ThemeToggle>
 
 ## Accent Colors
@@ -151,7 +112,47 @@ Each hue comes in 4 levels: 400 (dark), 300 (full opacity), 200 (medium opacity)
 - **The 100 level** has very low opacity, useful as background fills.
 
 <Storybook.ThemeToggle>
-  <ColorPalette name="levels" palette={LEVELS_PALETTES} />
+  <ColorPalette
+    name="levels"
+    palette={[
+      [
+        {color: 'purple400', text: 'lightModeWhite'},
+        {color: 'purple300', text: 'lightModeWhite'},
+        {color: 'purple200', text: 'lightModeBlack'},
+        {color: 'purple100', text: 'lightModeBlack'},
+      ],
+      [
+        {color: 'blue400', text: 'lightModeWhite'},
+        {color: 'blue300', text: 'lightModeWhite'},
+        {color: 'blue200', text: 'lightModeBlack'},
+        {color: 'blue100', text: 'lightModeBlack'},
+      ],
+      [
+        {color: 'green400', text: 'lightModeWhite'},
+        {color: 'green300', text: 'lightModeBlack'},
+        {color: 'green200', text: 'lightModeBlack'},
+        {color: 'green100', text: 'lightModeBlack'},
+      ],
+      [
+        {color: 'yellow400', text: 'lightModeBlack'},
+        {color: 'yellow300', text: 'lightModeBlack'},
+        {color: 'yellow200', text: 'lightModeBlack'},
+        {color: 'yellow100', text: 'lightModeBlack'},
+      ],
+      [
+        {color: 'red400', text: 'lightModeWhite'},
+        {color: 'red300', text: 'lightModeWhite'},
+        {color: 'red200', text: 'lightModeBlack'},
+        {color: 'red100', text: 'lightModeBlack'},
+      ],
+      [
+        {color: 'pink400', text: 'lightModeWhite'},
+        {color: 'pink300', text: 'lightModeWhite'},
+        {color: 'pink200', text: 'lightModeBlack'},
+        {color: 'pink100', text: 'lightModeBlack'},
+      ],
+    ]}
+  />
 </Storybook.ThemeToggle>
 
 ## Accessibility
