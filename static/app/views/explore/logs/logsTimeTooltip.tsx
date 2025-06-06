@@ -24,7 +24,7 @@ function TimestampTooltipBody({
 }) {
   const preciseTimestamp = attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
   const preciseTimestampMs = preciseTimestamp
-    ? Math.floor(Number(preciseTimestamp) / 1_000_000)
+    ? Number(preciseTimestamp) / 1_000_000
     : null;
   const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
 
@@ -43,7 +43,9 @@ function TimestampTooltipBody({
           <AutoSelectText>
             <DateTime date={timestampToUse} seconds milliseconds timeZone />
           </AutoSelectText>
-          {preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)}
+          <TimestampLabel>
+            ({preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)})
+          </TimestampLabel>
         </TimestampValues>
       </dd>
 
@@ -76,9 +78,17 @@ export default function LogsTimestampTooltip({
     return <Fragment>{children}</Fragment>;
   }
 
+  const handleTooltipPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <Tooltip
-      title={<TimestampTooltipBody timestamp={timestamp} attributes={attributes} />}
+      title={
+        <div onPointerUp={handleTooltipPointerUp}>
+          <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
+        </div>
+      }
       maxWidth={400}
       isHoverable
     >
@@ -107,4 +117,8 @@ const HorizontalRule = styled('hr')`
   margin: ${space(0.5)} 0;
   border: none;
   border-top: 1px solid ${p => p.theme.border};
+`;
+
+const TimestampLabel = styled('span')`
+  color: ${p => p.theme.gray400};
 `;
