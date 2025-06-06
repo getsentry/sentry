@@ -14,7 +14,6 @@ from sentry.discover.translation.mep_to_eap import (
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetQuery
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsResponse, SnubaParams
 from sentry.snuba import metrics_enhanced_performance, spans_rpc
@@ -97,16 +96,12 @@ def compare_tables_for_dashboard_widget_queries(
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
     organization: Organization = dashboard.organization
-    projects: list[Project] = list(dashboard.projects.all())
-    if len(list(projects)) == 0:
-        return {
-            "passed": False,
-            "reason": CompareTableResult.NO_PROJECT,
-            "fields": None,
-            "widget_query": widget_query,
-            "mismatches": None,
-            "query": None,
-        }
+    projects = dashboard.projects.all()
+
+    if not projects.exists():
+        projects_list = []
+    else:
+        projects_list = list(projects)
 
     fields = widget_query.fields
     if len(fields) == 0:
@@ -127,7 +122,7 @@ def compare_tables_for_dashboard_widget_queries(
 
     snuba_params = SnubaParams(
         environments=environments,
-        projects=list(projects),
+        projects=projects_list,
         organization=organization,
         stats_period="7d",
     )
