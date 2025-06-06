@@ -103,6 +103,11 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
         """
+        # TODO - Update this method to return a dict | DetectorEvaluationResult
+        # TODO - Add a base implementation of evaluate
+        # extract_value, and make sure the grouping bits are preserved
+        # move logic from _evaluate_value to this class and call here
+        # return the results from _evaluate_value
         pass
 
     @abc.abstractmethod
