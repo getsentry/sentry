@@ -105,7 +105,7 @@ class SQLInjectionDetector(PerformanceDetector):
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if value in description:
+            if key in description and value in description:
                 description = description.replace(value, "?")
                 vulnerable_parameters.append(key)
 
@@ -128,7 +128,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": vulnerable_parameters,
+                "vulnerable_parameters": list(set(vulnerable_parameters)),
                 "request_url": self.request_url,
             },
             evidence_display=[
