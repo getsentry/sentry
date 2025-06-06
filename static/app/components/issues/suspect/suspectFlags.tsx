@@ -25,7 +25,6 @@ const loadingLabels = [
 ];
 
 export default function SuspectFlags({isPending, susFlags}: Props) {
-  console.log('<SuspectFlags>', {isPending, susFlags});
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
   const loadingLabelRef = useRef(
@@ -55,6 +54,11 @@ export default function SuspectFlags({isPending, susFlags}: Props) {
       <TagHeader>{t('Suspect Flags')}</TagHeader>
 
       <TagValueGrid>
+        <TagValueRow>
+          <strong>{t('Flag Name')}</strong>
+          <strong>{t('Value')}</strong>
+          <strong>{t('Rollout')}</strong>
+        </TagValueRow>
         {susFlags.map(flag => {
           const topValue = flag.topValues[0];
 
@@ -79,12 +83,10 @@ export default function SuspectFlags({isPending, susFlags}: Props) {
                   {flag.key}
                 </StyledLink>
               </Tooltip>
+              <span>{topValue?.value}</span>
               <RightAligned>
                 {toRoundedPercent((topValue?.count ?? 0) / flag.totalValues)}
               </RightAligned>
-              <span>{topValue?.value}</span>
-              {/* <RightAligned>{flag.totalValues}</RightAligned>
-              <span>{flag.suspect.baselinePercent}</span> */}
             </TagValueRow>
           );
         })}
@@ -105,8 +107,8 @@ const TagHeader = styled('h4')`
 
 const TagValueGrid = styled('ul')`
   display: grid;
-  grid-template-columns: auto max-content max-content;
-  gap: ${space(0.25)} ${space(0.5)};
+  grid-template-columns: auto repeat(3, max-content);
+  gap: ${space(0.25)} ${space(1)};
   margin: 0;
   padding: 0;
   list-style: none;

@@ -46,10 +46,6 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
           label: t('Alphabetical'),
           value: SortBy.ALPHABETICAL,
         },
-        // {
-        //   label: t('Suspiciousness'),
-        //   value: SortBy.SUSPICION,
-        // },
         {
           label: t('Distribution'),
           value: SortBy.DISTRIBUTION,
@@ -148,7 +144,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
 
         {tagKey ? (
           <AnalyticsArea name="feature_flag_details">
-            <FlagDetailsDrawerContent />
+            <FlagDetailsDrawerContent group={group} />
           </AnalyticsArea>
         ) : (
           <AnalyticsArea name="feature_flag_distributions">

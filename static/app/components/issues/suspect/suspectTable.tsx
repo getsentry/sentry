@@ -16,8 +16,6 @@ export default function SuspectTable({environments, group}: Props) {
     group,
   });
 
-  console.log('<SuspectTable>', {displayFlags, isPending, susFlags});
-
   if (!displayFlags) {
     return null;
   }

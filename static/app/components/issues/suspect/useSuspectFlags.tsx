@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Group} from 'sentry/types/group';
-// import {trackAnalytics} from 'sentry/utils/analytics';
-// import useOrganization from 'sentry/utils/useOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 
 interface Props {
@@ -12,9 +12,9 @@ interface Props {
 }
 
 export default function useSuspectFlags({environments, group}: Props) {
-  // const organization = useOrganization();
+  const organization = useOrganization();
 
-  const {displayFlags, isPending} = useGroupFlagDrawerData({
+  const {displayFlags, isPending: isDrawerDataPending} = useGroupFlagDrawerData({
     environments,
     group,
     orderBy: OrderBy.HIGH_TO_LOW,
@@ -22,7 +22,7 @@ export default function useSuspectFlags({environments, group}: Props) {
     sortBy: SortBy.DISTRIBUTION,
   });
 
-  const susFlags = useMemo(() => {
+  const filteredFlags = useMemo(() => {
     return displayFlags.filter(flag => {
       const uniqueBaselineValueCount = Object.keys(
         flag.distribution?.baseline ?? {}
@@ -30,30 +30,43 @@ export default function useSuspectFlags({environments, group}: Props) {
       const uniqueOutlierValueCount = Object.keys(
         flag.distribution?.outliers ?? {}
       ).length;
+      // const outlierExamples = Object.values(flag.distribution?.outliers).at(0);
+      const everyExampleIncludesFlag = group.userCount < flag.totalValues;
       return (
         uniqueOutlierValueCount === 1 &&
         uniqueBaselineValueCount > 1 &&
-        group.userCount < flag.totalValues
+        everyExampleIncludesFlag
+        // outlierExamples === Number(group.count)
       );
     });
   }, [displayFlags, group.userCount]);
 
-  // useEffect(() => {
-  //   if (!isPending) {
-  //     trackAnalytics('flags.suspect_flags_v2_found', {
-  //       numTotalFlags: displayFlags.length,
-  //       numSuspectFlags: susFlags.length,
-  //       organization,
-  //       threshold: 0,
-  //     });
-  //   }
-  // }, [isPending, organization, displayFlags.length, susFlags.length]);
+  const {data: flagsDates, isPending: isFlagsDatesPending} = useOrganizationFlagLog({
+    organization,
+    query: {
+      flag: filteredFlags.map(flag => flag.key),
+    },
+    enabled: !isDrawerDataPending && filteredFlags.length > 0,
+  });
 
-  console.log('useSuspectFlags', {group, displayFlags, susFlags, isPending});
+  const flagsWithChanges = useMemo(() => {
+    return filteredFlags.map(flag => ({
+      ...flag,
+      changes: flagsDates?.data?.filter(date => date.flag === flag.key),
+      changeBeforeFirstSeen: flagsDates?.data?.filter(
+        date => date.flag === flag.key && date.createdAt < group.firstSeen
+      ),
+    }));
+  }, [filteredFlags, flagsDates, group.firstSeen]);
+
+  const susFlags = useMemo(
+    () => flagsWithChanges.filter(flag => flag.changes?.length),
+    [flagsWithChanges]
+  );
 
   return {
     displayFlags,
-    isPending,
     susFlags,
+    isPending: isDrawerDataPending || isFlagsDatesPending,
   };
 }
