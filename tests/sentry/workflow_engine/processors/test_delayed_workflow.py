@@ -535,7 +535,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
         mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
 
         unique_query = UniqueConditionQuery(
-            handler=lambda: mock_handler,
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
             interval="1h",
             environment_id=None,
         )
