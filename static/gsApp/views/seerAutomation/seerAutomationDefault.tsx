@@ -9,7 +9,10 @@ import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {autofixAutomatingTuningField} from 'sentry/views/settings/projectSeer';
+import {
+  autofixAutomatingTuningField,
+  seerScannerAutomationField,
+} from 'sentry/views/settings/projectSeer';
 
 const SeerSelectLabel = styled('div')`
   margin-bottom: ${space(0.5)};
@@ -20,22 +23,15 @@ export function SeerAutomationDefault() {
   const canWrite = hasEveryAccess(['org:write'], {organization});
 
   const orgDefaultScannerAutomation: FieldObject = {
+    ...seerScannerAutomationField,
     name: 'defaultSeerScannerAutomation',
     label: <SeerSelectLabel>{t('Default for Automatic Issue Scans')}</SeerSelectLabel>,
-    help: t(
-      'Seer can scan all new issues in your project, helping you focus on the most actionable and quick-to-fix ones, giving more context in Slack alerts, and enabling automatic Issue Fixes.'
-    ),
-    type: 'boolean',
-    saveOnBlur: true,
   };
 
   const orgDefaultAutomationTuning = {
     ...autofixAutomatingTuningField,
     name: 'defaultAutofixAutomationTuning',
     label: <SeerSelectLabel>{t('Default for Automatic Issue Fixes')}</SeerSelectLabel>,
-    help: t(
-      "Seer will find a root cause and solution for new issues that it thinks are actionable enough, but won't automatically open PRs."
-    ),
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
