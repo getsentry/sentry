@@ -3,11 +3,10 @@ import {useTheme} from '@emotion/react';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import NoEvents from './noEvents';
 
@@ -25,7 +24,6 @@ function ProjectChart({firstEvent, stats, transactionStats, onBarClick, project}
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
   const navigate = useNavigate();
-  const organization = useOrganization();
 
   const theme = useTheme();
 
@@ -70,8 +68,7 @@ function ProjectChart({firstEvent, stats, transactionStats, onBarClick, project}
       type: 'bar',
       data: stats.map(([timestamp, value]) => ({
         value: [timestamp * 1000, value],
-        onClick: () =>
-          navigate(constructErrorsLink(organization, project, timestamp * 1000)),
+        onClick: () => navigate(constructErrorsLink(project, timestamp * 1000)),
       })),
       barMinHeight: 1,
       xAxisIndex: 0,
@@ -185,15 +182,13 @@ function ProjectChart({firstEvent, stats, transactionStats, onBarClick, project}
   );
 }
 
-const constructErrorsLink = (
-  organization: Organization,
-  project: Project,
-  timestamp: number
-) => {
+const constructErrorsLink = (project: Project, timestamp: number) => {
   const start = new Date(timestamp);
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
-  return `/organizations/${organization.slug}/issues/?project=${project.id}&start=${start.toISOString()}&end=${end.toISOString()}`;
+  return normalizeUrl(
+    `/issues/?project=${project.id}&start=${start.toISOString()}&end=${end.toISOString()}`
+  );
 };
 
 export default ProjectChart;
