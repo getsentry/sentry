@@ -277,17 +277,15 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </p>
-              <p>
-                <List symbol="bullet">
-                  <ListItem>{t('Environment variables (recommended)')}</ListItem>
-                  <ListItem>
-                    {tct(
-                      'A [code:sentry.properties] file (automatically created by the Unreal Engine SDK)',
-                      {code: <code />}
-                    )}
-                  </ListItem>
-                </List>
-              </p>
+              <List symbol="bullet">
+                <ListItem>{t('Environment variables (recommended)')}</ListItem>
+                <ListItem>
+                  {tct(
+                    'A [code:sentry.properties] file (automatically created by the Unreal Engine SDK)',
+                    {code: <code />}
+                  )}
+                </ListItem>
+              </List>
               <p>
                 {tct(
                   'If the properties file is not found, [code:sentry-cli] will fall back to these environment variables if they are set:',
