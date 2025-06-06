@@ -38,7 +38,7 @@ from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers im
     QueryResult,
     slow_condition_query_handler_registry,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
@@ -429,9 +429,9 @@ def fire_actions_for_groups(
         for group, group_event in group_to_groupevent.items():
             with tracker.track(str(group.id)):
                 event_data = WorkflowEventData(event=group_event)
-                detector = get_detector_by_event(event_data)
-
-                if not detector:
+                try:
+                    detector = get_detector_by_event(event_data)
+                except Detector.DoesNotExist:
                     metrics.incr("workflow_engine.delayed_workflow.no_detector")
 
                     logger.warning(
