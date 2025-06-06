@@ -1177,8 +1177,11 @@ describe('AM2 Checkout', function () {
      * Test for the trial checkout slider fix. When subscription.isTrial is true,
      * the checkout should use default volumes instead of trial reserved volumes.
      */
-    const trialSub = SubscriptionFixture({
-      organization,
+    const trialSub = SubscriptionWithSeerFixture({
+      organization: {
+        ...organization,
+        features: [...organization.features, 'seer-billing'],
+      },
       plan: 'am2_business',
       planTier: 'am2',
       isTrial: true,
@@ -1246,6 +1249,10 @@ describe('AM2 Checkout', function () {
     );
     expect(replaysValue).toBe(500); // Should be much less than trial volume
     expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
+
+    const seerProduct = await screen.findByTestId('product-option-seer');
+    const seerButton = within(seerProduct).getByRole('button');
+    expect(seerButton).toHaveTextContent('Add for $20/mo');
   });
 
   it('continues to use reserved volumes for non-trial subscriptions', async function () {
@@ -1253,8 +1260,11 @@ describe('AM2 Checkout', function () {
      * Regression test to ensure non-trial subscriptions still work as expected
      * and use their actual reserved volumes in checkout.
      */
-    const nonTrialSub = SubscriptionFixture({
-      organization,
+    const nonTrialSub = SubscriptionWithSeerFixture({
+      organization: {
+        ...organization,
+        features: [...organization.features, 'seer-billing'],
+      },
       plan: 'am2_business',
       planTier: 'am2',
       isTrial: false, // NOT a trial subscription
@@ -1320,6 +1330,10 @@ describe('AM2 Checkout', function () {
     // Verify onDemand also uses actual value
     await userEvent.click(screen.getByText('On-Demand Max Spend'));
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('30');
+
+    const seerProduct = await screen.findByTestId('product-option-seer');
+    const seerButton = within(seerProduct).getByRole('button');
+    expect(seerButton).toHaveTextContent('Added to plan');
   });
 });
 

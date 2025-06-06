@@ -480,7 +480,7 @@ class AMCheckout extends Component<Props, State> {
         )
       ) {
         data.selectedProducts[budget.apiName as string as SelectableProduct] = {
-          enabled: budget.reservedBudget > 0,
+          enabled: budget.reservedBudget > 0 && !subscription.isTrial,
         };
       }
     });
