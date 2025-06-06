@@ -2,17 +2,18 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {type IntegrationAction, IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export const providerDetails = {
@@ -77,8 +78,8 @@ export type IssueAlertNotificationProps = {
 };
 
 export function useCreateNotificationAction() {
-  const api = useApi();
   const organization = useOrganization();
+  const createProjectRules = useCreateProjectRules();
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
@@ -120,15 +121,6 @@ export function useCreateNotificationAction() {
     }
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
 
-  type Props = {
-    actionMatch: string | undefined;
-    conditions: Array<{id: string; interval: string; value: string}> | undefined;
-    frequency: number | undefined;
-    name: string | undefined;
-    projectSlug: string;
-    shouldCreateRule: boolean | undefined;
-  };
-
   const createNotificationAction = useCallback(
     ({
       shouldCreateRule,
@@ -137,7 +129,7 @@ export function useCreateNotificationAction() {
       conditions,
       actionMatch,
       frequency,
-    }: Props) => {
+    }: Partial<RequestDataFragment> & {projectSlug: string}) => {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
@@ -174,18 +166,16 @@ export function useCreateNotificationAction() {
           return undefined;
       }
 
-      return api.requestPromise(`/projects/${organization.slug}/${projectSlug}/rules/`, {
-        method: 'POST',
-        data: {
-          name,
-          conditions,
-          actions: [integrationAction],
-          actionMatch,
-          frequency,
-        },
+      return createProjectRules.mutateAsync({
+        projectSlug,
+        name,
+        conditions,
+        actions: [integrationAction],
+        actionMatch,
+        frequency,
       });
     },
-    [actions, api, provider, integration, channel, organization.slug]
+    [actions, provider, integration, channel, createProjectRules]
   );
 
   return {

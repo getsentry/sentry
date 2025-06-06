@@ -223,9 +223,12 @@ class TestKeyBuilders(unittest.TestCase):
     def test(self):
         assert (
             self.build_handler().state_manager.build_key("test", "dedupe_value")
-            == "123:test:dedupe_value"
+            == "detector:123:test:dedupe_value"
         )
-        assert self.build_handler().state_manager.build_key("test", "name_1") == "123:test:name_1"
+        assert (
+            self.build_handler().state_manager.build_key("test", "name_1")
+            == "detector:123:test:name_1"
+        )
 
     def test_different_dedupe_keys(self):
         handler = self.build_handler()
@@ -446,7 +449,6 @@ class TestEvaluate(BaseDetectorHandlerTest):
     def test_above_below_threshold(self):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
-        handler.state_manager.commit_state_updates()
 
         detector_occurrence, _ = build_mock_occurrence_and_event(
             handler, "val1", PriorityLevel.HIGH
@@ -478,7 +480,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 group_key="val1",
                 is_triggered=False,
                 result=StatusChangeMessage(
-                    fingerprint=[f"{handler.detector.id}:val1"],
+                    fingerprint=[f"detector:{handler.detector.id}:val1"],
                     project_id=self.project.id,
                     new_status=1,
                     new_substatus=None,
@@ -605,7 +607,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
 
 
 @freeze_time()
-class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
+class TestEvaluateGroupValue(BaseDetectorHandlerTest):
     def test_dedupe(self):
         handler = self.build_handler()
         with mock.patch(
@@ -633,38 +635,46 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                 result=issue_occurrence,
                 event_data=event_data,
             )
-            assert (
-                handler.evaluate_group_key_value(
-                    expected_result.group_key,
-                    10,
-                    DetectorStateData(
-                        "group_key",
-                        False,
-                        DetectorPriorityLevel.OK,
-                        99,
-                        {},
-                    ),
-                    100,
-                    DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
-                )
-                == expected_result
+
+            handler.state_manager.enqueue_state_update(
+                "group_key",
+                False,
+                DetectorPriorityLevel.OK,
             )
+            handler.state_manager.enqueue_dedupe_update("group_key", 99)
+            handler.state_manager.commit_state_updates()
+
+            data_packet = DataPacket[dict](
+                source_id="1234",
+                packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
+            )
+            result = handler.evaluate(data_packet)
+            if not result:
+                raise AssertionError("Expected result to not be empty")
+
+            assert result["group_key"] == expected_result
             assert not mock_metrics.incr.called
-            assert (
-                handler.evaluate_group_key_value(
-                    expected_result.group_key,
-                    1,
-                    DetectorStateData(
-                        "group_key",
-                        False,
-                        DetectorPriorityLevel.OK,
-                        100,
-                        {},
-                    ),
-                    100,
-                    DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
-                )
-                is None
+
+    def test_dedupe__already_processed(self):
+        handler = self.build_handler()
+
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector.stateful.metrics"
+        ) as mock_metrics:
+            handler.state_manager.enqueue_state_update(
+                "group_key",
+                False,
+                DetectorPriorityLevel.OK,
+            )
+
+            handler.state_manager.enqueue_dedupe_update("group_key", 100)
+            handler.state_manager.commit_state_updates()
+
+            handler.evaluate(
+                DataPacket[dict](
+                    source_id="1234",
+                    packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
+                ),
             )
             mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_already_processed_update"
@@ -672,41 +682,31 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
 
     def test_status_change(self):
         handler = self.build_handler()
-        result = handler.evaluate_group_key_value(
-            "group_key",
-            0,
-            DetectorStateData(
-                "group_key",
-                False,
-                DetectorPriorityLevel.OK,
-                1,
-                {},
-            ),
-            2,
-            DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
+        data_packet = DataPacket[dict](
+            source_id="1234", packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100}
         )
 
-        assert result is None
-        assert handler.evaluate_group_key_value(
-            "group_key",
-            0,
-            DetectorStateData(
-                "group_key",
-                True,
-                DetectorPriorityLevel.HIGH,
-                1,
-                {},
-            ),
-            2,
-            DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
-        ) == DetectorEvaluationResult(
-            "group_key",
-            False,
-            DetectorPriorityLevel.OK,
-            result=StatusChangeMessage(
-                fingerprint=[f"{handler.detector.id}:group_key"],
-                project_id=self.project.id,
-                new_status=1,
-                new_substatus=None,
-            ),
-        )
+        assert handler.state_manager.get_state_data(["group_key"]) == {
+            "group_key": DetectorStateData(
+                group_key="group_key",
+                is_triggered=False,
+                status=DetectorPriorityLevel.OK,
+                dedupe_value=0,
+                counter_updates={level: None for level in handler._thresholds},
+            )
+        }
+
+        handler.evaluate(data_packet)
+
+        assert handler.state_manager.get_state_data(["group_key"]) == {
+            "group_key": DetectorStateData(
+                group_key="group_key",
+                is_triggered=True,
+                status=DetectorPriorityLevel.HIGH,
+                dedupe_value=100,
+                counter_updates={
+                    **{level: None for level in handler._thresholds},
+                    DetectorPriorityLevel.HIGH: 1,
+                },
+            )
+        }

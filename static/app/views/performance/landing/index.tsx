@@ -3,8 +3,6 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -64,7 +62,6 @@ import {
 type Props = {
   eventView: EventView;
   handleSearch: (searchQuery: string, currentMEPState?: MEPState) => void;
-  handleTrendsClick: () => void;
   location: Location;
   onboardingProject: Project | undefined;
   organization: Organization;
@@ -84,15 +81,8 @@ const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
 };
 
 export function PerformanceLanding(props: Props) {
-  const {
-    organization,
-    location,
-    eventView,
-    projects,
-    handleSearch,
-    handleTrendsClick,
-    onboardingProject,
-  } = props;
+  const {organization, location, eventView, projects, handleSearch, onboardingProject} =
+    props;
   const {setPageError, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
@@ -219,19 +209,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            {!showOnboarding && (
-              <ButtonBar gap={1}>
-                <Button
-                  size="sm"
-                  priority="primary"
-                  data-test-id="landing-header-trends"
-                  onClick={() => handleTrendsClick()}
-                >
-                  {t('View Trends')}
-                </Button>
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            )}
+            {!showOnboarding && <FeedbackWidgetButton />}
           </Layout.HeaderActions>
 
           <TabList hideBorder>

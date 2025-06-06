@@ -45,7 +45,10 @@ export default function ReplayTabs({selected}: Props) {
           }}
           disabled={allMobileProj}
         >
-          <Tooltip title={t('Selectors are not available with mobile replays')}>
+          <Tooltip
+            disabled={!allMobileProj}
+            title={t('Selectors are not available with mobile replays')}
+          >
             {t('Selectors')}
           </Tooltip>
         </TabList.Item>

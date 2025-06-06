@@ -1,9 +1,8 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -116,6 +115,19 @@ export function InsightsSecondaryNav() {
             </SecondaryNav.Item>
           </AgentInsightsFeature>
         </SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-monitors">
+          <SecondaryNav.Item to={`${baseUrl}/crons/`} analyticsItemName="insights_crons">
+            {t('Crons')}
+          </SecondaryNav.Item>
+          <Feature features={['uptime']}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/uptime/`}
+              analyticsItemName="insights_uptime"
+            >
+              {t('Uptime')}
+            </SecondaryNav.Item>
+          </Feature>
+        </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-projects-all">
           <SecondaryNav.Item
             to={`${baseUrl}/projects/`}
@@ -143,7 +155,7 @@ export function InsightsSecondaryNav() {
                     : undefined
                 }
                 leadingItems={
-                  <StyledProjectIcon
+                  <ProjectIcon
                     projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 }
@@ -158,7 +170,3 @@ export function InsightsSecondaryNav() {
     </Fragment>
   );
 }
-
-const StyledProjectIcon = styled(ProjectIcon)`
-  margin-right: ${space(0.75)};
-`;

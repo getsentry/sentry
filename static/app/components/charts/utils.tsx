@@ -13,7 +13,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -402,12 +402,12 @@ export function computeEchartsAriaLabels(
     ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
-  const dateFormat = computeShortInterval({
+  const isShortInterval = computeShortInterval({
     start: filteredSeries[0]?.data?.[0][0],
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
-  })
-    ? `MMMM D, h:mm A`
-    : 'MMMM Do';
+  });
+
+  const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
 
   function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {

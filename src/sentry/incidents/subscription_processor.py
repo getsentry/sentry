@@ -46,7 +46,6 @@ from sentry.incidents.utils.process_update_helpers import (
 )
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    MetricDetectorUpdate,
     QuerySubscriptionUpdate,
 )
 from sentry.models.project import Project
@@ -336,13 +335,13 @@ class SubscriptionProcessor:
 
         if aggregation_value is not None:
             if has_metric_alert_processing:
-                packet = MetricDetectorUpdate(
+                packet = QuerySubscriptionUpdate(
                     entity=subscription_update.get("entity", ""),
                     subscription_id=subscription_update["subscription_id"],
                     values={"value": aggregation_value},
                     timestamp=self.last_update,
                 )
-                data_packet = DataPacket[MetricDetectorUpdate](
+                data_packet = DataPacket[QuerySubscriptionUpdate](
                     source_id=str(self.subscription.id), packet=packet
                 )
                 # temporarily skip processing any anomaly detection alerts
@@ -410,6 +409,7 @@ class SubscriptionProcessor:
         fired_incident_triggers = []
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
+            metrics_incremented = False
             for trigger in self.triggers:
                 if potential_anomalies:
                     # NOTE: There should only be one anomaly in the list
@@ -471,11 +471,15 @@ class SubscriptionProcessor:
                             "incidents.alert_rules.threshold.alert",
                             tags={"detection_type": self.alert_rule.detection_type},
                         )
-                        if features.has(
-                            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                            self.subscription.project.organization,
+                        if (
+                            features.has(
+                                "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                                self.subscription.project.organization,
+                            )
+                            and not metrics_incremented
                         ):
                             metrics.incr("dual_processing.alert_rules.fire")
+                            metrics_incremented = True
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                         if incident_trigger is not None:

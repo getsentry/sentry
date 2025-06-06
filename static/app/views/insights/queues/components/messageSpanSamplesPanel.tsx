@@ -313,6 +313,7 @@ export function MessageSpanSamplesPanel() {
             <ModuleLayout.Full>
               <InsightsLineChartWidget
                 showLegend="never"
+                queryInfo={{search: timeseriesFilters}}
                 title={getDurationChartTitle('queue')}
                 isLoading={isDurationDataFetching}
                 error={durationError}

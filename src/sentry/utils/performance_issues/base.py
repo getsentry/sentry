@@ -12,8 +12,9 @@ from urllib.parse import parse_qs, urlparse
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
-from .types import PerformanceProblemsMap, Span
+from .types import Span
 
 
 class DetectorType(Enum):
@@ -31,6 +32,7 @@ class DetectorType(Enum):
     HTTP_OVERHEAD = "http_overhead"
     EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
     EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
+    SQL_INJECTION = "sql_injection"
     EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES = "experimental_m_n_plus_one_db_queries"
 
 
@@ -49,6 +51,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
     DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
+    DetectorType.SQL_INJECTION: "performance.issues.sql_injection.problem-creation",
 }
 
 
@@ -58,11 +61,11 @@ class PerformanceDetector(ABC):
     """
 
     type: ClassVar[DetectorType]
-    stored_problems: PerformanceProblemsMap
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
+        self.stored_problems: dict[str, PerformanceProblem] = {}
 
     def find_span_prefix(self, settings, span_op: str):
         allowed_span_ops = settings.get("allowed_span_ops", [])
@@ -77,10 +80,9 @@ class PerformanceDetector(ABC):
             return None
 
         span_duration = get_span_duration(span)
-        for setting in self.settings:
-            op_prefix = self.find_span_prefix(setting, op)
-            if op_prefix:
-                return op, span_id, op_prefix, span_duration, setting
+        op_prefix = self.find_span_prefix(self.settings, op)
+        if op_prefix:
+            return op, span_id, op_prefix, span_duration, self.settings
         return None
 
     def event(self) -> dict[str, Any]:

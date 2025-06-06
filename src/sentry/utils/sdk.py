@@ -335,7 +335,9 @@ def configure_sdk():
         sentry_saas_transport = None
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
-        sdk_options["profile_session_sample_rate"] = settings.SENTRY_PROFILE_SESSION_SAMPLE_RATE
+        sdk_options["profile_session_sample_rate"] = float(
+            settings.SENTRY_PROFILES_SAMPLE_RATE or 0
+        )
         sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
@@ -702,7 +704,7 @@ def set_measurement(measurement_name, value, unit=None):
         pass
 
 
-def set_span_data(data_name, value):
+def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
         span.set_data(data_name, value)

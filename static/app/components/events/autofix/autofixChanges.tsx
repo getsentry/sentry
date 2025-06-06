@@ -283,6 +283,8 @@ export function AutofixChanges({
                   borderless
                   title={t('Chat with Seer')}
                   onClick={handleSelectFirstChange}
+                  analyticsEventName="Autofix: Changes Chat"
+                  analyticsEventKey="autofix.changes.chat"
                 >
                   <IconChat size="xs" />
                 </ChatButton>

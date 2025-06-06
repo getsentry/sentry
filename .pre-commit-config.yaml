@@ -112,7 +112,7 @@ repos:
         name: eslint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: ./node_modules/.bin/eslint --config ./eslint-pre-commit.config.mjs --report-unused-disable-directives-severity off --quiet --fix
+        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/eslint --quiet --fix
 
       - id: stylelint
         name: stylelint
@@ -121,7 +121,7 @@ repos:
         entry: ./node_modules/.bin/stylelint --quiet
 
       - id: prettier
-        name: prettier (yaml, ts, tsx, js, jsx, css, mdx, markdown)
+        name: prettier
         language: system
         types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown]
         entry: ./node_modules/.bin/prettier --log-level=error --write

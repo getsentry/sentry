@@ -58,15 +58,12 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     This detector assuming spans are ordered chronologically
     """
 
-    __slots__ = "stored_problems"
-
     type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_db_spans: list[Span] = []
         self.independent_db_spans: list[Span] = []
 
@@ -78,9 +75,6 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             self._reset_variables()
             return
 
-        self._add_problem_span(span)
-
-    def _add_problem_span(self, span: Span) -> None:
         self.consecutive_db_spans.append(span)
 
     def _validate_and_store_performance_problem(self) -> None:
@@ -91,30 +85,32 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
+        if not exceeds_count_threshold:
+            return
+
         exceeds_span_duration_threshold = all(
             get_span_duration(span).total_seconds() * 1000
             > self.settings.get("span_duration_threshold")
             for span in self.independent_db_spans
         )
+        if not exceeds_span_duration_threshold:
+            return
 
         time_saved = self._calculate_time_saved(self.independent_db_spans)
         total_time = get_total_span_duration(self.consecutive_db_spans)
-
         exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
+        if not exceeds_time_saved_threshold:
+            return
 
         exceeds_time_saved_threshold_ratio = False
         if total_time > 0:
             exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
                 "min_time_saved_ratio"
             )
+        if not exceeds_time_saved_threshold_ratio:
+            return
 
-        if (
-            exceeds_count_threshold
-            and exceeds_span_duration_threshold
-            and exceeds_time_saved_threshold
-            and exceeds_time_saved_threshold_ratio
-        ):
-            self._store_performance_problem()
+        self._store_performance_problem()
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
@@ -123,8 +119,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         query: str = self.independent_db_spans[0].get("description", None)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
-            fingerprint,
-            "db",
+            fingerprint=fingerprint,
+            op="db",
             desc=query,  # TODO: figure out which query to use for description
             type=PerformanceConsecutiveDBQueriesGroupType,
             cause_span_ids=cause_span_ids,
@@ -240,7 +236,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _is_db_query(self, span: Span) -> bool:
         op: str = span.get("op", "") or ""
         description: str = span.get("description", "") or ""
-        is_db_op = op == "db" or op.startswith("db.sql")
+        is_db_op = op.startswith("db")
         is_query = description.strip().upper().startswith("SELECT")
         return is_db_op and is_query
 

@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,6 +25,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
@@ -43,8 +46,33 @@ const priorities: Priority[] = [
 ];
 
 function getDetectorEnvironment(detector: Detector) {
-  return detector.dataSources.find(ds => ds.queryObj.snubaQuery.environment)?.queryObj
-    .snubaQuery.environment;
+  return detector.dataSources?.find(ds => ds.type === 'snuba_query_subscription')
+    ?.queryObj.snubaQuery.environment;
+}
+
+function AssignToTeam({teamId}: {teamId: string}) {
+  const {teams} = useTeamsById({ids: [teamId]});
+  const team = teams.find(tm => tm.id === teamId);
+  return t('Assign to %s', `#${team?.slug ?? 'unknown'}`);
+}
+
+function DetectorAssignee({owner}: {owner: string | null}) {
+  if (!owner) {
+    return t('Unassigned');
+  }
+
+  const [ownerType, ownerId] = owner.split(':');
+  if (ownerType === 'team') {
+    return <AssignToTeam teamId={ownerId!} />;
+  }
+  if (ownerType === 'user') {
+    return t(
+      'Assign to %s',
+      <ActorBadge actor={{id: ownerId!, name: '', type: 'user'}} />
+    );
+  }
+
+  return t('Unassigned');
 }
 
 export default function DetectorDetails() {
@@ -83,7 +111,9 @@ export default function DetectorDetails() {
                 <IssuesList />
               </Section>
               <Section title={t('Connected Automations')}>
-                <ConnectedAutomationsList automations={[]} />
+                <ErrorBoundary mini>
+                  <ConnectedAutomationsList automationIds={detector.workflowIds} />
+                </ErrorBoundary>
               </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>
@@ -91,7 +121,7 @@ export default function DetectorDetails() {
                 <DetailsPanel detector={detector} />
               </Section>
               <Section title={t('Assign')}>
-                {t('Assign to %s', 'admin@sentry.io')}
+                <DetectorAssignee owner={detector.owner} />
               </Section>
               <Section title={t('Prioritize')}>
                 <PrioritiesList>

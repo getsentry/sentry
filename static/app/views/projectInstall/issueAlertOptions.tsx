@@ -6,7 +6,7 @@ import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import IssueAlertNotificationOptions, {
   type IssueAlertNotificationProps,
@@ -61,13 +61,11 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
-export type RequestDataFragment = {
-  actionMatch: string;
-  actions: Array<Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>>;
-  conditions: Array<{id: string; interval: string; value: string}> | undefined;
+export type RequestDataFragment = Pick<
+  IssueAlertRule,
+  'actionMatch' | 'actions' | 'conditions' | 'frequency' | 'name'
+> & {
   defaultRules: boolean;
-  frequency: number;
-  name: string;
   shouldCreateCustomRule: boolean;
   shouldCreateRule: boolean;
 };
@@ -106,7 +104,7 @@ const getRequestDataFragment = ({
               value: threshold,
             },
           ]
-        : undefined,
+        : [],
     actions: [
       {
         id: IssueAlertActionType.NOTIFY_EMAIL,
