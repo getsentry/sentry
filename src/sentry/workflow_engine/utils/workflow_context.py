@@ -9,6 +9,10 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.workflow_engine.models import Detector
 
+_detector: ContextVar[Detector | None] = ContextVar("detector", default=None)
+_organization: ContextVar[Organization | None] = ContextVar("organization", default=None)
+_environment: ContextVar[Environment | None] = ContextVar("environment", default=None)
+
 
 @dataclasses.dataclass
 class WorkflowContextData:
@@ -23,10 +27,6 @@ class WorkflowContext:
     data that is shared across different steps in the workflow.
     """
 
-    _detector: ContextVar[Detector | None] = ContextVar("detector", default=None)
-    _organization: ContextVar[Organization | None] = ContextVar("organization", default=None)
-    _environment: ContextVar[Environment | None] = ContextVar("environment", default=None)
-
     @classmethod
     def _check_value(cls, value: Any, variable: ContextVar) -> bool:
         return value is not None or variable.get() is not None and value is None
@@ -38,21 +38,21 @@ class WorkflowContext:
         organization: Organization | None = None,
         environment: Environment | None = None,
     ) -> None:
-        if cls._check_value(detector, cls._detector):
-            cls._detector.set(detector)
+        if cls._check_value(detector, _detector):
+            _detector.set(detector)
 
-        if cls._check_value(organization, cls._organization):
-            cls._organization.set(organization)
+        if cls._check_value(organization, _organization):
+            _organization.set(organization)
 
-        if cls._check_value(environment, cls._environment):
-            cls._environment.set(environment)
+        if cls._check_value(environment, _environment):
+            _environment.set(environment)
 
     @classmethod
     def get(cls) -> WorkflowContextData:
         return WorkflowContextData(
-            detector=cls._detector.get(),
-            organization=cls._organization.get(),
-            environment=cls._environment.get(),
+            detector=_detector.get(),
+            organization=_organization.get(),
+            environment=_environment.get(),
         )
 
     @classmethod
