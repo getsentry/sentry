@@ -3273,7 +3273,7 @@ class SpanTestCase(BaseTestCase):
                 "timestamp": int(start_ts.timestamp() * 1000),
                 "received": start_ts.timestamp(),
                 "duration_ms": duration,
-                "exclusive_time_ms": duration,
+                "exclusive_time_ms": float(duration),
             }
         )
         # Load any specific custom data
@@ -3339,7 +3339,7 @@ def span_to_trace_item(span) -> TraceItem:
         elif k == "server_sample_rate":
             server_sample_rate = v["value"]
         else:
-            attributes[k] = scalar_to_any_value(v["value"])
+            attributes[k] = scalar_to_any_value(float(v["value"]))
 
     if "description" in span and span["description"] is not None:
         description = scalar_to_any_value(span["description"])
@@ -3353,11 +3353,19 @@ def span_to_trace_item(span) -> TraceItem:
         "is_segment",
         "parent_span_id",
         "profile_id",
+        "received",
         "segment_id",
         "start_timestamp_precise",
     }:
         if field in span and span[field] is not None:
-            attributes[f"sentry.{field}"] = scalar_to_any_value(span[field])
+            if field == "is_segment":
+                is_segment = span["is_segment"]
+                attributes["sentry.is_segment"] = AnyValue(
+                    double_value=float(is_segment),
+                )
+            else:
+                value = scalar_to_any_value(span[field])
+                attributes[f"sentry.{field}"] = value
 
     timestamp = Timestamp()
 
