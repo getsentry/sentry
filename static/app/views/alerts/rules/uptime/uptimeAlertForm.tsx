@@ -28,7 +28,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -72,20 +71,50 @@ function getFormDataFromRule(rule: UptimeRule) {
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({project, handleDelete, rule, organization}: Props) {
   const navigate = useNavigate();
-  const organization = useOrganization();
   const {projects} = useProjects();
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {
+        projectSlug: project.slug,
+        method: 'GET',
+        headers: [],
+        owner:
+          organization.teams?.length === 1
+            ? `team:${organization.teams[0].id}`
+            : undefined,
+      };
 
   const [formModel] = useState(() => new FormModel());
+  const [advancedVisible, setAdvancedVisible] = useState(false);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
   const environments = [newEnvironment, ...knownEnvironments].filter(Boolean);
+
+  // Suggest rule name from URL
+  useEffect(() => {
+    if (rule) {
+      return () => {};
+    }
+    return autorun(() => {
+      const url = formModel.getValue('url');
+      const name = formModel.getValue('name');
+      if (url && typeof url === 'string' && !name) {
+        try {
+          const urlObject = new URL(url);
+          const suggestedName = `Uptime Check for ${urlObject.hostname}${
+            urlObject.pathname === '/' ? '' : urlObject.pathname
+          }`;
+          formModel.setValue('name', suggestedName.replace(/\/$/, ''));
+        } catch (e) {
+          // do nothing
+        }
+      }
+    });
+  }, [formModel, rule]);
 
   // XXX(epurkhiser): The forms API endpoint is derived from the selcted
   // project. We don't have an easy way to interpolate this into the <Form />
@@ -95,7 +124,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   useEffect(
     () =>
       autorun(() => {
-        const projectSlug = formModel.getValue<string>('projectSlug');
+        const projectSlug = formModel.getValue('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
@@ -113,6 +142,9 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
         if (selectedProject) {
           setEnvironments(selectedProject.environments);
+          if (selectedProject.environments.length === 1 && !rule) {
+            formModel.setValue('environment', selectedProject.environments[0]);
+          }
         }
       }),
     [formModel, navigate, organization, projects, rule]
@@ -186,49 +218,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         </ListItemSubText>
         <Configuration>
           <ConfigurationPanel>
-            <SelectField
-              options={VALID_INTERVALS_SEC.map(value => ({
-                value,
-                label: t('Every %s', getDuration(value)),
-              }))}
-              name="intervalSeconds"
-              label={t('Interval')}
-              defaultValue={60}
-              flexibleControlStateSize
-              showHelpInTooltip={{isHoverable: true}}
-              help={({model}) =>
-                tct(
-                  'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
-                    ),
-                    interval: (
-                      <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
-                    ),
-                    expectedFailureInterval: (
-                      <strong>
-                        {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
-                      </strong>
-                    ),
-                  }
-                )
-              }
-              required
-            />
-            <RangeField
-              name="timeoutMs"
-              label={t('Timeout')}
-              min={1000}
-              max={30_000}
-              step={250}
-              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
-              defaultValue={5_000}
-              showTickLabels
-              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
-              flexibleControlStateSize
-              required
-            />
             <TextField
               name="url"
               label={t('URL')}
@@ -248,39 +237,90 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
               required
             />
-            <UptimeHeadersField
-              name="headers"
-              label={t('Headers')}
-              flexibleControlStateSize
-            />
-            <TextareaField
-              name="body"
-              label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
-              rows={4}
-              maxRows={15}
-              autosize
-              monospace
-              placeholder='{"key": "value"}'
-              flexibleControlStateSize
-            />
-            <BooleanField
-              name="traceSampling"
-              label={t('Allow Sampling')}
-              showHelpInTooltip={{isHoverable: true}}
-              help={tct(
-                'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
-                  ),
-                }
-              )}
-              flexibleControlStateSize
-            />
           </ConfigurationPanel>
+          <AdvancedConfigToggle onClick={() => setAdvancedVisible(v => !v)}>
+            <span>{advancedVisible ? '▼' : '▶'}</span>
+            <span>{t('Advanced Configuration')}</span>
+          </AdvancedConfigToggle>
+          {advancedVisible && (
+            <ConfigurationPanel style={{paddingTop: space(2)}}>
+              <SelectField
+                options={VALID_INTERVALS_SEC.map(value => ({
+                  value,
+                  label: t('Every %s', getDuration(value)),
+                }))}
+                name="intervalSeconds"
+                label={t('Interval')}
+                defaultValue={60}
+                flexibleControlStateSize
+                showHelpInTooltip={{isHoverable: true}}
+                help={({model}) =>
+                  tct(
+                    'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                      ),
+                      interval: (
+                        <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
+                      ),
+                      expectedFailureInterval: (
+                        <strong>
+                          {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
+                        </strong>
+                      ),
+                    }
+                  )
+                }
+                required
+              />
+              <RangeField
+                name="timeoutMs"
+                label={t('Timeout')}
+                min={1000}
+                max={30_000}
+                step={250}
+                tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
+                defaultValue={5_000}
+                showTickLabels
+                formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+                flexibleControlStateSize
+                required
+              />
+              <UptimeHeadersField
+                name="headers"
+                label={t('Headers')}
+                flexibleControlStateSize
+              />
+              <TextareaField
+                name="body"
+                label={t('Body')}
+                visible={({model}: any) =>
+                  !['GET', 'HEAD'].includes(model.getValue('method'))
+                }
+                rows={4}
+                maxRows={15}
+                autosize
+                monospace
+                placeholder='{"key": "value"}'
+                flexibleControlStateSize
+              />
+              <BooleanField
+                name="traceSampling"
+                label={t('Allow Sampling')}
+                showHelpInTooltip={{isHoverable: true}}
+                help={tct(
+                  'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
+                    ),
+                  }
+                )}
+                flexibleControlStateSize
+              />
+            </ConfigurationPanel>
+          )}
           <Alert.Container>
             <Alert type="muted" showIcon>
               {tct(
@@ -349,6 +389,17 @@ const AlertListItem = styled(ListItem)`
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
   color: ${p => p.theme.subText};
+`;
+
+const AdvancedConfigToggle = styled('div')`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(4)};
 `;
 
 const FormRow = styled('div')`
