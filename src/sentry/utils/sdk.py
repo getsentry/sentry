@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import sys
+import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -238,15 +239,14 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
 
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
 
-    # `measurements` are deprecated and have already been removed from the Python SDK.
-    # We ignore those lines in the mypy check because the SDKs Event type does not have `measurements` anymore.
-    # (on ingest and in the product measurements are still there so it is fine to set them for the time being)
-    if not event["measurements"]:  # type: ignore[typeddict-item]
-        event["measurements"] = {}  # type: ignore[typeddict-unknown-key]
-    event["measurements"]["num_of_spans"] = {  # type: ignore[typeddict-item]
-        "value": num_of_spans,
-        "unit": None,
-    }
+    # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
+    data = typing.cast(
+        dict[str, object],
+        event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {}),
+    )
+    data["num_of_spans"] = num_of_spans
+
     return event
 
 
