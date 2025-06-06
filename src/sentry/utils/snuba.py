@@ -1161,7 +1161,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     _snuba_query,
                     [
                         (
-                            sentry_sdk.Scope.get_isolation_scope(),
+                            sentry_sdk.get_isolation_scope(),
                             sentry_sdk.get_current_scope(),
                             snuba_request,
                         )
@@ -1174,7 +1174,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             query_results = [
                 _snuba_query(
                     (
-                        sentry_sdk.Scope.get_isolation_scope(),
+                        sentry_sdk.get_isolation_scope(),
                         sentry_sdk.get_current_scope(),
                         snuba_requests_list[0],
                     )

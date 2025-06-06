@@ -530,7 +530,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         update_role = False
 
-        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
             role = request.data["sentryOrgRole"].lower()
