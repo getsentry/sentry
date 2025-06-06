@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -246,14 +245,9 @@ const onboarding: OnboardingConfig = {
               <h5>{t('Automated Upload')}</h5>
               <p>
                 {tct(
-                  "The automated debug symbols upload is disabled by default and requires configuration. To enable it, go to your [projectsPluginSettings:project's plugin settings] and enable 'Upload debug symbols automatically'.",
+                  "The automated debug symbols upload is disabled by default and requires configuration. To enable it, go to [strong:Project Settings > Plugins > Code Plugins] in your editor and turn on 'Upload debug symbols automatically'.",
                   {
                     strong: <strong />,
-                    projectsPluginSettings: (
-                      <Link
-                        to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/plugins/`}
-                      />
-                    ),
                   }
                 )}
               </p>
