@@ -116,6 +116,10 @@ class TestGcpBearerAuthentication:
     @patch("sentry.lang.native.sources.get_gcp_token")
     @django_db_all
     def test_mixed_sources(self, mock_get_gcp_token, default_project):
+        """
+        Tests the combination of sources where one uses credentials for authentication and the other one
+        uses pre-fetched token.
+        """
         mock_get_gcp_token.return_value = "ya29.TOKEN"
         features = {
             "organizations:symbol-sources": True,
