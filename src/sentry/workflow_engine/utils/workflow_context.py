@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 if TYPE_CHECKING:
     from sentry.models.environment import Environment
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
 
 # _id is a unique identifier for the workflow context, this can be used in logs to trace a single context
-_id: ContextVar[str] = ContextVar("id", default=str(uuid4()))
+_id: ContextVar[UUID] = ContextVar("id", default=uuid4())
 _detector: ContextVar[Detector | None] = ContextVar("detector", default=None)
 _organization: ContextVar[Organization | None] = ContextVar("organization", default=None)
 _environment: ContextVar[Environment | None] = ContextVar("environment", default=None)
@@ -19,10 +19,13 @@ _environment: ContextVar[Environment | None] = ContextVar("environment", default
 
 @dataclasses.dataclass
 class WorkflowContextData:
-    id: str
+    id: UUID
     detector: Detector | None = None
     organization: Organization | None = None
     environment: Environment | None = None
+
+
+WorkflowContextDataKeys = Literal["id", "detector", "workflow", "environment"]
 
 
 class WorkflowContext:
@@ -63,7 +66,7 @@ class WorkflowContext:
     @classmethod
     def get_value(
         cls,
-        variable_name: Literal["detector", "organization", "environment"],
+        variable_name: WorkflowContextDataKeys,
     ) -> Any:
         return getattr(cls.get(), variable_name)
 

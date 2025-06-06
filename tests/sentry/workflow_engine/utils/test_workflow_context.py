@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.utils.workflow_context import WorkflowContext
 
@@ -24,6 +26,15 @@ class TestWorkflowContext(TestCase):
     def tearDown(self):
         WorkflowContext.reset()
 
+    def test_id(self):
+        ctx = WorkflowContext.get()
+        assert isinstance(ctx.id, UUID)
+
+    def test_id__maintained_after_reset(self):
+        stored_id = WorkflowContext.get_value("id")
+        WorkflowContext.reset()
+        assert stored_id == WorkflowContext.get_value("id")
+
     def test_set_and_get(self):
         detector = self.create_detector()
         organization = self.organization
@@ -43,7 +54,6 @@ class TestWorkflowContext(TestCase):
 
     def test_partial_set(self):
         WorkflowContext.set(organization=self.organization)
-
         ctx = WorkflowContext.get()
 
         assert ctx.detector is None
