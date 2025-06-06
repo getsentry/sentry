@@ -46,7 +46,7 @@ class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             latest_event_time = time()
             older_event_time = latest_event_time - 300
 
@@ -80,7 +80,7 @@ class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @with_feature("system:multi-region")
     def test_simple_customer_domains(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             latest_event_time = time()
             older_event_time = latest_event_time - 300
 

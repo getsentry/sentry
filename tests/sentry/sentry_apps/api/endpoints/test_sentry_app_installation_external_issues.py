@@ -117,7 +117,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         assert response.status_code == 500
-        assert response.data == {
-            "detail": f"An issue occured during the integration platform process. Sentry error ID: {None}"
-        }
+        assert response.data["detail"].startswith(
+            "An issue occured during the integration platform process. Sentry error ID:"
+        )
         mock_update_or_create.assert_called_once()

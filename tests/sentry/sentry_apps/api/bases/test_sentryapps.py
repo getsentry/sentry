@@ -263,6 +263,6 @@ class IntegrationPlatformEndpointTest(TestCase):
         response = self.endpoint._handle_sentry_app_exception(error)
 
         assert response.status_code == 500
-        assert response.data == {
-            "detail": f"An issue occured during the integration platform process. Sentry error ID: {None}"
-        }
+        assert response.data["detail"].startswith(
+            "An issue occured during the integration platform process. Sentry error ID: "
+        )

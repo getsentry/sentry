@@ -62,10 +62,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedRecordingMessage | FilteredPayload:
-    with sentry_sdk.start_transaction(
+    with sentry_sdk.start_span(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
-        custom_sampling_context={
+        attributes={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
@@ -80,11 +80,11 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedRecordingMessage
 
 def commit_message(message: Message[ProcessedRecordingMessage]) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+    with sentry_sdk.use_isolation_scope(isolation_scope):
+        with sentry_sdk.start_span(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
-            custom_sampling_context={
+            attributes={
                 "sample_rate": getattr(
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
