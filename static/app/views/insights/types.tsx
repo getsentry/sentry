@@ -160,6 +160,7 @@ type SpanStringFields =
   | 'project'
   | 'http.request.method'
   | 'messaging.destination.name'
+  | 'command'
   | 'user'
   | 'user.display'
   | 'user.id'
@@ -311,7 +312,7 @@ export type EAPSpanResponse = {
     [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
-export type EAPSpanProperty = keyof EAPSpanResponse;
+export type EAPSpanProperty = keyof EAPSpanResponse; // TODO: rename this to `SpanProperty` when we remove `useInsightsEap`
 
 export enum SpanIndexedField {
   ENVIRONMENT = 'environment',
@@ -502,6 +503,7 @@ export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
   TPM = 'tpm',
+  COUNT = 'count',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
