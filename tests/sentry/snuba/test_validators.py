@@ -59,15 +59,15 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
-    def test_create_source_limits(self):
+    def test_validated_create_source_limits(self):
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
             validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
             assert validator.is_valid()
-            validator.create_source(validator.validated_data)
-            validator.create_source(validator.validated_data)
+            validator.validated_create_source(validator.validated_data)
+            validator.validated_create_source(validator.validated_data)
 
             with pytest.raises(serializers.ValidationError) as e:
-                validator.create_source(validator.validated_data)
+                validator.validated_create_source(validator.validated_data)
             assert e.value.detail == [
                 ErrorDetail(
                     string="You may not exceed 2 data sources of this type.",
