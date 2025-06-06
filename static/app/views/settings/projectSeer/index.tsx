@@ -89,7 +89,7 @@ export const autofixAutomatingTuningField = {
       value: 'high',
       label: <SeerSelectLabel>{t('Minimally Actionable and Above')}</SeerSelectLabel>,
       details: t(
-        'Seer will automatically run on issues that it thinks have an actionability of "low" or above. This targets around 50% of issues, but may vary by project.'
+        'Seer will automatically run on issues that it thinks have an actionability of "low" or above. This targets around 70% of issues, but may vary by project.'
       ),
     },
     {
