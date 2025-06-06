@@ -56,6 +56,16 @@ export function DO_NOT_USE_getChonkButtonStyles(
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
 
+  const buttonSizes = {
+    ...p.theme.form,
+    zero: {
+      height: '24px',
+      minHeight: '24px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+    },
+  } as const;
+
   return {
     position: 'relative',
     display: 'inline-flex',
@@ -74,16 +84,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     background: 'none',
 
-    height:
-      p.size === 'md'
-        ? '36px'
-        : p.size === 'sm'
-          ? '32px'
-          : p.size === 'xs'
-            ? '28px'
-            : '24px',
-
-    fontSize: p.size === 'xs' || p.size === 'zero' ? '12px' : '14px',
+    ...buttonSizes[p.size],
 
     '&::before': {
       content: '""',
