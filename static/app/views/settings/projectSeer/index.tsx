@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -11,10 +12,13 @@ import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {space} from 'sentry/styles/space';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {AutofixRepositories} from './autofixRepositories';
@@ -32,52 +36,69 @@ export const SEER_THRESHOLD_MAP = [
   'always',
 ] as const;
 
-export function formatSeerValue(value: string | undefined) {
-  switch (value) {
-    case 'off':
-      return t('Off');
-    case 'super_low':
-      return t('Super Low');
-    case 'low':
-      return t('Low');
-    case 'medium':
-      return t('Medium');
-    case 'high':
-      return t('High');
-    case 'always':
-      return t('Always');
-    default:
-      return null;
-  }
-}
+const SeerSelectLabel = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
 
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
-  label: t('Automatically Fix Issues with Seer'),
+  label: t('Automatically Analyze Incoming Issues'),
   help: props =>
     tct(
-      "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager. This may have billing implications.[break][break][link:You can configure automation for other projects too.]",
+      "Set how frequently Seer can automatically run on new issues, based on how actionable it thinks the issue is. Seer will find a root cause and solution, but won't automatically open PRs.[break][break][link:You can configure automation for other projects too.][break][break]Each run is charged at the [ratelink:standard billing rate] for Seer's Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
       {
         break: <br />,
         link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
+        ratelink: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
+        spendlink: (
+          <Link to={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)} />
+        ),
       }
     ),
-  type: 'range',
-  min: 0,
-  max: SEER_THRESHOLD_MAP.length - 1,
-  ticks: SEER_THRESHOLD_MAP.length - 1,
-  tickValues: SEER_THRESHOLD_MAP.map((_, i) => i),
-  formatLabel: (val: number | '') => {
-    const numVal =
-      typeof val === 'string' || val < 0 || val >= SEER_THRESHOLD_MAP.length ? 0 : val;
-    const level = SEER_THRESHOLD_MAP[numVal];
-    return formatSeerValue(level);
-  },
-  getValue: (val: number): string => {
-    return SEER_THRESHOLD_MAP[val]!;
-  },
+  type: 'choice',
+  options: [
+    {
+      value: 'off',
+      label: <SeerSelectLabel>{t('Off')}</SeerSelectLabel>,
+      details: t('Seer will never analyze any issues without manually clicking Start.'),
+    },
+    {
+      value: 'super_low',
+      label: (
+        <SeerSelectLabel>{t('Only Super Highly Actionable Issues')}</SeerSelectLabel>
+      ),
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'low',
+      label: <SeerSelectLabel>{t('Highly Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "high" or above. This targets around 10% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'medium',
+      label: <SeerSelectLabel>{t('Moderately Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "medium" or above. This targets around 30% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'high',
+      label: <SeerSelectLabel>{t('Minimally Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "low" or above. This targets around 70% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'always',
+      label: <SeerSelectLabel>{t('All Issues')}</SeerSelectLabel>,
+      details: t('Seer will automatically run on all new issues.'),
+    },
+  ],
   saveOnBlur: true,
-  showTickLabels: true,
   saveMessage: t('Automatic Seer settings updated'),
 } satisfies FieldObject;
 
@@ -115,9 +136,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
         initialData={{
-          autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
-            project.autofixAutomationTuning ?? 'off'
-          ),
+          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
