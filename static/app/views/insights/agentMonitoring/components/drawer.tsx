@@ -136,8 +136,8 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
     openDrawer(
       () => (
         <Fragment>
-          <DrawerHeader>Abbreviated Trace</DrawerHeader>
-          <DrawerBody>
+          <DrawerHeader>AI Mode</DrawerHeader>
+          <StyledDrawerBody>
             <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
               <AITraceView
                 traceId={traceId}
@@ -145,7 +145,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
                 projectSlug={projectSlug}
               />
             </TraceStateProvider>
-          </DrawerBody>
+          </StyledDrawerBody>
         </Fragment>
       ),
       {
@@ -189,6 +189,8 @@ function AITraceView({
   return (
     <SplitContainer>
       <LeftPanel>
+        <h4>Abbreviated Trace</h4>
+
         <AbbreviatedTrace nodes={nodes} onSelectNode={setSelectedNode} />
       </LeftPanel>
       <RightPanel>
@@ -227,7 +229,6 @@ function AbbreviatedTrace({
 
   return (
     <TraceListContainer>
-      <h4>Abbreviated Trace</h4>
       {nodes.map(node => {
         return (
           <TraceListItem
@@ -358,6 +359,11 @@ const tryParseJson = (value: string) => {
     return value;
   }
 };
+
+const StyledDrawerBody = styled(DrawerBody)`
+  padding: 0;
+`;
+
 const SplitContainer = styled('div')`
   display: flex;
   height: 100%;
@@ -368,7 +374,7 @@ const LeftPanel = styled('div')`
   flex: 1;
   overflow: auto;
   min-width: 300px;
-
+  padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
 `;
 
@@ -383,7 +389,6 @@ const RightPanel = styled('div')`
 const TraceListContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-right: ${space(2)};
   gap: ${space(0.5)};
   overflow: hidden;
 `;
@@ -391,8 +396,7 @@ const TraceListContainer = styled('div')`
 const ListItemContainer = styled('div')<{isSelected: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  border: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(1)} ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
   background-color: ${p =>
