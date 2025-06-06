@@ -124,7 +124,7 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("provider", provider)
             scope.set_tag("path", request.path)
             sentry_sdk.capture_exception(
