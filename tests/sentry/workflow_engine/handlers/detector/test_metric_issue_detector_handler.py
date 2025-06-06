@@ -62,9 +62,6 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         evidence_data = {
             "detector_id": self.detector.id,
             "value": detector_trigger.condition_result,
-            "data_condition_ids": [detector_trigger.id],
-            "data_condition_type": detector_trigger.type,
-            "data_condition_comparison_value": value,
             "alert_id": self.alert_rule.id,
             "conditions": [
                 {
