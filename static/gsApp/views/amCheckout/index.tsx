@@ -53,6 +53,7 @@ import {
   isAmPlan,
   isBizPlanFamily,
   isNewPayingCustomer,
+  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -473,17 +474,20 @@ class AMCheckout extends Component<Props, State> {
       };
     }
 
-    subscription.reservedBudgets?.forEach(budget => {
-      if (
-        Object.values(SelectableProduct).includes(
-          budget.apiName as string as SelectableProduct
-        )
-      ) {
-        data.selectedProducts[budget.apiName as string as SelectableProduct] = {
-          enabled: budget.reservedBudget > 0,
-        };
-      }
-    });
+    if (!isTrialPlan(subscription.plan)) {
+      // don't prepopulate selected products from trial state
+      subscription.reservedBudgets?.forEach(budget => {
+        if (
+          Object.values(SelectableProduct).includes(
+            budget.apiName as string as SelectableProduct
+          )
+        ) {
+          data.selectedProducts[budget.apiName as string as SelectableProduct] = {
+            enabled: budget.reservedBudget > 0,
+          };
+        }
+      });
+    }
 
     return this.getValidData(initialPlan, data);
   }
