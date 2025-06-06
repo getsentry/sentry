@@ -102,11 +102,17 @@ def evaluate_workflow_triggers(
 
     detector = WorkflowContext.get_value("detector")
     if detector is None:
-        detector = get_detector_by_event(event_data)
+        try:
+            detector = get_detector_by_event(event_data)
+        except Detector.DoesNotExist:
+            return set()
 
     environment = WorkflowContext.get_value("environment")
     if environment is None:
-        environment = get_environment_by_event(event_data)
+        try:
+            environment = get_environment_by_event(event_data)
+        except Environment.DoesNotExist:
+            return set()
 
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
@@ -127,10 +133,6 @@ def evaluate_workflow_triggers(
         len(triggered_workflows),
         tags={"detector_type": detector.type},
     )
-
-    environment = get_environment_by_event(event_data)
-    if environment is None:
-        return set()
 
     logger.info(
         "workflow_engine.process_workflows.triggered_workflows",
