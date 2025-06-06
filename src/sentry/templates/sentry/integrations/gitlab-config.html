@@ -29,7 +29,7 @@
 {% if form %}
 <h3>{% trans "Step 2: Connect Sentry with your App" %}</h3>
   <p>{% trans "Add your GitLab App credentials to Sentry." %}</p>
-  <p>{% trans "We recommend using a service account on Gitlab to install the integration." %}</p>
+  <p>{% trans "We recommend using a service account on Gitlab to install the integration. See the <a href="https://docs.sentry.io/organization/integrations/source-code-mgmt/gitlab/#install" target="_blank">docs</a>." %}</p>
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
     <input type="hidden" name="provider" value="gitlab" />
