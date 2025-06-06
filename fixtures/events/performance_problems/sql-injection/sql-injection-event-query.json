@@ -21,7 +21,8 @@
     "query_string": [
       ["username", "hello"],
       ["sort", "username"],
-      ["empty", ""]
+      ["empty", ""],
+      ["single", "u"]
     ]
   },
   "spans": [
