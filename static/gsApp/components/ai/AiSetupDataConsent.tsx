@@ -192,9 +192,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                               api,
                               organization,
                               eventTypes: [DataCategoryExact.SEER_AUTOFIX],
-                              handleSuccess: () => {
-                                addSuccessMessage(t('Request sent'));
-                              },
                             });
                             autofixAcknowledgeMutation.mutate();
                           }}
