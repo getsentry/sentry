@@ -25,6 +25,7 @@ import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -62,6 +63,7 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<RequestDataFragment>;
+  notificationRule?: IssueAlertRule;
   team?: string;
 };
 
@@ -141,7 +143,6 @@ export function CreateProject() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
   const {teams} = useTeams();
@@ -156,6 +157,16 @@ export function CreateProject() {
   const autoFill = useMemo(() => {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
+
+  const createNotificationActionParam = useMemo(() => {
+    return autoFill && createdProject?.notificationRule?.actions
+      ? {actions: createdProject.notificationRule.actions}
+      : undefined;
+  }, [autoFill, createdProject?.notificationRule?.actions]);
+
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
+    createNotificationActionParam
+  );
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -245,13 +256,14 @@ export function CreateProject() {
       let projectToRollback: Project | undefined;
 
       try {
-        const {project, ruleIds} = await createProjectAndRules.mutateAsync({
-          projectName,
-          platform: selectedPlatform,
-          team,
-          alertRuleConfig,
-          createNotificationAction,
-        });
+        const {project, notificationRule, ruleIds} =
+          await createProjectAndRules.mutateAsync({
+            projectName,
+            platform: selectedPlatform,
+            team,
+            alertRuleConfig,
+            createNotificationAction,
+          });
         projectToRollback = project;
 
         trackAnalytics('project_creation_page.created', {
@@ -280,14 +292,8 @@ export function CreateProject() {
           id: project.id,
           name: project.name,
           team: project.team?.slug,
-          alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule,
-            conditions: alertRuleConfig?.conditions,
-            actions: alertRuleConfig?.actions,
-            actionMatch: alertRuleConfig?.actionMatch,
-            frequency: alertRuleConfig?.frequency,
-          },
+          alertRule: alertRuleConfig,
+          notificationRule,
           platform: selectedPlatform,
         });
 

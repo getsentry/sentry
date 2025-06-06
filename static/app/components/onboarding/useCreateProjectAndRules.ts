@@ -1,5 +1,6 @@
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -23,6 +24,7 @@ type Variables = {
 type Response = {
   project: Project;
   ruleIds: string[];
+  notificationRule?: IssueAlertRule;
 };
 
 export function useCreateProjectAndRules() {
@@ -65,10 +67,14 @@ export function useCreateProjectAndRules() {
         frequency: alertRuleConfig?.frequency,
       });
 
-      const rules = await Promise.all([customRulePromise, notificationRulePromise]);
-      const ruleIds = rules.filter(defined).map(rule => rule.id);
+      const [customRule, notificationRule] = await Promise.all([
+        customRulePromise,
+        notificationRulePromise,
+      ]);
 
-      return {project, ruleIds};
+      const ruleIds = [customRule, notificationRule].filter(defined).map(rule => rule.id);
+
+      return {project, notificationRule, ruleIds};
     },
   });
 }
