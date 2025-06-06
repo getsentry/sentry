@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -16,6 +17,7 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 type Params = DocsParams;
 
@@ -277,7 +279,12 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </p>
-              <List symbol="bullet">
+              <List
+                symbol="bullet"
+                css={css`
+                  margin-bottom: ${space(3)};
+                `}
+              >
                 <ListItem>{t('Environment variables (recommended)')}</ListItem>
                 <ListItem>
                   {tct(
