@@ -122,9 +122,7 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort()!.value,
-          ...(organization.features.includes('dashboards-favourite')
-            ? {pin: 'favorites'}
-            : {}),
+          pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },

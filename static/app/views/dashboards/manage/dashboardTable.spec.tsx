@@ -324,7 +324,6 @@ describe('Dashboards - DashboardTable', function () {
         'dashboards-edit',
         'discover-query',
         'dashboards-table-view',
-        'dashboards-favourite',
       ],
     });
 
