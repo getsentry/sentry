@@ -20,6 +20,7 @@ import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -53,6 +54,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   logColors: ReturnType<typeof getLogColors>;
   projectSlug: string;
   align?: 'left' | 'center' | 'right';
+  shouldRenderHoverElements?: boolean;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -124,7 +126,13 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 
   return (
     <LogDate align={props.extra.align}>
-      <DateTime seconds milliseconds date={timestampToUse} />
+      <LogsTimestampTooltip
+        timestamp={props.item.value as string | number}
+        attributes={props.extra.attributes}
+        shouldRender={props.extra.shouldRenderHoverElements}
+      >
+        <DateTime seconds milliseconds date={timestampToUse} />
+      </LogsTimestampTooltip>
     </LogDate>
   );
 }
