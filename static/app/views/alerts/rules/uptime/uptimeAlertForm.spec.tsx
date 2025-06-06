@@ -59,10 +59,6 @@ describe('Uptime Alert Form', function () {
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
 
-    const name = input('Uptime rule name');
-    await userEvent.clear(name);
-    await userEvent.type(name, 'New Uptime Rule');
-
     await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -77,7 +73,7 @@ describe('Uptime Alert Form', function () {
       expect.objectContaining({
         data: expect.objectContaining({
           environment: 'prod',
-          name: 'New Uptime Rule',
+          name: 'Uptime Check for example.com',
           owner: 'user:1',
           url: 'http://example.com',
           method: 'POST',
