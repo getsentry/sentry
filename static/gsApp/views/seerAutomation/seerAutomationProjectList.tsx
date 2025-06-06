@@ -34,7 +34,7 @@ import {
 } from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {formatSeerValue, SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
+import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
 
 const PROJECTS_PER_PAGE = 20;
 
@@ -57,8 +57,33 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
   }
 
   return (
-    <SeerValue>{formatSeerValue(detailedProject.data.autofixAutomationTuning)}</SeerValue>
+    <SeerValue>
+      {getSeerLabel(detailedProject.data.autofixAutomationTuning ?? 'off')}
+    </SeerValue>
   );
+}
+
+const SeerSelectLabel = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
+function getSeerLabel(key: string) {
+  switch (key) {
+    case 'off':
+      return t('Off');
+    case 'super_low':
+      return t('Only Super Highly Actionable Issues');
+    case 'low':
+      return t('Highly Actionable and Above');
+    case 'medium':
+      return t('Moderately Actionable and Above');
+    case 'high':
+      return t('Minimally Actionable and Above');
+    case 'always':
+      return t('All Issues');
+    default:
+      return key;
+  }
 }
 
 export function SeerAutomationProjectList() {
@@ -151,7 +176,7 @@ export function SeerAutomationProjectList() {
 
   const actionMenuItems = SEER_THRESHOLD_MAP.map(key => ({
     key,
-    label: formatSeerValue(key),
+    label: <SeerSelectLabel>{getSeerLabel(key)}</SeerSelectLabel>,
     onAction: () => updateProjectsSeerValue(key),
   }));
 
