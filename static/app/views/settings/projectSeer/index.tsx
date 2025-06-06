@@ -13,10 +13,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {AutofixRepositories} from './autofixRepositories';
@@ -48,7 +50,9 @@ export const autofixAutomatingTuningField = {
         break: <br />,
         link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
         ratelink: <Link to={'https://docs.sentry.io/pricing/#seer-pricing'} />,
-        spendlink: <Link to={'docs.sentry.io/todo'} />,
+        spendlink: (
+          <Link to={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)} />
+        ),
       }
     ),
   type: 'choice',
