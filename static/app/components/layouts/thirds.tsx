@@ -65,7 +65,6 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  overflow: hidden;
   max-width: 100%;
 `;
 
