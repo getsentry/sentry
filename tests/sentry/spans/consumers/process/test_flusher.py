@@ -6,20 +6,17 @@ from arroyo.processing.strategies.noop import Noop
 
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.testutils.helpers.options import override_options
 
 
 def _payload(span_id: bytes) -> bytes:
     return rapidjson.dumps({"span_id": span_id}).encode("ascii")
 
 
+@override_options({"spans.buffer.max-flush-segments": 1})
 def test_backpressure(monkeypatch):
     # Flush very aggressively to make join() faster
     monkeypatch.setattr("time.sleep", lambda _: None)
-
-    buffer = SpansBuffer(
-        assigned_shards=list(range(1)),
-        max_flush_segments=1,
-    )
 
     messages = []
 
@@ -27,11 +24,11 @@ def test_backpressure(monkeypatch):
         messages.append(msg)
         sleep(1.0)
 
+    buffer = SpansBuffer(assigned_shards=list(range(1)))
     flusher = SpanFlusher(
         buffer,
-        max_memory_percentage=1.0,
-        produce_to_pipe=append,
         next_step=Noop(),
+        produce_to_pipe=append,
     )
 
     now = time.time()
