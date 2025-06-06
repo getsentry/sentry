@@ -53,9 +53,7 @@ const formGroups: JsonFormObject[] = [
         help: tct(
           'Use AI to generate feedback and tests in pull requests [link:Learn more]',
           {
-            link: (
-              <ExternalLink href="https://github.com/apps/seer-by-sentry/" />
-            ),
+            link: <ExternalLink href="https://github.com/apps/seer-by-sentry/" />,
           }
         ),
       },
