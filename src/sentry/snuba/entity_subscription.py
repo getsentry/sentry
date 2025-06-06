@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import types
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
@@ -265,6 +266,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         if environment:
             params["environment"] = environment.name
 
+        dataset_module: types.ModuleType
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
             dataset_module = ourlogs
         else:
