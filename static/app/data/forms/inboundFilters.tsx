@@ -22,6 +22,9 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'filters:blacklisted_ips',
         type: 'string',
+        saveOnBlur: false,
+        saveMessage: t('Changing this filter will apply to all new events.'),
+        monospace: true,
         multiline: true,
         autosize: true,
         rows: 1,
@@ -48,6 +51,9 @@ export const customFilterFields: Field[] = [
   {
     name: 'filters:releases',
     type: 'string',
+    saveOnBlur: false,
+    saveMessage: t('Changing this filter will apply to all new events.'),
+    monospace: true,
     multiline: true,
     autosize: true,
     maxRows: 10,
@@ -67,6 +73,9 @@ export const customFilterFields: Field[] = [
   {
     name: 'filters:error_messages',
     type: 'string',
+    saveOnBlur: false,
+    saveMessage: t('Changing this filter will apply to all new events.'),
+    monospace: true,
     multiline: true,
     autosize: true,
     maxRows: 10,
