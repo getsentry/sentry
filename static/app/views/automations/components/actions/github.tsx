@@ -1,6 +1,7 @@
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {tct} from 'sentry/locale';
-import {Action, ActionHandler, ActionType} from 'sentry/types/workflowEngine/actions';
+import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TicketActionSettingsButton} from 'sentry/views/automations/components/actions/ticketActionSettingsButton';
 
