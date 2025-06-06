@@ -29,7 +29,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.OK
         assert details is None
@@ -70,7 +70,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.OK
 
@@ -96,7 +96,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.OK
 
@@ -121,7 +121,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, wrong_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum
         )
         assert status == ChunkFileState.ERROR
         assert "Reported checksum mismatch" in details
@@ -138,7 +138,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
         assert "Not all chunks available for assembling" in details
@@ -149,17 +149,16 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         total_checksum = sha1(content).hexdigest()
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
-        nonexistent_org_id = 99999
 
         assemble_preprod_artifact(
-            org_id=nonexistent_org_id,
+            org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, nonexistent_org_id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
         assert details is not None
@@ -180,7 +179,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
         assert details is not None
@@ -206,7 +205,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.OK
 
@@ -256,7 +255,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         # Check that the task failed
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.organization.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
         assert "Simulated failure" in details

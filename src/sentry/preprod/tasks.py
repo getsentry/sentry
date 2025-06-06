@@ -56,7 +56,7 @@ def assemble_preprod_artifact(
         bind_organization_context(organization)
 
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, org_id, checksum, ChunkFileState.ASSEMBLING
+            AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
         )
 
         assemble_result = assemble_file(
@@ -123,10 +123,10 @@ def assemble_preprod_artifact(
         )
         set_assemble_status(
             AssembleTask.PREPROD_ARTIFACT,
-            org_id,
+            project_id,
             checksum,
             ChunkFileState.ERROR,
             detail=str(e),
         )
     else:
-        set_assemble_status(AssembleTask.PREPROD_ARTIFACT, org_id, checksum, ChunkFileState.OK)
+        set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
