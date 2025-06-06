@@ -1590,6 +1590,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not seer_enabled:
         return
 
+    project = group.project
+    if not project.get_option("sentry:seer_scanner_automation"):
+        return
+
     start_seer_automation.delay(group.id)
 
 

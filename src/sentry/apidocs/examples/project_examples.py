@@ -263,6 +263,7 @@ DETAILED_PROJECT = {
     "tempestFetchDumps": False,
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
+    "seerScannerAutomation": True,
     "highlightTags": [],
     "highlightContext": {},
     "highlightPreset": {"tags": [], "context": {}},

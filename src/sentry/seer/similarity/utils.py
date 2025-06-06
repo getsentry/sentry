@@ -434,3 +434,15 @@ def set_default_project_autofix_automation_tuning(
         project.update_option(
             "sentry:default_autofix_automation_tuning", org_default_autofix_automation_tuning
         )
+
+
+def set_default_project_seer_scanner_automation(
+    organization: Organization, project: Project
+) -> None:
+    org_default_seer_scanner_automation = organization.get_option(
+        "sentry:default_seer_scanner_automation"
+    )
+    if org_default_seer_scanner_automation:
+        project.update_option(
+            "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
+        )

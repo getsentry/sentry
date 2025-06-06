@@ -818,6 +818,16 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["autofixAutomationTuning"] == "high"
 
+    def test_seer_scanner_automation_flag(self):
+        # Default is "on"
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["seerScannerAutomation"] is True
+
+        # Update the value
+        self.project.update_option("sentry:seer_scanner_automation", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["seerScannerAutomation"] is False
+
 
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
