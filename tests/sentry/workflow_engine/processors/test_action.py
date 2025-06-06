@@ -56,6 +56,8 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
         )
         assert set(triggered_actions) == {self.action}
 
+        assert {action.workflow_id for action in triggered_actions} == {self.workflow.id}
+
         for status in [status_1, status_2]:
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
@@ -77,6 +79,11 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
+
+        assert {action.workflow_id for action in triggered_actions} == {
+            self.workflow.id,
+            workflow.id,
+        }
 
         for status in [status_1, status_2, status_3]:
             status.refresh_from_db()
