@@ -316,15 +316,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       });
     }
 
-    widget.queries.forEach(query => {
-      query.columns = query.columns.map(column => {
-        if (column === 'project_id') {
-          return 'project';
-        }
-        return column;
-      });
-    });
-
     return widget;
   };
 
