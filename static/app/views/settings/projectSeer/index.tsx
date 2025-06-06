@@ -34,25 +34,6 @@ export const SEER_THRESHOLD_MAP = [
   'always',
 ] as const;
 
-export function formatSeerValue(value: string | undefined) {
-  switch (value) {
-    case 'off':
-      return t('Off');
-    case 'super_low':
-      return t('Super Low');
-    case 'low':
-      return t('Low');
-    case 'medium':
-      return t('Medium');
-    case 'high':
-      return t('High');
-    case 'always':
-      return t('Always');
-    default:
-      return null;
-  }
-}
-
 const SeerSelectLabel = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
