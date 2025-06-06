@@ -10,6 +10,7 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {
@@ -67,7 +68,10 @@ function EAPField({aggregate, onChange}: Props) {
       return [true, {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}];
     }
 
-    if (aggregation === AggregationKey.EPM || aggregation === AggregationKey.EPS) {
+    if (
+      aggregation &&
+      NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregation as AggregationKey)
+    ) {
       return [true, {label: t('spans'), value: ''}];
     }
 
