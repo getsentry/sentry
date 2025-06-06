@@ -269,8 +269,8 @@ describe('ProjectSeer', function () {
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
-    // Find the select menu (combobox)
-    const select = await screen.findByRole('combobox', {
+    // Find the select menu
+    const select = await screen.findByRole('textbox', {
       name: /Automatically Analyze Incoming Issues/i,
     });
 

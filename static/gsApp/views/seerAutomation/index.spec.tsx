@@ -44,8 +44,8 @@ describe('SeerAutomation', function () {
     expect(projectItem).toBeInTheDocument();
     expect(projectItem.parentElement!.parentElement).toHaveTextContent('Off');
 
-    // Find the select menu (combobox)
-    const select = await screen.findByRole('combobox', {
+    // Find the select menu
+    const select = await screen.findByRole('textbox', {
       name: /Default Automation for New Projects/i,
     });
 
