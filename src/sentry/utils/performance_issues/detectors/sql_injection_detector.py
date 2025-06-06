@@ -83,7 +83,7 @@ class SQLInjectionDetector(PerformanceDetector):
             query_value = query_pair[1]
             query_key = query_pair[0]
 
-            if not isinstance(query_value, str):
+            if not isinstance(query_value, str) or not query_value:
                 continue
             if query_key == query_value:
                 continue
