@@ -87,7 +87,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 continue
             if query_key == query_value:
                 continue
-            if query_value.upper() in SQL_KEYWORDS:
+            if query_value.upper() in SQL_KEYWORDS or query_key.upper() in SQL_KEYWORDS:
                 continue
             valid_parameters.append(query_pair)
 
