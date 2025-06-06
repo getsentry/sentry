@@ -50,7 +50,9 @@ import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {
+  findSpanAttributeValue,
   getProfileMeta,
+  getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -473,6 +475,11 @@ function EAPSpanNodeDetails({
                           location,
                           organization,
                         }}
+                        getCustomActions={getTraceAttributesTreeActions({
+                          location,
+                          organization,
+                          projectIds: findSpanAttributeValue(attributes, 'project_id'),
+                        })}
                       />
                     </FoldSection>
 

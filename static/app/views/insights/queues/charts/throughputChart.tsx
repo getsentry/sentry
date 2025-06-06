@@ -63,8 +63,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
   return (
     <InsightsLineChartWidget
       id={id}
-      search={search}
-      groupBy={[groupBy]}
+      queryInfo={{search, groupBy: [groupBy]}}
       title={t('Published vs Processed')}
       series={[
         renameDiscoverSeries(
