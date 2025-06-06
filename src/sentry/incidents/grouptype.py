@@ -92,9 +92,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
                 subtitle=title,
                 resource_id=None,
                 evidence_data={
-                    "data_condition_ids": [detector_trigger.id],
-                    "data_condition_type": detector_trigger.type,
-                    "data_condition_comparison_value": self.extract_value(data_packet),
                     "alert_id": alert_id,
                 },
                 evidence_display=[],  # XXX: may need to pass more info here for the front end
