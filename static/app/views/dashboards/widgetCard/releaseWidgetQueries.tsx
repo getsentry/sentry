@@ -37,7 +37,7 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type Props = {
+export interface ReleaseWidgetQueriesProps {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
@@ -52,7 +52,7 @@ type Props = {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-};
+}
 
 type State = {
   loading: boolean;
@@ -145,7 +145,7 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
   return useMetricsAPI && rawOrderby === 'release';
 }
 
-class ReleaseWidgetQueries extends Component<Props, State> {
+class ReleaseWidgetQueries extends Component<ReleaseWidgetQueriesProps, State> {
   state: State = {
     loading: false,
     errorMessage: undefined,
@@ -160,7 +160,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Readonly<Props>): void {
+  componentDidUpdate(prevProps: Readonly<ReleaseWidgetQueriesProps>): void {
     if (
       !requiresCustomReleaseSorting(prevProps.widget.queries[0]!) &&
       requiresCustomReleaseSorting(this.props.widget.queries[0]!) &&
