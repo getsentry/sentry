@@ -41,12 +41,13 @@ export default function useSuspectFlags({environments, group}: Props) {
     });
   }, [displayFlags, group.userCount]);
 
+  const needFlagDates = !isDrawerDataPending && filteredFlags.length > 0;
   const {data: flagsDates, isPending: isFlagsDatesPending} = useOrganizationFlagLog({
     organization,
     query: {
       flag: filteredFlags.map(flag => flag.key),
     },
-    enabled: !isDrawerDataPending && filteredFlags.length > 0,
+    enabled: needFlagDates,
   });
 
   const flagsWithChanges = useMemo(() => {
@@ -67,6 +68,6 @@ export default function useSuspectFlags({environments, group}: Props) {
   return {
     displayFlags,
     susFlags,
-    isPending: isDrawerDataPending || isFlagsDatesPending,
+    isPending: isDrawerDataPending || (needFlagDates && isFlagsDatesPending),
   };
 }
