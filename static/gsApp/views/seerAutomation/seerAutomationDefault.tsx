@@ -76,7 +76,7 @@ export function SeerAutomationDefault() {
                 {showWarning && (
                   <Alert type="warning" system showIcon>
                     {t(
-                      'Automatic Issue Fixes will not be triggered until you enable automatic Issue Scans.'
+                      'Automatic Issue Scans must be enabled for Issue Fixes to be triggered automatically.'
                     )}
                   </Alert>
                 )}

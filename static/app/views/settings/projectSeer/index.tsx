@@ -45,7 +45,7 @@ export const seerScannerAutomationField = {
   label: t('Automate Issue Scans'),
   help: () =>
     t(
-      'Seer can scan all new issues in your project, helping you focus on the most actionable and quick-to-fix ones, giving more context in Slack alerts, and enabling automatic Issue Fixes.'
+      'Seer will scan all new issues in your project, helping you focus on the most actionable and quick-to-fix ones, giving more context in Slack alerts, and enabling automatic Issue Fixes.'
     ),
   type: 'boolean',
   saveOnBlur: true,
@@ -56,7 +56,7 @@ export const autofixAutomatingTuningField = {
   label: t('Automate Issue Fixes'),
   help: () =>
     t(
-      "Seer can automatically find a root cause and solution for incoming issues, based on how actionable it thinks the issue is. It won't open PRs without your approval."
+      "Seer will automatically find a root cause and solution for incoming issues if it thinks the issue is actionable enough. It won't open PRs without your approval."
     ),
   type: 'choice',
   options: [
@@ -185,7 +185,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
                   {showWarning && (
                     <Alert type="warning" system showIcon>
                       {t(
-                        'Automatic Issue Fixes will not be triggered until you enable automatic Issue Scans.'
+                        'Automatic Issue Scans must be enabled for Issue Fixes to be triggered automatically.'
                       )}
                     </Alert>
                   )}
