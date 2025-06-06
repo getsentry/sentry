@@ -1531,7 +1531,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[1]["tags[foo,    number]"] == 5
+        assert data[0]["tags[foo,    number]"] == 5
 
     def test_numeric_attr_filtering(self):
         self.store_spans(
