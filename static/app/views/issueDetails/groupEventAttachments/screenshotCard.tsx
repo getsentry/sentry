@@ -117,6 +117,7 @@ export function ScreenshotCard({
                   confirmText: t('Delete'),
                 });
               },
+              priority: 'danger',
             },
           ]}
           position="bottom-end"
