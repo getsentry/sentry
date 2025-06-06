@@ -1476,9 +1476,7 @@ def _create_group(
 
     # If the project is in the allowlist, use the client sample rate to weight the times_seen
     if project.id in options.get("issues.client_error_sampling.project_allowlist"):
-        client_sample_rate = event.data.get("sample_rate")
-        if client_sample_rate is not None and client_sample_rate > 0:
-            group_creation_kwargs["times_seen"] = int(1 / client_sample_rate)
+        group_creation_kwargs["times_seen"] = _get_error_weighted_times_seen(event)
 
     try:
         with transaction.atomic(router.db_for_write(Group)):
@@ -1517,6 +1515,14 @@ def _create_group(
 
     create_open_period(group, group.first_seen)
     return group
+
+
+def _get_error_weighted_times_seen(event: BaseEvent) -> int:
+    if event.get_event_type() in ("error", "default"):
+        error_sample_rate = event.data.get("sample_rate")
+        if error_sample_rate is not None and error_sample_rate > 0:
+            return int(1 / error_sample_rate)
+    return 1
 
 
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
@@ -1830,16 +1836,11 @@ def _process_existing_aggregate(
 
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
+    times_seen = 1
     if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
-        client_sample_rate = event.data.get("sample_rate")
-        if client_sample_rate is not None and client_sample_rate > 0:
-            weighted_times_seen = int(1 / client_sample_rate)
-        else:
-            weighted_times_seen = 1
-    else:
-        weighted_times_seen = 1
+        times_seen = _get_error_weighted_times_seen(event)
 
-    buffer_incr(Group, {"times_seen": weighted_times_seen}, {"id": group.id}, updated_group_values)
+    buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 
