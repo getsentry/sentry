@@ -139,6 +139,9 @@ class PullRequestFile:
     patch: str
 
 
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url}){environment}"
+
+
 class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
@@ -581,6 +584,17 @@ class PRCommentWorkflow(ABC):
             # If anything goes wrong, just continue without environment info
             pass
         return ""
+
+    @staticmethod
+    def get_merged_pr_single_issue_template(
+        title: str, subtitle: str, url: str, environment: str
+    ) -> str:
+        return MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+            title=title,
+            subtitle=subtitle,
+            url=url,
+            environment=environment,
+        )
 
 
 class OpenPRCommentWorkflow(ABC):

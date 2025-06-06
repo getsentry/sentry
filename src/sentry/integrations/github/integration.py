@@ -384,8 +384,6 @@ This pull request was deployed and Sentry observed the following issues:
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
-MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url}){environment}"
-
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
     organization_option_key = "sentry:github_pr_bot"
@@ -405,7 +403,7 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
 
         issue_list = "\n".join(
             [
-                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                self.get_merged_pr_single_issue_template(
                     title=issue.title,
                     subtitle=self.format_comment_subtitle(issue.culprit or "unknown culprit"),
                     url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
