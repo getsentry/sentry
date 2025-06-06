@@ -433,14 +433,6 @@ def fire_actions_for_groups(
                     detector = get_detector_by_event(event_data)
                 except Detector.DoesNotExist:
                     metrics.incr("workflow_engine.delayed_workflow.no_detector")
-
-                    logger.warning(
-                        "workflow_engine.delayed_workflow.no_detector",
-                        extra={
-                            "group_id": group.id,
-                            "event_id": event_data.event.event_id,
-                        },
-                    )
                     continue
 
                 workflow_triggers: set[DataConditionGroup] = set()
