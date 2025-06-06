@@ -5,12 +5,12 @@ import {t} from 'sentry/locale';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {SpanFields} from 'sentry/views/insights/types';
 
@@ -32,16 +32,8 @@ export function ChartActionDropdown({
   aliases,
 }: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const project = useAlertsProject();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
-  const hasChartActionsEnabled =
-    organization.features.includes('insights-chart-actions') && useEap;
-
-  const project =
-    projects.length === 1
-      ? projects[0]
-      : projects.find(p => p.id === `${selection.projects[0]}`);
 
   const exploreUrl = getExploreUrl({
     organization,
@@ -74,19 +66,38 @@ export function ChartActionDropdown({
     };
   });
 
+  return (
+    <BaseChartActionDropdown alertMenuOptions={alertsUrls} exploreUrl={exploreUrl} />
+  );
+}
+
+type BaseProps = {
+  alertMenuOptions: MenuItemProps[];
+  exploreUrl: string;
+};
+
+export function BaseChartActionDropdown({alertMenuOptions, exploreUrl}: BaseProps) {
+  const organization = useOrganization();
+  const useEap = useInsightsEap();
+  const hasChartActionsEnabled =
+    organization.features.includes('insights-chart-actions') && useEap;
+
   const menuOptions: MenuItemProps[] = [
     {
       key: 'open-in-explore',
       label: t('Open in Explore'),
       to: exploreUrl,
     },
-    {
+  ];
+
+  if (alertMenuOptions.length > 0) {
+    menuOptions.push({
       key: 'create-alert',
       label: t('Create Alert for'),
       isSubmenu: true,
-      children: alertsUrls,
-    },
-  ];
+      children: alertMenuOptions,
+    });
+  }
 
   if (!hasChartActionsEnabled) {
     return null;
