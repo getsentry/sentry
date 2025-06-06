@@ -835,6 +835,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.COUNT_UNIQUE,
   AggregationKey.EPM,
+  AggregationKey.FAILURE_RATE,
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
@@ -1031,6 +1032,12 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     ],
   },
 };
+
+export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
+  SPAN_AGGREGATION_FIELDS
+)
+  .filter(([_, field]) => field.parameters?.length === 0)
+  .map(([key]) => key as AggregationKey);
 
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
