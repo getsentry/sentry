@@ -35,7 +35,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    organization = FlexibleForeignKey("sentry.Organization")
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     position = models.PositiveSmallIntegerField(null=True)
@@ -48,6 +48,11 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["user_id", "dashboard"],
                 name="sentry_dashboardfavoriteuser_user_id_dashboard_id_2c7267a5_uniq",
+            ),
+            # A user can only have one starred dashboard in a specific position
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "position"],
+                name="sentry_dashboardfavoriteuser_user_id_organization_id_position_uniq",
             ),
         ]
 
