@@ -8,7 +8,7 @@ import {ListCollection} from '@react-stately/list';
 import type {TabListState} from '@react-stately/tabs';
 import type {CollectionBase, Node, Orientation} from '@react-types/shared';
 
-import {space} from 'sentry/styles/space';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {TabPanelItem} from './item';
 import {tabsShouldForwardProp} from './utils';
@@ -96,11 +96,11 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
     p.orientation === 'horizontal'
       ? css`
           height: 100%;
-          padding-top: ${p.theme.isChonk ? space(1) : 0};
+          padding-top: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
         `
       : css`
           width: 100%;
-          padding-left: ${p.theme.isChonk ? space(1) : 0};
+          padding-left: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
         `};
 
   &:focus-visible {
