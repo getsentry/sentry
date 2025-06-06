@@ -17,7 +17,7 @@ export function ColorPalette({
     <ColorPaletteGrid>
       {palette.map((section, i) => {
         return (
-          <ul key={`${name}-${i}`}>
+          <ColorPaletteList key={`${name}-${i}`}>
             {section.map((color, index) => {
               return (
                 <ColorCardContainer
@@ -32,12 +32,18 @@ export function ColorPalette({
                 </ColorCardContainer>
               );
             })}
-          </ul>
+          </ColorPaletteList>
         );
       })}
     </ColorPaletteGrid>
   );
 }
+
+const ColorPaletteList = styled('ul')`
+  padding: 0px;
+  margin: 0px;
+  list-style: none;
+`;
 
 const ColorPaletteGrid = styled('div')`
   margin: 0px;
