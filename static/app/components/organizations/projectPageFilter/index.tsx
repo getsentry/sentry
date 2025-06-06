@@ -371,7 +371,7 @@ export function ProjectPageFilter({
       return (hasStagedChanges: any) =>
         hasStagedChanges
           ? tct(
-              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
+              'Only up to [limit] projects can be selected at a time. You can still press "Clear" to see all projects.',
               {limit: SELECTION_COUNT_LIMIT}
             )
           : footerMessage;
@@ -388,6 +388,7 @@ export function ProjectPageFilter({
       searchable
       checkboxPosition="trailing"
       multiple={allowMultiple}
+      shouldFocusOnHover={false}
       options={options}
       value={value}
       defaultValue={defaultValue}
