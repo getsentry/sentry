@@ -18,6 +18,7 @@ describe('ProductSelect', function () {
 
   beforeEach(function () {
     organization.features = ['seer-billing'];
+    subscription.reservedBudgets = [];
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -159,8 +160,27 @@ describe('ProductSelect', function () {
     expect(await screen.findByTestId('product-option-seer')).toHaveTextContent(
       'Added to plan'
     );
+  });
 
-    subscription.reservedBudgets = []; // clear
+  it('does not render with product selected based on current subscription if plan is trial', async function () {
+    const trialSubscription = SubscriptionFixture({organization, plan: 'am3_t'});
+    trialSubscription.reservedBudgets = [SeerReservedBudgetFixture({id: '2'})];
+    SubscriptionStore.set(organization.slug, trialSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByTestId('product-option-seer')).toHaveTextContent(
+      'Add for $20/mo'
+    );
   });
 
   it('can enable and disable products', async function () {
