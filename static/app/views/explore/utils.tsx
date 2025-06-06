@@ -23,14 +23,21 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   BaseVisualize,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {
+  RawGroupBy,
+  RawVisualize,
+  SavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -101,13 +108,25 @@ export function getExploreUrlFromSavedQueryUrl({
     return getExploreMultiQueryUrl({
       organization,
       ...savedQuery,
-      queries: savedQuery.query.map(q => ({
-        ...q,
-        chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
-        yAxes: q.visualize[0]?.yAxes ?? [],
-        groupBys: q.groupby,
-        sortBys: decodeSorts(q.orderby),
-      })),
+      queries: savedQuery.query.map(q => {
+        const groupBys: string[] | undefined =
+          q.aggregateField
+            ?.filter<RawGroupBy>(isGroupBy)
+            ?.map(groupBy => groupBy.groupBy) ?? q.groupby;
+        const visualize: RawVisualize | undefined =
+          q.aggregateField?.find<RawVisualize>(isRawVisualize) ?? q.visualize?.[0];
+        const chartType: ChartType | undefined = isChartType(visualize?.chartType)
+          ? visualize.chartType
+          : undefined;
+
+        return {
+          ...q,
+          chartType,
+          yAxes: (visualize?.yAxes ?? []).slice(),
+          groupBys: groupBys ?? [],
+          sortBys: decodeSorts(q.orderby),
+        };
+      }),
       title: savedQuery.name,
       selection: {
         datetime: {

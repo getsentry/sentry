@@ -6,16 +6,36 @@ import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
+export type RawGroupBy = {
+  groupBy: string;
+};
+
+export type RawVisualize = {
+  yAxes: string[];
+  chartType?: number;
+};
+
+export function isRawVisualize(value: any): value is RawVisualize {
+  return (
+    typeof value === 'object' &&
+    'yAxes' in value &&
+    Array.isArray(value.yAxes) &&
+    value.yAxes.every((v: any) => typeof v === 'string')
+  );
+}
+
 type Query = {
   fields: string[];
-  groupby: string[];
   mode: Mode;
   orderby: string;
   query: string;
-  visualize: Array<{
-    chartType: number;
-    yAxes: string[];
-  }>;
+
+  // a query can have either
+  // - `aggregateField` which contains a list of group bys and visualizes merged together
+  // - `groupby` and `visualize` which contains the group bys and visualizes separately
+  aggregateField?: Array<RawGroupBy | RawVisualize>;
+  groupby?: string[];
+  visualize?: RawVisualize[];
 };
 
 export type SortOption =
