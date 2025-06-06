@@ -170,12 +170,9 @@ const StyledCard = styled(Card)`
 `;
 
 const AttachmentName = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
   display: flex;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 `;
 
 const CardHeader = styled('div')`
