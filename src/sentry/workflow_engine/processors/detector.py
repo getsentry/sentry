@@ -15,7 +15,7 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-def get_detector_by_event(event_data: WorkflowEventData) -> Detector | None:
+def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     evt = event_data.event
     issue_occurrence = evt.occurrence
 
