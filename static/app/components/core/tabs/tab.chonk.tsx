@@ -48,10 +48,16 @@ export const ChonkStyledTabWrap = chonkStyled('li', {
     `}
 `;
 
-const paddingPerSize = (orientation: Orientation) => ({
-  md: orientation === 'horizontal' ? '10px 16px' : '10px 8px',
-  sm: orientation === 'horizontal' ? '8px 12px' : '8px 6px',
-  xs: orientation === 'horizontal' ? '6px 8px' : '6px 4px',
+const paddingPerSize = (theme: DO_NOT_USE_ChonkTheme, orientation: Orientation) => ({
+  md: orientation === 'horizontal' ? `10px ${theme.space.xl}` : `10px ${theme.space.md}`,
+  sm:
+    orientation === 'horizontal'
+      ? `${theme.space.md} ${theme.space.lg}`
+      : `${theme.space.md} ${theme.space.sm}`,
+  xs:
+    orientation === 'horizontal'
+      ? `${theme.space.sm} ${theme.space.md}`
+      : `${theme.space.sm} ${theme.space.xs}`,
 });
 
 export const chonkInnerWrapStyles = ({
@@ -71,7 +77,7 @@ export const chonkInnerWrapStyles = ({
   align-items: center;
   position: relative;
   ${theme.form[size]};
-  padding: ${paddingPerSize(orientation)[size]};
+  padding: ${paddingPerSize(theme, orientation)[size]};
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
   margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
