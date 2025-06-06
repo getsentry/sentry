@@ -249,7 +249,7 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can update the autofix autorun threshold slider', async function () {
+  it('can update the autofix autorun threshold setting', async function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium', // Start from medium
@@ -269,15 +269,19 @@ describe('ProjectSeer', function () {
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
-    const slider = await screen.findByRole('slider', {
-      name: /Automatically Fix Issues with Seer/i,
+    // Find the select menu
+    const select = await screen.findByRole('textbox', {
+      name: /Automatically Analyze Incoming Issues/i,
     });
 
     act(() => {
-      slider.focus();
+      select.focus();
     });
 
-    await userEvent.keyboard('{ArrowRight}');
+    // Open the menu and select a new value (e.g., 'Minimally Actionable and Above')
+    await userEvent.click(select);
+    const option = await screen.findByText('Minimally Actionable and Above');
+    await userEvent.click(option);
 
     // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {

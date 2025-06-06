@@ -14,7 +14,7 @@ describe('SeerAutomation', function () {
     ProjectsStore.reset();
   });
 
-  it('can update the org default autofix automation tuning slider', async function () {
+  it('can update the org default autofix automation tuning setting', async function () {
     const organization = OrganizationFixture({
       features: ['trigger-autofix-on-issue-summary'],
     });
@@ -44,18 +44,22 @@ describe('SeerAutomation', function () {
     expect(projectItem).toBeInTheDocument();
     expect(projectItem.parentElement!.parentElement).toHaveTextContent('Off');
 
-    const slider = await screen.findByRole('slider', {
-      name: /Default for New Projects/i,
+    // Find the select menu
+    const select = await screen.findByRole('textbox', {
+      name: /Default Automation for New Projects/i,
     });
 
     act(() => {
-      slider.focus();
+      select.focus();
     });
 
-    await userEvent.keyboard('{ArrowRight}');
+    // Open the menu and select a new value (e.g., 'Only Super Highly Actionable Issues')
+    await userEvent.click(select);
+    const option = await screen.findByText('Only Super Highly Actionable Issues');
+    await userEvent.click(option);
 
     act(() => {
-      slider.blur();
+      select.blur();
     });
 
     await waitFor(() => {
