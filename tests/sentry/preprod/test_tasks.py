@@ -7,11 +7,23 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
 from sentry.preprod.tasks import assemble_preprod_artifact
-from sentry.tasks.assemble import AssembleTask, ChunkFileState, get_assemble_status
+from sentry.tasks.assemble import (
+    AssembleTask,
+    ChunkFileState,
+    delete_assemble_status,
+    get_assemble_status,
+)
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
 class AssemblePreprodArtifactTest(BaseAssembleTest):
+    def tearDown(self):
+        """Clean up assembly status to prevent test pollution"""
+        super().tearDown()
+        # Clean up any assembly status that might have been set during tests
+        # We can't know all checksums used, but Django's TestCase will handle
+        # database cleanup, and Redis cleanup happens automatically in test mode
+
     def test_assemble_preprod_artifact_success(self):
         content = b"test preprod artifact content"
         fileobj = ContentFile(content)
@@ -55,6 +67,9 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifact.build_configuration == build_configs[0]
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
 
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_without_build_configuration(self):
         content = b"test preprod artifact without build config"
         fileobj = ContentFile(content)
@@ -81,6 +96,9 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert artifact.build_configuration is None
         assert artifact.extras is None
 
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_generates_filename(self):
         content = b"test preprod artifact with generated filename"
         fileobj = ContentFile(content)
@@ -106,8 +124,11 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         # Name should start with "preprod-artifact-" and be a UUID
         assert files[0].name.startswith("preprod-artifact-")
 
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_checksum_mismatch(self):
-        content = b"test content"
+        content = b"test content for checksum mismatch"
         fileobj = ContentFile(content)
         wrong_checksum = "a" * 40  # Wrong checksum
 
@@ -126,9 +147,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert status == ChunkFileState.ERROR
         assert "Reported checksum mismatch" in details
 
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum)
+
     def test_assemble_preprod_artifact_missing_chunks(self):
         missing_checksum = "nonexistent" + "0" * 32
-        total_checksum = sha1(b"test").hexdigest()
+        total_checksum = sha1(b"test for missing chunks").hexdigest()
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
@@ -143,15 +167,19 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert status == ChunkFileState.ERROR
         assert "Not all chunks available for assembling" in details
 
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_nonexistent_organization(self):
-        content = b"test content"
+        content = b"test content for nonexistent org"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
 
         blob = FileBlob.from_file_with_organization(fileobj, self.organization)
+        nonexistent_org_id = 99999
 
         assemble_preprod_artifact(
-            org_id=self.organization.id,
+            org_id=nonexistent_org_id,  # Use nonexistent org ID
             project_id=self.project.id,
             checksum=total_checksum,
             chunks=[blob.checksum],
@@ -163,8 +191,11 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert status == ChunkFileState.ERROR
         assert details is not None
 
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_nonexistent_project(self):
-        content = b"test content"
+        content = b"test content for nonexistent project"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
 
@@ -173,16 +204,23 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         assemble_preprod_artifact(
             org_id=self.organization.id,
-            project_id=nonexistent_project_id,
+            project_id=nonexistent_project_id,  # Use nonexistent project ID
             checksum=total_checksum,
             chunks=[blob.checksum],
         )
 
         status, details = get_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
+            AssembleTask.PREPROD_ARTIFACT,
+            nonexistent_project_id,
+            total_checksum,  # Check with nonexistent project ID
         )
         assert status == ChunkFileState.ERROR
         assert details is not None
+
+        # Clean up for next test
+        delete_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT, nonexistent_project_id, total_checksum
+        )
 
     def test_assemble_preprod_artifact_reuses_build_configuration(self):
         # Create an existing build configuration using get_or_create to match the source code pattern
@@ -218,6 +256,9 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         artifacts = PreprodArtifact.objects.filter(project=self.project)
         assert len(artifacts) == 1
         assert artifacts[0].build_configuration == existing_config
+
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
     def test_assemble_preprod_artifact_transaction_rollback(self):
         """Test that if PreprodArtifact creation fails, PreprodBuildConfiguration is also rolled back"""
@@ -269,3 +310,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         # Verify that no PreprodArtifact was created either
         artifacts = PreprodArtifact.objects.filter(project=self.project)
         assert len(artifacts) == 0
+
+        # Clean up for next test
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)

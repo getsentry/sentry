@@ -61,7 +61,7 @@ def assemble_preprod_artifact(
 
         assemble_result = assemble_file(
             task=AssembleTask.PREPROD_ARTIFACT,
-            org_or_project=organization,
+            org_or_project=project,
             name=f"preprod-artifact-{uuid.uuid4().hex}",
             checksum=checksum,
             chunks=chunks,
