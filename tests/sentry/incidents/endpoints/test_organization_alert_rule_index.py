@@ -11,6 +11,8 @@ from django.test.utils import override_settings
 from httpx import HTTPError
 from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -46,6 +48,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.tasks import create_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
@@ -54,6 +58,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.snuba import _snuba_pool
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -408,23 +413,89 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
 
-    def test_create_alert_rule_eap(self):
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_eap_spans(self, mock_create_subscription_in_snuba):
+        for event_type in ["transaction", "trace_item_span", None]:
+            data = deepcopy(self.alert_rule_dict)
+            data["dataset"] = "events_analytics_platform"
+            data["alertType"] = "eap_metrics"
+            data["timeWindow"] = 5
+            if event_type:
+                data["eventTypes"] = [event_type]
+
+            with (
+                outbox_runner(),
+                self.feature(["organizations:incidents", "organizations:performance-view"]),
+            ):
+                with patch.object(
+                    _snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen
+                ) as urlopen:
+                    resp = self.get_success_response(
+                        self.organization.slug,
+                        status_code=201,
+                        **data,
+                    )
+
+                    rpc_request_body = urlopen.call_args[1]["body"]
+                    createSubscriptionRequest = CreateSubscriptionRequest.FromString(
+                        rpc_request_body
+                    )
+
+                    assert (
+                        createSubscriptionRequest.time_series_request.meta.trace_item_type
+                        == TraceItemType.TRACE_ITEM_TYPE_SPAN
+                    )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_create_alert_rule_logs(self, mock_create_subscription_in_snuba):
         data = deepcopy(self.alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
-        data["aggregate"] = "count_unique(org)"
+        data["aggregate"] = "count(message)"
+        data["eventTypes"] = ["trace_item_log"]
+        data["timeWindow"] = 5
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:ourlogs-alerts",
+                ]
+            ),
         ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **data,
+                )
+
+                rpc_request_body = urlopen.call_args[1]["body"]
+                createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
+
+                assert (
+                    createSubscriptionRequest.time_series_request.meta.trace_item_type
+                    == TraceItemType.TRACE_ITEM_TYPE_LOG
+                )
+
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)[0].type
+            == SnubaQueryEventType.EventType.TRACE_ITEM_LOG.value
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
