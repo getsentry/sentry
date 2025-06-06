@@ -8,6 +8,7 @@ import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownConte
 const MOCK_MEMORY_INFO_CONTEXT = {
   type: 'memory_info' as const,
   allocated_bytes: 1048576 * 1,
+  total_allocated_bytes: 1048576 * 1,
   fragmented_bytes: 1048576 * 2,
   heap_size_bytes: 1048576 * 3,
   high_memory_load_threshold_bytes: 1048576 * 4,
@@ -40,6 +41,7 @@ describe('MemoryInfoContext', function () {
   it('returns values and according to the parameters', function () {
     expect(getMemoryInfoContext({data: MOCK_MEMORY_INFO_CONTEXT})).toEqual([
       {key: 'allocated_bytes', subject: 'Allocated Bytes', value: '1.0 MiB'},
+      {key: 'total_allocated_bytes', subject: 'Total Allocated Bytes', value: '1.0 MiB'},
       {key: 'fragmented_bytes', subject: 'Fragmented Bytes', value: '2.0 MiB'},
       {key: 'heap_size_bytes', subject: 'Heap Size Bytes', value: '3.0 MiB'},
       {
