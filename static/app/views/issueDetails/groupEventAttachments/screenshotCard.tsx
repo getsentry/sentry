@@ -83,14 +83,9 @@ export function ScreenshotCard({
     <StyledCard>
       <CardHeader>
         <ScreenshotInfo>
-          <AttachmentName
-            position="top"
-            title={eventAttachment.name}
-            showOnlyOnOverflow
-            skipWrapper
-          >
-            {eventAttachment.name}
-          </AttachmentName>
+          <Tooltip title={eventAttachment.name} showOnlyOnOverflow skipWrapper>
+            <AttachmentName>{eventAttachment.name}</AttachmentName>
+          </Tooltip>
           <div>
             <DateTime date={eventAttachment.dateCreated} /> &middot;{' '}
             <Link
@@ -173,7 +168,7 @@ const StyledCard = styled(Card)`
   padding: ${space(1)} ${space(1.5)};
 `;
 
-const AttachmentName = styled(Tooltip)`
+const AttachmentName = styled('span')`
   display: flex;
   ${p => p.theme.overflowEllipsis};
   overflow: hidden;
