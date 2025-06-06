@@ -1,7 +1,7 @@
 import enum
 import logging
 from datetime import timedelta
-from typing import ClassVar, Literal, Self, cast
+from typing import ClassVar, Literal, Self, cast, override
 
 from django.conf import settings
 from django.db import models
@@ -335,6 +335,17 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return None
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        # We don't have a limit at the moment, so no need to count.
+        raise NotImplementedError
 
 
 def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:

@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import override
 
-from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -345,19 +344,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     @override
     def create_source(self, validated_data) -> QuerySubscription:
-        subscription_limit = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
-        active_subscriptions = QuerySubscription.objects.filter(
-            project__organization_id=self.context["organization"].id,
-            status__in=(
-                QuerySubscription.Status.ACTIVE.value,
-                QuerySubscription.Status.CREATING.value,
-                QuerySubscription.Status.UPDATING.value,
-            ),
-        ).count()
-        if active_subscriptions >= subscription_limit:
-            raise serializers.ValidationError(
-                f"You may not exceed {subscription_limit} data sources of this type."
-            )
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],
