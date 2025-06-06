@@ -19,7 +19,7 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
-  gap: ${p => p.theme.space.mini};
+  gap: ${p => p.theme.space.xs};
 
   ${p =>
     p.orientation === 'horizontal'

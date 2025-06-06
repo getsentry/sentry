@@ -75,7 +75,7 @@ export const chonkInnerWrapStyles = ({
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
   margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
-    ? theme.space.mini
+    ? theme.space.xs
     : 0};
 
   ${orientation === 'horizontal'
@@ -150,7 +150,7 @@ export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
 
           bottom: 0;
           left: 50%;
-          transform: translate(-50%, ${p.theme.space.mini});
+          transform: translate(-50%, ${p.theme.space.xs});
         `
       : css`
           width: 2px;
