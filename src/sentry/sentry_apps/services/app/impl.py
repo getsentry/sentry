@@ -98,6 +98,10 @@ class DatabaseBackedAppService(AppService):
         except SentryApp.DoesNotExist:
             return None
 
+    def get_sentry_apps_by_proxy_users(self, *, proxy_user_ids: list[int]) -> list[RpcSentryApp]:
+        sentry_apps = SentryApp.objects.filter(proxy_user_id__in=proxy_user_ids)
+        return [serialize_sentry_app(app) for app in sentry_apps]
+
     def get_installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
@@ -220,7 +224,12 @@ class DatabaseBackedAppService(AppService):
             self,
         ) -> Callable[[SentryAppInstallationFilterArgs], str | None]:
             return self._filter_has_any_key_validator(
-                "organization_id", "installation_ids", "app_ids", "uuids", "status"
+                "organization_id",
+                "installation_ids",
+                "app_ids",
+                "uuids",
+                "status",
+                "proxy_user_ids",
             )
 
         def serialize_api(self, serializer: None) -> Serializer:
