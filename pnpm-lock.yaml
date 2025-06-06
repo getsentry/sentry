@@ -637,6 +637,9 @@ importers:
       stylelint-config-recommended:
         specifier: ^14.0.1
         version: 14.0.1(stylelint@16.10.0(typescript@5.8.3))
+      terser:
+        specifier: ^5.41.0
+        version: 5.41.0
       tsconfig-paths:
         specifier: ^4.2.0
         version: 4.2.0
@@ -7443,6 +7446,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  terser@5.41.0:
+    resolution: {integrity: sha512-H406eLPXpZbAX14+B8psIuvIr8+3c+2hkuYzpMkoE0ij+NdsVATbA78vb8neA/eqrj7rywa2pIkdmWRsXW6wmw==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   test-exclude@6.0.0:
     resolution: {integrity: sha512-cAGWPIyOHU6zlmg88jwm7VRyXnMN7iV68OGAbYDk/Mh/xC/pzVPlQtY6ngoIH/5/tciuhGfvESU8GrHrcxD56w==}
     engines: {node: '>=8'}
@@ -13738,7 +13746,7 @@ snapshots:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.40.0
+      terser: 5.41.0
 
   html-tags@3.3.1: {}
 
@@ -16639,6 +16647,13 @@ snapshots:
       esbuild: 0.25.3
 
   terser@5.40.0:
+    dependencies:
+      '@jridgewell/source-map': 0.3.5
+      acorn: 8.14.1
+      commander: 2.20.3
+      source-map-support: 0.5.21
+
+  terser@5.41.0:
     dependencies:
       '@jridgewell/source-map': 0.3.5
       acorn: 8.14.1
