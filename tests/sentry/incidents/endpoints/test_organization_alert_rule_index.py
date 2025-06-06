@@ -49,7 +49,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.snuba.subscriptions import create_subscription_in_snuba
+from sentry.snuba.tasks import create_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
