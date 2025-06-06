@@ -49,7 +49,7 @@ const ACTIONS: Action[] = [
 
   {
     title: t('Toggle dark mode'),
-    description: t('Toggle dark mode (superuser only atm)'),
+    description: t('Toggle dark mode'),
     requiresSuperuser: false,
     action: () => {
       removeBodyTheme();
