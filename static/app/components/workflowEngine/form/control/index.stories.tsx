@@ -16,7 +16,7 @@ export default Storybook.story('Form Controls', story => {
 
       <Form hideFooter>
         <Flex column gap={space(2)}>
-          <PriorityControl name="priority" />
+          <PriorityControl />
         </Flex>
       </Form>
     </Fragment>
