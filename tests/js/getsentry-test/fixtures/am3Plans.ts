@@ -98,6 +98,7 @@ const AM3_TEAM_FEATURES = [
   'integrations-incident-management',
   'sso-basic',
   'weekly-reports',
+  'seer-billing',
 ];
 
 const AM3_BUSINESS_FEATURES = [
@@ -138,7 +139,45 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling-custom',
 ];
 
-const SEER_TIERS = {
+export const SEER_TIERS_DEVELOPER = {
+  seerAutofix: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+  seerScanner: [
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+};
+
+export const SEER_TIERS_TRIAL_OR_ENTERPRISE = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 0,
+    },
+  ],
+};
+
+export const SEER_TIERS = {
   seerAutofix: [
     {
       events: -2,
@@ -169,7 +208,7 @@ const SEER_TIERS = {
   ],
 };
 
-const SEER_TIERS_ANNUAL = {
+export const SEER_TIERS_ANNUAL = {
   seerAutofix: [
     {
       events: -2,
@@ -1506,7 +1545,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
-      ...SEER_TIERS,
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1602,6 +1641,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1705,6 +1745,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1808,6 +1849,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1903,6 +1945,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      ...SEER_TIERS_DEVELOPER,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1998,6 +2041,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -2101,6 +2145,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
