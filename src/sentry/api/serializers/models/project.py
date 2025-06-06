@@ -25,6 +25,7 @@ from sentry.digests import backend as digests
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     has_dynamic_sampling,
+    has_dynamic_sampling_minimum_sample_rate,
     is_project_mode_sampling,
 )
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
@@ -946,7 +947,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
-    dynamicSamplingMinimumSampleRate: bool
     eventProcessing: dict[str, bool]
     symbolSources: str
     isDynamicallySampled: bool
@@ -1007,6 +1007,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
+        minimum_sample_rate = None
+
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
                 sample_rate = obj.get_option("sentry:target_sample_rate")
@@ -1017,6 +1019,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         elif has_dynamic_sampling(obj.organization):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
+            )
+
+        if has_dynamic_sampling_minimum_sample_rate(obj.organization):
+            minimum_sample_rate = bool(
+                obj.get_option("sentry:dynamic_sampling_minimum_sample_rate")
             )
 
         data: DetailedProjectResponse = {
@@ -1096,9 +1103,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
-            "dynamicSamplingMinimumSampleRate": self.get_value_with_default(
-                attrs, "sentry:dynamic_sampling_minimum_sample_rate"
-            ),
+            "dynamicSamplingMinimumSampleRate": minimum_sample_rate,
             "eventProcessing": {
                 "symbolicationDegraded": False,
             },
