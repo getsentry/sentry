@@ -84,7 +84,12 @@ class SQLInjectionDetector(PerformanceDetector):
             query_key = query_pair[0]
 
             # Filters out empty strings or single character strings
-            if not isinstance(query_value, str) or not query_value or len(query_value) == 1:
+            if (
+                not isinstance(query_value, str)
+                or not isinstance(query_key, str)
+                or not query_value
+                or len(query_value) == 1
+            ):
                 continue
             if query_key == query_value:
                 continue
