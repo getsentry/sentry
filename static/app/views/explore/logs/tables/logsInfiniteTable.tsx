@@ -43,6 +43,8 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {type LogRowGroup} from 'sentry/views/explore/logs/useLogsQuery'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import {updateLogRowGroupExpansion} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
@@ -93,6 +95,7 @@ export function LogsInfiniteTable({
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -207,6 +210,29 @@ export function LogsInfiniteTable({
     });
   }, []);
 
+  const handleGroupExpand = useCallback((groupId: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      newSet.add(groupId);
+      return newSet;
+    });
+    updateLogRowGroupExpansion(groupId, true);
+  }, []);
+
+  const handleGroupCollapse = useCallback((groupId: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(groupId);
+      return newSet;
+    });
+    updateLogRowGroupExpansion(groupId, false);
+  }, []);
+
+  const isRowExpanded = useCallback(
+    (id: string) => expandedLogRows.has(id),
+    [expandedLogRows]
+  );
+
   const tableStaticCSS = useMemo(() => {
     return {
       '.log-table-row-chevron-button': {
@@ -256,6 +282,15 @@ export function LogsInfiniteTable({
             if (!dataRow) {
               return null;
             }
+
+            // Check if this is a group and get the group ID
+            const isGroup = Array.isArray(dataRow) && 'groupId' in dataRow;
+            const groupId = isGroup ? dataRow.groupId : '';
+            // For row expansion, always use the actual first row's ID, not the group ID
+            const firstRowId = isGroup
+              ? String(dataRow[0]?.[OurLogKnownFieldKey.ID])
+              : String(dataRow[OurLogKnownFieldKey.ID]);
+
             return (
               <Fragment key={virtualRow.key}>
                 <LogRowContent
@@ -267,8 +302,12 @@ export function LogsInfiniteTable({
                   canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
-                  isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
+                  isExpanded={expandedLogRows.has(firstRowId)}
                   onExpandHeight={handleExpandHeight}
+                  onGroupExpand={handleGroupExpand}
+                  onGroupCollapse={handleGroupCollapse}
+                  isGroupExpanded={expandedGroups.has(groupId)}
+                  isRowExpanded={isRowExpanded}
                 />
               </Fragment>
             );

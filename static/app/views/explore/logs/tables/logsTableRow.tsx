@@ -2,6 +2,7 @@ import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Badge} from 'sentry/components/core/badge';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
@@ -53,6 +54,7 @@ import {
 } from 'sentry/views/explore/logs/types';
 import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {
+  type LogRowGroup,
   useExploreLogsTableRow,
   usePrefetchLogTableRowOnHover,
 } from 'sentry/views/explore/logs/useLogsQuery';
@@ -63,18 +65,28 @@ import {
 } from 'sentry/views/explore/logs/utils';
 
 type LogsRowProps = {
-  dataRow: OurLogsResponseItem;
+  dataRow: OurLogsResponseItem | LogRowGroup;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   canDeferRenderElements?: boolean;
   isExpanded?: boolean;
+  isGroupExpanded?: boolean;
+  isRowExpanded?: (rowId: string) => boolean;
   onCollapse?: (logItemId: string) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  onGroupCollapse?: (groupId: string) => void;
+  onGroupExpand?: (groupId: string) => void;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
+
+function isLogRowGroup(
+  dataRow: OurLogsResponseItem | LogRowGroup
+): dataRow is LogRowGroup {
+  return Array.isArray(dataRow) && 'groupSize' in dataRow && 'groupId' in dataRow;
+}
 
 function isInsideButton(element: Element | null): boolean {
   let i = 10;
@@ -82,7 +94,8 @@ function isInsideButton(element: Element | null): boolean {
     i -= 1;
     if (
       element instanceof HTMLButtonElement ||
-      element.getAttribute('role') === 'button'
+      element.getAttribute('role') === 'button' ||
+      element.getAttribute('data-group-badge') === 'true'
     ) {
       return true;
     }
@@ -97,9 +110,13 @@ export const LogRowContent = memo(function LogRowContent({
   meta,
   sharedHoverTimeoutRef,
   isExpanded,
+  isGroupExpanded,
+  isRowExpanded,
   onExpand,
   onCollapse,
   onExpandHeight,
+  onGroupExpand,
+  onGroupCollapse,
   canDeferRenderElements,
 }: LogsRowProps) {
   const location = useLocation();
@@ -113,6 +130,10 @@ export const LogRowContent = memo(function LogRowContent({
   const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
     canDeferRenderElements ? false : true
   );
+
+  const isGroup = isLogRowGroup(dataRow);
+  const firstRow = (isGroup ? dataRow[0] : dataRow) as OurLogsResponseItem;
+  const groupInfo = isGroup ? dataRow : null;
 
   const setShouldRenderHoverElements = useCallback(
     (value: boolean) => {
@@ -133,6 +154,17 @@ export const LogRowContent = memo(function LogRowContent({
     }
   }
 
+  function onGroupBadgeClick(event: SyntheticEvent) {
+    event.stopPropagation();
+    if (isGroup && groupInfo) {
+      if (isGroupExpanded) {
+        onGroupCollapse?.(groupInfo.groupId);
+      } else {
+        onGroupExpand?.(groupInfo.groupId);
+      }
+    }
+  }
+
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const [_expanded, setExpanded] = useState<boolean>(false);
   const expanded = isExpanded ?? _expanded;
@@ -140,15 +172,15 @@ export const LogRowContent = memo(function LogRowContent({
   function toggleExpanded() {
     if (onExpand) {
       if (isExpanded) {
-        onCollapse?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        onCollapse?.(String(firstRow[OurLogKnownFieldKey.ID]));
       } else {
-        onExpand?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        onExpand?.(String(firstRow[OurLogKnownFieldKey.ID]));
       }
     } else {
       setExpanded(e => !e);
     }
     trackAnalytics('logs.table.row_expanded', {
-      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      log_id: String(firstRow[OurLogKnownFieldKey.ID]),
       page_source: analyticsPageSource,
       organization,
     });
@@ -157,11 +189,11 @@ export const LogRowContent = memo(function LogRowContent({
   useLayoutEffect(() => {
     if (measureRef.current && isExpanded) {
       onExpandHeight?.(
-        String(dataRow[OurLogKnownFieldKey.ID]),
+        String(firstRow[OurLogKnownFieldKey.ID]),
         measureRef.current.clientHeight
       );
     }
-  }, [isExpanded, onExpandHeight, dataRow]);
+  }, [isExpanded, onExpandHeight, firstRow]);
 
   const addSearchFilter = useCallback(
     ({
@@ -181,12 +213,11 @@ export const LogRowContent = memo(function LogRowContent({
   );
   const theme = useTheme();
 
-  const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
   const project = useProjectFromId({
-    project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
+    project_id: firstRow[OurLogKnownFieldKey.PROJECT_ID],
   });
-  const projectSlug = project?.slug ?? '';
+  const severityNumber = firstRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
+  const severityText = firstRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -194,22 +225,27 @@ export const LogRowContent = memo(function LogRowContent({
   );
   const logColors = getLogColors(level, theme);
   const hoverProps = usePrefetchLogTableRowOnHover({
-    logId: String(dataRow[OurLogKnownFieldKey.ID]),
-    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+    logId: String(firstRow[OurLogKnownFieldKey.ID]),
+    projectId: String(firstRow[OurLogKnownFieldKey.PROJECT_ID]),
+    traceId: String(firstRow[OurLogKnownFieldKey.TRACE_ID]),
     sharedHoverTimeoutRef,
   });
 
-  const rendererExtra = {
-    highlightTerms,
-    logColors,
-    useFullSeverityText: false,
-    renderSeverityCircle: true,
-    location,
+  // Ensure we have a valid first row
+  if (!firstRow) {
+    return null;
+  }
+
+  const rendererExtra: RendererExtra = {
     organization,
-    attributes: dataRow,
+    location,
+    align: 'left',
+    projectSlug: project?.slug ?? '',
+    attributes: firstRow,
+    logColors,
+    highlightTerms,
+    shouldRenderHoverElements,
     theme,
-    projectSlug,
   };
 
   const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding
@@ -249,10 +285,20 @@ export const LogRowContent = memo(function LogRowContent({
               <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
+            {isGroup && groupInfo && groupInfo.groupSize > 1 && (
+              <Badge
+                type="default"
+                onClick={onGroupBadgeClick}
+                style={{cursor: 'pointer', marginLeft: '4px'}}
+                data-group-badge="true"
+              >
+                {isGroupExpanded ? '...' : groupInfo.groupSize}
+              </Badge>
+            )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
         {fields?.map(field => {
-          const value = dataRow[field];
+          const value = firstRow[field];
 
           if (!defined(value)) {
             return <LogTableBodyCell key={field} />;
@@ -260,7 +306,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           const renderedField = (
             <LogFieldRenderer
-              item={getLogRowItem(field, dataRow, meta)}
+              item={getLogRowItem(field, firstRow, meta)}
               meta={meta}
               extra={rendererExtra}
             />
@@ -282,7 +328,7 @@ export const LogRowContent = memo(function LogRowContent({
               {shouldRenderHoverElements ? (
                 <CellAction
                   column={discoverColumn}
-                  dataRow={dataRow as unknown as TableDataRow}
+                  dataRow={firstRow as unknown as TableDataRow}
                   handleCellAction={(actions, cellValue) => {
                     switch (actions) {
                       case Actions.ADD:
@@ -319,11 +365,165 @@ export const LogRowContent = memo(function LogRowContent({
       </LogTableRow>
       {expanded && (
         <LogRowDetails
-          dataRow={dataRow}
+          dataRow={firstRow}
           highlightTerms={highlightTerms}
           meta={meta}
           ref={measureRef}
         />
+      )}
+      {isGroup && isGroupExpanded && groupInfo && groupInfo.length > 1 && (
+        <Fragment>
+          {groupInfo.slice(1).map((row, index) => {
+            const rowId = String(row[OurLogKnownFieldKey.ID]);
+            const isThisRowExpanded = isRowExpanded?.(rowId) ?? false;
+
+            // Row interaction handlers for this grouped row
+            function onRowPointerUp(event: SyntheticEvent) {
+              if (event.target instanceof Element && isInsideButton(event.target)) {
+                return;
+              }
+              if (window.getSelection()?.toString() === '') {
+                if (isThisRowExpanded) {
+                  onCollapse?.(rowId);
+                } else {
+                  onExpand?.(rowId);
+                }
+              }
+            }
+
+            const groupedRowInteractProps: ComponentProps<typeof LogTableRow> =
+              blockRowExpanding
+                ? {}
+                : {
+                    onPointerUp: onRowPointerUp,
+                    onTouchEnd: onRowPointerUp,
+                    isClickable: true,
+                  };
+
+            return (
+              <Fragment key={`group-${groupInfo.groupId}-${index}`}>
+                <LogTableRow
+                  {...groupedRowInteractProps}
+                  data-grouped-row="true"
+                  onMouseEnter={() => setShouldRenderHoverElements(true)}
+                  onMouseLeave={() => setShouldRenderHoverElements(false)}
+                >
+                  <LogsTableBodyFirstCell>
+                    <LogFirstCellContent style={{justifyContent: 'flex-end'}}>
+                      {blockRowExpanding ? null : shouldRenderHoverElements ? (
+                        <StyledChevronButton
+                          icon={
+                            <IconChevron
+                              size="xs"
+                              direction={isThisRowExpanded ? 'down' : 'right'}
+                            />
+                          }
+                          aria-label={t('Toggle trace details')}
+                          aria-expanded={isThisRowExpanded}
+                          size="zero"
+                          borderless
+                          onClick={() => {
+                            if (isThisRowExpanded) {
+                              onCollapse?.(rowId);
+                            } else {
+                              onExpand?.(rowId);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="log-table-row-chevron-button">
+                          <IconChevron
+                            size="xs"
+                            direction={isThisRowExpanded ? 'down' : 'right'}
+                          />
+                        </span>
+                      )}
+                      {/* Skip severity circle for grouped rows since they share the same template */}
+                    </LogFirstCellContent>
+                  </LogsTableBodyFirstCell>
+                  {fields?.map(field => {
+                    const value = row[field];
+                    if (!defined(value)) {
+                      return <LogTableBodyCell key={field} />;
+                    }
+
+                    const renderedField = (
+                      <LogFieldRenderer
+                        item={getLogRowItem(field, row, meta)}
+                        meta={meta}
+                        extra={{
+                          ...rendererExtra,
+                          attributes: row,
+                        }}
+                      />
+                    );
+
+                    const discoverColumn: TableColumn<keyof TableDataRow> = {
+                      column: {
+                        field,
+                        kind: 'field',
+                      },
+                      name: field,
+                      key: field,
+                      isSortable: true,
+                      type: FieldValueType.STRING,
+                    };
+
+                    return (
+                      <LogTableBodyCell
+                        key={field}
+                        data-test-id={'log-table-cell-' + field}
+                      >
+                        {shouldRenderHoverElements ? (
+                          <CellAction
+                            column={discoverColumn}
+                            dataRow={row as unknown as TableDataRow}
+                            handleCellAction={(actions, cellValue) => {
+                              switch (actions) {
+                                case Actions.ADD:
+                                  addSearchFilter({
+                                    key: field,
+                                    value: cellValue,
+                                  });
+                                  break;
+                                case Actions.EXCLUDE:
+                                  addSearchFilter({
+                                    key: field,
+                                    value: cellValue,
+                                    negated: true,
+                                  });
+                                  break;
+                                default:
+                                  break;
+                              }
+                            }}
+                            allowActions={
+                              field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
+                                ? []
+                                : ALLOWED_CELL_ACTIONS
+                            }
+                          >
+                            {renderedField}
+                          </CellAction>
+                        ) : (
+                          renderedField
+                        )}
+                      </LogTableBodyCell>
+                    );
+                  })}
+                </LogTableRow>
+                {isThisRowExpanded && (
+                  <LogRowDetails
+                    dataRow={row}
+                    highlightTerms={highlightTerms}
+                    meta={meta}
+                    ref={measureRef}
+                  />
+                )}
+              </Fragment>
+            );
+          })}
+        </Fragment>
       )}
     </Fragment>
   );
@@ -345,7 +545,7 @@ function LogRowDetails({
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
-  const projectSlug = project?.slug ?? '';
+  const _projectSlug = project?.slug ?? '';
   const fields = useLogsFields();
   const getActions = useLogAttributesTreeActions();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -398,7 +598,7 @@ function LogRowDetails({
                     wrapBody: true,
                     location,
                     organization,
-                    projectSlug,
+                    projectSlug: _projectSlug,
                     attributes,
                     theme,
                   },
@@ -416,7 +616,7 @@ function LogRowDetails({
                     logColors,
                     location,
                     organization,
-                    projectSlug,
+                    projectSlug: _projectSlug,
                     attributes,
                     theme,
                   }}

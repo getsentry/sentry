@@ -53,6 +53,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   logColors: ReturnType<typeof getLogColors>;
   projectSlug: string;
   align?: 'left' | 'center' | 'right';
+  shouldRenderHoverElements?: boolean;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }

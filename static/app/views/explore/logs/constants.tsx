@@ -26,6 +26,8 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.TIMESTAMP,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.TEMPLATE,
 ] as const;
 
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
@@ -65,6 +67,8 @@ export const LOGS_INSTRUCTIONS_URL =
 
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 
-export const VIRTUAL_STREAMED_INTERVAL_MS = 333;
+export const VIRTUAL_STREAMED_INTERVAL_MS = 100;
 
 export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 100; // Items from bottom of table to trigger table fetch.
+
+export const MAX_GROUPED_LOGS_COUNT = 99; // Maximum number of logs to group together for UI clarity

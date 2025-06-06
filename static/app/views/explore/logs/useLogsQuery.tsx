@@ -36,11 +36,13 @@ import {
 import {
   AlwaysPresentLogFields,
   LOG_INGEST_DELAY,
+  MAX_GROUPED_LOGS_COUNT,
   VIRTUAL_STREAMED_INTERVAL_MS,
 } from 'sentry/views/explore/logs/constants';
 import {
   type EventsLogsResult,
   OurLogKnownFieldKey,
+  type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -282,6 +284,139 @@ export type LogPageParam = PageParam | null | undefined;
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinite'];
 
+// Type for a row group - acts like an array but has additional group info
+export interface LogRowGroup extends Array<OurLogsResponseItem> {
+  // Make it behave like the first row for backward compatibility
+  [key: string]: any;
+  groupId: string;
+  groupSize: number;
+  template: string | null; // ID of the first item in the group for identification
+  isExpanded?: boolean; // Whether this group is expanded to show all rows
+}
+
+// Cache to maintain object identity for LogRowGroup objects
+const logRowGroupCache = new Map<string, LogRowGroup>();
+
+// Function to clear the cache (useful when data changes significantly)
+export function clearLogRowGroupCache() {
+  logRowGroupCache.clear();
+}
+
+// Function to update the expansion state of a cached group
+export function updateLogRowGroupExpansion(groupId: string, isExpanded: boolean) {
+  for (const [, group] of logRowGroupCache) {
+    if (group.groupId === groupId) {
+      group.isExpanded = isExpanded;
+      break;
+    }
+  }
+}
+
+// Function to create a cache key for a group of rows
+function createGroupCacheKey(rows: OurLogsResponseItem[]): string {
+  if (rows.length === 0) {
+    return 'empty';
+  }
+
+  // Create a stable key based on the IDs of all rows in the group
+  const sortedIds = rows.map(row => String(row[OurLogKnownFieldKey.ID])).sort();
+  return sortedIds.join(',');
+}
+
+function createLogRowGroup(rows: OurLogsResponseItem[]): LogRowGroup {
+  const cacheKey = createGroupCacheKey(rows);
+
+  // Check if we already have this group cached
+  const cachedGroup = logRowGroupCache.get(cacheKey);
+  if (cachedGroup) {
+    // Verify the cached group still matches the current data
+    if (
+      cachedGroup.length === rows.length &&
+      cachedGroup.every(
+        (cachedRow, index) =>
+          cachedRow[OurLogKnownFieldKey.ID] === rows[index]?.[OurLogKnownFieldKey.ID]
+      )
+    ) {
+      return cachedGroup;
+    }
+  }
+
+  if (rows.length === 0) {
+    const emptyGroup = [] as unknown as LogRowGroup;
+    emptyGroup.template = null;
+    emptyGroup.groupSize = 0;
+    emptyGroup.groupId = '';
+    emptyGroup.isExpanded = false;
+    logRowGroupCache.set(cacheKey, emptyGroup);
+    return emptyGroup;
+  }
+
+  const group = rows.slice() as LogRowGroup;
+  const firstRow = rows[0]!; // We know it exists because length > 0
+
+  // Use alphabetically lowest item ID for stable group identification
+  const sortedIds = rows.map(row => String(row[OurLogKnownFieldKey.ID])).sort();
+  const stableGroupId = sortedIds[0] ?? String(firstRow[OurLogKnownFieldKey.ID]);
+
+  // Add group metadata
+  group.template = (firstRow[OurLogKnownFieldKey.TEMPLATE] as string) ?? null;
+  group.groupSize = rows.length;
+  group.groupId = stableGroupId; // Use stable ID instead of first item's ID
+  // Preserve isExpanded state from cached group, or default to false
+  group.isExpanded = cachedGroup?.isExpanded ?? false;
+
+  // Proxy the first row's properties to make the group behave like a single row
+  Object.keys(firstRow).forEach(key => {
+    if (!(key in group)) {
+      Object.defineProperty(group, key, {
+        get: () => firstRow[key],
+        enumerable: false,
+        configurable: true,
+      });
+    }
+  });
+
+  // Cache the new group
+  logRowGroupCache.set(cacheKey, group);
+  return group;
+}
+
+// Function to group consecutive rows by template
+function groupConsecutiveRowsByTemplate(rows: OurLogsResponseItem[]): LogRowGroup[] {
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const groups: LogRowGroup[] = [];
+  const firstRow = rows[0]!; // We know it exists because length > 0
+  let currentGroup: OurLogsResponseItem[] = [firstRow];
+  let currentTemplate = (firstRow[OurLogKnownFieldKey.TEMPLATE] as string) ?? null;
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i]!; // We know it exists because we're iterating within bounds
+    const rowTemplate = (row[OurLogKnownFieldKey.TEMPLATE] as string) ?? null;
+
+    // Check if this row has the same template as the current group and we haven't hit the max limit
+    if (
+      rowTemplate === currentTemplate &&
+      currentTemplate !== null &&
+      currentGroup.length < MAX_GROUPED_LOGS_COUNT
+    ) {
+      currentGroup.push(row);
+    } else {
+      // Template changed, is null, or hit max limit - finalize current group and start new one
+      groups.push(createLogRowGroup(currentGroup));
+      currentGroup = [row];
+      currentTemplate = rowTemplate;
+    }
+  }
+
+  // Add the last group
+  groups.push(createLogRowGroup(currentGroup));
+
+  return groups;
+}
+
 export function useInfiniteLogsQuery({
   disabled,
   referrer,
@@ -350,7 +485,7 @@ export function useInfiniteLogsQuery({
     initialPageParam: null,
     enabled: !disabled,
     staleTime: getStaleTimeForEventView(other.eventView),
-    maxPages: 10,
+    maxPages: 15,
   });
 
   const {
@@ -402,7 +537,7 @@ export function useInfiniteLogsQuery({
 
   const _data = useMemo(() => {
     const usedRowIds = new Set();
-    return (
+    const flattenedRows =
       data?.pages.flatMap(([pageData]) =>
         pageData.data.filter(row => {
           if (usedRowIds.has(row[UNIQUE_ROW_ID])) {
@@ -418,8 +553,10 @@ export function useInfiniteLogsQuery({
           usedRowIds.add(row[UNIQUE_ROW_ID]);
           return true;
         })
-      ) ?? []
-    );
+      ) ?? [];
+
+    // Group consecutive rows by template
+    return groupConsecutiveRowsByTemplate(flattenedRows);
   }, [data, virtualStreamedTimestamp]);
 
   const _meta = useMemo<EventsMetaType>(() => {
@@ -496,7 +633,10 @@ function useVirtualStreaming(numberOfPages: number) {
           if (prev + VIRTUAL_STREAMED_INTERVAL_MS > targetVirtualTime) {
             return prev;
           }
-          return prev + VIRTUAL_STREAMED_INTERVAL_MS;
+          while (prev + VIRTUAL_STREAMED_INTERVAL_MS < targetVirtualTime) {
+            prev += VIRTUAL_STREAMED_INTERVAL_MS;
+          }
+          return prev;
         });
         rafId = requestAnimationFrame(callback);
       };

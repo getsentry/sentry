@@ -40,6 +40,16 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     &:not(:last-child) {
       border-bottom: 0;
     }
+
+    /* Grouped rows have a distinct background */
+    &[data-grouped-row='true'] {
+      background-color: ${p => p.theme.gray100};
+
+      /* Grouped rows should have the same hover state as main rows */
+      &:hover {
+        background-color: ${p => p.theme.backgroundSecondary};
+      }
+    }
   }
 `;
 
