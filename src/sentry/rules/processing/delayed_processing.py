@@ -519,6 +519,7 @@ def fire_rules(
         group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):
+                sentry_sdk.get_current_scope().set_tag("rule_id", rule.id)
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
                 for group_id in group_ids:
@@ -662,6 +663,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
+    sentry_sdk.get_current_scope().set_tag("project_id", project_id)
     with sentry_sdk.start_span(
         op="delayed_processing.prepare_data", name="Fetch data from buffers in delayed processing"
     ):
@@ -683,6 +685,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
                 "rules_to_groups": rules_to_groups,
             },
         )
+    sentry_sdk.get_current_scope().set_tag("organization_slug", project.organization.slug)
 
     with (
         metrics.timer("delayed_processing.get_condition_group_results.duration"),
