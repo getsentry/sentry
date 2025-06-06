@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -42,7 +42,7 @@ export default function TempestSettings({organization, project}: Props) {
       key: PS5_WARNING_DISMISS_KEY,
     });
 
-  const getTabFromQuery = (): Tab => {
+  const getCurrentTab = (): Tab => {
     const queryTab = decodeScalar(location?.query?.tab);
     return (
       ['playstation', 'devkit-crashes'].includes(queryTab || '')
@@ -51,11 +51,9 @@ export default function TempestSettings({organization, project}: Props) {
     ) as Tab;
   };
 
-  const [tab, setTab] = useState<Tab>(getTabFromQuery());
+  const tab = getCurrentTab();
 
   const handleTabChange = (newTab: Tab) => {
-    setTab(newTab);
-
     navigate({
       pathname: location.pathname,
       query: {
