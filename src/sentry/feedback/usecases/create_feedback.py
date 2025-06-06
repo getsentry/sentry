@@ -348,6 +348,7 @@ def create_feedback_issue(
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
     )
+
     now = datetime.now()
 
     event_data = {
