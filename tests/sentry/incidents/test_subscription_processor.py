@@ -54,7 +54,7 @@ from sentry.incidents.subscription_processor import (
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
-from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.types import (
     AnomalyType,
     DetectAnomaliesResponse,
@@ -770,7 +770,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = SubscriptionProcessor(self.sub)
         processor.alert_rule = self.dynamic_rule
-        result = get_anomaly_data_from_seer(
+        result = get_anomaly_data_from_seer_legacy(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
@@ -806,7 +806,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         mock_seer_request.side_effect = TimeoutError
         aggregation_value = 10
-        result = get_anomaly_data_from_seer(
+        result = get_anomaly_data_from_seer_legacy(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
@@ -960,7 +960,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = SubscriptionProcessor(self.sub)
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        result = get_anomaly_data_from_seer(
+        result = get_anomaly_data_from_seer_legacy(
             alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
@@ -981,7 +981,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
         aggregation_value = 10
-        result = get_anomaly_data_from_seer(
+        result = get_anomaly_data_from_seer_legacy(
             alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
@@ -1013,7 +1013,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
-        result = get_anomaly_data_from_seer(
+        result = get_anomaly_data_from_seer_legacy(
             alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
