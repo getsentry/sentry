@@ -8,6 +8,7 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -164,15 +165,14 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${SpanIndexedField.SPAN_OP})`;
   }
 
-  if (newAggregate === AggregationKey.EPM || newAggregate === AggregationKey.EPS) {
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(newAggregate as AggregationKey)) {
     return `${newAggregate}()`;
   }
 
   // switching away from count_unique means we need to reset the field
   if (
     oldAggregate === AggregationKey.COUNT_UNIQUE ||
-    oldAggregate === AggregationKey.EPM ||
-    oldAggregate === AggregationKey.EPS
+    NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
   ) {
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }

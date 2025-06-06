@@ -6,7 +6,12 @@ import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  AggregationKey,
+  FieldKind,
+  NO_ARGUMENT_SPAN_AGGREGATES,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -39,10 +44,7 @@ export function useVisualizeFields({
       return [FieldKind.MEASUREMENT, countTags];
     }
 
-    if (
-      parsedFunction?.name === AggregationKey.EPM ||
-      parsedFunction?.name === AggregationKey.EPS
-    ) {
+    if (NO_ARGUMENT_SPAN_AGGREGATES.includes(parsedFunction?.name as AggregationKey)) {
       const countTags: TagCollection = {
         '': {
           name: t('spans'),
