@@ -1,10 +1,10 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import {IconDefaultsProvider} from 'sentry/components/core/iconDefaults';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {space} from 'sentry/components/core/space';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import {space} from 'sentry/styles/space';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,

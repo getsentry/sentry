@@ -1,9 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {StyledButton} from 'sentry/components/core/button';
-import type {ValidSize} from 'sentry/styles/space';
-import {space} from 'sentry/styles/space';
+import type {ValidSize} from 'sentry/components/core/space';
+import {space} from 'sentry/components/core/space';
+
+import {StyledButton} from './index';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;

@@ -1,8 +1,8 @@
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
+import {space} from 'sentry/components/core/space';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-import {space} from 'sentry/styles/space';
 
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
