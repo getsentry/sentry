@@ -25,6 +25,7 @@ export enum OurLogKnownFieldKey {
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_PRECISE = 'tags[sentry.timestamp_precise,number]',
+  OBSERVED_TIMESTAMP_PRECISE = 'sentry.observed_timestamp_nanos',
   CODE_FILE_PATH = 'code.file.path',
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
