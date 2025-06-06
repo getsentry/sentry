@@ -18,7 +18,6 @@ export type RawVisualize = {
 export function isRawVisualize(value: any): value is RawVisualize {
   return (
     typeof value === 'object' &&
-    'yAxes' in value &&
     Array.isArray(value.yAxes) &&
     value.yAxes.every((v: any) => typeof v === 'string')
   );

@@ -64,7 +64,7 @@ export enum ChartType {
 }
 
 export function isChartType(value: any): value is ChartType {
-  return typeof value === 'number' && Object.values(ChartType).includes(value);
+  return typeof value === 'number' && Object.values(ChartType).includes(value as any);
 }
 
 interface ChartRenderingProps {
