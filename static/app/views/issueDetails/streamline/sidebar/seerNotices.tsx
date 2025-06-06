@@ -92,7 +92,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const needsAutomation =
     detailedProject?.data &&
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
-      detailedProject?.data?.autofixAutomationTuning === undefined) &&
+      detailedProject?.data?.autofixAutomationTuning === undefined ||
+      detailedProject?.data?.seerScannerAutomation === false ||
+      detailedProject?.data?.seerScannerAutomation === undefined) &&
     isAutomationAllowed;
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
