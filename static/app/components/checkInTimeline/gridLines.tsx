@@ -151,6 +151,10 @@ interface GridLineOverlayProps {
    */
   labelPosition?: LabelPosition;
   /**
+   * Resets pagination cursor when zooming the timeline.
+   */
+  resetPaginationOnZoom?: boolean;
+  /**
    * Enable the timeline cursor
    */
   showCursor?: boolean;
@@ -169,6 +173,7 @@ export function GridLineOverlay({
   allowZoom,
   className,
   labelPosition = 'left-top',
+  resetPaginationOnZoom,
 }: GridLineOverlayProps) {
   const router = useRouter();
   const {periodStart, timelineWidth, dateLabelFormat, rollupConfig} = timeWindowConfig;
@@ -197,9 +202,9 @@ export function GridLineOverlay({
           end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
         router,
-        {keepCursor: true}
+        {keepCursor: !resetPaginationOnZoom}
       ),
-    [dateFromPosition, router]
+    [dateFromPosition, resetPaginationOnZoom, router]
   );
 
   const {
