@@ -89,10 +89,12 @@ const FILTER_KEYS: TagCollection = {
   'tags[foo,string]': {
     key: 'tags[foo,string]',
     name: 'foo',
+    kind: FieldKind.TAG,
   },
   'tags[bar,number]': {
     key: 'tags[bar,number]',
     name: 'bar',
+    kind: FieldKind.MEASUREMENT,
   },
 };
 
@@ -3537,9 +3539,15 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('explicitly typed tags', function () {
+    const builderProps = {
+      ...defaultProps,
+      fieldDefinitionGetter: (key: string) =>
+        getFieldDefinition(key, 'span', defaultProps.filterKeys[key]?.kind),
+    };
+
     it('renders explicit string tag filter', async function () {
       render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="tags[foo,string]:foo" />
+        <SearchQueryBuilder {...builderProps} initialQuery="tags[foo,string]:foo" />
       );
 
       expect(
@@ -3559,7 +3567,7 @@ describe('SearchQueryBuilder', function () {
 
     it('renders explicit number tag filter', async function () {
       render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="tags[bar,number]:<=100" />
+        <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
       );
 
       expect(
@@ -3579,7 +3587,7 @@ describe('SearchQueryBuilder', function () {
 
     it('renders has explicit string tag filter', async function () {
       render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[foo,string]" />
+        <SearchQueryBuilder {...builderProps} initialQuery="has:tags[foo,string]" />
       );
 
       expect(
@@ -3598,7 +3606,7 @@ describe('SearchQueryBuilder', function () {
 
     it('renders has explicit number tag filter', async function () {
       render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[bar,number]" />
+        <SearchQueryBuilder {...builderProps} initialQuery="has:tags[bar,number]" />
       );
 
       expect(
@@ -3613,6 +3621,49 @@ describe('SearchQueryBuilder', function () {
       const option = screen.getByRole('option', {name: 'bar'});
       expect(option).toBeInTheDocument();
       expect(option).toHaveTextContent('bar');
+    });
+
+    it('renders aggregate filter with explicit string tag', async function () {
+      render(
+        <SearchQueryBuilder
+          {...builderProps}
+          initialQuery="count_unique(tags[foo,string]):5"
+        />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit parameters for filter: count_unique'})
+      ).toHaveTextContent('foo');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit parameters for filter: count_unique'})
+      );
+
+      const input = screen.getByPlaceholderText('foo');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      await userEvent.keyboard('foo');
+      expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
+    });
+
+    it('renders aggregate filter with explicit number tag', async function () {
+      render(
+        <SearchQueryBuilder {...builderProps} initialQuery="p95(tags[bar,number]):5" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit parameters for filter: p95'})
+      ).toHaveTextContent('bar');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit parameters for filter: p95'})
+      );
+
+      const input = screen.getByPlaceholderText('bar');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      await userEvent.keyboard('bar');
+      expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
     });
   });
 
@@ -3629,13 +3680,15 @@ describe('SearchQueryBuilder', function () {
       return key;
     }
 
+    const builderProps = {
+      ...defaultProps,
+      fieldDefinitionGetter: (key: string) =>
+        getFieldDefinition(key, 'span', defaultProps.filterKeys[key]?.kind),
+      getSuggestedFilterKey,
+    };
+
     it('replace string key with suggestion when autocompleting', async function () {
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
-      );
+      render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('foo:{Escape}');
@@ -3646,12 +3699,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replace number key with suggestion when autocompleting', async function () {
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
-      );
+      render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('bar:{Escape}');
@@ -3663,11 +3711,7 @@ describe('SearchQueryBuilder', function () {
 
     it('replaces string key with suggestion on enter', async function () {
       render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          initialQuery="browser.name:firefox"
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
+        <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
       );
 
       await userEvent.click(
@@ -3682,11 +3726,7 @@ describe('SearchQueryBuilder', function () {
 
     it('replaces number key with suggestion on enter', async function () {
       render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          initialQuery="browser.name:firefox"
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
+        <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
       );
 
       await userEvent.click(
@@ -3700,12 +3740,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces string key in has with suggestion on enter', async function () {
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
-      );
+      render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('has:foo{Enter}{Escape}');
@@ -3717,12 +3752,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces number key in has with suggestion on enter', async function () {
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
-      );
+      render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('has:bar{Enter}{Escape}');
@@ -3734,12 +3764,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces string key in has with suggestion on blur', async function () {
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
-      );
+      render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('has:foo{Enter}');
@@ -3752,12 +3777,7 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces number key in has with suggestion on blur', async function () {
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          getSuggestedFilterKey={getSuggestedFilterKey}
-        />
-      );
+      render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('has:bar{Enter}');
@@ -3767,6 +3787,44 @@ describe('SearchQueryBuilder', function () {
         screen.getByRole('button', {name: 'Edit value for filter: has'})
       ).toHaveTextContent('bar');
       expect(screen.getByLabelText('has:tags[bar,number]')).toBeInTheDocument();
+    });
+
+    it('replaces aggregate param string key with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...builderProps}
+          initialQuery="count_unique(browser.name):>0"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit parameters for filter: count_unique'})
+      );
+      await userEvent.keyboard('foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit parameters for filter: count_unique'})
+      ).toHaveTextContent('foo');
+      expect(
+        screen.getByLabelText('count_unique(tags[foo,string]):>0')
+      ).toBeInTheDocument();
+    });
+
+    it('replaces aggregate param number key with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder {...builderProps} initialQuery="avg(span.duration):>0" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit parameters for filter: avg'})
+      );
+      await userEvent.keyboard('bar{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit parameters for filter: avg'})
+      ).toHaveTextContent('bar');
+
+      expect(screen.getByLabelText('avg(tags[bar,number]):>0')).toBeInTheDocument();
     });
   });
 });
