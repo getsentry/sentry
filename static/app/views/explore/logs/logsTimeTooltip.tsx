@@ -78,9 +78,17 @@ export default function LogsTimestampTooltip({
     return <Fragment>{children}</Fragment>;
   }
 
+  const handleTooltipPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <Tooltip
-      title={<TimestampTooltipBody timestamp={timestamp} attributes={attributes} />}
+      title={
+        <div onPointerUp={handleTooltipPointerUp}>
+          <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
+        </div>
+      }
       maxWidth={400}
       isHoverable
     >
