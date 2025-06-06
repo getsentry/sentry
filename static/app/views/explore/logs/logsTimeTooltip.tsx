@@ -43,9 +43,7 @@ function TimestampTooltipBody({
           <AutoSelectText>
             <DateTime date={timestampToUse} seconds milliseconds timeZone />
           </AutoSelectText>
-          <TimestampRawValue>
-            {preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)}
-          </TimestampRawValue>
+          {preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)}
         </TimestampValues>
       </dd>
 
@@ -101,10 +99,6 @@ const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  font-family: ${p => p.theme.text.familyMono};
-`;
-
-const TimestampRawValue = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
