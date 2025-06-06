@@ -308,10 +308,10 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
           additionalInfo: (
             <p>
               {tct(
-                'For more information on uploading debug information and their supported formats, check out our [link:Debug Information Files documentation].',
+                'For more information on uploading debug information and their supported formats, check out our [link:Debug Symbols Uploading documentation].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/unreal/data-management/debug-files/" />
+                    <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
                   ),
                 }
               )}
