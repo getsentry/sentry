@@ -39,19 +39,6 @@ def get_suspect_flag_scores(
         org_id, project_id, start, end, envs, flag_keys=[o[0] for o in outliers]
     )
 
-    baseline_data = [
-        # ("is_foo", True, 4),
-        ("is_foo", False, 11),
-        # ("is_bar", True, 5),
-        ("is_bar", False, 21),
-    ]
-    outlier_data = [
-        # ("is_foo", True, 1),
-        ("is_foo", False, 3),
-        ("is_bar", True, 3),
-        # ("is_bar", False, 1),
-    ]
-
     outliers_count = query_error_counts(org_id, project_id, start, end, envs, group_id=group_id)
     baseline_count = query_error_counts(org_id, project_id, start, end, envs, group_id=None)
 

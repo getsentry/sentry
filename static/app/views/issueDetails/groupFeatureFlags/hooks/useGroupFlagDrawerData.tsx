@@ -104,11 +104,6 @@ export default function useGroupFlagDrawerData({
       const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
       return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
     }
-    // if (sortBy === SortBy.SUSPICION) {
-    //   return filteredFlags.toSorted(
-    //     (a, b) => (b.suspect.score ?? 0) - (a.suspect.score ?? 0)
-    //   );
-    // }
     if (sortBy === SortBy.DISTRIBUTION) {
       const sorted = filteredFlags.toSorted((a, b) => {
         const aTopPct = (a.topValues[0]?.count ?? 0) / a.totalValues;

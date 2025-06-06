@@ -14,7 +14,7 @@ import Pagination from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';

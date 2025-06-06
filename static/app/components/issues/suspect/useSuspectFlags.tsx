@@ -30,13 +30,11 @@ export default function useSuspectFlags({environments, group}: Props) {
       const uniqueOutlierValueCount = Object.keys(
         flag.distribution?.outliers ?? {}
       ).length;
-      // const outlierExamples = Object.values(flag.distribution?.outliers).at(0);
       const everyExampleIncludesFlag = group.userCount < flag.totalValues;
       return (
         uniqueOutlierValueCount === 1 &&
         uniqueBaselineValueCount > 1 &&
         everyExampleIncludesFlag
-        // outlierExamples === Number(group.count)
       );
     });
   }, [displayFlags, group.userCount]);
