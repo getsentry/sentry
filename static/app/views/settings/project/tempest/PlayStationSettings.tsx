@@ -87,9 +87,7 @@ export default function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isEmpty = useMemo(() => {
-    return !tempestCredentials?.length;
-  }, [tempestCredentials]);
+  const isEmpty = !tempestCredentials?.length;
 
   return (
     <Fragment>
