@@ -12,12 +12,14 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
+import withProjects from 'sentry/utils/withProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -39,6 +41,7 @@ type Props = {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
+  projects: Project[];
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
@@ -313,11 +316,20 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       });
     }
 
+    widget.queries.forEach(query => {
+      query.columns = query.columns.map(column => {
+        if (column === 'project_id') {
+          return 'project';
+        }
+        return column;
+      });
+    });
+
     return widget;
   };
 
   afterFetchData = (data: SessionApiResponse) => {
-    const {widget} = this.props;
+    const {widget, projects} = this.props;
     const {releases} = this.state;
 
     const isDescending = widget.queries[0]!.orderby.startsWith('-');
@@ -346,6 +358,15 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       });
       data.groups = data.groups.slice(0, this.limit);
     }
+
+    data.groups.forEach(group => {
+      // Convert the project ID in the grouping results to the project slug
+      // for a more human readable display
+      if (group.by.project) {
+        const project = projects.find(p => p.id === String(group.by.project));
+        group.by.project = project?.slug ?? group.by.project;
+      }
+    });
   };
 
   render() {
@@ -395,4 +416,4 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 }
 
-export default ReleaseWidgetQueries;
+export default withProjects(ReleaseWidgetQueries);
