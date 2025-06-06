@@ -103,8 +103,8 @@ class FiltersSerializer(serializers.Serializer):
     ```
     """
 
-    filters = serializers.ListField(
-        child=serializers.ChoiceField(choices=VALID_FILE_TYPES),
+    filetypes = serializers.MultipleChoiceField(
+        choices=VALID_FILE_TYPES,
         required=False,
         help_text="The file types enabled for the source.",
     )
