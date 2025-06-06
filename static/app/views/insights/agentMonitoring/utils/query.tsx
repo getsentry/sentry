@@ -81,19 +81,6 @@ export function mapMissingSpanOp({
   return op;
 }
 
-export function getIsAiSpanLoose({op, description}: {description?: string; op?: string}) {
-  if (description?.startsWith('ai') || description?.startsWith('gen_ai')) {
-    return true;
-  }
-  if (op?.startsWith('ai') || op?.startsWith('gen_ai')) {
-    return true;
-  }
-  if (op === 'http.client') {
-    return true;
-  }
-  return false;
-}
-
 export const getAgentRunsFilter = () => {
   return `span.op:[${AI_RUN_OPS.join(',')}] or span.description:[${AI_RUN_DESCRIPTIONS.join(',')}]`;
 };
