@@ -7,7 +7,7 @@ METRIC_PREFIX = "workflow_engine"
 MetricTags = dict[str, Any]
 
 
-def get_metric_name(metric_name: str) -> str:
+def _add_namespace_to_metric(metric_name: str) -> str:
     """
     Add the prefix to the metric name
     metric_name (str): The name of the metric.
@@ -15,7 +15,6 @@ def get_metric_name(metric_name: str) -> str:
     Returns:
         str: The full metric name with the prefix.
     """
-    # TODO - should this include the caller? would probably require us changing a lot of metrics.
     return f"{METRIC_PREFIX}.{metric_name}"
 
 
@@ -24,8 +23,10 @@ def metrics_incr(
     value: int = 1,
     tags: MetricTags | None = None,
 ) -> None:
-    """,
-    Send a metric for the workflow engine.
+    """
+    This method will take a metric name, then decorate it with the workflow engine namespace.
+    Then it will get data from the WorkflowContext and add tags to help us track metrics across
+    different types of detectors.
 
     metric_name (str): The name of the metric.
     value (int): The number to increment by
@@ -34,7 +35,7 @@ def metrics_incr(
     ctx = WorkflowContext.get()
     ctx_tags = {}
 
-    full_metric_name = get_metric_name(metric_name)
+    full_metric_name = _add_namespace_to_metric(metric_name)
 
     if tags is None:
         tags = {}
