@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
@@ -234,18 +237,94 @@ const onboarding: OnboardingConfig = {
               {italic: <i />}
             )}
           </p>
-          <p>
-            {tct(
-              'For more information on uploading debug information and their supported formats, check out our [link:Debug Information Files documentation].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/" />
-                ),
-              }
-            )}
-          </p>
         </Fragment>
       ),
+      configurations: [
+        {
+          description: (
+            <Fragment>
+              <h5>{t('Automated Upload')}</h5>
+              <p>
+                {tct(
+                  "The automated debug symbols upload is disabled by default and requires configuration. To enable it, go to your [projectsPluginSettings:project's plugin settings] and enable 'Upload debug symbols automatically'.",
+                  {
+                    strong: <strong />,
+                    projectsPluginSettings: (
+                      <Link
+                        to={`/settings/${params.organization.slug}/projects/${params.projectSlug}/plugins/`}
+                      />
+                    ),
+                  }
+                )}
+              </p>
+              <p>
+                {t(
+                  'Alternatively, you can enable automatic upload by setting the following environment variable:'
+                )}
+              </p>
+            </Fragment>
+          ),
+          language: 'bash',
+          code: `export SENTRY_UPLOAD_SYMBOLS_AUTOMATICALLY=True`,
+          additionalInfo: t(
+            'This can be especially helpful in CI/CD environments where manual configuration is impractical.'
+          ),
+        },
+        {
+          description: (
+            <Fragment>
+              <h5>{t('Manual Upload')}</h5>
+              <p>
+                {tct(
+                  "To manually upload debug symbols, you'll need to use [code:sentry-cli]. This requires your [strong:organization slug], [strong:project slug], and an [strong:authentication token]. These can be configured in one of two ways:",
+                  {
+                    code: <code />,
+                    strong: <strong />,
+                  }
+                )}
+              </p>
+              <p>
+                <List symbol="bullet">
+                  <ListItem>{t('Environment variables (recommended)')}</ListItem>
+                  <ListItem>
+                    {tct(
+                      'A [code:sentry.properties] file (automatically created by the Unreal Engine SDK)',
+                      {code: <code />}
+                    )}
+                  </ListItem>
+                </List>
+              </p>
+              <p>
+                {tct(
+                  'If the properties file is not found, [code:sentry-cli] will fall back to these environment variables if they are set:',
+                  {code: <code />}
+                )}
+              </p>
+            </Fragment>
+          ),
+          language: 'bash',
+          code: `export SENTRY_ORG=${params.organization.slug}
+export SENTRY_PROJECT=${params.projectSlug}
+export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
+        },
+        {
+          description: <p>{t('To upload debug symbols, run the following command:')}</p>,
+          language: 'bash',
+          code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.projectSlug} PATH_TO_SYMBOLS`,
+          additionalInfo: (
+            <p>
+              {tct(
+                'For more information on uploading debug information and their supported formats, check out our [link:Debug Information Files documentation].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/unreal/data-management/debug-files/" />
+                  ),
+                }
+              )}
+            </p>
+          ),
+        },
+      ],
     },
     {
       title: t('Further Settings'),
