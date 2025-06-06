@@ -7,7 +7,6 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import buffer, features
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.utils import json, metrics
@@ -118,7 +117,7 @@ def evaluate_workflow_triggers(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
-) -> BaseQuerySet[Action]:
+) -> set[DataConditionGroup]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
     action_conditions = (
