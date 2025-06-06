@@ -148,6 +148,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             "sentry-api-0-assemble-preprod-artifact-files",
             args=[self.organization.slug, self.project.slug],
         )
+
         # Enable the feature flag for all tests in this class
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
@@ -575,6 +576,43 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200
+        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["missingChunks"] == []
+
+    def test_integration_task_sets_status_api_can_read_it(self):
+        """
+        Integration test that verifies the task and API endpoint use consistent scope.
+
+        This test reproduces the real workflow:
+        1. Task assembles artifact and sets status with project_id scope
+        2. API endpoint polls for status using project_id scope
+
+        Both should use consistent project-level scope since preprod artifacts are project-specific.
+        """
+        content = b"test integration content"
+        total_checksum = sha1(content).hexdigest()
+
+        # Create blob and ownership
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        # Step 1: Simulate what the real task does - sets status with project_id scope
+        set_assemble_status(
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.OK
+        )
+
+        # Step 2: Poll the API endpoint to see if it can read the status
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200
+        # This should now work because both task and API use project_id scope
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
 
