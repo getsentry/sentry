@@ -580,9 +580,12 @@ class PRCommentWorkflow(ABC):
                 environment = recommended_event.get_environment()
                 if environment and environment.name:
                     return f" Environment: *({environment.name})*"
-        except Exception:
+        except Exception as e:
             # If anything goes wrong, just continue without environment info
-            pass
+            logger.info(
+                "get_environment_info.no-environment",
+                extra={"issue_id": issue.id, "error": e},
+            )
         return ""
 
     @staticmethod
