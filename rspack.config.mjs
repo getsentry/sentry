@@ -2,12 +2,12 @@
 /* eslint import/no-nodejs-modules:0 */
 
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
-import type {
-  Configuration,
-  DevServer,
-  OptimizationSplitChunksCacheGroup,
-  SwcLoaderOptions,
-} from '@rspack/core';
+// import type {
+//   Configuration,
+//   DevServer,
+//   OptimizationSplitChunksCacheGroup,
+//   SwcLoaderOptions,
+// } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
@@ -17,10 +17,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
-import LastBuiltPlugin from './build-utils/last-built-plugin';
-import packageJson from './package.json';
+// import LastBuiltPlugin from './build-utils/last-built-plugin';
+import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const __filename = new URL(import.meta.url).pathname;
+const {createRequire} = await import('node:module');
+const require = createRequire(import.meta.url);
 
 // Environment configuration
 env.NODE_ENV = env.NODE_ENV ?? 'development';
@@ -45,7 +50,7 @@ const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
 
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
@@ -122,13 +127,7 @@ const localeCatalogPath = path.join(
   'catalogs.json'
 );
 
-type LocaleCatalog = {
-  supported_locales: string[];
-};
-
-const localeCatalog: LocaleCatalog = JSON.parse(
-  fs.readFileSync(localeCatalogPath, 'utf8')
-);
+const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 
 // Translates a locale name to a language code.
 //
@@ -136,12 +135,12 @@ const localeCatalog: LocaleCatalog = JSON.parse(
 // * moment.js locales are stored as language code files
 //
 // [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
-const localeToLanguage = (locale: string) => locale.toLowerCase().replace('_', '-');
+const localeToLanguage = locale => locale.toLowerCase().replace('_', '-');
 const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 // A mapping of chunk groups used for locale code splitting
-const localeChunkGroups: Record<string, OptimizationSplitChunksCacheGroup> = {};
+const localeChunkGroups = {};
 
 for (const locale of supportedLocales) {
   // No need to split the english locale out as it will be completely empty and
@@ -168,7 +167,7 @@ for (const locale of supportedLocales) {
   };
 }
 
-const swcReactLoaderConfig: SwcLoaderOptions = {
+const swcReactLoaderConfig = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
@@ -218,7 +217,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
  * Main Webpack config for Sentry React SPA.
  */
 
-const appConfig: Configuration = {
+const appConfig = {
   mode: WEBPACK_MODE,
   target: 'browserslist',
   // Fail on first error instead of continuing to build
@@ -412,7 +411,7 @@ const appConfig: Configuration = {
               {
                 from: path.join(staticPrefix, 'robots-dev.txt'),
                 to: 'robots.txt',
-                toType: 'file' as const,
+                toType: 'file',
               },
             ]
           : []),
@@ -502,7 +501,7 @@ const appConfig: Configuration = {
 };
 
 if (IS_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
+  appConfig.resolve.alias['sentry-fixture'] = path.join(
     __dirname,
     'fixtures',
     'js-stubs'
@@ -510,7 +509,7 @@ if (IS_TEST) {
 }
 
 if (IS_ACCEPTANCE_TEST) {
-  appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
+  // appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 
 // Dev only! Hot module reloading
@@ -565,7 +564,7 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy: Required<DevServer['proxy']> = [];
+    let controlSiloProxy = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select contro/region when making API requests in non-proxied
@@ -599,7 +598,7 @@ if (
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer.static as Record<PropertyKey, unknown>),
+        ...appConfig.devServer.static,
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
@@ -619,7 +618,7 @@ if (
         },
       ],
     };
-    appConfig.output!.publicPath = '/_static/dist/sentry/';
+    appConfig.output.publicPath = '/_static/dist/sentry/';
   }
 }
 
@@ -639,7 +638,7 @@ if (IS_UI_DEV_ONLY) {
   const KNOWN_DOMAINS =
     /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
 
-  const extractSlug = (hostname: string) => {
+  const extractSlug = hostname => {
     const match = hostname.match(KNOWN_DOMAINS);
     if (!match) {
       return null;
@@ -689,7 +688,7 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        router: ({hostname}: {hostname: string}) => {
+        router: ({hostname}) => {
           const orgSlug = extractSlug(hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
@@ -714,7 +713,7 @@ if (IS_UI_DEV_ONLY) {
         pathRewrite: {
           '^/region/[^/]*': '',
         },
-        router: (req: any) => {
+        router: req => {
           const regionPathPattern = /^\/region\/([^\/]+)/;
           const regionname = req.path.match(regionPathPattern);
           if (regionname) {
@@ -734,7 +733,7 @@ if (IS_UI_DEV_ONLY) {
 }
 
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
-  appConfig.output!.publicPath = '/_assets/';
+  appConfig.output.publicPath = '/_assets/';
 
   /**
    * Generate a index.html file used for running the app in pure client mode.
@@ -818,7 +817,7 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
 // Cache rspack builds
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
-  appConfig.experiments!.cache = {
+  appConfig.experiments.cache = {
     type: 'persistent',
     // https://rspack.dev/config/experiments#cachestorage
     storage: {
