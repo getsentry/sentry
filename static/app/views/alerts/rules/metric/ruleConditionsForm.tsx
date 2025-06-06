@@ -42,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDisplayName} from 'sentry/utils/environment';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -60,7 +59,11 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
-import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
+import {
+  getProjectOptions,
+  isEapAlert,
+  isValidLogsAlert,
+} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -68,10 +71,7 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {
-  SpanTagsProvider,
-  useSpanTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
@@ -80,6 +80,8 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import {AlertRuleComparisonType, Dataset, Datasource} from './types';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {
   aggregate: string;
@@ -268,8 +270,17 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderEventTypeFilter() {
     const {organization, disabled, alertType, isErrorMigration} = this.props;
 
-    const dataSourceOptions = [
-      {
+    const dataSourceOptions: {
+      label: string;
+      options: {
+        value: Datasource;
+        label: string;
+      }[];
+    }[] = [];
+
+    if (isValidLogsAlert(alertType)) {
+    } else {
+      dataSourceOptions.push({
         label: t('Errors'),
         options: [
           {
@@ -285,8 +296,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             label: DATA_SOURCE_LABELS[Datasource.ERROR],
           },
         ],
-      },
-    ];
+      });
+    }
 
     if (
       organization.features.includes('performance-view') &&
@@ -521,12 +532,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            <SpanTagsProvider
+            <TraceItemAttributeProvider
               projects={[project]}
-              dataset={DiscoverDatasets.SPANS_EAP}
+              traceItemType={TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
-                alertType === 'eap_metrics'
+                isEapAlert(alertType)
               }
             >
               {isExtrapolatedChartData && (
@@ -586,7 +597,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
-                    return alertType === 'eap_metrics' ? (
+                    return isEapAlert(alertType) ? (
                       <EAPSpanSearchQueryBuilderWithContext
                         initialQuery={value ?? ''}
                         onSearch={(query, {parsedQuery}) => {
@@ -705,7 +716,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                 </FormField>
               </FormRow>
-            </SpanTagsProvider>
+            </TraceItemAttributeProvider>
           </Fragment>
         )}
       </Fragment>

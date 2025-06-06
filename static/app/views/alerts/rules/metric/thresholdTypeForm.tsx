@@ -12,6 +12,7 @@ import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {AlertRuleComparisonType, Dataset} from './types';
+import {isEapAlert} from 'sentry/views/alerts/rules/utils';
 
 type Props = {
   alertType: MetricAlertType;
@@ -107,7 +108,7 @@ function ThresholdTypeForm({
   if (
     hasAnomalyDetection &&
     (validAnomalyDetectionAlertTypes.has(alertType) ||
-      (hasAnomalyDetectionForEAP && alertType === 'eap_metrics'))
+      (hasAnomalyDetectionForEAP && isEapAlert(alertType)))
   ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,

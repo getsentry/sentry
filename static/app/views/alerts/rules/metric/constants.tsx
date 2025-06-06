@@ -180,10 +180,11 @@ export function getWizardAlertFieldConfig(
     return errorFieldConfig;
   }
   // If user selected apdex we must include that in the OptionConfig as it has a user specified column
-  const aggregations =
-    alertType === 'apdex' || alertType === 'custom_transactions'
-      ? allAggregations
-      : commonAggregations;
+  const aggregations = ['apdex', 'trace_item_apdex', 'custom_transactions'].includes(
+    alertType
+  )
+    ? allAggregations
+    : commonAggregations;
 
   const config: OptionConfig = {
     aggregations,
@@ -313,7 +314,7 @@ export function createRuleFromWizardTemplate(
 
   return {
     ...createDefaultRule(defaultRuleOptions),
-    eventTypes: eventTypes ? [eventTypes] : [],
+    eventTypes: [eventTypes],
     aggregate,
     dataset,
     query: query ?? '',

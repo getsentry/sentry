@@ -45,7 +45,8 @@ export enum EventTypes {
   TRANSACTION = 'transaction',
   USER = 'user',
   SESSION = 'session',
-  TRACE_ITEM = 'traceItem',
+  TRACE_ITEM_SPAN = 'trace_item_span',
+  TRACE_ITEM_LOG = 'trace_item_log',
 }
 
 export enum Datasource {

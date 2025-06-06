@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getFieldOptionConfig} from './metricField';
+import {isEapAlert} from 'sentry/views/alerts/rules/utils';
 
 type MenuOption = {label: React.ReactNode; value: AlertType};
 type GroupedMenuOption = {label: string; options: MenuOption[]};
@@ -218,7 +219,7 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {alertType === 'eap_metrics' ? (
+            {isEapAlert(alertType) ? (
               <EAPField
                 aggregate={aggregate}
                 onChange={newAggregate => {
