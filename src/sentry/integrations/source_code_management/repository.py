@@ -197,7 +197,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     "organization_id": repo.organization_id,
                 }
             )
-            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
 
             def encode_url(url: str) -> str:
