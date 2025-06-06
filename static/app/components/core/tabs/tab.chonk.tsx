@@ -60,6 +60,8 @@ const paddingPerSize = (theme: DO_NOT_USE_ChonkTheme, orientation: Orientation) 
       : `${theme.space.sm} ${theme.space.xs}`,
 });
 
+const selectionIndicatorSize = '2px';
+
 export const chonkInnerWrapStyles = ({
   theme,
   orientation,
@@ -93,7 +95,9 @@ export const chonkInnerWrapStyles = ({
         /**
           * To align the SelectionIndicator (2px width, 4px spacing)
           */
-        margin-left: ${variant === 'flat' ? '6px' : 0};
+        margin-left: ${variant === 'flat'
+          ? `calc(${theme.space.xs} + ${selectionIndicatorSize})`
+          : 0};
         /* static padding towards SelectionIndicator */
         padding-left: ${theme.space.md};
       `};
@@ -152,14 +156,14 @@ export const ChonkStyledTabSelectionIndicator = chonkStyled('div')<{
     p.orientation === 'horizontal'
       ? css`
           width: 100%;
-          height: 2px;
+          height: ${selectionIndicatorSize};
 
           bottom: 0;
           left: 50%;
           transform: translate(-50%, ${p.theme.space.xs});
         `
       : css`
-          width: 2px;
+          width: ${selectionIndicatorSize};
           height: 50%;
 
           left: -6px;
