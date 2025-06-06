@@ -19,9 +19,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
@@ -42,19 +41,16 @@ export default function PlayStationSettings({organization, project}: Props) {
     invalidateCredentialsCache,
   } = useFetchTempestCredentials(organization, project);
 
-  const api = useApi();
   const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
     unknown,
     RequestError,
     {id: number}
   >({
     mutationFn: ({id}) =>
-      api.requestPromise(
+      fetchMutation([
+        'DELETE',
         `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
-        {
-          method: 'DELETE',
-        }
-      ),
+      ]),
     onSuccess: () => {
       addSuccessMessage(t('Removed the credentials.'));
       trackAnalytics('tempest.credentials.removed', {
