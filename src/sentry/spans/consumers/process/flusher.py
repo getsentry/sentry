@@ -1,6 +1,5 @@
 import logging
 import multiprocessing
-import multiprocessing.context
 import threading
 import time
 from collections.abc import Callable
@@ -65,10 +64,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # the restart, however.
         self.healthy_since.value = int(time.time())
 
-        make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
+        make_process: Callable[..., multiprocessing.Process | threading.Thread]
         if self.produce_to_pipe is None:
             initializer = _get_arroyo_subprocess_initializer(None)
-            make_process = multiprocessing.get_context("spawn").Process
+            make_process = multiprocessing.Process
         else:
             initializer = None
             make_process = threading.Thread

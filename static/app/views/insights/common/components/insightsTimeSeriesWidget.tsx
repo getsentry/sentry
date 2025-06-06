@@ -54,6 +54,7 @@ export interface InsightsTimeSeriesWidgetProps
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  extraActions?: React.ReactNode[];
   extraPlottables?: Plottable[];
   height?: string | number;
   interactiveTitle?: () => React.ReactNode;
@@ -69,6 +70,7 @@ export interface InsightsTimeSeriesWidgetProps
     groupBy?: SpanFields[];
     yAxis?: string[];
   };
+
   samples?: Samples;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble' | 'none';
@@ -204,6 +206,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
+            {props.extraActions}
             {hasChartActionsEnabled && (
               <ChartActionDropdown
                 chartType={chartType}
