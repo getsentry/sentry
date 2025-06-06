@@ -546,7 +546,9 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
-        assert {action.workflow_id for action in triggered_actions} == {self.workflow.id}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -558,7 +560,9 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
-        assert {action.workflow_id for action in triggered_actions} == {self.workflow.id}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group

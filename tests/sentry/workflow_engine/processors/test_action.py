@@ -56,7 +56,9 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
         )
         assert set(triggered_actions) == {self.action}
 
-        assert {action.workflow_id for action in triggered_actions} == {self.workflow.id}
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
 
         for status in [status_1, status_2]:
             status.refresh_from_db()
@@ -80,7 +82,7 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
         )
         assert set(triggered_actions) == {self.action, action_3}
 
-        assert {action.workflow_id for action in triggered_actions} == {
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
             self.workflow.id,
             workflow.id,
         }
