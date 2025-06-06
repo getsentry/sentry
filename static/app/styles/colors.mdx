@@ -1,6 +1,3 @@
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-
 import DoAccentColors from 'sentry-images/stories/color/do-accent-colors.svg';
 import DoContrast from 'sentry-images/stories/color/do-contrast.svg';
 import DoDifferentiation from 'sentry-images/stories/color/do-differentiation.svg';
@@ -9,52 +6,6 @@ import DontContrast from 'sentry-images/stories/color/dont-contrast.svg';
 import DontDifferentiation from 'sentry-images/stories/color/dont-differentiation.svg';
 
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
-
-export const ExampleCardGrid = styled('figcaption')`
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  align-items: flex-start;
-  color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1)} 0;
-`;
-
-export function ExampleCard({imgSrc, text, isPositive}) {
-  return (
-    <figure>
-      <Storybook.Image src={imgSrc} />
-      <ExampleCardGrid>
-        <Storybook.GuidelineLabel variant={isPositive ? 'do' : 'dont'} />
-        {text}
-      </ExampleCardGrid>
-    </figure>
-  );
-}
-
-export function ColorPalette({name, palette}) {
-  const theme = useTheme();
-
-return (
-
-<Storybook.SideBySide>
-  {palette.map((section, i) => {
-    return (
-      <div key={`${name}-${i}`}>
-        {section.map((color, index) => {
-          return (
-            <div
-              key={`${name}-${color.color}-${index}`}
-              style={{backgroundColor: theme[color.color]}}
-            >
-              <strong>{color.color}</strong>
-            </div>
-          );
-        })}
-      </div>
-    );
-  })}
-</Storybook.SideBySide>
-); }
 
 # Colors
 
@@ -75,7 +26,7 @@ Here are the recommended use cases:
 - **Gray 100:** dividers and borders around small elements (buttons, form inputs). \*/}
 
 <Storybook.ThemeToggle>
-  <ColorPalette
+  <Storybook.ColorPalette
     name="grays"
     palette={[
       [{color: 'gray500', text: 'lightModeWhite'}],
@@ -112,7 +63,7 @@ Each hue comes in 4 levels: 400 (dark), 300 (full opacity), 200 (medium opacity)
 - **The 100 level** has very low opacity, useful as background fills.
 
 <Storybook.ThemeToggle>
-  <ColorPalette
+  <Storybook.ColorPalette
     name="levels"
     palette={[
       [
@@ -168,23 +119,25 @@ In Sentry's color palette, only Gray 300 and above satisfy the contrast requirem
 Accent colors in the 300 series, except for Yellow 300, satisfy the contrast requirement for large text.
 
 <Storybook.SideBySide>
-  <ExampleCard
-    imgSrc={DoContrast}
+  <Storybook.GuidelineImage
+    src={DoContrast}
     text="Use Gray 300 and above for normal text"
-    isPositive
+    variant="do"
   />
-  <ExampleCard
-    imgSrc={DontContrast}
+  <Storybook.GuidelineImage
+    src={DontContrast}
     text="Use Gray 100 or 200 for normal text, as they don't have the required the contrast levels"
+    variant="dont"
   />
-  <ExampleCard
-    imgSrc={DoAccentColors}
+  <Storybook.GuidelineImage
+    src={DoAccentColors}
     text="Use accent colors in the 300 series (except for Yellow 300) for large text, if needed"
-    isPositive
+    variant="do"
   />
-  <ExampleCard
-    imgSrc={DontAccentColors}
+  <Storybook.GuidelineImage
+    src={DontAccentColors}
     text="Use accent colors in the 100 or 200 series for any text"
+    variant="dont"
   />
 </Storybook.SideBySide>
 
@@ -195,13 +148,14 @@ Color can be an effective way to visually separate elements in the user interfac
 As such, color is an unreliable way to separate elements. Whenever possible, provide additional visual cues like icons, text labels, line type (solid, dashed, dotted),… to further reinforce the separation.
 
 <Storybook.SideBySide>
-  <ExampleCard
-    imgSrc={DoDifferentiation}
+  <Storybook.GuidelineImage
+    src={DoDifferentiation}
     text="Provide additional visual encoding (e.g. line type) besides color to differentiate elements"
-    isPositive
+    variant="do"
   />
-  <ExampleCard
-    imgSrc={DontDifferentiation}
+  <Storybook.GuidelineImage
+    src={DontDifferentiation}
     text="Use color as the only way to differentiate elements"
+    variant="dont"
   />
 </Storybook.SideBySide>

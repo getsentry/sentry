@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
+import {Image} from 'sentry/stories/images';
 import {space} from 'sentry/styles/space';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
@@ -13,6 +14,34 @@ export function GuidelineLabel(props: {variant: 'do' | 'dont'}) {
     </Label>
   );
 }
+
+export function GuidelineImage({
+  src,
+  text,
+  variant,
+}: {
+  src: string;
+  text: string;
+  variant: 'do' | 'dont';
+}) {
+  return (
+    <figure>
+      <Image src={src} />
+      <Figcaption>
+        <GuidelineLabel variant={variant} />
+        {text}
+      </Figcaption>
+    </figure>
+  );
+}
+
+const Figcaption = styled('figcaption')`
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  align-items: flex-start;
+  color: ${p => p.theme.subText};
+  padding: ${space(1)} ${space(1)} 0;
+`;
 
 const Label = styled('div')<{variant: 'do' | 'dont'}>`
   color: ${p =>
