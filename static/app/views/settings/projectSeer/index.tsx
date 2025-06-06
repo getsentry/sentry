@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -11,6 +12,7 @@ import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
@@ -51,12 +53,16 @@ export function formatSeerValue(value: string | undefined) {
   }
 }
 
+const SeerSelectLabel = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Automatically Analyze Incoming Issues'),
   help: props =>
     tct(
-      "Set how frequently Seer runs on incoming issues automatically. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to help with more issues. Seer will find a root cause and solution, but won't automatically open PRs.[break][break][link:You can configure automation for other projects too.][break][break]Each run is charged at the [ratelink:standard billing rate] for Seer's Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
+      "Set how frequently Seer can automatically run on new issues, based on how actionable it thinks the issue is. Seer will find a root cause and solution, but won't automatically open PRs.[break][break][link:You can configure automation for other projects too.][break][break]Each run is charged at the [ratelink:standard billing rate] for Seer's Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
       {
         break: <br />,
         link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
@@ -64,22 +70,50 @@ export const autofixAutomatingTuningField = {
         spendlink: <Link to={'docs.sentry.io/todo'} />,
       }
     ),
-  type: 'range',
-  min: 0,
-  max: SEER_THRESHOLD_MAP.length - 1,
-  ticks: SEER_THRESHOLD_MAP.length - 1,
-  tickValues: SEER_THRESHOLD_MAP.map((_, i) => i),
-  formatLabel: (val: number | '') => {
-    const numVal =
-      typeof val === 'string' || val < 0 || val >= SEER_THRESHOLD_MAP.length ? 0 : val;
-    const level = SEER_THRESHOLD_MAP[numVal];
-    return formatSeerValue(level);
-  },
-  getValue: (val: number): string => {
-    return SEER_THRESHOLD_MAP[val]!;
-  },
+  type: 'choice',
+  options: [
+    {
+      value: 'off',
+      label: <SeerSelectLabel>{t('Off')}</SeerSelectLabel>,
+      details: t('Seer will never analyze any issues without manually clicking Start.'),
+    },
+    {
+      value: 'super_low',
+      label: (
+        <SeerSelectLabel>{t('Only Super Highly Actionable Issues')}</SeerSelectLabel>
+      ),
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "super high." This targets around 2% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'low',
+      label: <SeerSelectLabel>{t('Highly Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "high" or above. This targets around 10% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'medium',
+      label: <SeerSelectLabel>{t('Moderately Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "medium" or above. This targets around 30% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'high',
+      label: <SeerSelectLabel>{t('Minimally Actionable and Above')}</SeerSelectLabel>,
+      details: t(
+        'Seer will automatically run on issues that it thinks have an actionability of "low" or above. This targets around 50% of issues, but may vary by project.'
+      ),
+    },
+    {
+      value: 'always',
+      label: <SeerSelectLabel>{t('All Issues')}</SeerSelectLabel>,
+      details: t('Seer will automatically run on all new issues.'),
+    },
+  ],
   saveOnBlur: true,
-  showTickLabels: true,
   saveMessage: t('Automatic Seer settings updated'),
 } satisfies FieldObject;
 
@@ -117,9 +151,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
         initialData={{
-          autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
-            project.autofixAutomationTuning ?? 'off'
-          ),
+          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
