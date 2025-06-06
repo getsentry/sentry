@@ -1007,7 +1007,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
-        minimum_sample_rate = None
 
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
@@ -1020,12 +1019,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-
-        if has_dynamic_sampling_minimum_sample_rate(obj.organization):
-            minimum_sample_rate = bool(
-                obj.get_option("sentry:dynamic_sampling_minimum_sample_rate")
-            )
-
         data: DetailedProjectResponse = {
             **base,
             "latestRelease": attrs["latest_release"],
@@ -1103,7 +1096,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
-            "dynamicSamplingMinimumSampleRate": minimum_sample_rate,
             "eventProcessing": {
                 "symbolicationDegraded": False,
             },
@@ -1119,6 +1111,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sentry:tempest_fetch_screenshots", False
             )
             data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
+
+        if has_dynamic_sampling_minimum_sample_rate(obj.organization, user):
+            data["dynamicSamplingMinimumSampleRate"] = bool(
+                obj.get_option("sentry:dynamic_sampling_minimum_sample_rate")
+            )
 
         return data
 
