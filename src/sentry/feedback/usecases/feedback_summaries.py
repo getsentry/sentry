@@ -28,12 +28,6 @@ Summary: <1-3 sentence summary>
 SUMMARY_REGEX = re.compile(r"Summary:\s*(.*)", re.DOTALL)
 
 
-class FeedbackSummaryParseError(Exception):
-    """Raised when there is an error parsing the AI feedback summary response."""
-
-    pass
-
-
 @metrics.wraps("feedback.summaries", sample_rate=1.0)
 def generate_summary(
     feedbacks: list[str],
@@ -62,5 +56,4 @@ def parse_response(
         summary_text = re.sub(r"\s+", " ", raw_summary_text).strip()
         return summary_text
     else:
-        logger.error("Error parsing AI feedback summary")
-        raise FeedbackSummaryParseError("Error parsing AI feedback summary")
+        raise Exception("Error parsing AI feedback summary")
