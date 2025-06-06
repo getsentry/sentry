@@ -40,8 +40,8 @@ import {
   displayCrashFreePercent,
 } from 'sentry/views/releases/utils';
 
-import Chart from './chart';
 import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
+import ProjectChart from './projectChart';
 
 type Props = {
   api: Client;
@@ -192,10 +192,11 @@ class ProjectCard extends Component<Props> {
           </CardHeader>
           <ChartContainer data-test-id="chart-container">
             {stats ? (
-              <Chart
+              <ProjectChart
                 firstEvent={hasFirstEvent}
                 stats={stats}
                 transactionStats={transactionStats}
+                project={project}
               />
             ) : (
               <Placeholder height="150px" />
