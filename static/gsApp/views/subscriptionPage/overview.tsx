@@ -25,7 +25,7 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {isSeer, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -249,6 +249,7 @@ function Overview({location, subscription, promotionData}: Props) {
                 totals={categoryTotals}
                 eventTotals={eventTotals}
                 showEventBreakdown={showEventBreakdown}
+                showAllTotals={!isSeer(category)}
                 reservedUnits={categoryHistory.reserved}
                 prepaidUnits={categoryHistory.prepaid}
                 freeUnits={categoryHistory.free}
@@ -269,9 +270,13 @@ function Overview({location, subscription, promotionData}: Props) {
         {subscription.reservedBudgets?.map(reservedBudget => {
           let softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null = null;
           let trueForward = false;
+          let showAllTotals = true;
 
           Object.keys(reservedBudget.categories).forEach(category => {
             const categoryHistory = subscription.categories[category as DataCategory];
+            if (categoryHistory?.category && isSeer(categoryHistory?.category)) {
+              showAllTotals = false;
+            }
             if (softCapType === null) {
               if (categoryHistory?.softCapType) {
                 softCapType = categoryHistory.softCapType;
@@ -293,6 +298,7 @@ function Overview({location, subscription, promotionData}: Props) {
               allTotalsByCategory={usageData.totals}
               softCapType={softCapType}
               trueForward={trueForward}
+              showAllTotals={showAllTotals}
             />
           );
         })}
@@ -308,6 +314,7 @@ function Overview({location, subscription, promotionData}: Props) {
               totals={categoryTotals}
               eventTotals={eventTotals}
               showEventBreakdown={showProductTrialEventBreakdown}
+              showAllTotals={!isSeer(pt.category)}
               subscription={subscription}
               organization={organization}
               displayMode={displayMode}

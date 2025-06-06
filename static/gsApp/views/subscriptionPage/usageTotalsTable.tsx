@@ -141,9 +141,16 @@ type Props = {
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
+  showAllTotals?: boolean;
 };
 
-function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+function UsageTotalsTable({
+  category,
+  isEventBreakdown,
+  totals,
+  subscription,
+  showAllTotals,
+}: Props) {
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
       ? toTitleCase(category, {allowInnerUpperCase: true})
@@ -199,38 +206,40 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           category={category}
           totals={totals}
         />
-        <OutcomeSection
-          isEventBreakdown={isEventBreakdown}
-          name={totalDropped}
-          quantity={totals.dropped}
-          category={category}
-          totals={totals}
-        >
-          <OutcomeRow
-            indent
-            name={t('Over Quota')}
-            quantity={totals.droppedOverQuota}
+        {showAllTotals && (
+          <OutcomeSection
+            isEventBreakdown={isEventBreakdown}
+            name={totalDropped}
+            quantity={totals.dropped}
             category={category}
             totals={totals}
-          />
-          <OutcomeRow
-            indent
-            name={t('Spike Protection')}
-            quantity={totals.droppedSpikeProtection}
-            category={category}
-            totals={totals}
-          />
-          <OutcomeRow
-            indent
-            name={t('Other')}
-            quantity={totals.droppedOther}
-            category={category}
-            totals={totals}
-            tooltipTitle={t(
-              'The dropped other category is for all uncategorized dropped events. This is commonly due to user configured rate limits.'
-            )}
-          />
-        </OutcomeSection>
+          >
+            <OutcomeRow
+              indent
+              name={t('Over Quota')}
+              quantity={totals.droppedOverQuota}
+              category={category}
+              totals={totals}
+            />
+            <OutcomeRow
+              indent
+              name={t('Spike Protection')}
+              quantity={totals.droppedSpikeProtection}
+              category={category}
+              totals={totals}
+            />
+            <OutcomeRow
+              indent
+              name={t('Other')}
+              quantity={totals.droppedOther}
+              category={category}
+              totals={totals}
+              tooltipTitle={t(
+                'The dropped other category is for all uncategorized dropped events. This is commonly due to user configured rate limits.'
+              )}
+            />
+          </OutcomeSection>
+        )}
       </OutcomeTable>
     </UsageTableWrapper>
   );
