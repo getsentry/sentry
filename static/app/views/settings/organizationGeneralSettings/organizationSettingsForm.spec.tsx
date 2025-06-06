@@ -270,7 +270,7 @@ describe('OrganizationSettingsForm', function () {
     expect(learnMoreLink).toBeInTheDocument();
     expect(learnMoreLink).toHaveAttribute(
       'href',
-      'https://sentry-docs-git-sentry-prevent-ai.sentry.dev/product/sentry-prevent-ai/'
+      'https://github.com/apps/seer-by-sentry/'
     );
   });
 });
