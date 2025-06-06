@@ -43,7 +43,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector | None:
                 "detector_id": detector_id,
             },
         )
-        return None
+        raise Detector.DoesNotExist("Detector not found for event")
 
     return detector
 

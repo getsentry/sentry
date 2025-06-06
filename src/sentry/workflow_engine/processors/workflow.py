@@ -11,7 +11,13 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.utils import json, metrics
-from sentry.workflow_engine.models import Action, DataCondition, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    Detector,
+    Workflow,
+)
 from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
@@ -205,7 +211,7 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_actions(filtered_action_groups, event_data)
 
 
-def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
+def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
     try:
         environment = event_data.event.get_environment()
     except Environment.DoesNotExist:
@@ -213,8 +219,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
         logger.exception(
             "Missing environment for event", extra={"event_id": event_data.event.event_id}
         )
-
-        return None
+        raise Environment.DoesNotExist("Environment does not exist for the event")
 
     return environment
 
@@ -262,13 +267,14 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
-    # Check to see if the GroupEvent has an issue occurrence
-    detector = get_detector_by_event(event_data)
-    if detector is None:
+    try:
+        detector = get_detector_by_event(event_data)
+    except Detector.DoesNotExist:
         return set()
 
-    environment = get_environment_by_event(event_data)
-    if environment is None:
+    try:
+        environment = get_environment_by_event(event_data)
+    except Environment.DoesNotExist:
         return set()
 
     organization = detector.project.organization
