@@ -118,5 +118,5 @@
     ]
   },
   "include": ["../static/app", "../static/gsApp", "../tests/js"],
-  "exclude": ["../node_modules", "../**/*.benchmark.ts"]
+  "exclude": ["../node_modules"]
 }
