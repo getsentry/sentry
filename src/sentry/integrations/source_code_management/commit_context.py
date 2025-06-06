@@ -570,6 +570,18 @@ class PRCommentWorkflow(ABC):
         )
         return raw_snql_query(request, referrer=self.referrer.value)["data"]
 
+    def get_environment_info(self, issue: Group) -> str:
+        try:
+            recommended_event = issue.get_recommended_event()
+            if recommended_event:
+                environment = recommended_event.get_environment()
+                if environment and environment.name:
+                    return f" Environment: *({environment.name})*"
+        except Exception:
+            # If anything goes wrong, just continue without environment info
+            pass
+        return ""
+
 
 class OpenPRCommentWorkflow(ABC):
     def __init__(self, integration: CommitContextIntegration):
