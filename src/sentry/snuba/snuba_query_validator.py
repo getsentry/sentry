@@ -61,7 +61,11 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.ERROR,
         SnubaQueryEventType.EventType.DEFAULT,
     },
-    SnubaQuery.Type.PERFORMANCE: {SnubaQueryEventType.EventType.TRANSACTION},
+    SnubaQuery.Type.PERFORMANCE: {
+        SnubaQueryEventType.EventType.TRANSACTION,
+        SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+        SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+    },
 }
 
 
