@@ -68,6 +68,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -3237,6 +3238,14 @@ INTERNAL_URLS = [
     ),
 ]
 
+PREVENT_URLS = [
+    re_path(
+        r"^owner/(?P<owner>[^\/]+)/repository/(?P<repository>[^\/]+)/test-results/$",
+        TestResultsEndpoint.as_view(),
+        name="sentry-api-0-test-results",
+    ),
+]
+
 urlpatterns = [
     # Relay
     re_path(
@@ -3296,6 +3305,11 @@ urlpatterns = [
     re_path(
         r"^broadcasts/",
         include(BROADCAST_URLS),
+    ),
+    # Prevent
+    re_path(
+        r"^prevent/",
+        include(PREVENT_URLS),
     ),
     #
     #

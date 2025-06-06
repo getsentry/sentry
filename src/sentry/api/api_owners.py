@@ -9,6 +9,7 @@ class ApiOwner(Enum):
 
     ALERTS_NOTIFICATIONS = "alerts-notifications"
     BILLING = "revenue"
+    CODECOV = "codecov"
     CRONS = "crons"
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"
