@@ -171,6 +171,9 @@ export enum IssueType {
 
   // Metric Issues
   METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+
+  // Detectors
+  DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -251,6 +254,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
   1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
