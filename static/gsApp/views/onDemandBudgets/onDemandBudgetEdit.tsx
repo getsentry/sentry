@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
@@ -9,6 +10,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -277,6 +279,12 @@ class OnDemandBudgetEdit extends Component<Props> {
                     )}
                   </Description>
                   {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
+                  <SeerUsageNote>
+                    <IconWarning size="sm" />
+                    {t(
+                      "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+                    )}
+                  </SeerUsageNote>
                 </BudgetDetails>
               </BudgetContainer>
             </div>
@@ -380,6 +388,15 @@ const InputDiv = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   padding: ${space(1)} 0;
+`;
+
+const SeerUsageNote = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(1)};
+  padding: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => Color(p.theme.yellow100).alpha(0.05).toString()};
 `;
 
 export default OnDemandBudgetEdit;
