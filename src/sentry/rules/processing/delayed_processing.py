@@ -8,6 +8,7 @@ from typing import Any, DefaultDict, NamedTuple
 
 import sentry_sdk
 from celery import Task
+from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
@@ -596,7 +597,15 @@ def fire_rules(
 
                     # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
                     for callback, futures in callback_and_futures:
-                        safe_execute(callback, groupevent, futures)
+                        try:
+                            callback(groupevent, futures)
+                        except SoftTimeLimitExceeded:
+                            # If we're out of time, we don't want to continue.
+                            # Raise so we can retry.
+                            raise
+                        except Exception as e:
+                            func_name = getattr(callback, "__name__", str(callback))
+                            logger.exception("%s.process_error", func_name, extra={"exception": e})
 
                     if log_config.num_events_issue_debugging:
                         logger.info(
