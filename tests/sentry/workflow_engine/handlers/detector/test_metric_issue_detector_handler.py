@@ -3,14 +3,18 @@ from datetime import UTC, datetime, timedelta
 from sentry.incidents.grouptype import MetricIssueDetectorHandler
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.handlers.detector import DetectorOccurrence
 from sentry.workflow_engine.models import DataCondition, DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+)
 from tests.sentry.workflow_engine.handlers.detector.test_base import BaseDetectorHandlerTest
 
 
@@ -93,12 +97,17 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         data_packet = DataPacket[QuerySubscriptionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
-        result = self.handler.evaluate(data_packet)
-
         evidence_data = self.generate_evidence_data(
             value, self.critical_detector_trigger, self.warning_detector_trigger
         )
-        occurrence: DetectorOccurrence = result[self.detector_group_key].result
+
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
         assert occurrence is not None
         assert occurrence.issue_title == self.detector.name
         assert occurrence.subtitle == self.handler.construct_title(
@@ -122,10 +131,15 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         data_packet = DataPacket[QuerySubscriptionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
-        result = self.handler.evaluate(data_packet)
-
         evidence_data = self.generate_evidence_data(value, self.warning_detector_trigger)
-        occurrence: DetectorOccurrence = result[self.detector_group_key].result
+
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence: IssueOccurrence = evaluation_result.result
+
         assert occurrence is not None
         assert occurrence.issue_title == self.detector.name
         assert occurrence.subtitle == self.handler.construct_title(
