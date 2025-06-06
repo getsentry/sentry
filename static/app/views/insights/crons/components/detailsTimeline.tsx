@@ -120,6 +120,7 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       <AlignedGridLineOverlay
         allowZoom
         showCursor
+        resetPaginationOnZoom
         timeWindowConfig={timeWindowConfig}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
       />

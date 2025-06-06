@@ -45,7 +45,12 @@ export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
       <Header>
         <GridLineLabels timeWindowConfig={timeWindowConfig} />
       </Header>
-      <AlignedGridLineOverlay allowZoom showCursor timeWindowConfig={timeWindowConfig} />
+      <AlignedGridLineOverlay
+        allowZoom
+        resetPaginationOnZoom
+        showCursor
+        timeWindowConfig={timeWindowConfig}
+      />
       <OverviewRow
         uptimeRule={uptimeRule}
         timeWindowConfig={timeWindowConfig}
