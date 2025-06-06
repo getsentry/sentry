@@ -64,7 +64,7 @@ function ApiTokenRow({
           }
         >
           <Button size="sm" icon={<IconSubtract isCircled />}>
-            {t('Remove')}
+            {t('Revoke')}
           </Button>
         </Confirm>
       </Actions>
