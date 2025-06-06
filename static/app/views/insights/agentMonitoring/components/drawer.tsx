@@ -1,49 +1,132 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useId, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import useDrawer from 'sentry/components/globalDrawer';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Timeline} from 'sentry/components/timeline';
-import {IconCode, IconLink, IconSort} from 'sentry/icons';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {IconCode, IconSort} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
 import {IconTool} from 'sentry/icons/iconTool';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {convertRawSpanToEAPSpan} from 'sentry/utils/convertRawSpanToEAPSpan';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {createWaterfallData, WaterfallSpanData} from 'sentry/utils/traceWaterfallData';
-import {useLocation} from 'sentry/utils/useLocation';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   AI_GENERATION_DESCRIPTIONS,
   AI_GENERATION_OPS,
   AI_RUN_DESCRIPTIONS,
   AI_RUN_OPS,
   AI_TOOL_CALL_OPS,
-  getIsAiSpanLoose,
   mapMissingSpanOp,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
-  AIInputSectionSimple,
-  parseAIMessages,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {AIOutputSectionSimple} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+  isEAPSpanNode,
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 interface UseTraceViewDrawerProps {
   onClose?: () => void;
+}
+
+interface UseCompleteTraceResult {
+  error: boolean;
+  isLoading: boolean;
+  nodes: TraceTreeNode[];
+}
+
+function useCompleteTrace(traceSlug: string): UseCompleteTraceResult {
+  const [nodes, setNodes] = useState<Array<TraceTreeNode<TraceTree.NodeValue>>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const api = useApi();
+  const organization = useOrganization();
+  const queryParams = useTraceQueryParams();
+
+  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
+  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+
+  useEffect(() => {
+    if (trace.status !== 'success' || !trace.data) {
+      setError(trace.status === 'error');
+      return;
+    }
+
+    const loadAllSpans = async () => {
+      setIsLoading(true);
+      setError(false);
+
+      try {
+        const tree = TraceTree.FromTrace(trace.data, {
+          meta: meta.data,
+          replay: null,
+          preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+        });
+
+        tree.build();
+
+        // Get all transaction nodes that can fetch spans
+        const fetchableTransactionNodes = TraceTree.FindAll(tree.root, node => {
+          return isTransactionNode(node) && node.canFetch;
+        }).filter(
+          (node): node is TraceTreeNode<TraceTree.Transaction> =>
+            node.value !== null && isTransactionNode(node)
+        );
+
+        const dedupedFetchableTransactionNodes = fetchableTransactionNodes.filter(
+          (node, index, self) =>
+            index === self.findIndex(tx => tx.value.event_id === node.value.event_id)
+        );
+
+        // Zoom into all transactions to fetch their spans
+        const zoomPromises = dedupedFetchableTransactionNodes.map(node =>
+          tree.zoom(node, true, {
+            api,
+            organization,
+            preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+          })
+        );
+
+        await Promise.all(zoomPromises);
+
+        // After all spans are loaded, get the complete node list
+        const allSpanNodes = TraceTree.FindAll(tree.root, node => {
+          return isSpanNode(node) || isEAPSpanNode(node);
+        });
+
+        const allTransactionNodes = TraceTree.FindAll(tree.root, node => {
+          return isTransactionNode(node);
+        }).filter(
+          (node): node is TraceTreeNode<TraceTree.Transaction> =>
+            node.value !== null && isTransactionNode(node)
+        );
+
+        setNodes([...allTransactionNodes, ...allSpanNodes]);
+      } catch (err) {
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAllSpans();
+  }, [trace.status, trace.data, meta.data, organization, api]);
+
+  return {
+    nodes,
+    isLoading: trace.status === 'pending' || isLoading,
+    error: trace.status === 'error' || error,
+  };
 }
 
 export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
@@ -52,17 +135,26 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
   const openTraceViewDrawer = (traceId: string, eventId: string, projectSlug: string) =>
     openDrawer(
       () => (
-        <FullHeightWrapper>
-          <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-            <AITraceView traceId={traceId} eventId={eventId} projectSlug={projectSlug} />
-          </TraceStateProvider>
-        </FullHeightWrapper>
+        <Fragment>
+          <DrawerHeader>Abbreviated Trace</DrawerHeader>
+          <DrawerBody>
+            <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+              <AITraceView
+                traceId={traceId}
+                eventId={eventId}
+                projectSlug={projectSlug}
+              />
+            </TraceStateProvider>
+          </DrawerBody>
+        </Fragment>
       ),
       {
         ariaLabel: t('Trace'),
         onClose,
         shouldCloseOnInteractOutside: () => true,
         drawerWidth: '60%',
+        resizable: true,
+        drawerKey: 'abbreviated-trace-view-drawer',
       }
     );
 
@@ -72,281 +164,190 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
   };
 }
 
-const FullHeightWrapper = styled('div')`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
 function AITraceView({
-  traceId,
-  eventId,
-  projectSlug,
+  traceId: traceSlug,
+  eventId: _eventId,
+  projectSlug: _projectSlug,
 }: {
   eventId: string;
   projectSlug: string;
   traceId: string;
 }) {
-  const [selectedSpan, setSelectedSpan] = useState<WaterfallSpanData>();
   const organization = useOrganization();
-  const location = useLocation();
-  const {selection} = usePageFilters();
+  const {nodes, isLoading, error} = useCompleteTrace(traceSlug);
+  const [selectedNode, setSelectedNode] =
+    useState<TraceTreeNode<TraceTree.NodeValue> | null>(null);
 
-  const traceViewTarget = getTraceDetailsUrl({
-    eventId: traceId,
-    source: TraceViewSources.LLM_MODULE, // TODO: change source to AGENT_MONITORING
-    organization,
-    location,
-    traceSlug: traceId,
-    dateSelection: normalizeDateTimeParams(selection),
-  });
+  if (isLoading || nodes.length === 0) {
+    return <div>Loading complete trace...</div>;
+  }
 
-  const useTraceResult = useTrace({
-    traceSlug: traceId,
-  });
-
-  const {data: tx} = useTransaction({
-    event_id: eventId,
-    organization,
-    project_slug: projectSlug,
-  });
-
-  const trace = useTraceResult.data;
-
-  // @ts-expect-error get transaction from trace
-  const transaction = trace.transactions[0]!;
-
-  const txSpan: WaterfallSpanData = {
-    ...({} as RawSpanType),
-    id: '0',
-    op: transaction['transaction.op'] || '',
-    description: transaction['transaction.description'] || '',
-    data: {},
-    span_id: '0',
-    parent_span_id: undefined,
-    start_timestamp: 0,
-    timestamp: 0,
-    startTime: 0,
-    endTime: 0,
-    duration: transaction['transaction.duration'] / 1000,
-    depth: 0,
-    parentId: null,
-    color: 'gray400',
-    icon: 'clock' as const,
-    displayTitle: transaction['transaction.op'] || '',
-    displayText: transaction['transaction.description'] || '',
-    relativeStart: 0,
-    relativeEnd: 0,
-    widthPercent: 100,
-    leftPercent: 0,
-  };
-
-  const spans = (tx?.entries[0]?.data as RawSpanType[]) ?? [];
-  const aiSpans = spans.filter(span => getIsAiSpanLoose(span));
-
-  const waterfallspans: WaterfallSpanData[] = createWaterfallData(aiSpans);
-
-  useEffect(() => {
-    if (!selectedSpan && waterfallspans.length > 0) {
-      setSelectedSpan(waterfallspans[0] as WaterfallSpanData);
-    }
-  }, [selectedSpan, waterfallspans]);
-
-  if (!tx || !trace) {
-    return null;
+  if (error) {
+    return <div>Error loading trace</div>;
   }
 
   return (
-    <Wrapper>
-      <TraceDrawerComponents.HeaderContainer>
-        <TraceDrawerComponents.Title>
-          <TraceDrawerComponents.LegacyTitleText>
-            <TraceDrawerComponents.TitleText>
-              {t('Trace')}
-            </TraceDrawerComponents.TitleText>
-            <TraceDrawerComponents.SubtitleWithCopyButton
-              clipboardText={traceId}
-              subTitle={`Trace ID: ${traceId}`}
-            />
-          </TraceDrawerComponents.LegacyTitleText>
-        </TraceDrawerComponents.Title>
-        <LinkButton to={traceViewTarget} size="sm" icon={<IconLink size="sm" />}>
-          {t('View full trace')}
-        </LinkButton>
-      </TraceDrawerComponents.HeaderContainer>
-
-      <TraceDrawerComponents.BodyContainer>
-        <Flex gap={space(1)}>
-          <Flex.Item style={{width: '52%'}}>
-            <div>
-              <b>{transaction['transaction.op']}</b>
-            </div>
-            <p />
-            <h6>Spans</h6>
-            <Timeline.Container>
-              <SpanItem
-                span={txSpan}
-                onClick={() => {}}
-                isSelected={selectedSpan?.id === txSpan.span_id}
-              />
-              {waterfallspans.map(span => (
-                <SpanItem
-                  key={span.span_id}
-                  span={span}
-                  onClick={setSelectedSpan}
-                  isSelected={selectedSpan?.id === span.span_id}
-                />
-              ))}
-            </Timeline.Container>
-          </Flex.Item>
-          {selectedSpan && (
-            <Flex.Item style={{width: '48%'}}>
-              <TraceDrawerComponents.Highlights
-                node={convertRawSpanToEAPSpan(selectedSpan)}
-                transaction={tx}
-                avgDuration={0}
-                project={undefined}
-                headerContent={''}
-                bodyContent={''}
-              />
-              <PromotedAttributes attributes={selectedSpan.data} />
-              <p />
-              <p>
-                <b>Other Attributes</b>
-              </p>
-              <KeyValueTable>
-                {Object.entries(selectedSpan.data || {})
-                  .filter(([k, _]) => k.includes('ai.'))
-                  .map(([key, value]) => (
-                    <KeyValueTableRow key={key} keyName={key} value={value} />
-                  ))}
-              </KeyValueTable>
-            </Flex.Item>
-          )}
-        </Flex>
-      </TraceDrawerComponents.BodyContainer>
-    </Wrapper>
+    <SplitContainer>
+      <LeftPanel>
+        <AbbreviatedTrace nodes={nodes} onSelectNode={setSelectedNode} />
+      </LeftPanel>
+      <RightPanel>
+        <TraceTreeNodeDetails
+          node={selectedNode ?? nodes[0]}
+          manager={null}
+          onParentClick={() => {}}
+          onTabScrollToNode={() => {}}
+          organization={organization}
+          replay={null}
+          traceId={traceSlug}
+        />
+      </RightPanel>
+    </SplitContainer>
   );
 }
 
-function SpanItem({
-  span,
+function AbbreviatedTrace({
+  nodes,
+  onSelectNode,
+}: {
+  nodes: TraceTreeNode[];
+  onSelectNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+}) {
+  const id = useId();
+  const getKey = (node: TraceTreeNode<TraceTree.NodeValue>) => {
+    if (isTransactionNode(node) || isEAPSpanNode(node)) {
+      return node.value.event_id;
+    }
+    if (isSpanNode(node)) {
+      return node.value.span_id;
+    }
+
+    return id;
+  };
+
+  return (
+    <TraceListContainer>
+      <h4>Abbreviated Trace</h4>
+      {nodes.map(node => {
+        return (
+          <TraceListItem
+            key={getKey(node)}
+            node={node}
+            onClick={() => onSelectNode(node)}
+            isSelected={false}
+          />
+        );
+      })}
+    </TraceListContainer>
+  );
+}
+
+function TraceListItem({
+  node,
   onClick,
   isSelected,
 }: {
   isSelected: boolean;
-  onClick: (span: WaterfallSpanData) => void;
-  span: WaterfallSpanData;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  onClick: () => void;
 }) {
-  const op = mapMissingSpanOp({
-    op: span.op,
-    description: span.description,
-  });
+  const theme = useTheme();
+  const colors = theme.chart.getColorPalette(4);
 
-  let icon = <IconCode size="sm" />;
-  let color = 'gray400';
-  let title = span.op;
-  let text = span.description;
-  if (AI_TOOL_CALL_OPS.includes(op)) {
-    icon = <IconTool size="sm" />;
-    color = 'green400';
-    title = span.description;
-    text = span.data?.['ai.toolCall.name'];
-  } else if (
-    AI_GENERATION_OPS.includes(op) ||
-    AI_GENERATION_DESCRIPTIONS.includes(span.description ?? '')
-  ) {
-    icon = <IconSpeechBubble size="sm" />;
-    color = 'blue400';
-    title = 'ai.doGenerate';
-    text = span.data?.['gen_ai.request.model'];
-  } else if (
-    AI_RUN_OPS.includes(op) ||
-    AI_RUN_DESCRIPTIONS.includes(span.description ?? '')
-  ) {
-    icon = <IconBot size="sm" />;
-    color = 'gray400';
-    title = 'Agent';
-    text = tryParseJson(span.data?.['ai.prompt'] ?? '{}').prompt;
-  } else if (span.op === 'http.client') {
-    icon = <IconSort rotated size="sm" />;
-    color = 'gray300';
-    title = span.description;
-    text = span.data?.['http.url'];
-  }
-
-  return (
-    <StyledTimelineItem
-      isSelected={isSelected}
-      title={<StyledTimelineItemTitle>{title}</StyledTimelineItemTitle>}
-      icon={icon}
-      onClick={() => onClick(span)}
-      colorConfig={{
-        title: color,
-        icon: color,
-        iconBorder: color,
-      }}
-      timestamp={<WaterfallProgress span={span} />}
-    >
-      <StyledTimelineText>{text}</StyledTimelineText>
-    </StyledTimelineItem>
-  );
-}
-
-function WaterfallProgress({span}: {span: WaterfallSpanData}) {
-  const getColor = (colorName: string) => {
-    switch (colorName) {
-      case 'green400':
-        return '#40c89a';
-      case 'blue400':
-        return '#669bf8';
-      case 'gray300':
-        return '#D1D5DB';
-      default:
-        return '#C1C5CB';
+  const getNodeInfo = () => {
+    if (isTransactionNode(node)) {
+      return {
+        icon: <IconCode size="sm" />,
+        title: node.value.transaction || 'Transaction',
+        subtitle: node.value['transaction.op'] || '',
+        color: colors[0],
+      };
     }
+
+    if (isSpanNode(node)) {
+      const op = mapMissingSpanOp({
+        op: node.value.op,
+        description: node.value.description,
+      });
+
+      if (
+        AI_RUN_OPS.includes(op) ||
+        AI_RUN_DESCRIPTIONS.includes(node.value.description ?? '')
+      ) {
+        return {
+          icon: <IconBot size="sm" />,
+          title: 'ai.agent',
+          subtitle: tryParseJson(node.value.data?.['ai.prompt'] ?? '{}').prompt || '',
+          color: colors[1],
+        };
+      }
+
+      if (
+        AI_GENERATION_OPS.includes(op) ||
+        AI_GENERATION_DESCRIPTIONS.includes(node.value.description ?? '')
+      ) {
+        return {
+          icon: <IconSpeechBubble size="sm" />,
+          title: 'ai.generate',
+          subtitle: node.value.data?.['gen_ai.request.model'] || '',
+          color: colors[2],
+        };
+      }
+      if (AI_TOOL_CALL_OPS.includes(op)) {
+        return {
+          icon: <IconTool size="sm" />,
+          title: node.value.description || 'Tool Call',
+          subtitle: node.value.data?.['ai.toolCall.name'] || '',
+          color: colors[3],
+        };
+      }
+      if (node.value.op === 'http.client') {
+        return {
+          icon: <IconSort size="sm" />,
+          title: node.value.description || 'HTTP',
+          subtitle: node.value.data?.['http.url'] || '',
+          color: colors[4],
+        };
+      }
+
+      return {
+        icon: <IconCode size="sm" />,
+        title: node.value.op || 'Span',
+        subtitle: node.value.description || '',
+        color: colors[0],
+      };
+    }
+
+    if (isEAPSpanNode(node)) {
+      return {
+        icon: <IconCode size="sm" />,
+        title: node.value.op || 'EAP Span',
+        subtitle: node.value.description || '',
+        color: colors[0],
+      };
+    }
+
+    return {
+      icon: <IconCode size="sm" />,
+      title: 'Unknown',
+      subtitle: '',
+      color: 'gray400',
+    };
   };
 
-  return (
-    <WaterfallContainer>
-      <WaterfallBar
-        style={{
-          left: `${span.leftPercent}%`,
-          width: `${Math.max(span.widthPercent, 2)}%`,
-          backgroundColor: getColor(span.color),
-        }}
-      />
-      <WaterfallDuration>{getDuration(span.duration, 2, true)}</WaterfallDuration>
-    </WaterfallContainer>
-  );
-}
-
-function PromotedAttributes({
-  attributes,
-}: {
-  attributes: Record<string, string> | undefined;
-}) {
-  if (!attributes) {
-    return null;
-  }
-
-  const promptMessages = parseAIMessages(attributes['ai.prompt.messages'] ?? '');
-  const onlyPrompt = tryParseJson(attributes['ai.prompt'] ?? '{}').prompt;
-  const responseText = tryParseJson(attributes['ai.response.text'] ?? '{}').text;
-  const toolCalls = tryParseJson(attributes['ai.response.toolCalls'] ?? '{}');
+  const {icon, title, subtitle, color} = getNodeInfo();
 
   return (
-    <div>
-      {promptMessages && (
-        <AIInputSectionSimple promptMessages={promptMessages as string} />
-      )}
-      {!promptMessages && onlyPrompt && (
-        <AIInputSectionSimple promptMessages={onlyPrompt as string} />
-      )}
-      {responseText && (
-        <AIOutputSectionSimple responseText={responseText} toolCalls={toolCalls} />
-      )}
-    </div>
+    <ListItemContainer isSelected={isSelected} onClick={onClick}>
+      <ListItemIcon color={color}>{icon}</ListItemIcon>
+      <ListItemContent>
+        <ListItemHeader>
+          <ListItemTitle>{title}</ListItemTitle>
+          {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
+        </ListItemHeader>
+        <DurationBar color={color} />
+      </ListItemContent>
+    </ListItemContainer>
   );
 }
 
@@ -357,70 +358,93 @@ const tryParseJson = (value: string) => {
     return value;
   }
 };
-
-const Wrapper = styled('div')`
+const SplitContainer = styled('div')`
+  display: flex;
   height: 100%;
-  padding: ${space(2)};
-`;
-
-const StyledTimelineItemTitle = styled('div')`
-  width: 200px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;
 
-const StyledTimelineItem = styled(Timeline.Item)<{isSelected: boolean}>`
-  cursor: pointer;
-  border: 1px solid ${p => p.theme.border};
+const LeftPanel = styled('div')`
+  flex: 1;
+  overflow: auto;
+  min-width: 300px;
+
+  border-right: 1px solid ${p => p.theme.border};
+`;
+
+const RightPanel = styled('div')`
+  min-width: 400px;
+  max-width: 600px;
+  width: 50%;
+  overflow: auto;
+  background-color: ${p => p.theme.background};
+`;
+
+const TraceListContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-right: ${space(2)};
+  gap: ${space(0.5)};
+  overflow: hidden;
+`;
+
+const ListItemContainer = styled('div')<{isSelected: boolean}>`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} ${space(1.5)};
+  border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
-  margin-bottom: ${space(1)};
+  cursor: pointer;
+  background-color: ${p =>
+    p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
+
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-  background-color: ${p => p.theme.background};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  ${p => p.isSelected && `background-color: ${p.theme.backgroundSecondary};`}
 `;
 
-const WaterfallContainer = styled('div')`
-  position: relative;
-  width: 200px;
-  height: 20px;
-  background-color: ${p => p.theme.gray100};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 4px;
+const ListItemIcon = styled('div')<{color: string}>`
   display: flex;
   align-items: center;
-  overflow: hidden;
+  margin-right: ${space(1)};
+  color: ${p => p.color};
 `;
 
-const WaterfallBar = styled('div')`
-  position: absolute;
-  height: 100%;
-  border-radius: 2px;
-  opacity: 0.9;
-  transition: opacity 0.2s ease;
-
-  &:hover {
-    opacity: 1;
-  }
+const ListItemContent = styled('div')`
+  flex: 1;
+  min-width: 0;
 `;
 
-const WaterfallDuration = styled('span')`
-  position: absolute;
-  right: ${space(0.5)};
-  font-size: 11px;
+const ListItemHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(0.5)};
+`;
+
+const ListItemTitle = styled('div')`
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
-  z-index: 1;
-`;
-
-const StyledTimelineText = styled('div')`
-  max-width: 100%;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+`;
+
+const ListItemSubtitle = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.5)};
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+`;
+
+const DurationBar = styled('div')<{color: string}>`
+  width: 100%;
+  height: 4px;
+  background-color: ${p => p.color};
+  border-radius: 2px;
 `;
