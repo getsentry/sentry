@@ -12,6 +12,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {isEapAlert} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
@@ -26,7 +27,6 @@ import {
 } from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getFieldOptionConfig} from './metricField';
-import {isEapAlert} from 'sentry/views/alerts/rules/utils';
 
 type MenuOption = {label: React.ReactNode; value: AlertType};
 type GroupedMenuOption = {label: string; options: MenuOption[]};

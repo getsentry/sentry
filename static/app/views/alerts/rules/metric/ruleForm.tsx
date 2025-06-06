@@ -70,6 +70,10 @@ import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {
+  deprecateTransactionAlerts,
+  hasLogAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -97,10 +101,6 @@ import {
   type Trigger,
   type UnsavedMetricRule,
 } from './types';
-import {
-  deprecateTransactionAlerts,
-  hasLogAlerts,
-} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
@@ -266,7 +266,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      alertType: alertType,
+      alertType,
       traceItemType: isEapAlert(alertType) ? eventTypes[0] : undefined,
     };
   }

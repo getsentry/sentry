@@ -23,8 +23,8 @@ import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm'
 import {isEapAlert} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
-  MetricAlertType,
   AlertType as WizardAlertType,
+  MetricAlertType,
   WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
 import {

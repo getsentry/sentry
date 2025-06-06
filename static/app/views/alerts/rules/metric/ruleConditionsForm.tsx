@@ -72,6 +72,8 @@ import {
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {
@@ -80,8 +82,6 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import {AlertRuleComparisonType, Dataset, Datasource} from './types';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {
   aggregate: string;
@@ -270,13 +270,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderEventTypeFilter() {
     const {organization, disabled, alertType, isErrorMigration} = this.props;
 
-    const dataSourceOptions: {
+    const dataSourceOptions: Array<{
       label: string;
-      options: {
-        value: Datasource;
+      options: Array<{
         label: string;
-      }[];
-    }[] = [];
+        value: Datasource;
+      }>;
+    }> = [];
 
     if (isValidLogsAlert(alertType)) {
     } else {
