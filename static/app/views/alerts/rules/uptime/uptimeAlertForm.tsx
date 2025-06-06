@@ -28,7 +28,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -72,20 +71,49 @@ function getFormDataFromRule(rule: UptimeRule) {
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({project, handleDelete, rule, organization}: Props) {
   const navigate = useNavigate();
-  const organization = useOrganization();
   const {projects} = useProjects();
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {
+        projectSlug: project.slug,
+        method: 'GET',
+        headers: [],
+        owner:
+          (organization as any).teams?.length === 1
+            ? `team:${(organization as any).teams[0].id}`
+            : undefined,
+      };
 
   const [formModel] = useState(() => new FormModel());
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
   const environments = [newEnvironment, ...knownEnvironments].filter(Boolean);
+
+  // Suggest rule name from URL
+  useEffect(() => {
+    if (rule) {
+      return () => {};
+    }
+    return autorun(() => {
+      const url = formModel.getValue('url');
+      const name = formModel.getValue('name');
+      if (url && typeof url === 'string' && !name) {
+        try {
+          const urlObject = new URL(url);
+          const suggestedName = `Uptime Check for ${urlObject.hostname}${
+            urlObject.pathname === '/' ? '' : urlObject.pathname
+          }`;
+          formModel.setValue('name', suggestedName.replace(/\/$/, ''));
+        } catch (e) {
+          // do nothing
+        }
+      }
+    });
+  }, [formModel, rule]);
 
   // XXX(epurkhiser): The forms API endpoint is derived from the selcted
   // project. We don't have an easy way to interpolate this into the <Form />
@@ -95,7 +123,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   useEffect(
     () =>
       autorun(() => {
-        const projectSlug = formModel.getValue<string>('projectSlug');
+        const projectSlug = formModel.getValue('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
@@ -113,6 +141,9 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
         if (selectedProject) {
           setEnvironments(selectedProject.environments);
+          if (selectedProject.environments.length === 1 && !rule) {
+            formModel.setValue('environment', selectedProject.environments[0]);
+          }
         }
       }),
     [formModel, navigate, organization, projects, rule]
