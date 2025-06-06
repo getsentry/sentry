@@ -118,7 +118,7 @@ export function getFormFieldsAndInitialData(
               {
                 link: (
                   <ExternalLink href="https://console.aws.amazon.com/iam/">
-                    IAM console
+                    {t('IAM console')}
                   </ExternalLink>
                 ),
               }
