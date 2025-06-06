@@ -100,6 +100,8 @@ To start ingesting user data, you can use the issue platform [release flags](htt
 sentry createissueflag --slug=<experiment-grouptype-slug> --owner=<your-team>
 ```
 
+These flags don't need to be defined in `sentry`, you just have to add them to Flagpole.
+
 You'll only want to GA the 'ingest' flag, but the 'post-process' and 'ui' flags can help you get an end to end experience prior to adding your changes to the existing detector.
 
 Once the change has been deemed sufficiently tested, reverse the setup:
