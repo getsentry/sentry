@@ -45,7 +45,7 @@ def metrics_incr(
             "detector_type": ctx.detector.type,
         }
 
-    tags = {**tags, **ctx_tags}
+    tags = {**ctx_tags, **tags}
     if tags:
         metrics.incr(full_metric_name, value, tags=tags)
     else:
