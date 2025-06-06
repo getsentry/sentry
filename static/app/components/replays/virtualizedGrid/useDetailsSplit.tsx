@@ -54,18 +54,19 @@ export default function useDetailsSplit({
   const initialSize = Math.max(150, window.innerHeight * 0.4);
   const [containerSize, setContainerSize] = useState(initialSize);
 
-  const resizableDrawerProps = useResizableDrawer({
+  const {resize, resizing, resizeHandleProps, resizedElementProps} = useResizableDrawer({
     direction: 'up',
-    initialSize,
-    min: 0,
-    onResize: (newSize: number) => {
-      setContainerSize(newSize);
+    initialSize: {height: initialSize},
+    min: {height: 0},
+    onResize: options => {
+      setContainerSize(options.size);
+      return options.size;
     },
   });
 
   const onDoubleClick = useCallback(() => {
-    setContainerSize(initialSize);
-  }, [initialSize]);
+    resize({height: initialSize});
+  }, [initialSize, resize]);
 
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - handleHeight;
@@ -76,10 +77,9 @@ export default function useDetailsSplit({
     onClickCell,
     onCloseDetailsSplit,
     onDoubleClick,
-    resizableDrawerProps: {
-      ...resizableDrawerProps,
-      onDoubleClick,
-    },
+    resizing,
+    resizeHandleProps,
+    resizedElementProps,
     selectedIndex: getDetailIndex(),
     splitSize,
   };
