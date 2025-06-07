@@ -28,5 +28,6 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible('[aria-label="Remove"]')
+        self.browser.click_when_visible('[aria-label="Confirm"]')
         self.browser.wait_until_not('[data-test-id="toast-loading"]')
         self.browser.wait_until_test_id("empty-message")
