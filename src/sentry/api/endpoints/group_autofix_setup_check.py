@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,14 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
+            RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60, concurrent_limit=100),
+        }
+    }
 
     def get(self, request: Request, group: Group) -> Response:
         """
