@@ -214,6 +214,13 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         self.run_test("<=", "1.2.3", "IN", [release.version])
         self.run_test("=", "1.2.4", "IN", [release_2.version])
 
+    def test_semver_in_operator(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        self.run_test("IN", ["1.2.3", "1.2.4"], "IN", [release.version, release_2.version])
+        # TODO: support not in operator
+        # self.run_test("NOT IN", ["1.2.3", "1.2.4"], "NOT IN", [release.version, release_2.version])
+
     def test_invert_query(self):
         # Tests that flipping the query works and uses a NOT IN. Test all operators to
         # make sure the inversion works correctly.
@@ -398,12 +405,6 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
-        filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
-        with pytest.raises(
-            InvalidSearchQuery, match="Invalid operation 'IN' for semantic version filter."
-        ):
-            _semver_filter_converter(filter, key, {"organization_id": 1})
-
     def test_empty(self):
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
 
@@ -418,7 +419,7 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
 
 
 class ParseSemverTest(unittest.TestCase):
-    def run_test(self, version: str, operator: str, expected: SemverFilter):
+    def run_test(self, version: str | list[str], operator: str, expected: SemverFilter):
         semver_filter = parse_semver(version, operator)
         assert semver_filter == expected
 
@@ -433,11 +434,6 @@ class ParseSemverTest(unittest.TestCase):
             match=INVALID_SEMVER_MESSAGE,
         ):
             assert parse_semver("hello", ">") is None
-        with pytest.raises(
-            InvalidSearchQuery,
-            match="Invalid operation 'IN' for semantic version filter.",
-        ):
-            assert parse_semver("1.2.3.4", "IN") is None
 
     def test_normal(self):
         self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))
@@ -454,6 +450,11 @@ class ParseSemverTest(unittest.TestCase):
         self.run_test("1.2.3.*", "=", SemverFilter("exact", [1, 2, 3]))
         self.run_test("sentry@1.2.3.*", "=", SemverFilter("exact", [1, 2, 3], "sentry"))
         self.run_test("1.X", "=", SemverFilter("exact", [1]))
+
+    def test_in(self):
+        self.run_test("1.2.3.4", "IN", SemverFilter("in", [1, 2, 3, 4, 1, ""]))
+        # TODO: support not in operator
+        # self.run_test("1.2.3.4", "NOT IN", SemverFilter("not in", [1, 2, 3, 4, 1, ""]))
 
 
 def _cond(lhs, op, rhs):
