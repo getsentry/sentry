@@ -1,7 +1,8 @@
-import {Component, Fragment} from 'react';
+import React, {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
@@ -277,6 +278,13 @@ class OnDemandBudgetEdit extends Component<Props> {
                     )}
                   </Description>
                   {this.renderInputFields(OnDemandBudgetMode.PER_CATEGORY)}
+                  <Alert.Container>
+                    <Alert type="warning" showIcon>
+                      {t(
+                        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+                      )}
+                    </Alert>
+                  </Alert.Container>
                 </BudgetDetails>
               </BudgetContainer>
             </div>
