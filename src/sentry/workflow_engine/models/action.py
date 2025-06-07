@@ -16,6 +16,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.utils import metrics_incr
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
@@ -84,6 +85,13 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
+        handler = self.get_handler()
+        handler.execute(event_data, self, detector)
+
+        metrics_incr(
+            "action.trigger",
+            tags={"action_type": self.type},
+        )
         logger.info(
             "workflow_engine.action.trigger",
             extra={
@@ -92,9 +100,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 "event_data": asdict(event_data),
             },
         )
-
-        handler = self.get_handler()
-        handler.execute(event_data, self, detector)
 
 
 @receiver(pre_save, sender=Action)

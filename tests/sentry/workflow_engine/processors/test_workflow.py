@@ -19,6 +19,7 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
     DataConditionGroupAction,
+    Detector,
     Workflow,
     WorkflowFireHistory,
 )
@@ -32,7 +33,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -98,7 +99,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert triggered_workflows == {self.error_workflow}
 
         mock_logger.info.assert_called_with(
-            "workflow_engine.process_workflows.triggered_actions (batch)",
+            "workflow_engine.process_workflows.actions (all)",
             extra={
                 "group_id": self.group.id,
                 "event_id": self.event.event_id,
@@ -227,8 +228,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow, workflow}
 
-    @patch("sentry.workflow_engine.processors.workflow.metrics")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
+    @patch("sentry.workflow_engine.processors.detector.metrics")
+    @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger, mock_metrics):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
@@ -236,7 +237,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         assert not triggered_workflows
 
-        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_metrics.incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
             extra={
@@ -261,12 +262,12 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     @patch("sentry.utils.metrics.incr")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
+    @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger, mock_incr):
         self.event_data.event.project_id = 0
 
         process_workflows(self.event_data)
-        mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once()
 
     @patch("sentry.utils.metrics.incr")
@@ -290,16 +291,38 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     @with_feature("organizations:workflow-engine-process-workflows")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow
-
-        process_workflows(self.event_data)
-        mock_incr.assert_any_call(
-            "workflow_engine.process_workflows.triggered_actions",
-            amount=0,
-            tags={"detector_type": self.error_detector.type},
+        self.action_group, self.action = self.create_workflow_action(
+            workflow=self.error_workflow,
         )
+
+        # mock the handler to get a fake noop handler
+        with patch(
+            "sentry.workflow_engine.models.action.action_handler_registry.get"
+        ) as mock_handler:
+
+            class MockHandler(ActionHandler):
+                @staticmethod
+                def execute(
+                    event_data: WorkflowEventData, action: Action, detector: Detector
+                ) -> None:
+                    return None
+
+            mock_handler.return_value = MockHandler
+
+            # process the workflows
+            process_workflows(self.event_data)
+            mock_incr.assert_any_call(
+                "workflow_engine.action.trigger",
+                1,
+                tags={
+                    "detector_type": self.error_detector.type,
+                    "action_type": self.action.type,
+                },
+            )
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
