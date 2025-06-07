@@ -22,7 +22,7 @@ from sentry.workflow_engine.processors.action import filter_recently_fired_actio
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils.workflow_context import WorkflowContext
+from sentry.workflow_engine.utils.workflow_context import WorkflowContext, WorkflowContextData
 
 logger = logging.getLogger(__name__)
 
@@ -99,15 +99,15 @@ def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
 ) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
+    detector = WorkflowContext.get().detector
+    environment = WorkflowContext.get().environment
 
-    detector = WorkflowContext.get_value("detector")
     if detector is None:
         try:
             detector = get_detector_by_event(event_data)
         except Detector.DoesNotExist:
             return set()
 
-    environment = WorkflowContext.get_value("environment")
     if environment is None:
         try:
             environment = get_environment_by_event(event_data)
@@ -148,6 +148,7 @@ def evaluate_workflow_triggers(
     return triggered_workflows
 
 
+@sentry_sdk.trace
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
@@ -210,7 +211,27 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    return filter_recently_fired_actions(filtered_action_groups, event_data)
+    actions = filter_recently_fired_actions(filtered_action_groups, event_data)
+
+    # TODO - use `metrics_incr` once we don't need the detector for the logs as well.
+    detector = WorkflowContext.get().detector or get_detector_by_event(event_data)
+    metrics.incr(
+        "workflow_engine.process_workflows.actions",
+        len(actions),
+        tags={"detector_type": detector.type},
+    )
+
+    logger.info(
+        "workflow_engine.process_workflows.actions (all)",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "workflow_ids": [workflow.id for workflow in workflows],
+            "action_ids": [action.id for action in actions],
+            "detector_type": detector.type,
+        },
+    )
+    return actions
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
@@ -227,8 +248,9 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
 
 
 def get_workflows_by_event_data(event_data: WorkflowEventData) -> set[Workflow]:
-    detector = WorkflowContext.get_value("detector")
-    environment = WorkflowContext.get_value("environment")
+    ctx = WorkflowContext.get()
+    detector = ctx.detector or get_detector_by_event(event_data)
+    environment = ctx.environment or get_environment_by_event(event_data)
 
     workflows = set(
         Workflow.objects.filter(
@@ -281,38 +303,31 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     organization = detector.project.organization
 
-    # The WorkflowContext allows us to share these values across the workflow engine
     WorkflowContext.set(
-        detector=detector,
-        environment=environment,
-        organization=organization,
+        WorkflowContextData(
+            detector=detector,
+            environment=environment,
+            organization=organization,
+        )
     )
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = get_workflows_by_event_data(event_data)
+    if not workflows:
+        # If there aren't any workflows, there's nothing to evaluate
+        return set()
+
     triggered_workflows = evaluate_workflow_triggers(workflows, event_data)
+    if not triggered_workflows:
+        # if there aren't any triggered workflows, there's no action filters to evaluate
+        return set()
 
-    with sentry_sdk.start_span(
-        op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
-    ):
-        actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
-        metrics.incr(
-            "workflow_engine.process_workflows.actions",
-            len(actions),
-            tags={"detector_type": detector.type},
-        )
+    actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
+    if not actions:
+        # If there aren't any actions on the associated workflows, there's nothing to trigger
+        return triggered_workflows
 
-        logger.info(
-            "workflow_engine.process_workflows.actions (all)",
-            extra={
-                "group_id": event_data.event.group_id,
-                "event_id": event_data.event.event_id,
-                "workflow_ids": [workflow.id for workflow in triggered_workflows],
-                "action_ids": [action.id for action in actions],
-                "detector_type": detector.type,
-            },
-        )
-
+    # TODO - change this to create a celery task instead.
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if features.has(
             "organizations:workflow-engine-trigger-actions",
