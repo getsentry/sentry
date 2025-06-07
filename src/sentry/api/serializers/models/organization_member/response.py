@@ -8,7 +8,7 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializerResponse,
 )
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
-from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.api.serializers.user import UserSerializerWithoutEmailsResponse
 
 
 class SCIMName(TypedDict):
@@ -75,7 +75,7 @@ class OrganizationMemberResponse(TypedDict):
     email: str
     name: str
     # User may be optional b/c invites don't have users yet
-    user: NotRequired[UserSerializerResponse]
+    user: NotRequired[UserSerializerWithoutEmailsResponse]
     orgRole: str
     pending: bool
     expired: bool
