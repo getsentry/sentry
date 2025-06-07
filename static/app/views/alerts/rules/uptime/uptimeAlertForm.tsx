@@ -45,6 +45,8 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
+const HTTP_METHODS_WITHOUT_BODY = new Set<string>(['GET', 'HEAD', 'OPTIONS']);
+
 const MINUTE = 60;
 
 const VALID_INTERVALS_SEC = [
@@ -84,7 +86,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   const [formModel] = useState(() => new FormModel());
 
   const [isBodyVisible, setIsBodyVisible] = useState<boolean>(
-    !(initialData.method === 'GET' || initialData.method === 'HEAD')
+    !HTTP_METHODS_WITHOUT_BODY.has(initialData.method)
   );
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -248,8 +250,8 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                 value: option,
                 label: option,
               }))}
-              onChange={(value: any) => {
-                if (value === 'GET' || value === 'HEAD') {
+              onChange={value => {
+                if (HTTP_METHODS_WITHOUT_BODY.has(value)) {
                   setIsBodyVisible(false);
                   formModel.setValue('body', null as any);
                 } else {
