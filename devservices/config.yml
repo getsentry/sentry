@@ -7,7 +7,7 @@ x-sentry-service-config:
       description: Service that provides fast aggregation and query capabilities on top of Clickhouse
       remote:
         repo_name: snuba
-        branch: master
+        branch: evanh/feat/test-23.8.16
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
     relay:
