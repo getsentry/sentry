@@ -338,7 +338,12 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
 class TestGetCommentBody(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
-            data={"message": "issue 1", "culprit": "issue1", "fingerprint": ["group-1"]},
+            data={
+                "message": "issue 1",
+                "culprit": "issue1",
+                "fingerprint": ["group-1"],
+                "environment": "dev",
+            },
             project_id=self.project.id,
         )
         assert ev1.group is not None
@@ -348,7 +353,12 @@ class TestGetCommentBody(GithubCommentTestCase):
         )
         assert ev2.group is not None
         ev3 = self.store_event(
-            data={"message": "issue 3", "culprit": "issue3", "fingerprint": ["group-3"]},
+            data={
+                "message": "issue 3",
+                "culprit": "issue3",
+                "fingerprint": ["group-3"],
+                "environment": "prod",
+            },
             project_id=self.project.id,
         )
         assert ev3.group is not None
@@ -359,9 +369,9 @@ class TestGetCommentBody(GithubCommentTestCase):
         expected_comment = f"""## Suspect Issues
 This pull request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{ev1.group.id}/?referrer=github-pr-bot)
+- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{ev1.group.id}/?referrer=github-pr-bot) Environment: *(dev)*
 - ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/foo/issues/{ev2.group.id}/?referrer=github-pr-bot)
-- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/foo/issues/{ev3.group.id}/?referrer=github-pr-bot)
+- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/foo/issues/{ev3.group.id}/?referrer=github-pr-bot) Environment: *(prod)*
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
         assert formatted_comment == expected_comment
