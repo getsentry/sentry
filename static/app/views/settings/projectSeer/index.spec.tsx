@@ -271,7 +271,7 @@ describe('ProjectSeer', function () {
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Automatically Analyze Incoming Issues/i,
+      name: /Automate Issue Fixes/i,
     });
 
     act(() => {
@@ -291,6 +291,48 @@ describe('ProjectSeer', function () {
       expect(projectPutRequest).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({data: {autofixAutomationTuning: 'high'}})
+      );
+    });
+  });
+
+  it('can update the project scanner automation setting', async function () {
+    const initialProject: Project = {
+      ...project,
+      seerScannerAutomation: false, // Start from off
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: initialProject,
+    });
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(<ProjectSeer project={initialProject} />, {organization});
+
+    // Find the toggle for Automate Issue Scans
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Automate Issue Scans/i,
+    });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).not.toBeChecked();
+
+    // Toggle it on
+    await userEvent.click(toggle);
+
+    // Form has saveOnBlur=true, so wait for the PUT request
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {seerScannerAutomation: true}})
       );
     });
   });
