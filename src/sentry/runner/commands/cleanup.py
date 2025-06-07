@@ -316,7 +316,9 @@ def remove_expired_values_for_org_members(
 
 
 def delete_api_models(is_filtered: Callable[[type[Model]], bool]) -> None:
+    from sentry.models.apigrant import DEFAULT_EXPIRATION as API_GRANT_EXPIRATION
     from sentry.models.apigrant import ApiGrant
+    from sentry.models.apitoken import DEFAULT_EXPIRATION as API_TOKEN_EXPIRATION
     from sentry.models.apitoken import ApiToken
 
     for model_tp in (ApiGrant, ApiToken):
@@ -325,8 +327,11 @@ def delete_api_models(is_filtered: Callable[[type[Model]], bool]) -> None:
         if is_filtered(model_tp):
             debug_output(f">> Skipping {model_tp.__name__}")
         else:
+            expiration_threshold = (
+                API_GRANT_EXPIRATION if model_tp is ApiGrant else API_TOKEN_EXPIRATION
+            )
             queryset = model_tp.objects.filter(
-                expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
+                expires_at__lt=(timezone.now() - expiration_threshold)
             )
 
             # SentryAppInstallations are associated to ApiTokens. We're okay
