@@ -82,6 +82,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
     : {projectSlug: project.slug, method: 'GET', headers: []};
 
   const [formModel] = useState(() => new FormModel());
+  const [advancedVisible, setAdvancedVisible] = useState(false);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -186,49 +187,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         </ListItemSubText>
         <Configuration>
           <ConfigurationPanel>
-            <SelectField
-              options={VALID_INTERVALS_SEC.map(value => ({
-                value,
-                label: t('Every %s', getDuration(value)),
-              }))}
-              name="intervalSeconds"
-              label={t('Interval')}
-              defaultValue={60}
-              flexibleControlStateSize
-              showHelpInTooltip={{isHoverable: true}}
-              help={({model}) =>
-                tct(
-                  'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
-                    ),
-                    interval: (
-                      <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
-                    ),
-                    expectedFailureInterval: (
-                      <strong>
-                        {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
-                      </strong>
-                    ),
-                  }
-                )
-              }
-              required
-            />
-            <RangeField
-              name="timeoutMs"
-              label={t('Timeout')}
-              min={1000}
-              max={30_000}
-              step={250}
-              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
-              defaultValue={5_000}
-              showTickLabels
-              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
-              flexibleControlStateSize
-              required
-            />
             <TextField
               name="url"
               label={t('URL')}
@@ -248,39 +206,90 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
               required
             />
-            <UptimeHeadersField
-              name="headers"
-              label={t('Headers')}
-              flexibleControlStateSize
-            />
-            <TextareaField
-              name="body"
-              label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
-              rows={4}
-              maxRows={15}
-              autosize
-              monospace
-              placeholder='{"key": "value"}'
-              flexibleControlStateSize
-            />
-            <BooleanField
-              name="traceSampling"
-              label={t('Allow Sampling')}
-              showHelpInTooltip={{isHoverable: true}}
-              help={tct(
-                'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
-                  ),
-                }
-              )}
-              flexibleControlStateSize
-            />
           </ConfigurationPanel>
+          <AdvancedConfigToggle onClick={() => setAdvancedVisible(v => !v)}>
+            <span>{advancedVisible ? '▼' : '▶'}</span>
+            <span>{t('Advanced Configuration')}</span>
+          </AdvancedConfigToggle>
+          {advancedVisible && (
+            <ConfigurationPanel style={{paddingTop: space(2)}}>
+              <SelectField
+                options={VALID_INTERVALS_SEC.map(value => ({
+                  value,
+                  label: t('Every %s', getDuration(value)),
+                }))}
+                name="intervalSeconds"
+                label={t('Interval')}
+                defaultValue={60}
+                flexibleControlStateSize
+                showHelpInTooltip={{isHoverable: true}}
+                help={({model}) =>
+                  tct(
+                    'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                      ),
+                      interval: (
+                        <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
+                      ),
+                      expectedFailureInterval: (
+                        <strong>
+                          {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
+                        </strong>
+                      ),
+                    }
+                  )
+                }
+                required
+              />
+              <RangeField
+                name="timeoutMs"
+                label={t('Timeout')}
+                min={1000}
+                max={30_000}
+                step={250}
+                tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
+                defaultValue={5_000}
+                showTickLabels
+                formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+                flexibleControlStateSize
+                required
+              />
+              <UptimeHeadersField
+                name="headers"
+                label={t('Headers')}
+                flexibleControlStateSize
+              />
+              <TextareaField
+                name="body"
+                label={t('Body')}
+                visible={({model}: any) =>
+                  !['GET', 'HEAD'].includes(model.getValue('method'))
+                }
+                rows={4}
+                maxRows={15}
+                autosize
+                monospace
+                placeholder='{"key": "value"}'
+                flexibleControlStateSize
+              />
+              <BooleanField
+                name="traceSampling"
+                label={t('Allow Sampling')}
+                showHelpInTooltip={{isHoverable: true}}
+                help={tct(
+                  'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
+                    ),
+                  }
+                )}
+                flexibleControlStateSize
+              />
+            </ConfigurationPanel>
+          )}
           <Alert.Container>
             <Alert type="muted" showIcon>
               {tct(
@@ -386,4 +395,15 @@ const ConfigurationPanel = styled(Panel)`
       width: auto;
     }
   }
+`;
+
+const AdvancedConfigToggle = styled('div')`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(4)};
 `;
