@@ -131,7 +131,6 @@ const Background = styled('div')`
 `;
 
 const LayoutGrid = styled('div')`
-  overflow: hidden;
   flex-grow: 1;
 
   display: grid;
