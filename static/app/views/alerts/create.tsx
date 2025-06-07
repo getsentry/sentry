@@ -126,7 +126,8 @@ function Create(props: Props) {
       : 'issues';
   }
 
-  const title = t('New Alert Rule');
+  const title =
+    alertType === AlertRuleType.UPTIME ? t('Create Uptime Monitor') : t('New Alert Rule');
 
   return (
     <Fragment>
