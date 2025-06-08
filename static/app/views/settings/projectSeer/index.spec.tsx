@@ -184,7 +184,7 @@ describe('ProjectSeer', function () {
     // Find input fields
     const branchInput = screen.getByPlaceholderText('Default branch');
     const instructionsInput = screen.getByPlaceholderText(
-      'Any special instructions for Seer in this repository...'
+      'Add any extra context or instructions for Seer when it works in this repository...'
     );
 
     await userEvent.type(branchInput, 'develop');
