@@ -66,7 +66,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if not access_check_cache_value:
             check_repo_access = True
 
-        autofix_state = get_autofix_state(group_id=group.id, check_repo_access=check_repo_access)
+        autofix_state = get_autofix_state(
+            group_id=group.id, check_repo_access=check_repo_access, is_user_fetching=True
+        )
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout
