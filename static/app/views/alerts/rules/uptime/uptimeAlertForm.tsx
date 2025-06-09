@@ -45,6 +45,8 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
+const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
+
 const MINUTE = 60;
 
 const VALID_INTERVALS_SEC = [
@@ -55,6 +57,10 @@ const VALID_INTERVALS_SEC = [
   MINUTE * 30,
   MINUTE * 60,
 ];
+
+function methodHasBody(model: FormModel) {
+  return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
+}
 
 function getFormDataFromRule(rule: UptimeRule) {
   return {
@@ -125,6 +131,11 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      onPreSubmit={() => {
+        if (!methodHasBody(formModel)) {
+          formModel.setValue('body', null);
+        }
+      }}
       extraButton={
         rule && handleDelete ? (
           <Confirm
@@ -256,9 +267,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <TextareaField
               name="body"
               label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
+              visible={({model}: any) => methodHasBody(model)}
               rows={4}
               maxRows={15}
               autosize
@@ -299,7 +308,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                 url={formModel.getValue('url')}
                 method={formModel.getValue('method')}
                 headers={formModel.getValue('headers')}
-                body={formModel.getValue('body')}
+                body={methodHasBody(formModel) ? formModel.getValue('body') : null}
                 traceSampling={formModel.getValue('traceSampling')}
               />
             )}
