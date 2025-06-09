@@ -34,7 +34,7 @@ class AttributeHandler(ABC):
         raise NotImplementedError
 
 
-attribute_registry = Registry[AttributeHandler]()
+attribute_registry = Registry[type[AttributeHandler]]()
 
 
 # Maps attributes to snuba columns
