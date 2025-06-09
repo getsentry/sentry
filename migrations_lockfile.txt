@@ -23,7 +23,7 @@ preprod: 0001_emerge_upload_models
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0924_dashboard_add_unique_constraint_for_user_org_position
+sentry: 0925_backfill_open_periods
 
 social_auth: 0001_squashed_0002_default_auto_field
 
