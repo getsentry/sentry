@@ -70,22 +70,14 @@ const CHAR_SUBSTITUTIONS: Record<string, string[]> = {
 };
 
 /**
- * Generates a cryptic promo code with random words and character substitutions
+ * Generates a cryptic promo code with one word and random characters
  */
 function generatePromoCode(): string {
-  // Select 1-3 random words (higher chance for longer codes with max 20 chars)
-  const numWords = Math.random() > 0.6 ? 3 : Math.random() > 0.3 ? 2 : 1;
-  const selectedWords = [];
+  // Select one random word
+  const word = CRYPTIC_WORDS[Math.floor(Math.random() * CRYPTIC_WORDS.length)] || 'code';
 
-  for (let i = 0; i < numWords; i++) {
-    const word = CRYPTIC_WORDS[Math.floor(Math.random() * CRYPTIC_WORDS.length)];
-    selectedWords.push(word);
-  }
-
-  let code = selectedWords.join('');
-
-  // Apply character substitutions randomly (30% chance per applicable character)
-  code = code
+  // Apply character substitutions to the word (30% chance per applicable character)
+  let processedWord = word
     .split('')
     .map(char => {
       const lowerChar = char.toLowerCase();
@@ -97,20 +89,54 @@ function generatePromoCode(): string {
     })
     .join('');
 
-  // Add random numbers to reach ~10-15 characters if needed
-  while (code.length < 8) {
-    code += Math.floor(Math.random() * 10).toString();
+  // Generate random characters (letters, numbers, symbols)
+  const randomChars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%&*+=';
+  const generateRandomString = (length: number): string => {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += randomChars.charAt(Math.floor(Math.random() * randomChars.length));
+    }
+    return result;
+  };
+
+  // Target length between 10-15 characters
+  const targetLength = Math.floor(Math.random() * 6) + 10; // 10-15
+  const remainingLength = targetLength - processedWord.length;
+
+  // If word is already too long, truncate and add minimal random chars
+  if (remainingLength < 2) {
+    processedWord = processedWord.substring(0, Math.min(processedWord.length, 8));
+    const minRandom = targetLength - processedWord.length;
+    return processedWord + generateRandomString(Math.max(minRandom, 2));
   }
 
-  // Add more numbers for variety (up to 20 chars total)
-  const targetLength = Math.floor(Math.random() * 8) + 10; // 10-17 chars base
-  while (code.length < targetLength && code.length < 18) {
-    code += Math.floor(Math.random() * 10).toString();
+  // Decide word position: 0 = prefix, 1 = suffix, 2 = middle
+  const position = Math.floor(Math.random() * 3);
+
+  let code = '';
+
+  if (position === 0) {
+    // Word as prefix
+    code = processedWord + generateRandomString(remainingLength);
+  } else if (position === 1) {
+    // Word as suffix
+    code = generateRandomString(remainingLength) + processedWord;
+  } else {
+    // Word in middle
+    const beforeLength = Math.floor(remainingLength / 2);
+    const afterLength = remainingLength - beforeLength;
+    code =
+      generateRandomString(beforeLength) +
+      processedWord +
+      generateRandomString(afterLength);
   }
 
-  // Truncate if too long (max 20 characters)
-  if (code.length > 20) {
-    code = code.substring(0, 20);
+  // Ensure we're within bounds (10-15 characters)
+  if (code.length > 15) {
+    code = code.substring(0, 15);
+  }
+  if (code.length < 10) {
+    code += generateRandomString(10 - code.length);
   }
 
   return code;
