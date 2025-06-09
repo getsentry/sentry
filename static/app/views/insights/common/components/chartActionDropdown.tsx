@@ -4,6 +4,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -18,6 +19,7 @@ import type {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   chartType: ChartType;
+  referrer: string;
   yAxes: string[];
   aliases?: Record<string, string>;
   groupBy?: SpanFields[];
@@ -32,6 +34,7 @@ export function ChartActionDropdown({
   search,
   title,
   aliases,
+  referrer,
 }: Props) {
   const organization = useOrganization();
   const project = useAlertsProject();
@@ -69,16 +72,25 @@ export function ChartActionDropdown({
   });
 
   return (
-    <BaseChartActionDropdown alertMenuOptions={alertsUrls} exploreUrl={exploreUrl} />
+    <BaseChartActionDropdown
+      alertMenuOptions={alertsUrls}
+      exploreUrl={exploreUrl}
+      referrer={referrer}
+    />
   );
 }
 
 type BaseProps = {
   alertMenuOptions: MenuItemProps[];
   exploreUrl: LocationDescriptor;
+  referrer: string;
 };
 
-export function BaseChartActionDropdown({alertMenuOptions, exploreUrl}: BaseProps) {
+export function BaseChartActionDropdown({
+  alertMenuOptions,
+  exploreUrl,
+  referrer,
+}: BaseProps) {
   const organization = useOrganization();
   const useEap = useInsightsEap();
   const hasChartActionsEnabled =
@@ -89,6 +101,12 @@ export function BaseChartActionDropdown({alertMenuOptions, exploreUrl}: BaseProp
       key: 'open-in-explore',
       label: t('Open in Explore'),
       to: exploreUrl,
+      onAction: () => {
+        trackAnalytics('insights.open_in_explore', {
+          organization: organization.slug,
+          referrer,
+        });
+      },
     },
   ];
 

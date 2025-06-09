@@ -143,3 +143,12 @@ export type TraceMeta = {
   transaction_child_count_map: Record<string, number>;
   transactions: number;
 };
+
+export type EAPTraceMeta = {
+  errors: number;
+  logs: number;
+  performance_issues: number;
+  span_count: number;
+  span_count_map: Record<string, number>;
+  transaction_child_count_map: Record<string, number>;
+};

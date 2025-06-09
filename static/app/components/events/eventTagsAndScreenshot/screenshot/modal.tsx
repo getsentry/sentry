@@ -25,10 +25,15 @@ import ScreenshotPagination from './screenshotPagination';
 
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
+  /**
+   * The target screenshot attachment to show. If the attachment is not a
+   * screenshot
+   */
   eventAttachment: EventAttachment;
   projectSlug: Project['slug'];
   /**
-   * Enables pagination of screenshots.
+   * All attachments to enable pagination, will be filtered to image
+   * attachments automatically.
    */
   attachments?: EventAttachment[];
   /**
@@ -53,22 +58,26 @@ export default function ScreenshotModal({
 }: ScreenshotModalProps) {
   const organization = useOrganization();
 
+  const screenshots = attachments.filter(
+    ({name, mimetype}) => name.includes('screenshot') && mimetype.startsWith('image')
+  );
+
   const [currentEventAttachment, setCurrentAttachment] =
     useState<EventAttachment>(eventAttachment);
 
-  const currentAttachmentIndex = attachments.findIndex(
+  const currentAttachmentIndex = screenshots.findIndex(
     attachment => attachment.id === currentEventAttachment.id
   );
   const paginateItems = useCallback(
     (delta: number) => {
-      if (attachments.length) {
+      if (screenshots.length) {
         const newIndex = currentAttachmentIndex + delta;
-        if (newIndex >= 0 && newIndex < attachments.length) {
-          setCurrentAttachment(attachments[newIndex]!);
+        if (newIndex >= 0 && newIndex < screenshots.length) {
+          setCurrentAttachment(screenshots[newIndex]!);
         }
       }
     },
-    [attachments, currentAttachmentIndex]
+    [screenshots, currentAttachmentIndex]
   );
 
   const paginateHotkeys = useMemo(() => {
@@ -82,10 +91,10 @@ export default function ScreenshotModal({
   const {dateCreated, size, mimetype} = currentEventAttachment;
 
   let paginationProps: ComponentProps<typeof ScreenshotPagination> | null = null;
-  if (attachments.length > 1 && defined(currentAttachmentIndex)) {
+  if (screenshots.length > 1 && defined(currentAttachmentIndex)) {
     paginationProps = {
       previousDisabled: currentAttachmentIndex === 0,
-      nextDisabled: currentAttachmentIndex === attachments.length - 1,
+      nextDisabled: currentAttachmentIndex === screenshots.length - 1,
       onPrevious: () => {
         paginateItems(-1);
       },
@@ -94,7 +103,7 @@ export default function ScreenshotModal({
       },
       headerText: tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
         currentScreenshotIndex: currentAttachmentIndex + 1,
-        totalScreenshotCount: attachments.length,
+        totalScreenshotCount: screenshots.length,
       }),
     };
   }
@@ -114,7 +123,7 @@ export default function ScreenshotModal({
             eventId={currentEventAttachment.event_id}
           />
           <KeyValueData.Card
-            title={eventAttachment.name}
+            title={currentEventAttachment.name}
             contentItems={[
               {
                 item: {
