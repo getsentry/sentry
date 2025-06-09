@@ -4,6 +4,7 @@ import {
   useOrganizationFlagLogInfinite,
 } from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -11,6 +12,8 @@ import {useGroup} from 'sentry/views/issueDetails/useGroup';
 type FetchGroupAndEventParams = Parameters<typeof useFetchGroupAndEvent>[0];
 interface FlagsInEventParams extends FetchGroupAndEventParams {
   query: Record<string, any>;
+  event?: Event;
+  group?: Group;
 }
 
 /**
@@ -82,21 +85,29 @@ export function useFlagsInEventPaginated({
 /**
  * Returns the feature flags that have been changed in a given time period and that appear on the event.
  */
-export function useFlagsInEvent({eventId, groupId, query, enabled}: FlagsInEventParams) {
+export function useFlagsInEvent({
+  eventId,
+  groupId,
+  group: groupProp,
+  event: eventProp,
+  query,
+  enabled,
+}: FlagsInEventParams) {
   const organization = useOrganization();
   const {
-    data: group,
+    data: groupData,
     isPending: isGroupPending,
     isError: isGroupError,
     error: groupError,
   } = useGroup({
     groupId: groupId!,
-    options: {enabled: enabled && Boolean(groupId && eventId)},
+    options: {enabled: enabled && Boolean(groupId && eventId && !groupProp)},
   });
+  const group = groupProp ?? groupData;
 
   const projectSlug = group?.project.slug;
   const {
-    data: event,
+    data: eventData,
     isPending: isEventPending,
     isError: isEventError,
     error: eventError,
@@ -104,9 +115,11 @@ export function useFlagsInEvent({eventId, groupId, query, enabled}: FlagsInEvent
     [`/organizations/${organization.slug}/events/${projectSlug}:${eventId}/`],
     {
       staleTime: Infinity,
-      enabled: enabled && Boolean(eventId && projectSlug && organization.slug),
+      enabled:
+        enabled && Boolean(eventId && projectSlug && organization.slug) && !eventProp,
     }
   );
+  const event = eventProp ?? eventData;
 
   const eventFlags = event?.contexts?.flags?.values?.map(f => f.flag);
 

@@ -160,6 +160,7 @@ export function EventGraph({
   });
 
   const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
@@ -272,6 +273,8 @@ export function EventGraph({
   const {flags} = useFlagsInEvent({
     eventId: event?.id,
     groupId: group.id,
+    group,
+    event,
     query: {
       start: eventView.start,
       end: eventView.end,
@@ -295,13 +298,13 @@ export function EventGraph({
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    releases: shouldShowBubbles ? [] : releases,
     onReleaseClick: handleReleaseLineClick,
   });
 
   const flagSeries = useFlagSeries({
     event,
-    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : flags,
+    flags: shouldShowBubbles ? [] : flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -330,8 +333,8 @@ export function EventGraph({
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval
         : undefined,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
-    flags: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? flags : [],
+    releases: shouldShowBubbles ? releases : [],
+    flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
