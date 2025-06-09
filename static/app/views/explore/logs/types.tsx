@@ -7,7 +7,7 @@ import type {
   PercentageUnit,
   PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import type {AggregationKey} from 'sentry/utils/fields';
 import type {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
