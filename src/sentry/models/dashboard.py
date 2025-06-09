@@ -46,8 +46,8 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             .order_by("-position")
             .first()
         )
-        if last_favorite_dashboard:
-            return last_favorite_dashboard.position  # type: ignore[return-value]
+        if last_favorite_dashboard and last_favorite_dashboard.position is not None:
+            return last_favorite_dashboard.position
         return 0
 
     def get_favorite_dashboard(
