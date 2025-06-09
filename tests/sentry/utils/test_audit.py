@@ -501,16 +501,30 @@ class CreateAuditEntryTest(TestCase):
         entry3 = create_audit_entry(
             request=self.req,
             organization=self.project.organization,
+            target_object=self.integration.id,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
+            data={"provider": "github", "name": "config"},
+        )
+        audit_log_event3 = audit_log.get(entry3.event)
+
+        assert ("edited the config for the github integration") in audit_log_event3.render(entry3)
+        assert entry3.actor == self.user
+        assert entry3.target_object == self.integration.id
+        assert entry3.event == audit_log.get_event_id("INTEGRATION_EDIT")
+
+        entry4 = create_audit_entry(
+            request=self.req,
+            organization=self.project.organization,
             target_object=self.project.id,
             event=audit_log.get_event_id("INTEGRATION_REMOVE"),
             data={"integration": "webhooks", "project": project.slug},
         )
-        audit_log_event3 = audit_log.get(entry3.event)
+        audit_log_event4 = audit_log.get(entry4.event)
 
-        assert ("disable") in audit_log_event3.render(entry3)
-        assert entry3.actor == self.user
-        assert entry3.target_object == self.project.id
-        assert entry3.event == audit_log.get_event_id("INTEGRATION_REMOVE")
+        assert ("disable") in audit_log_event4.render(entry4)
+        assert entry4.actor == self.user
+        assert entry4.target_object == self.project.id
+        assert entry4.event == audit_log.get_event_id("INTEGRATION_REMOVE")
 
     def test_create_system_audit_entry(self):
         entry = create_system_audit_entry(
