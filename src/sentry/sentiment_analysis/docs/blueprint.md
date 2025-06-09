@@ -83,7 +83,7 @@ Retrieve a sentiment analysis document.
 
 ## Sentiment Analysis Entities [/organizations/<organization_id_or_slug>/entity-sentiment-analysis/<id>/]
 
-Pending, in-progress, and failed sentiment-analysis items are not returned. A 404 status code should be issued.
+Pending, in-progress, and failed entity-sentiment-analysis items are not returned. A 404 status code should be issued.
 
 - Parameters
 
