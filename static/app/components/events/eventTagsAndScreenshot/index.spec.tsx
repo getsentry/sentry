@@ -458,5 +458,90 @@ describe('EventTagsAndScreenshot', function () {
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
     });
+
+    it('detects screenshots with flexible naming', async function () {
+      // Test attachments including files with 'screenshot' in the name but not exact matches
+      const flexibleScreenshotAttachments: EventAttachment[] = [
+        {
+          id: '1765467044',
+          name: 'log.txt',
+          headers: {'Content-Type': 'application/octet-stream'},
+          mimetype: 'application/octet-stream',
+          size: 5,
+          sha1: 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d',
+          dateCreated: '2021-08-31T15:14:53.113630Z',
+          type: 'event.attachment',
+          event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
+        },
+        {
+          id: '1765467045',
+          name: 'crash_screenshot.png',
+          headers: {'Content-Type': 'image/png'},
+          mimetype: 'image/png',
+          size: 239154,
+          sha1: '657eae9c13474518a6d0175bd4ab6bb4f81bf40d',
+          dateCreated: '2021-08-31T15:14:53.130940Z',
+          type: 'event.attachment',
+          event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
+        },
+        {
+          id: '1765467046',
+          name: 'error_screenshot_debug.jpg',
+          headers: {'Content-Type': 'image/jpeg'},
+          mimetype: 'image/jpeg',
+          size: 239154,
+          sha1: '657eae9c13474518a6d0175bd4ab6bb4f81bf40e',
+          dateCreated: '2021-08-31T15:14:53.130940Z',
+          type: 'event.attachment',
+          event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
+        },
+        {
+          id: '1765467047',
+          name: 'not_an_image.png',
+          headers: {'Content-Type': 'image/png'},
+          mimetype: 'image/png',
+          size: 239154,
+          sha1: '657eae9c13474518a6d0175bd4ab6bb4f81bf40f',
+          dateCreated: '2021-08-31T15:14:53.130940Z',
+          type: 'event.attachment',
+          event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
+        },
+      ];
+
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: flexibleScreenshotAttachments,
+      });
+
+      render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
+        organization,
+      });
+      await assertTagsView();
+
+      // Should show Screenshots section (plural) since we have 2 screenshot files
+      expect(await screen.findByRole('region', {name: 'Screenshots'})).toBeInTheDocument();
+      expect(screen.getByText('View screenshot')).toBeInTheDocument();
+
+      // Should detect crash_screenshot.png as the first screenshot
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
+        'src',
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${flexibleScreenshotAttachments[1]!.id}/?download`
+      );
+
+      // Should show navigation for multiple screenshots (2 total: crash_screenshot.png and error_screenshot_debug.jpg)
+      expect(screen.getByText('1 of 2')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Next Screenshot'})).toBeInTheDocument();
+
+      // Navigate to the second screenshot
+      await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
+      expect(screen.getByText('2 of 2')).toBeInTheDocument();
+
+      // Should now show error_screenshot_debug.jpg
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
+        'src',
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${flexibleScreenshotAttachments[2]!.id}/?download`
+      );
+    });
   });
 });
