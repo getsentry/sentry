@@ -31,7 +31,29 @@ describe('TimestampTooltipBody', function () {
 
     expect(screen.getByText('Occurred')).toBeInTheDocument();
     expect(screen.getByText(/Jan 15, 2024.*10:45:30\.456 AM EST/)).toBeInTheDocument();
+    expect(screen.getByText(/Jan 15, 2024.*3:45:30\.456 PM UTC/)).toBeInTheDocument();
     expect(screen.getByText(/1705333530/)).toBeInTheDocument();
+  });
+
+  it('renders only timezone line when timezone is UTC', function () {
+    const user = UserFixture();
+    user.options.timezone = 'UTC';
+    ConfigStore.set('user', user);
+
+    const attributes = {
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
+    };
+
+    render(
+      <TimezoneProvider timezone="UTC">
+        <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
+      </TimezoneProvider>
+    );
+
+    expect(screen.getByText('Occurred')).toBeInTheDocument();
+    expect(screen.getByText(/Jan 15, 2024.*3:45:30\.456 PM UTC/)).toBeInTheDocument();
+    const allTimestampElements = screen.getAllByText(/Jan 15, 2024.*3:45:30\.456 PM UTC/);
+    expect(allTimestampElements).toHaveLength(1);
   });
 
   it('renders received time when observed timestamp is provided', function () {

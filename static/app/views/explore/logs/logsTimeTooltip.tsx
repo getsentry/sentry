@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -22,6 +23,7 @@ function TimestampTooltipBody({
   attributes: Record<string, string | number | boolean>;
   timestamp: string | number;
 }) {
+  const currentTimezone = useTimezone();
   const preciseTimestamp = attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
   const preciseTimestampMs = preciseTimestamp
     ? Number(preciseTimestamp) / 1_000_000
@@ -35,6 +37,8 @@ function TimestampTooltipBody({
       : null;
   const observedTime = observedTimeMs ? new Date(observedTimeMs) : null;
 
+  const isUTC = currentTimezone === 'UTC';
+
   return (
     <DescriptionList>
       <dt>{t('Occurred')}</dt>
@@ -43,6 +47,11 @@ function TimestampTooltipBody({
           <AutoSelectText>
             <DateTime date={timestampToUse} seconds milliseconds timeZone />
           </AutoSelectText>
+          {!isUTC && (
+            <AutoSelectText>
+              <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
+            </AutoSelectText>
+          )}
           <TimestampLabel>
             ({preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)})
           </TimestampLabel>
