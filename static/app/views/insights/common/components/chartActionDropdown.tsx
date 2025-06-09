@@ -83,7 +83,7 @@ export function ChartActionDropdown({
 type BaseProps = {
   alertMenuOptions: MenuItemProps[];
   exploreUrl: LocationDescriptor;
-  referrer?: string;
+  referrer: string;
 };
 
 export function BaseChartActionDropdown({
@@ -103,7 +103,7 @@ export function BaseChartActionDropdown({
       to: exploreUrl,
       onAction: () => {
         trackAnalytics('insights.open_in_explore', {
-          organization,
+          organization: organization.slug,
           referrer,
         });
       },
