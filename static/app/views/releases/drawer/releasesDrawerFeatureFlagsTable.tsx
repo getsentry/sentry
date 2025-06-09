@@ -82,6 +82,7 @@ export function ReleasesDrawerFeatureFlagsTable({
       cursorKeyName={ReleasesDrawerFields.FLAGS_CURSOR}
       onRowMouseOver={onRowMouseOver}
       onRowMouseOut={onRowMouseOut}
+      scrollable
     />
   );
 }

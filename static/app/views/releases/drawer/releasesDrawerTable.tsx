@@ -203,6 +203,7 @@ export function ReleasesDrawerTable({
         emptyMessage={tableEmptyMessage}
         columnSortBy={[]}
         stickyHeader
+        scrollable
         grid={{
           renderHeadCell,
           renderBodyCell,
