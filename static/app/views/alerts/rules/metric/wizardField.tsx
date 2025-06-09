@@ -40,6 +40,7 @@ type Props = Omit<FormFieldProps, 'children'> & {
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
+  isEditing?: boolean;
 };
 
 export default function WizardField({
