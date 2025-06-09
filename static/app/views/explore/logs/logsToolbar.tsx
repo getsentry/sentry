@@ -105,6 +105,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
             onChange={val =>
               setLogsPageParams({aggregateParam: val.value as string | undefined})
             }
+            searchable
             value={aggregateParam}
             disabled={aggregateFunction === 'count'}
           />
@@ -156,7 +157,6 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
               ])
             }
             value={sortBys[0]!.field}
-            searchable
             triggerProps={{style: {width: '100%'}}}
           />
           <Select
