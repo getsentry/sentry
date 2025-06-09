@@ -2,7 +2,7 @@ from unittest import mock
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.utils.metrics import metrics_incr
-from sentry.workflow_engine.utils.workflow_context import WorkflowContext
+from sentry.workflow_engine.utils.workflow_context import WorkflowContext, WorkflowContextData
 
 
 @mock.patch("sentry.utils.metrics.incr")
@@ -21,7 +21,7 @@ class TestWorkflowEngineMetrics(TestCase):
 
     def test_with_context(self, mock_incr):
         detector = self.create_detector()
-        WorkflowContext.set(detector=detector)
+        WorkflowContext.set(WorkflowContextData(detector=detector))
 
         metrics_incr("example.metric")
         mock_incr.assert_called_with(
