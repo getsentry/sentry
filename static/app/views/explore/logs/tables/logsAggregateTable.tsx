@@ -42,7 +42,7 @@ export function LogsAggregateTable() {
         }))}
         columnSortBy={[
           {
-            key: 'derp',
+            key: fields[0]!,
             order: 'desc',
           },
         ]}
