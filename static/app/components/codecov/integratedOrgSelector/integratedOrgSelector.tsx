@@ -11,10 +11,6 @@ import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface IntegratedOrgSelectorProps {
-  onClose?: () => void;
-}
-
 const SAMPLE_ORG_ITEMS = ['codecov', 'sentry', 'my-other-org-with-a-super-long-name'];
 
 function AddIntegratedOrgButton() {
@@ -50,10 +46,7 @@ function OrgFooterMessage() {
   );
 }
 
-export function IntegratedOrgSelector({
-  onClose,
-  ...selectProps
-}: IntegratedOrgSelectorProps) {
+export function IntegratedOrgSelector() {
   const {integratedOrg} = useCodecovContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -88,11 +81,9 @@ export function IntegratedOrgSelector({
 
   return (
     <CompactSelect
-      {...selectProps}
       options={options}
       value={integratedOrg ?? ''}
       onChange={handleChange}
-      onClose={onClose}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (
