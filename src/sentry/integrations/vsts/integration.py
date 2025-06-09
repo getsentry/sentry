@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any
+from typing import Any, Never
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 from django import forms
@@ -465,20 +465,21 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),
         }
 
-        identity_pipeline_view = NestedPipelineView(
-            bind_key="identity",
-            provider_key=self.key,
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-
-        return [identity_pipeline_view, AccountConfigView()]
+        return [
+            NestedPipelineView(
+                bind_key="identity",
+                provider_key=self.key,
+                pipeline_cls=IdentityProviderPipeline,
+                config=identity_pipeline_config,
+            ),
+            AccountConfigView(),
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
@@ -670,8 +671,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
 
-class AccountConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class AccountConfigView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.ACCOUNT_CONFIG,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

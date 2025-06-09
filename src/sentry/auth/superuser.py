@@ -15,7 +15,7 @@ import ipaddress
 import logging
 from collections.abc import Container
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypeIs, overload
+from typing import Any, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
@@ -156,7 +156,7 @@ def is_active_superuser(request: HttpRequest) -> bool:
     return su.is_active
 
 
-class SuperuserAccessSerializer(serializers.Serializer):
+class SuperuserAccessSerializer(serializers.Serializer[Never]):
     superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 

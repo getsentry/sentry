@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Never
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
@@ -134,21 +134,21 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
             "user_scopes": self.user_scopes,
             "redirect_url": absolute_uri("/extensions/slack/setup/"),
         }
 
-        identity_pipeline_view = NestedPipelineView(
-            bind_key="identity",
-            provider_key="slack",
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-
-        return [identity_pipeline_view]
+        return [
+            NestedPipelineView(
+                bind_key="identity",
+                provider_key="slack",
+                pipeline_cls=IdentityProviderPipeline,
+                config=identity_pipeline_config,
+            )
+        ]
 
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation

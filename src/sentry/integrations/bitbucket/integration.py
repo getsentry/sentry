@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Never
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -197,15 +197,16 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self) -> list[PipelineView]:
-        identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
-        identity_pipeline_view = NestedPipelineView(
-            bind_key="identity",
-            provider_key="bitbucket",
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-        return [identity_pipeline_view, VerifyInstallation()]
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
+        return [
+            NestedPipelineView(
+                bind_key="identity",
+                provider_key="bitbucket",
+                pipeline_cls=IdentityProviderPipeline,
+                config={"redirect_url": absolute_uri("/extensions/bitbucket/setup/")},
+            ),
+            VerifyInstallation(),
+        ]
 
     def post_install(
         self,
@@ -272,8 +273,8 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         )
 
 
-class VerifyInstallation(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class VerifyInstallation(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.VERIFY_INSTALLATION,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

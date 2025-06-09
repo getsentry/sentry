@@ -13,7 +13,7 @@ from sentry.web.frontend.base import BaseView
 # The request doesn't contain the pipeline type (pipeline information is stored
 # in redis keyed by the pipeline name), so we try to construct multiple pipelines
 # and use whichever one works.
-PIPELINE_CLASSES = [IntegrationPipeline, IdentityProviderPipeline]
+PIPELINE_CLASSES = (IntegrationPipeline, IdentityProviderPipeline)
 
 
 class PipelineAdvancerView(BaseView):

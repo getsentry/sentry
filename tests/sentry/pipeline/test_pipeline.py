@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+from typing import Never
 from unittest.mock import MagicMock, patch
 
 from django.contrib.sessions.backends.base import SessionBase
@@ -11,22 +13,22 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-class PipelineStep(PipelineView):
+class PipelineStep(PipelineView[Never]):
     def dispatch(self, request, pipeline):
         pipeline.dispatch_count += 1
         pipeline.bind_state("some_state", "value")
 
 
-class DummyProvider(PipelineProvider):
+class DummyProvider(PipelineProvider[Never]):
     key = "dummy"
     name = "dummy"
-    pipeline_views: list[PipelineView] = [PipelineStep(), PipelineStep()]
+    pipeline_views: list[PipelineStep] = [PipelineStep(), PipelineStep()]
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
         return self.pipeline_views
 
 
-class DummyPipeline(Pipeline):
+class DummyPipeline(Pipeline[Never]):
     pipeline_name = "test_pipeline"
 
     # Simplify tests, the manager can just be a dict.

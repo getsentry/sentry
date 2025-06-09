@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class ExternalIssueManager(BaseManager["ExternalIssue"]):
     def get_for_integration(
         self, integration: RpcIntegration, external_issue_key: str | None = None
-    ) -> QuerySet:
+    ) -> QuerySet[ExternalIssue]:
         from sentry.integrations.services.integration import integration_service
 
         org_integrations = integration_service.get_organization_integrations(

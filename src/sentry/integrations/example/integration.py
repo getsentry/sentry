@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Never
 
 from django.http import HttpResponse
 from django.http.request import HttpRequest
@@ -31,7 +31,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class ExampleSetupView(PipelineView):
+class ExampleSetupView(PipelineView[Never]):
     TEMPLATE = """
         <form method="POST">
             <p>This is an example integration configuration page.</p>
@@ -41,7 +41,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -218,7 +218,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
         return [ExampleSetupView()]
 
     def get_config(self):

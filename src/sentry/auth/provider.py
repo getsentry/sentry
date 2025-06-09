@@ -12,6 +12,7 @@ from django.utils.encoding import force_str
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
 from sentry.plugins.base.response import DeferredResponse
@@ -38,7 +39,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_str(self.id)
 
 
-class Provider(PipelineProvider, abc.ABC):
+class Provider(PipelineProvider[AuthProvider], abc.ABC):
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
