@@ -103,7 +103,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             logger.exception("Error generating summary of user feedbacks")
             return Response({"detail": "Error generating summary"}, status=500)
 
-        # Maybe pass the number of feedbacks that were used to generate the summary, since we have to cap the text length, and how do we surface this to the user?
         return Response(
             {"summary": summary, "success": True, "num_feedbacks_used": len(group_feedbacks)}
         )
