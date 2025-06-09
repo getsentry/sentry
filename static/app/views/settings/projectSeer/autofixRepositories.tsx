@@ -214,12 +214,12 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         </Flex>
         <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
           <LinkButton
-            size="xs"
+            size="sm"
             icon={<IconGithub />}
             to={`/settings/${organization.slug}/integrations/github/`}
             style={{textTransform: 'none'}}
           >
-            {t('Manage GitHub Integration')}
+            {t('Manage Integration')}
           </LinkButton>
           <Tooltip
             isHoverable
@@ -239,7 +239,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             }
           >
             <Button
-              size="xs"
+              size="sm"
               icon={<IconAdd />}
               disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
               onClick={openAddRepoModal}
