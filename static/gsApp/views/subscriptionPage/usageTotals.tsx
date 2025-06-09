@@ -1239,7 +1239,9 @@ export function CombinedUsageTotals({
                 category={category as DataCategory}
                 totals={allTotalsByCategory?.[category] ?? EMPTY_STAT_TOTAL}
                 subscription={subscription}
-                showAllTotals={showAllTotals}
+                showAllTotals={
+                  apiName === ReservedBudgetCategoryType.SEER ? false : showAllTotals
+                }
               />
             );
           })}
