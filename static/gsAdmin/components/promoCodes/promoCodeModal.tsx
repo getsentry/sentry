@@ -1,11 +1,15 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
 import ApiForm from 'sentry/components/forms/apiForm';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import DateTimeField from 'sentry/components/forms/fields/dateTimeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
+import {IconRefresh} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {PromoCode} from 'admin/types';
@@ -16,15 +20,150 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
+// Cryptic words for code generation
+const CRYPTIC_WORDS = [
+  'shadow',
+  'mystic',
+  'cipher',
+  'stealth',
+  'vortex',
+  'nexus',
+  'phantom',
+  'quantum',
+  'matrix',
+  'eclipse',
+  'zenith',
+  'fusion',
+  'vertex',
+  'prism',
+  'flux',
+  'nova',
+  'cosmic',
+  'azure',
+  'ember',
+  'frost',
+  'onyx',
+  'storm',
+  'blaze',
+  'spark',
+  'mist',
+  'void',
+  'core',
+  'byte',
+  'node',
+  'link',
+  'grid',
+  'arch',
+];
+
+// Character substitutions for l33t speak effect
+const CHAR_SUBSTITUTIONS: Record<string, string[]> = {
+  a: ['@', '4'],
+  e: ['3'],
+  i: ['1', '!'],
+  o: ['0'],
+  s: ['5', '$'],
+  t: ['7'],
+  l: ['1'],
+  g: ['9'],
+  b: ['8'],
+};
+
+/**
+ * Generates a cryptic promo code with random words and character substitutions
+ */
+function generatePromoCode(): string {
+  // Select 1-2 random words
+  const numWords = Math.random() > 0.4 ? 2 : 1;
+  const selectedWords = [];
+
+  for (let i = 0; i < numWords; i++) {
+    const word = CRYPTIC_WORDS[Math.floor(Math.random() * CRYPTIC_WORDS.length)];
+    selectedWords.push(word);
+  }
+
+  let code = selectedWords.join('');
+
+  // Apply character substitutions randomly (30% chance per applicable character)
+  code = code
+    .split('')
+    .map(char => {
+      const lowerChar = char.toLowerCase();
+      if (CHAR_SUBSTITUTIONS[lowerChar] && Math.random() < 0.3) {
+        const substitutions = CHAR_SUBSTITUTIONS[lowerChar];
+        return substitutions[Math.floor(Math.random() * substitutions.length)];
+      }
+      return char;
+    })
+    .join('');
+
+  // Add random numbers to reach ~10 characters if needed
+  while (code.length < 8) {
+    code += Math.floor(Math.random() * 10).toString();
+  }
+
+  // Truncate if too long
+  if (code.length > 12) {
+    code = code.substring(0, 12);
+  }
+
+  return code;
+}
+
 type Props = ModalRenderProps & {
   onSubmit?: (promoCode: PromoCode) => void;
   promoCode?: PromoCode;
 };
 
+const CodeFieldContainer = styled('div')`
+  position: relative;
+`;
+
+const GenerateButton = styled(Button)`
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+`;
+
 function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Props) {
   const navigate = useNavigate();
   const [isDateToggleEnabled, setIsDateToggleEnabled] = useState(false);
   const [isTrialPromo, setIsTrialPromo] = useState(false);
+  const [initialFormData, setInitialFormData] = useState<any>(null);
+  const formRef = useRef<any>(null);
+
+  // Generate a default code for new promo codes
+  useEffect(() => {
+    if (promoCode) {
+      setInitialFormData(promoCode);
+    } else {
+      const defaultCode = generatePromoCode();
+      setInitialFormData({duration: '1', setExpiration: false, code: defaultCode});
+    }
+  }, [promoCode]);
+
+  const handleGenerateCode = () => {
+    const newCode = generatePromoCode();
+    setInitialFormData(prev => ({...prev, code: newCode}));
+
+    // Update the form field if the form ref is available
+    if (formRef.current) {
+      const codeInput = formRef.current.querySelector('input[name="code"]');
+      if (codeInput) {
+        codeInput.value = newCode;
+        // Trigger a change event to update the form state
+        const event = new Event('input', {bubbles: true});
+        codeInput.dispatchEvent(event);
+      }
+    }
+  };
+
+  // Don't render until initial data is ready
+  if (!initialFormData) {
+    return null;
+  }
 
   return (
     <Fragment>
@@ -39,6 +178,7 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
       </Header>
       <Body>
         <ApiForm
+          ref={formRef}
           apiMethod={promoCode ? 'PUT' : 'POST'}
           apiEndpoint={promoCode ? `/promocodes/${promoCode.code}/` : '/promocodes/'}
           onSubmitSuccess={(newCode: PromoCode) => {
@@ -51,19 +191,32 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
               navigate(`/_admin/promocodes/${newCode.code}/`);
             }
           }}
-          initialData={promoCode || {duration: '1', setExpiration: false}}
+          initialData={initialFormData}
           submitLabel={promoCode ? 'Update' : 'Create'}
         >
-          <TextField
-            {...fieldProps}
-            disabled={!!promoCode}
-            name="code"
-            label="Code (ID)"
-            placeholder="e.g. mysecretcode79"
-            help="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
-            minLength={5}
-            required
-          />
+          <CodeFieldContainer>
+            <TextField
+              {...fieldProps}
+              disabled={!!promoCode}
+              name="code"
+              label="Code (ID)"
+              placeholder="e.g. mysecretcode79"
+              help="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
+              minLength={5}
+              required
+            />
+            {!promoCode && (
+              <GenerateButton
+                size="xs"
+                type="button"
+                onClick={handleGenerateCode}
+                icon={<IconRefresh />}
+                aria-label="Generate new promo code"
+              >
+                Generate
+              </GenerateButton>
+            )}
+          </CodeFieldContainer>
           <TextField
             {...fieldProps}
             name="campaign"
