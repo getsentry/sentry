@@ -10,7 +10,7 @@ import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/cons
 import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {AlertType} from 'sentry/views/alerts/wizard/options';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
