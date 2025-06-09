@@ -16,6 +16,7 @@ from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsResponse, SnubaParams
 from sentry.snuba import metrics_enhanced_performance, spans_rpc
@@ -183,6 +184,11 @@ def compare_tables_for_dashboard_widget_queries(
         logger.info("EAP query failed: %s", e)
         has_eap_error = True
 
+    widget_viewer_url = (
+        generate_organization_url(organization.slug)
+        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
+    )
+
     if has_metrics_error and has_eap_error:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
@@ -190,7 +196,7 @@ def compare_tables_for_dashboard_widget_queries(
             scope.set_tag("widget_filter_query", query)
             scope.set_tag(
                 "widget_viewer_url",
-                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                widget_viewer_url,
             )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
@@ -210,7 +216,7 @@ def compare_tables_for_dashboard_widget_queries(
             scope.set_tag("widget_filter_query", query)
             scope.set_tag(
                 "widget_viewer_url",
-                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                widget_viewer_url,
             )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
@@ -230,7 +236,7 @@ def compare_tables_for_dashboard_widget_queries(
             scope.set_tag("widget_filter_query", query)
             scope.set_tag(
                 "widget_viewer_url",
-                f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                widget_viewer_url,
             )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
@@ -251,7 +257,7 @@ def compare_tables_for_dashboard_widget_queries(
                 scope.set_tag("mismatches", mismatches)
                 scope.set_tag(
                     "widget_viewer_url",
-                    f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                    widget_viewer_url,
                 )
                 sentry_sdk.capture_message(
                     "dashboard_widget_comparison_done", level="info", scope=scope
@@ -272,7 +278,7 @@ def compare_tables_for_dashboard_widget_queries(
                 scope.set_tag("widget_filter_query", query)
                 scope.set_tag(
                     "widget_viewer_url",
-                    f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
+                    widget_viewer_url,
                 )
                 sentry_sdk.capture_message(
                     "dashboard_widget_comparison_done", level="info", scope=scope
