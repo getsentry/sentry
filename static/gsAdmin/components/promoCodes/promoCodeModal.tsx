@@ -1,4 +1,3 @@
-import type React from 'react';
 import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
