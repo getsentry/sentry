@@ -1,11 +1,11 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
@@ -19,40 +19,33 @@ interface SummaryResponse {
   summary: string;
 }
 
+function createAISummaryQueryKey(orgSlug: string, replayId: string): ApiQueryKey {
+  return [
+    `/organizations/${orgSlug}/replays/summary/`,
+    {
+      method: 'POST',
+      data: {
+        replayId,
+      },
+    },
+  ];
+}
+
 export default function AISummary({replayRecord}: Props) {
-  const api = useApi();
   const organization = useOrganization();
-  const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!replayRecord) {
-      return;
+  const {
+    data: summaryData,
+    isLoading,
+    isError,
+    error,
+  } = useApiQuery<SummaryResponse>(
+    createAISummaryQueryKey(organization.slug, replayRecord?.id ?? ''),
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      enabled: Boolean(replayRecord?.id),
     }
-
-    const fetchSummary = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const endpoint = `/organizations/${organization.slug}/replays/summary/`;
-        const data: SummaryResponse = await api.requestPromise(endpoint, {
-          method: 'POST',
-          data: {
-            replayId: replayRecord.id,
-          },
-        });
-        setSummaryData(data);
-      } catch (err) {
-        setError(t('Failed to load AI summary'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSummary();
-  }, [api, replayRecord, organization.slug]);
+  );
 
   const renderContent = () => {
     if (isLoading) {
@@ -63,10 +56,10 @@ export default function AISummary({replayRecord}: Props) {
       );
     }
 
-    if (error) {
+    if (isError || error) {
       return (
         <Alert type="error">
-          {error}
+          {t('Failed to load AI summary')}
         </Alert>
       );
     }
