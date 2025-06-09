@@ -274,6 +274,7 @@ function EAPMobileOverviewPage() {
 
 function MobileOverviewPageWithProviders() {
   const useEap = useInsightsEap();
+
   return (
     <DomainOverviewPageProviders>
       {useEap ? <EAPMobileOverviewPage /> : <OldMobileOverviewPage />}
