@@ -7,10 +7,34 @@ import {BannerLink, InfoBanner} from 'sentry/components/workflowEngine/ui/infoBa
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
+import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
 import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';
 import {ICON_SIZE} from 'sentry/views/automations/components/automationBuilderRow';
+
+export function DiscordDetails({
+  action,
+  handler,
+}: {
+  action: Action;
+  handler: ActionHandler;
+}) {
+  const integrationName =
+    handler.integrations?.find(i => i.id === action.integrationId)?.name ||
+    action.integrationId;
+  const tags = String(action.data.tags);
+
+  return tct(
+    'Send a [logo] Discord message to [server] server, to channel with ID or URL [channel][tags]',
+    {
+      logo: <PluginIcon pluginId="discord" size={ICON_SIZE} />,
+      server: integrationName,
+      channel: String(action.config.target_identifier),
+      tags: action.data.tags ? `, and in the message show tags [${tags}]` : null,
+    }
+  );
+}
 
 export function DiscordNode() {
   return (
