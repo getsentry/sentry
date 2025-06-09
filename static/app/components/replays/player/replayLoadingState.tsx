@@ -44,31 +44,41 @@ export default function ReplayLoadingState({
     );
   }
   if (readerResult.fetchError) {
+    console.log('ReplayLoadingState:renderError', readerResult.fetchError);
     return renderError ? (
       renderError(readerResult)
     ) : (
       <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
-  if (readerResult.fetching) {
+  if (readerResult.replayRecord?.is_archived) {
+    console.log('ReplayLoadingState:renderArchived');
+    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
+  }
+  if (readerResult.fetching || readerResult.replay?.isFetching()) {
+    console.log('ReplayLoadingState:renderLoading');
     return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
   }
   if (!readerResult.replay) {
+    console.log('ReplayLoadingState:renderMissing');
     return renderMissing ? (
       renderMissing(readerResult)
     ) : (
       <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
-  if (readerResult.replayRecord?.is_archived) {
-    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
-  }
   if (readerResult.replay.hasProcessingErrors()) {
+    console.log('ReplayLoadingState:renderProcessingError', {
+      processingErrors: readerResult.replay.processingErrors(),
+      fetching: readerResult.fetching,
+      isFetching: readerResult.replay.isFetching(),
+    });
     return renderProcessingError ? (
       renderProcessingError(readerResult)
     ) : (
       <ReplayProcessingError processingErrors={readerResult.replay.processingErrors()} />
     );
   }
+  console.log('ReplayLoadingState:renderChildren');
   return children({replay: readerResult.replay});
 }

@@ -18,11 +18,10 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
 type Props = {
-  isLoading: boolean;
   toggleFullscreen: () => void;
 };
 
-function ReplayView({toggleFullscreen, isLoading}: Props) {
+function ReplayView({toggleFullscreen}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
@@ -33,7 +32,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
           <ContextContainer>
-            {isLoading ? (
+            {isFetching ? (
               <TextCopyInput size="sm" disabled>
                 {''}
               </TextCopyInput>
@@ -42,7 +41,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             ) : (
               <ReplayCurrentUrl />
             )}
-            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isFetching} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
@@ -69,7 +68,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       </PlayerBreadcrumbContainer>
       {isFullscreen ? (
         <ReplayController
-          isLoading={isLoading}
+          isLoading={isFetching}
           toggleFullscreen={toggleFullscreen}
           hideFastForward={isVideoReplay}
         />

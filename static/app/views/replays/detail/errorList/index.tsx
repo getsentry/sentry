@@ -37,7 +37,7 @@ export default function ErrorList() {
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const errorFrames = replay?.getErrorFrames();
-  const startTimestampMs = replay?.getReplay().started_at.getTime() ?? 0;
+  const startTimestampMs = replay?.getReplay().started_at?.getTime() ?? 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 

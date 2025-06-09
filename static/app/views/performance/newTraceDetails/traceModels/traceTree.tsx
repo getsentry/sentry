@@ -560,7 +560,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // equal to the duration of the replay. We need to adjust the traceview bounds
     // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
     // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
-    if (options.replay) {
+    if (options.replay && !options.replay.is_archived) {
       const replayStart = options.replay.started_at.getTime();
       const replayEnd = options.replay.finished_at.getTime();
 

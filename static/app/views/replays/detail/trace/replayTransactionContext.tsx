@@ -79,7 +79,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const orgSlug = organization.slug;
 
   const listEventView = useMemo(() => {
-    if (!replayRecord) {
+    if (!replayRecord || replayRecord.is_archived) {
       return null;
     }
     const replayId = replayRecord?.id;
@@ -173,7 +173,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   );
 
   const fetchTransactionData = useCallback(async () => {
-    if (!listEventView) {
+    if (!listEventView || replayRecord?.is_archived) {
       return;
     }
     const start = getUtcDateString(replayRecord?.started_at.getTime());

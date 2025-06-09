@@ -13,6 +13,10 @@ type Props = {
 };
 
 export default function ReplayDetailsPage({readerResult}: Props) {
+  console.log('ReplayDetailsPage', {
+    fetching: readerResult.fetching,
+    isFetching: readerResult.replay?.isFetching(),
+  });
   return (
     <ReplayLoadingState
       readerResult={readerResult}

@@ -3,7 +3,7 @@ import {duration} from 'moment-timezone';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export function ReplayRecordFixture(
-  replayRecord: Partial<ReplayRecord> = {}
+  replayRecord: Partial<Omit<ReplayRecord, 'is_archived'>> = {}
 ): ReplayRecord {
   return {
     activity: 0,

@@ -17,11 +17,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
-import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
-import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
-import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
-import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
-import ReplayDetailsPage from 'sentry/views/replays/detail/page';
+// import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
+// import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
+// import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
+// import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
+import ReplayDetailsPage from 'sentry/views/replays/detail/replayDetailsPage';
 
 type Props = RouteComponentProps<
   {replaySlug: string},
@@ -42,7 +42,7 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
     replaySlug,
     orgSlug,
   });
-  const {replay, replayRecord} = readerResult;
+  const {replay, replayRecord, projectSlug} = readerResult;
 
   useReplayPageview('replay.details-time-spent');
   useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
@@ -61,10 +61,10 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
   const content = (
     <Fragment>
       <Header>
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        {/* <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
         <ReplayDetailsHeaderActions readerResult={readerResult} />
         <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
+        <ReplayDetailsMetadata readerResult={readerResult} /> */}
       </Header>
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
@@ -73,7 +73,7 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
     <SentryDocumentTitle title={title}>
       <FullViewport>
         {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+          <ReplayDetailsProviders replay={replay} projectSlug={projectSlug}>
             {content}
           </ReplayDetailsProviders>
         ) : (

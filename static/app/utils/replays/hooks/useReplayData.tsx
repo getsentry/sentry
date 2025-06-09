@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
@@ -77,7 +77,6 @@ function useReplayData({
   errorsPerPage = 50,
   segmentsPerPage = 100,
 }: Options): Result {
-  const hasFetchedAttachments = useRef(false);
   const queryClient = useQueryClient();
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -86,7 +85,7 @@ function useReplayData({
   // We're overfetching for sure.
   const {
     data: replayData,
-    isFetching: isFetchingReplay,
+    status: replayStatus,
     error: fetchReplayError,
   } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
     staleTime: Infinity,
@@ -118,7 +117,7 @@ function useReplayData({
 
   const {
     pages: attachmentPages,
-    isFetching: isFetchingAttachments,
+    status: attachmentStatus,
     error: fetchAttachmentsError,
   } = useFetchParallelPages({
     enabled:
@@ -146,7 +145,7 @@ function useReplayData({
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.DISCOVER,
-            start: replayRecord?.started_at.toISOString(),
+            start: replayRecord?.started_at?.toISOString(),
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,
@@ -174,7 +173,7 @@ function useReplayData({
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.ISSUE_PLATFORM,
-            start: replayRecord?.started_at.toISOString(),
+            start: replayRecord?.started_at?.toISOString(),
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,
@@ -189,7 +188,7 @@ function useReplayData({
 
   const {
     pages: errorPages,
-    isFetching: isFetchingErrors,
+    status: errorStatus,
     getLastResponseHeader: lastErrorsResponseHeader,
   } = useFetchParallelPages<{data: ReplayError[]}>({
     enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
@@ -200,18 +199,19 @@ function useReplayData({
 
   const linkHeader = lastErrorsResponseHeader?.('Link') ?? null;
   const links = parseLinkHeader(linkHeader);
-  const {pages: extraErrorPages, isFetching: isFetchingExtraErrors} =
-    useFetchSequentialPages<{data: ReplayError[]}>({
-      enabled:
-        !fetchReplayError &&
-        !isFetchingErrors &&
-        (!replayRecord?.count_errors || Boolean(links.next?.results)),
-      initialCursor: links.next?.cursor,
-      getQueryKey: getErrorsQueryKey,
-      perPage: errorsPerPage,
-    });
+  const {pages: extraErrorPages, status: extraErrorStatus} = useFetchSequentialPages<{
+    data: ReplayError[];
+  }>({
+    enabled:
+      !fetchReplayError &&
+      errorStatus === 'success' &&
+      (!replayRecord?.count_errors || Boolean(links.next?.results)),
+    initialCursor: links.next?.cursor,
+    getQueryKey: getErrorsQueryKey,
+    perPage: errorsPerPage,
+  });
 
-  const {pages: platformErrorPages, isFetching: isFetchingPlatformErrors} =
+  const {pages: platformErrorPages, status: platformErrorStatus} =
     useFetchSequentialPages<{data: ReplayError[]}>({
       enabled: true,
       getQueryKey: getPlatformErrorsQueryKey,
@@ -234,27 +234,23 @@ function useReplayData({
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
+  const isPending = [
+    replayStatus,
+    attachmentStatus,
+    errorStatus,
+    extraErrorStatus,
+    platformErrorStatus,
+  ].includes('pending');
+  console.log('isPending', {
+    isPending,
+    replayStatus,
+    attachmentStatus,
+    errorStatus,
+    extraErrorStatus,
+    platformErrorStatus,
+  });
+
   return useMemo(() => {
-    // This hook can enter a state where `fetching` below is false
-    // before it is entirely ready (i.e. it has not fetched
-    // attachemnts yet). This can cause downstream components to
-    // think it is no longer fetching and will display an error
-    // because there are no attachments. The below will require
-    // that we have attempted to fetch an attachment once (or it
-    // errors) before we toggle fetching state to false.
-    hasFetchedAttachments.current =
-      hasFetchedAttachments.current || isFetchingAttachments;
-
-    const fetching =
-      isFetchingReplay ||
-      isFetchingAttachments ||
-      isFetchingErrors ||
-      isFetchingExtraErrors ||
-      isFetchingPlatformErrors ||
-      (!hasFetchedAttachments.current &&
-        !fetchAttachmentsError &&
-        Boolean(replayRecord?.count_segments));
-
     const allErrors = errorPages
       .concat(extraErrorPages)
       .concat(platformErrorPages)
@@ -264,7 +260,7 @@ function useReplayData({
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
       attachmentError: fetchAttachmentsError ?? undefined,
-      fetching,
+      fetching: isPending,
       onRetry: clearQueryCache,
       projectSlug,
       replayRecord,
@@ -274,13 +270,9 @@ function useReplayData({
     clearQueryCache,
     errorPages,
     extraErrorPages,
-    fetchReplayError,
     fetchAttachmentsError,
-    isFetchingAttachments,
-    isFetchingErrors,
-    isFetchingExtraErrors,
-    isFetchingPlatformErrors,
-    isFetchingReplay,
+    fetchReplayError,
+    isPending,
     platformErrorPages,
     projectSlug,
     replayRecord,

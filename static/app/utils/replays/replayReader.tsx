@@ -317,6 +317,10 @@ export default class ReplayReader {
   > | null = null;
 
   private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
+    if (this._replayRecord.is_archived) {
+      return;
+    }
+
     let clipStartTimestampMs: number;
     let clipEndTimestampMs: number;
     const replayStart = this._replayRecord.started_at.getTime();

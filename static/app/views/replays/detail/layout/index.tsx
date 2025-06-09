@@ -24,13 +24,13 @@ const MIN_CONTENT_HEIGHT = 180;
 const DIVIDER_SIZE = 16;
 
 function ReplayLayout({
-  isVideoReplay = false,
-  replayRecord,
   isLoading,
+  isVideoReplay,
+  replayRecord,
 }: {
   isLoading: boolean;
+  isVideoReplay: boolean;
   replayRecord: ReplayRecord | undefined;
-  isVideoReplay?: boolean;
 }) {
   const {getLayout} = useReplayLayout();
   const layout = getLayout() ?? LayoutKey.TOPBAR;
@@ -46,7 +46,7 @@ function ReplayLayout({
   const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
+        <ReplayView toggleFullscreen={toggleFullscreen} />
       </ErrorBoundary>
     </VideoSection>
   );
