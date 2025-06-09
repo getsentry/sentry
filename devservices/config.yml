@@ -133,17 +133,6 @@ x-sentry-service-config:
     memcached: [postgres, snuba, memcached, spotlight]
     profiling: [postgres, snuba, vroom, spotlight]
     minimal: [postgres, snuba]
-    monitors:
-      [
-        snuba,
-        postgres,
-        relay,
-        spotlight,
-        monitors-clock-tick,
-        monitors-clock-tasks,
-        monitors-incident-occurrences,
-        ingest-monitors,
-      ]
     ingest-all:
       [
         billing-metrics-consumer,
@@ -169,6 +158,7 @@ x-sentry-service-config:
         snuba,
         spotlight,
         worker,
+        vroom,
       ]
     full:
       [
@@ -176,6 +166,7 @@ x-sentry-service-config:
         postgres,
         relay,
         spotlight,
+        vroom,
         ingest-events,
         ingest-attachments,
         ingest-transactions,
