@@ -86,6 +86,7 @@ class DashboardFavoriteUserTest(TestCase):
         )
 
         assert DashboardFavoriteUser.objects.count() == 3
+        assert new_favorite is not None
         assert new_favorite.position == 2
 
     def test_inserts_to_first_position_when_none_exist(self):
@@ -99,6 +100,7 @@ class DashboardFavoriteUserTest(TestCase):
         )
 
         assert DashboardFavoriteUser.objects.count() == 1
+        assert new_favorite is not None
         assert new_favorite.position == 0
 
     def test_reorders_to_new_positions(self):
@@ -109,38 +111,25 @@ class DashboardFavoriteUserTest(TestCase):
             title="Should be first", organization=self.organization
         )
 
-        self.create_dashboard_favorite_user(should_be_second, self.user, self.organization, 0)
-        self.create_dashboard_favorite_user(should_be_first, self.user, self.organization, 1)
+        second_favorite_dashboard = self.create_dashboard_favorite_user(
+            should_be_second, self.user, self.organization, 0
+        )
+        first_favorite_dashboard = self.create_dashboard_favorite_user(
+            should_be_first, self.user, self.organization, 1
+        )
 
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                self.organization, self.user.id, should_be_second
-            ).position
-            == 0
-        )
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                self.organization, self.user.id, should_be_first
-            ).position
-            == 1
-        )
+        assert second_favorite_dashboard.position == 0
+        assert first_favorite_dashboard.position == 1
 
         DashboardFavoriteUser.objects.reorder_favorite_dashboards(
             self.organization, self.user.id, [should_be_first.id, should_be_second.id]
         )
 
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                self.organization, self.user.id, should_be_second
-            ).position
-            == 1
-        )
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                self.organization, self.user.id, should_be_first
-            ).position
-            == 0
-        )
+        for favorite_dashboard in [second_favorite_dashboard, first_favorite_dashboard]:
+            favorite_dashboard.refresh_from_db()
+
+        assert second_favorite_dashboard.position == 1
+        assert first_favorite_dashboard.position == 0
 
     def test_deletes_and_increments_existing_positions(self):
         first_dashboard = self.create_dashboard(
@@ -159,10 +148,9 @@ class DashboardFavoriteUserTest(TestCase):
             self.organization, self.user.id, first_dashboard
         )
 
-        assert DashboardFavoriteUser.objects.count() == 1
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                self.organization, self.user.id, second_dashboard
-            ).position
-            == 0
+        dashboard = DashboardFavoriteUser.objects.get_favorite_dashboard(
+            self.organization, self.user.id, second_dashboard
         )
+        assert DashboardFavoriteUser.objects.count() == 1
+        assert dashboard is not None
+        assert dashboard.position == 0
