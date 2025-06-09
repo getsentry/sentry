@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sentry import features
-from sentry.incidents.handlers.condition import *  # noqa
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic

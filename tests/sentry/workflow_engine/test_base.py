@@ -1,6 +1,6 @@
 from collections.abc import Callable
-from typing import Any
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
