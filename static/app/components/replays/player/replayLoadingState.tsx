@@ -43,6 +43,13 @@ export default function ReplayLoadingState({
       <ReplayRequestsThrottledAlert />
     );
   }
+
+  // Prioritize loading state when we're still fetching data, even if there are temporary errors
+  // This prevents the error state from flickering during initial load
+  if (readerResult.fetching) {
+    return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
+  }
+
   if (readerResult.fetchError) {
     return renderError ? (
       renderError(readerResult)
@@ -50,9 +57,7 @@ export default function ReplayLoadingState({
       <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
-  if (readerResult.fetching) {
-    return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
-  }
+
   if (!readerResult.replay) {
     return renderMissing ? (
       renderMissing(readerResult)
