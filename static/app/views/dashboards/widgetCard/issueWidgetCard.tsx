@@ -1,5 +1,3 @@
-import type {Dispatch, SetStateAction} from 'react';
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -7,6 +5,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {renderIssueGridHeaderCell} from 'sentry/components/modals/widgetViewerModal/widgetViewerTableCell';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -21,7 +20,9 @@ type Props = {
   tableResults: TableDataWithTitle[] | undefined;
   widget: Widget;
   errorMessage?: string;
-  setCurrentWidget?: Dispatch<SetStateAction<Widget>>;
+  setTableWidths?: (tableWidths: string[]) => void;
+  setWidgetSort?: (ns: string) => void;
+  tableWidths?: string[];
 };
 
 export function IssueWidgetCard({
@@ -30,11 +31,11 @@ export function IssueWidgetCard({
   errorMessage,
   loading,
   tableResults,
-  setCurrentWidget,
+  setWidgetSort,
   organization,
+  tableWidths,
+  setTableWidths,
 }: Props) {
-  const [widths, setWidths] = useState<string[]>([]);
-
   if (errorMessage) {
     return (
       <ErrorPanel>
@@ -51,8 +52,8 @@ export function IssueWidgetCard({
   const sort = widget.queries[0]?.orderby;
 
   return (
-    <div style={{overflow: 'auto'}}>
-      <StyledWidgetTable
+    <TableWrapper>
+      <WidgetTable
         style={{
           borderRadius: 0,
           marginBottom: 0,
@@ -66,14 +67,14 @@ export function IssueWidgetCard({
         selection={selection}
         renderHeaderGridCell={renderIssueGridHeaderCell}
         sort={sort || ''}
-        widths={widths}
+        widths={tableWidths || []}
         organization={organization}
         stickyHeader
-        setCurrentWidget={setCurrentWidget}
-        setWidths={(w: string[]) => setWidths(w)}
+        setWidgetSort={setWidgetSort}
+        setWidths={(w: string[]) => setTableWidths?.(w)}
         usesLocationQuery={false}
       />
-    </div>
+    </TableWrapper>
   );
 }
 
@@ -81,10 +82,10 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface300};
 `;
 
-const StyledWidgetTable = styled(WidgetTable)`
+const TableWrapper = styled('div')`
+  margin-top: ${space(1.5)};
+  min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
   overflow: auto;
 `;

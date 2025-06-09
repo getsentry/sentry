@@ -38,6 +38,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   disableZoom?: boolean;
   expandNumbers?: boolean;
+  handleWidgetSort?: (ns: string) => void;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
@@ -89,9 +90,12 @@ export function WidgetCardChartContainer({
   onDataFetchStart,
   disableZoom,
   showLoadingText,
+  handleWidgetSort,
 }: Props) {
   const location = useLocation();
-  const [currentWidget, setCurrentWidget] = useState<Widget>(widget);
+  // Used to maintain correct widths when sorting/column resizing the table widget
+  // Eventually this will be placed in Widget, to enable users to save column widths
+  const [tableWidths, setTableWidths] = useState<string[]>([]);
 
   function keepLegendState({
     selected,
@@ -123,7 +127,7 @@ export function WidgetCardChartContainer({
 
   return (
     <WidgetCardDataLoader
-      widget={currentWidget}
+      widget={widget}
       dashboardFilters={dashboardFilters}
       selection={selection}
       onDataFetched={onDataFetched}
@@ -168,8 +172,10 @@ export function WidgetCardChartContainer({
                 widget={widget}
                 location={location}
                 selection={selection}
-                setCurrentWidget={setCurrentWidget}
+                setWidgetSort={handleWidgetSort}
                 organization={organization}
+                tableWidths={tableWidths}
+                setTableWidths={setTableWidths}
               />
             </Fragment>
           );
@@ -187,7 +193,7 @@ export function WidgetCardChartContainer({
               errorMessage={errorOrEmptyMessage}
               loading={loading}
               location={location}
-              widget={currentWidget}
+              widget={widget}
               selection={selection}
               organization={organization}
               isMobile={isMobile}
@@ -213,7 +219,9 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
-              setCurrentWidget={setCurrentWidget}
+              setWidgetSort={handleWidgetSort}
+              tableWidths={tableWidths}
+              setTableWidths={setTableWidths}
             />
           </Fragment>
         );

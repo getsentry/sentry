@@ -1,7 +1,5 @@
-import type {Dispatch, SetStateAction} from 'react';
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -33,7 +31,7 @@ interface Props {
   widget: Widget;
   widths: string[];
   customHeaderClick?: () => void;
-  setCurrentWidget?: Dispatch<SetStateAction<Widget>>;
+  setWidgetSort?: (ns: string) => void;
   setWidths?: (w: string[]) => void;
   stickyHeader?: boolean;
   usesLocationQuery?: boolean;
@@ -71,7 +69,7 @@ export function WidgetTable(props: Props) {
     usesLocationQuery,
     stickyHeader,
     widths,
-    setCurrentWidget,
+    setWidgetSort,
     setWidths,
   } = props;
   const theme = useTheme();
@@ -127,12 +125,7 @@ export function WidgetTable(props: Props) {
 
   const onHeaderClick = (newSort?: string) => {
     customHeaderClick?.();
-    if (widget.queries[0]) {
-      const newWidget = cloneDeep(widget);
-      // @ts-expect-error: Object is possibly 'undefined'.
-      newWidget.queries[0].orderby = newSort || sort;
-      setCurrentWidget?.(newWidget);
-    }
+    setWidgetSort?.(newSort || '');
   };
 
   return (

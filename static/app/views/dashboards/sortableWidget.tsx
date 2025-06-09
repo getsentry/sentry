@@ -30,6 +30,7 @@ type Props = {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  handleWidgetSort?: (ns: string) => void;
   isMobile?: boolean;
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
@@ -57,6 +58,7 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
+    handleWidgetSort,
   } = props;
 
   const organization = useOrganization();
@@ -104,6 +106,7 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     tableItemLimit: TABLE_ITEM_LIMIT,
+    handleWidgetSort,
   };
 
   return (

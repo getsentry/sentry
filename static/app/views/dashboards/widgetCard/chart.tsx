@@ -101,19 +101,16 @@ type WidgetCardChartProps = Pick<
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
   setCurrentWidget?: Dispatch<SetStateAction<Widget>>;
+  setTableWidths?: (tableWidths: string[]) => void;
+  setWidgetSort?: (ns: string) => void;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showLoadingText?: boolean;
+  tableWidths?: string[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
 class WidgetCardChart extends Component<WidgetCardChartProps> {
-  // Used for the table widget to maintain column widths between table sorts and column resizing.
-  // Eventually this will live in Widget to allow users to save custom widths for tables
-  state = {
-    widths: [],
-  };
-
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
     if (
       this.props.widget.displayType === DisplayType.BIG_NUMBER &&
@@ -149,7 +146,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {widget, selection, organization, setCurrentWidget} = this.props;
+    const {widget, selection, organization, setWidgetSort, tableWidths, setTableWidths} =
+      this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -176,11 +174,11 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               : renderDiscoverGridHeaderCell
           }
           sort={sort || ''}
-          widths={this.state.widths}
+          widths={tableWidths || []}
           organization={organization}
           stickyHeader
-          setCurrentWidget={setCurrentWidget}
-          setWidths={(w: string[]) => this.setWidths(w)}
+          setWidgetSort={setWidgetSort}
+          setWidths={(w: string[]) => setTableWidths?.(w)}
           usesLocationQuery={false}
         />
       </TableWrapper>

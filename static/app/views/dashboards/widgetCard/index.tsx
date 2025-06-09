@@ -73,6 +73,7 @@ type Props = WithRouterProps & {
   disableFullscreen?: boolean;
   disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
+  handleWidgetSort?: (ns: string) => void;
   hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -151,6 +152,7 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
+    handleWidgetSort,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -315,6 +317,7 @@ function WidgetCard(props: Props) {
             disableZoom={disableZoom}
             onDataFetchStart={onDataFetchStart}
             showLoadingText={showLoadingText && isLoadingTextVisible}
+            handleWidgetSort={handleWidgetSort}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
