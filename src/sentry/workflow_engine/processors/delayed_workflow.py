@@ -148,7 +148,7 @@ def fetch_workflows_envs(
     workflows = list(Workflow.objects.filter(id__in=workflow_ids))
 
     for workflow in workflows:
-        workflows_to_envs[workflow.id] = workflow.environment.id if workflow.environment else None
+        workflows_to_envs[workflow.id] = workflow.environment_id
         workflow_ids_to_workflows[workflow.id] = workflow
 
     return workflow_ids_to_workflows, workflows_to_envs
