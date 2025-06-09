@@ -14,6 +14,8 @@ type Props = {
 };
 
 export function CacheHitMissChart({search}: Props) {
+  const referrer = Referrer.SAMPLES_CACHE_HIT_MISS_CHART;
+
   const {
     data,
     isPending: isCacheHitRateLoading,
@@ -24,7 +26,7 @@ export function CacheHitMissChart({search}: Props) {
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
       transformAliasToInputFormat: true,
     },
-    Referrer.SAMPLES_CACHE_HIT_MISS_CHART
+    referrer
   );
 
   // explore/alerts doesn't support `cache_miss_rate`, so this is used as a comparable query
@@ -32,6 +34,7 @@ export function CacheHitMissChart({search}: Props) {
     yAxis: [`${SpanFunction.COUNT}(span.duration)`],
     search,
     groupBy: [SpanFields.CACHE_HIT],
+    referrer,
   };
 
   return (

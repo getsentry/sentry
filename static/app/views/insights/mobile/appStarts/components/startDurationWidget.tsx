@@ -16,6 +16,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
+import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
@@ -82,6 +83,7 @@ function StartDurationWidget({additionalFilters}: Props) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
   const search = new MutableSearch(queryString);
+  const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
   const groupBy = SpanFields.RELEASE;
   const yAxis: SpanMetricsProperty = 'avg(span.duration)';
 
@@ -97,7 +99,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       search,
       enabled: !isReleasesLoading,
     },
-    'api.starfish.mobile-startup-series'
+    referrer
   );
 
   // Only transform the data is we know there's at least one release
@@ -116,7 +118,7 @@ function StartDurationWidget({additionalFilters}: Props) {
       series={sortedSeries}
       isLoading={isSeriesLoading}
       error={seriesError}
-      queryInfo={{search, groupBy: [groupBy]}}
+      queryInfo={{search, groupBy: [groupBy], referrer}}
       showReleaseAs="none"
       showLegend="always"
       height={220}

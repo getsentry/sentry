@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0924_dashboard_add_unique_constraint_for_user_org_position"),
+        ("sentry", "0925_backfill_open_periods"),
     ]
 
     operations = [
