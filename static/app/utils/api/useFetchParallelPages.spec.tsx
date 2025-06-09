@@ -36,6 +36,7 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).not.toHaveBeenCalled();
   });
@@ -57,11 +58,13 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).not.toHaveBeenCalled();
 
     rerender({enabled: true, getQueryKey, hits: 13, perPage: 10});
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
     expect(getQueryKey).toHaveBeenCalled();
 
@@ -85,6 +88,7 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).not.toHaveBeenCalled();
   });
@@ -106,8 +110,11 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(1);
   });
 
@@ -128,8 +135,11 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(3);
   });
 
@@ -156,7 +166,8 @@ describe('useFetchParallelPages', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.pages).toEqual([
       'results starting at 0',
       'results starting at 10',
@@ -181,7 +192,8 @@ describe('useFetchParallelPages', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.isError).toBeFalsy();
   });
 
@@ -210,7 +222,8 @@ describe('useFetchParallelPages', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.getLastResponseHeader).toStrictEqual(expect.any(Function));
     expect(result.current.getLastResponseHeader?.('Link')).toBe('next: 0:20:0');
   });
@@ -242,10 +255,12 @@ describe('useFetchParallelPages', () => {
     });
 
     // No responses have resolved
+    expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
 
     // Both responses have resolved
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    expect(result.current.isFetching).toBeFalsy();
     expect(result.current.pages).toEqual([
       'results starting at 0',
       'results starting at 10',
