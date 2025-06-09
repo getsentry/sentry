@@ -4,7 +4,6 @@ from collections import defaultdict
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from django.db import router
 from django.db.models import Q, QuerySet
 
 from sentry.api.serializers import Serializer, serialize
@@ -193,9 +192,7 @@ class DatabaseBackedAppService(AppService):
         component_type: str,
         include_contexts_without_component: bool = False,
     ) -> list[RpcSentryAppComponentContext]:
-        install_query = self._FQ.base_query().using(
-            router.db_for_read(SentryAppInstallation, replica=True)
-        )
+        install_query = self._FQ.base_query().using_replica()
         install_query = self._FQ.apply_filters(install_query, filter)
         app_ids = install_query.values_list("sentry_app_id", flat=True)
 
@@ -410,9 +407,7 @@ class DatabaseBackedAppService(AppService):
     ) -> RpcSentryAppComponent | None:
         from sentry.sentry_apps.models.sentry_app_installation import prepare_sentry_app_components
 
-        installation = SentryAppInstallation.objects.using(
-            router.db_for_read(SentryAppInstallation, replica=True)
-        ).get(id=installation_id)
+        installation = SentryAppInstallation.objects.using_replica().get(id=installation_id)
         component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None
 
