@@ -49,9 +49,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
-        # TODO: add a feature flag for this endpoint
-
-        # stolen from organization_group_index.py
         try:
             start, end = get_date_range_from_stats_period(
                 request.GET,
@@ -61,7 +58,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
-        # Build base query filters
         filters = {
             "type": FeedbackGroup.type_id,
             "first_seen__gte": start,
@@ -74,20 +70,17 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         # Only filter by projects if projects are explicitly selected
         projects = self.get_projects(request, organization)
-        if request.GET.get(
-            "project"
-        ):  # Only add project filter if projects were specified in the request
+        if request.GET.get("project"):
             filters["project__in"] = projects
 
         groups = Group.objects.filter(**filters).order_by("-first_seen")[
             :MAX_FEEDBACKS_TO_SUMMARIZE
         ]
 
-        # Experiment with this number; it also depends on the quality of the feedbacks and the diversity of topics that they touch upon
         if groups.count() < MIN_FEEDBACKS_TO_SUMMARIZE:
             return Response({"summary": None, "success": False, "num_feedbacks_used": 0})
 
-        # A limit of 1000 feedbacks already exists, but we also want to cap the number of characters that we send to the LLM
+        # Also cap the number of characters that we send to the LLM
         group_feedbacks = []
         total_chars = 0
         for group in groups:
@@ -103,7 +96,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         try:
             summary = generate_summary(group_feedbacks)
         except Exception:
-            # check create_feedback.py, just catch all exceptions until we have LLM error types ironed out
+            # Similar to create_feedback.py, just catch all exceptions until we have LLM error types ironed out
             logger.exception("Error generating summary of user feedbacks")
             return Response({"detail": "Error generating summary"}, status=500)
 
