@@ -10,6 +10,7 @@ from requests import PreparedRequest, Request, Response
 from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.base import is_response_error, is_response_success
@@ -97,6 +98,18 @@ class BaseApiClient:
             sample_rate=1.0,
             tags={self.integration_type: self.name, "status": code},
         )
+
+        if options.get("integrations.http-response.logs"):
+            log_params = {
+                **(extra or {}),
+                "status_string": str(code),
+                "error": str(error)[:256] if error else None,
+            }
+            if self.integration_type:
+                log_params[self.integration_type] = self.name
+
+            log_params.update(getattr(self, "logging_context", None) or {})
+            self.logger.info("%s.http_response", self.integration_type, extra=log_params)
 
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"

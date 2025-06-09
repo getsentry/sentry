@@ -812,6 +812,9 @@ register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MO
 # Mock out integrations and services for tests
 register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Enable logging of HTTP response codes for integrations
+register("integrations.http-response.logs", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Record statistics about event payloads and their compressibility
 register(
     "store.nodestore-stats-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE

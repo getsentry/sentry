@@ -6,6 +6,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.base import is_response_error, is_response_success
@@ -32,6 +33,15 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
         sample_rate=1.0,
         tags={"ok": is_ok, "status": code},
     )
+
+    if options.get("integrations.http-response.logs"):
+        extra = {
+            "integration": "slack",
+            "status_string": str(code),
+            "error": error,
+            "method": method,
+        }
+        logger.info("integration.http_response", extra=extra)
 
 
 def is_response_fatal(response: SlackResponse) -> bool:
