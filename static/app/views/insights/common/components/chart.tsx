@@ -63,6 +63,10 @@ export enum ChartType {
   AREA = 2,
 }
 
+export function isChartType(value: any): value is ChartType {
+  return typeof value === 'number' && Object.values(ChartType).includes(value as any);
+}
+
 interface ChartRenderingProps {
   height: number;
   isFullscreen: boolean;
