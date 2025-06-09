@@ -73,8 +73,8 @@ const CHAR_SUBSTITUTIONS: Record<string, string[]> = {
  * Generates a cryptic promo code with random words and character substitutions
  */
 function generatePromoCode(): string {
-  // Select 1-2 random words
-  const numWords = Math.random() > 0.4 ? 2 : 1;
+  // Select 1-3 random words (higher chance for longer codes with max 20 chars)
+  const numWords = Math.random() > 0.6 ? 3 : Math.random() > 0.3 ? 2 : 1;
   const selectedWords = [];
 
   for (let i = 0; i < numWords; i++) {
@@ -97,14 +97,20 @@ function generatePromoCode(): string {
     })
     .join('');
 
-  // Add random numbers to reach ~10 characters if needed
+  // Add random numbers to reach ~10-15 characters if needed
   while (code.length < 8) {
     code += Math.floor(Math.random() * 10).toString();
   }
 
-  // Truncate if too long
-  if (code.length > 12) {
-    code = code.substring(0, 12);
+  // Add more numbers for variety (up to 20 chars total)
+  const targetLength = Math.floor(Math.random() * 8) + 10; // 10-17 chars base
+  while (code.length < targetLength && code.length < 18) {
+    code += Math.floor(Math.random() * 10).toString();
+  }
+
+  // Truncate if too long (max 20 characters)
+  if (code.length > 20) {
+    code = code.substring(0, 20);
   }
 
   return code;
