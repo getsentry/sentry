@@ -192,7 +192,9 @@ def compare_tables_for_dashboard_widget_queries(
                 "widget_viewer_url",
                 f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
             )
-            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.BOTH_FAILED,
@@ -210,7 +212,9 @@ def compare_tables_for_dashboard_widget_queries(
                 "widget_viewer_url",
                 f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
             )
-            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.METRICS_FAILED,
@@ -228,7 +232,9 @@ def compare_tables_for_dashboard_widget_queries(
                 "widget_viewer_url",
                 f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
             )
-            sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.EAP_FAILED,
@@ -247,7 +253,9 @@ def compare_tables_for_dashboard_widget_queries(
                     "widget_viewer_url",
                     f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
                 )
-                sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+                sentry_sdk.capture_message(
+                    "dashboard_widget_comparison_done", level="info", scope=scope
+                )
             return {
                 "passed": True,
                 "reason": CompareTableResult.PASSED,
@@ -266,7 +274,9 @@ def compare_tables_for_dashboard_widget_queries(
                     "widget_viewer_url",
                     f"{organization.slug}.sentry.io/dashboard/{dashboard.id}/widget/{widget.id}/",
                 )
-                sentry_sdk.capture_message("dashboard_comparison_passed", level="info", scope=scope)
+                sentry_sdk.capture_message(
+                    "dashboard_widget_comparison_done", level="info", scope=scope
+                )
             return {
                 "passed": False,
                 "reason": reason,
