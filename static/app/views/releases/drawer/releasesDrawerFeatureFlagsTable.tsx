@@ -16,7 +16,7 @@ import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},
-  {key: 'flag', name: t('Feature Flag'), width: 600},
+  {key: 'flag', name: t('Feature Flag'), width: 390},
   {key: 'action', name: t('Action')},
   {key: 'createdAt', name: t('Date')},
 ];
