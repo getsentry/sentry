@@ -1,5 +1,5 @@
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -61,6 +61,7 @@ def mock_feedback_event(project_id: int, dt: datetime | None = None):
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": dt.timestamp(),
         "received": dt.isoformat(),
+        "first_seen": dt.isoformat(),
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "user": {
@@ -103,123 +104,118 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         mock_openai.return_value.chat.completions.create = create_dummy_response
 
         for _ in range(15):
-            event = mock_feedback_event(self.project.id)
+            event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         response = self.get_success_response(self.org.slug)
+
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15  # Uses all of the created feedbacks
+        assert response.data["num_feedbacks_used"] == 15
 
-    # @patch(
-    #     "sentry.feedback.usecases.feedback_summaries.generate_summary",
-    #     side_effect=create_dummy_summary_response,
-    # )
-    # def test_get_feedback_summary_basic(self, mock_generate_summary):
-    #     """Test getting feedback summary with default parameters (7 days)"""
-    #     response = self.get_success_response(self.org.slug)
+    @django_db_all
+    @patch("sentry.llm.providers.openai.OpenAI")
+    def test_get_feedback_summary_with_date_filter(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
 
-    #     print("this is the print statement", response.data)
+        # 12 feedbacks that are created immediately
+        for _ in range(12):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    #     assert response.data["success"] is True
-    #     assert response.data["summary"] == "Test summary of feedback"
-    #     assert response.data["num_feedbacks_used"] == 15  # All feedbacks within 7 days
+        # 8 feedbacks that were created ~21 days ago, which will not be included in the summary
+        for _ in range(8):
+            event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(days=21))
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    # @patch(
-    #     "sentry.feedback.usecases.feedback_summaries.generate_summary",
-    #     side_effect=create_dummy_summary_response,
-    # )
-    # def test_get_feedback_summary_with_date_filter(self, mock_generate_summary):
-    #     """Test getting feedback summary with specific date range"""
-    #     now = datetime.now(timezone.utc)
-    #     params = {
-    #         "statsPeriod": "2d",  # Only look at last 2 days
-    #     }
+        params = {
+            "statsPeriod": "14d",  # Look at last 14 days
+        }
 
-    #     response = self.get_success_response(self.org.slug, **params)
+        response = self.get_success_response(self.org.slug, **params)
 
-    #     assert response.data["success"] is True
-    #     assert response.data["summary"] == "Test summary of feedback"
-    #     # Should have fewer feedbacks since we're only looking at 2 days
-    #     assert response.data["num_feedbacks_used"] < 15
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["num_feedbacks_used"] == 12
 
-    # def test_get_feedback_summary_too_few_feedbacks(self):
-    #     """Test getting summary when there are fewer than 10 feedbacks"""
-    #     # Delete most feedbacks to get below threshold
-    #     for feedback in self.feedbacks[10:]:
-    #         feedback.delete()
+    @django_db_all
+    @patch("sentry.llm.providers.openai.OpenAI")
+    def test_get_feedback_summary_with_project_filter(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
 
-    #     response = self.get_success_response(self.org.slug)
+        for _ in range(10):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    #     assert response.data["summary"] is None
-    #     assert response.data["sucesss"] is False
-    #     assert response.data["num_feedbacks_used"] == 0
+        for _ in range(10):
+            event = mock_feedback_event(self.project2.id)
+            create_feedback_issue(
+                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    # @patch(
-    #     "sentry.feedback.usecases.feedback_summaries.generate_summary",
-    #     side_effect=Exception("LLM Error"),
-    # )
-    # def test_get_feedback_summary_llm_error(self, mock_generate_summary):
-    #     """Test handling of LLM errors"""
-    #     response = self.get_error_response(self.org.slug, status_code=500)
-    #     assert response.data["detail"] == "Error generating summary"
+        params = {
+            "project": [self.project1.id],
+        }
 
-    # def test_get_feedback_summary_invalid_date_range(self):
-    #     """Test handling of invalid date range parameters"""
-    #     params = {
-    #         "start": "invalid-date",
-    #         "end": "also-invalid",
-    #     }
-    #     response = self.get_error_response(self.org.slug, status_code=400, **params)
-    #     assert "start and end are" in response.data["detail"]
+        response = self.get_success_response(self.org.slug, **params)
 
-    # @patch(
-    #     "sentry.feedback.usecases.feedback_summaries.generate_summary",
-    #     side_effect=create_dummy_summary_response,
-    # )
-    # def test_get_feedback_summary_character_limit(self, mock_generate_summary):
-    #     """Test that feedback messages don't exceed character limit"""
-    #     # Create a feedback with very long message
-    #     long_message = "a" * 1000000  # 1M characters
-    #     self.create_group(
-    #         project=self.project,
-    #         type=FeedbackGroup.type_id,
-    #         message="Long feedback",
-    #         status=GroupStatus.UNRESOLVED,
-    #         substatus=GroupSubStatus.NEW,
-    #         first_seen=datetime.now(timezone.utc),
-    #         data={"metadata": {"message": long_message}},
-    #     )
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["num_feedbacks_used"] == 10
 
-    #     response = self.get_success_response(self.org.slug)
+    @django_db_all
+    @patch("sentry.llm.providers.openai.OpenAI")
+    def test_get_feedback_summary_too_few_feedbacks(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
 
-    #     assert response.data["success"] is True
-    #     assert response.data["summary"] == "Test summary of feedback"
-    #     # The number of feedbacks used should be limited due to character limit
-    #     assert response.data["num_feedbacks_used"] < len(self.feedbacks) + 1
+        for _ in range(9):
+            event = mock_feedback_event(self.project2.id)
+            create_feedback_issue(
+                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
-    # @patch(
-    #     "sentry.feedback.usecases.feedback_summaries.generate_summary",
-    #     side_effect=create_dummy_summary_response,
-    # )
-    # def test_get_feedback_summary_with_project_filter(self, mock_generate_summary):
-    #     """Test getting feedback summary filtered by project"""
-    #     # Create feedback in project2
-    #     now = datetime.now(timezone.utc)
-    #     project2_feedback = self.create_group(
-    #         project=self.project2,
-    #         type=FeedbackGroup.type_id,
-    #         message="Project 2 feedback",
-    #         status=GroupStatus.UNRESOLVED,
-    #         substatus=GroupSubStatus.NEW,
-    #         first_seen=now - timedelta(days=1),
-    #         data={"metadata": {"message": "This is feedback from project 2"}},
-    #     )
+        response = self.get_success_response(self.org.slug)
 
-    #     response = self.get_success_response(self.org.slug, project=[self.project2.id])
+        assert response.data["success"] is False
 
-    #     assert response.data["success"] is True
-    #     assert response.data["summary"] is None  # Only one feedback in project2, below threshold
-    #     assert response.data["num_feedbacks_used"] == 0
+    @django_db_all
+    @patch("sentry.llm.providers.openai.OpenAI")
+    # is this a bad use of patch?
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
+        1000,
+    )
+    def test_get_feedback_summary_character_limit(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
+
+        # Create 9 older feedbacks with normal size, skipped due to the middle one exceeded the character limit
+        for _ in range(9):
+            event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=2))
+        event["contexts"]["feedback"]["message"] = "a" * 2000
+        create_feedback_issue(event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+        # Create 12 newer feedbacks with normal size - these should be the ones included
+        for _ in range(12):
+            event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=1))
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["num_feedbacks_used"] == 12
