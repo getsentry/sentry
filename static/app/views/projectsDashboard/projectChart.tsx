@@ -3,8 +3,12 @@ import {useTheme} from '@emotion/react';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import NoEvents from './noEvents';
 
@@ -12,21 +16,32 @@ type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 
 type Props = {
   firstEvent: boolean;
+  project: Project;
   stats: Project['stats'];
+  onBarClick?: (data: {seriesName: string; timestamp: number; value: number}) => void;
   transactionStats?: Project['transactionStats'];
 };
 
-function Chart({firstEvent, stats, transactionStats}: Props) {
+function ProjectChart({firstEvent, stats, transactionStats, onBarClick, project}: Props) {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
+  const navigate = useNavigate();
+  const organization = useOrganization();
 
   const theme = useTheme();
 
   if (transactionStats) {
-    const transactionSeries = transactionStats.map(([timestamp, value]) => [
-      timestamp * 1000,
-      value,
-    ]);
+    const transactionSeries = transactionStats.map(([timestamp, value]) => ({
+      value: [timestamp * 1000, value],
+      onClick: onBarClick
+        ? () =>
+            onBarClick({
+              timestamp,
+              value,
+              seriesName: 'Transactions',
+            })
+        : undefined,
+    }));
 
     series.push({
       cursor: 'normal' as const,
@@ -51,10 +66,14 @@ function Chart({firstEvent, stats, transactionStats}: Props) {
 
   if (stats) {
     series.push({
-      cursor: 'normal' as const,
+      cursor: 'pointer' as const,
       name: t('Errors'),
       type: 'bar',
-      data: stats.map(([timestamp, value]) => [timestamp * 1000, value]),
+      data: stats.map(([timestamp, value]) => ({
+        value: [timestamp * 1000, value],
+        onClick: () =>
+          navigate(constructErrorsLink(organization, project, timestamp * 1000)),
+      })),
       barMinHeight: 1,
       xAxisIndex: 0,
       yAxisIndex: 0,
@@ -167,4 +186,17 @@ function Chart({firstEvent, stats, transactionStats}: Props) {
   );
 }
 
-export default Chart;
+const constructErrorsLink = (
+  organization: Organization,
+  project: Project,
+  timestamp: number
+) => {
+  const start = new Date(timestamp);
+  const end = new Date(start);
+  end.setHours(end.getHours() + 1);
+  return normalizeUrl(
+    `/organizations/${organization.slug}/issues/?project=${project.id}&start=${start.toISOString()}&end=${end.toISOString()}`
+  );
+};
+
+export default ProjectChart;

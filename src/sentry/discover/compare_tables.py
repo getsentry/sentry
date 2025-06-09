@@ -4,6 +4,7 @@ from typing import TypedDict, cast
 
 import sentry_sdk
 
+from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import is_equation
 from sentry.discover.dataset_split import _get_equation_list, _get_field_list
 from sentry.discover.translation.mep_to_eap import (
@@ -97,7 +98,11 @@ def compare_tables_for_dashboard_widget_queries(
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
     organization: Organization = dashboard.organization
-    projects: list[Project] = list(dashboard.projects.all())
+    # if the dashboard has no projects, we will use all projects in the organization
+    projects = dashboard.projects.all() or Project.objects.filter(
+        organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
+    )
+
     if len(list(projects)) == 0:
         return {
             "passed": False,

@@ -315,13 +315,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_6.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
-            assert response.status_code == 200, response.content
+        response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            # sorted by title by default
-            assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
+        values = [row["title"] for row in response.data]
+        # sorted by title by default
+        assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
 
     def test_get_only_favorites_with_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -366,14 +365,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_7.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(
-                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
-            )
-            assert response.status_code == 200, response.content
+        response = self.client.get(
+            self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+        )
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
+        values = [row["title"] for row in response.data]
+        assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
 
     def test_get_exclude_favorites_with_no_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -418,13 +416,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_6.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"filter": "excludeFavorites"})
-            assert response.status_code == 200, response.content
+        response = self.client.get(self.url, data={"filter": "excludeFavorites"})
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            # sorted by title by default
-            assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
+        values = [row["title"] for row in response.data]
+        # sorted by title by default
+        assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
 
     def test_get_exclude_favorites_with_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -469,14 +466,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_6.favorited_by = [user_2.id]
 
         self.login_as(user_1)
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(
-                self.url, data={"filter": "excludeFavorites", "sort": "dateCreated"}
-            )
-            assert response.status_code == 200, response.content
+        response = self.client.get(
+            self.url, data={"filter": "excludeFavorites", "sort": "dateCreated"}
+        )
+        assert response.status_code == 200, response.content
 
-            values = [row["title"] for row in response.data]
-            assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
+        values = [row["title"] for row in response.data]
+        assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
 
     def test_pin_favorites_with_my_dashboards_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -513,21 +509,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_E.favorited_by = [self.user.id]
         dashboard_C.favorited_by = [user_1.id]
 
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"sort": "mydashboards", "pin": "favorites"})
-            assert response.status_code == 200, response.content
-            values = [row["title"] for row in response.data]
-            assert values == [
-                # favorites
-                "Dashboard D",  # self.user's favorite
-                "Dashboard E",  # user_1's dashboard
-                "Dashboard B",  # user_1's dashboard
-                # other dashboards
-                "Dashboard A",  # self.user's dashboard
-                "Dashboard 2",  # self.user's dashboard
-                "Dashboard 1",  # self.user's dashboard
-                "Dashboard C",  # user_1's dashbaord
-            ]
+        response = self.client.get(self.url, data={"sort": "mydashboards", "pin": "favorites"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == [
+            # favorites
+            "Dashboard D",  # self.user's favorite
+            "Dashboard E",  # user_1's dashboard
+            "Dashboard B",  # user_1's dashboard
+            # other dashboards
+            "Dashboard A",  # self.user's dashboard
+            "Dashboard 2",  # self.user's dashboard
+            "Dashboard 1",  # self.user's dashboard
+            "Dashboard C",  # user_1's dashbaord
+        ]
 
     def test_pin_favorites_with_my_date_created_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -564,21 +559,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard_E.favorited_by = [self.user.id]
         dashboard_C.favorited_by = [user_1.id]
 
-        with self.feature("organizations:dashboards-favourite"):
-            response = self.client.get(self.url, data={"sort": "dateCreated", "pin": "favorites"})
-            assert response.status_code == 200, response.content
-            values = [row["title"] for row in response.data]
-            assert values == [
-                # favorites
-                "Dashboard B",
-                "Dashboard D",
-                "Dashboard E",
-                # other dashboards
-                "Dashboard 1",
-                "Dashboard 2",
-                "Dashboard A",
-                "Dashboard C",
-            ]
+        response = self.client.get(self.url, data={"sort": "dateCreated", "pin": "favorites"})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == [
+            # favorites
+            "Dashboard B",
+            "Dashboard D",
+            "Dashboard E",
+            # other dashboards
+            "Dashboard 1",
+            "Dashboard 2",
+            "Dashboard A",
+            "Dashboard C",
+        ]
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
@@ -1445,16 +1439,15 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_gets_dashboard_favorited_with_dashboard_list(self):
         self.dashboard.favorited_by = [self.user.id]
 
-        with self.feature({"organizations:dashboards-favourite": True}):
-            response = self.do_request("get", self.url)
-            assert response.status_code == 200, response.content
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
 
-            for dashboard in response.data:
-                assert "isFavorited" in dashboard
-            self.assert_equal_dashboards(self.dashboard, response.data[1])
-            assert response.data[1]["isFavorited"] is True
-            assert response.data[0]["isFavorited"] is False  # general template
-            assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
+        for dashboard in response.data:
+            assert "isFavorited" in dashboard
+        self.assert_equal_dashboards(self.dashboard, response.data[1])
+        assert response.data[1]["isFavorited"] is True
+        assert response.data[0]["isFavorited"] is False  # general template
+        assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
 
     def test_post_errors_widget_with_is_filter(self):
         data: dict[str, Any] = {
