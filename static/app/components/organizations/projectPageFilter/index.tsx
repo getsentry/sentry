@@ -73,6 +73,11 @@ interface ProjectPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Insights)
+   * TODO: ideally this can be determined by what's set in the PageFiltersContainer
+   */
+  storageNamespace?: string;
 }
 
 /**
