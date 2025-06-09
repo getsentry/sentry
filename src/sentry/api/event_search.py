@@ -126,7 +126,7 @@ aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_forma
 has_filter = negation? &"has:" search_key sep (text_key / search_value)
 
 # is filter. Specific to issue search
-is_filter  = negation? &"is:" search_key sep search_value
+is_filter = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
 text_in_filter = negation? text_key sep text_in_list
@@ -134,19 +134,19 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep operator? search_value
 
-key                    = ~r"[a-zA-Z0-9_.-]+"
-escaped_key            = ~r"[a-zA-Z0-9_.:-]+"
-quoted_key             = '"' escaped_key '"'
+key         = ~r"[a-zA-Z0-9_.-]+"
+escaped_key = ~r"[a-zA-Z0-9_.:-]+"
+quoted_key  = '"' escaped_key '"'
 
 # the quoted variant is here to for backwards compatibility,
 # and can be removed once we're sure it's no longer in use
-explicit_flag_key_unquoted        = "flags" open_bracket escaped_key closed_bracket
+explicit_flag_key_unquoted         = "flags" open_bracket escaped_key closed_bracket
 explicit_flag_key_quoted           = "flags" open_bracket quoted_key closed_bracket
 explicit_flag_key                  = explicit_flag_key_unquoted / explicit_flag_key_quoted
-explicit_string_flag_key_unquoted = "flags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
+explicit_string_flag_key_unquoted  = "flags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_string_flag_key_quoted    = "flags" open_bracket quoted_key spaces comma spaces "string" closed_bracket
 explicit_string_flag_key           = explicit_string_flag_key_unquoted / explicit_string_flag_key_quoted
-explicit_number_flag_key_unquoted = "flags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
+explicit_number_flag_key_unquoted  = "flags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 explicit_number_flag_key_quoted    = "flags" open_bracket quoted_key spaces comma spaces "number" closed_bracket
 explicit_number_flag_key           = explicit_number_flag_key_unquoted  / explicit_number_flag_key_quoted
 
@@ -154,11 +154,11 @@ explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 
-aggregate_key          = key open_paren spaces function_args? spaces closed_paren
-function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
-aggregate_param        = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
-raw_aggregate_param    = ~r"[^()\t\n, \"]+"
-quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
+function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
+aggregate_param                  = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
+raw_aggregate_param              = ~r"[^()\t\n, \"]+"
+quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key
 
 search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
@@ -191,7 +191,7 @@ duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") 
 size_format          = numeric (size_unit) &end_value
 percentage_format    = numeric "%"
 
-numeric_unit        = ~r"[kmb]"i
+numeric_unit         = ~r"[kmb]"i
 size_unit            = bits / bytes
 bits                 = ~r"bit|kib|mib|gib|tib|pib|eib|zib|yib"i
 bytes                = ~r"bytes|nb|kb|mb|gb|tb|pb|eb|zb|yb"i

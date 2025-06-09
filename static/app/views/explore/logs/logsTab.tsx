@@ -70,7 +70,6 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
@@ -88,6 +87,9 @@ export function LogsTabContent({
     ?.value;
   const aggregateFunction = useLogsAggregateFunction();
   const _aggregateParam = useLogsAggregateParam();
+  const [sidebarOpen, setSidebarOpen] = useState(
+    !!(aggregateFunction !== 'count' || _aggregateParam || groupBy)
+  );
   const aggregateParam =
     (aggregateFunction === 'count' ? null : _aggregateParam) ||
     OurLogKnownFieldKey.MESSAGE;
@@ -227,7 +229,7 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle />
                 </Feature>
-                <Button onClick={openColumnEditor} icon={<IconTable />}>
+                <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
               </TableActionsContainer>

@@ -128,7 +128,6 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   align-items: center;
   padding-right: ${space(0.5)};
   position: relative;
-  gap: 0;
 
   :not(:hover) {
     [data-drag-icon] {
@@ -175,7 +174,6 @@ const LeadingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const TruncatedTitle = styled('div')`

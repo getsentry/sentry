@@ -131,6 +131,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchScreenshots",
         "tempestFetchDumps",
         "autofixAutomationTuning",
+        "seerScannerAutomation",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -225,6 +226,7 @@ E.g. `['release', 'environment']`""",
     autofixAutomationTuning = serializers.ChoiceField(
         choices=["off", "super_low", "low", "medium", "high", "always"], required=False
     )
+    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -453,6 +455,17 @@ E.g. `['release', 'environment']`""",
         return value
 
     def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
         if not features.has(
@@ -777,6 +790,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:autofix_automation_tuning"] = result[
                     "autofixAutomationTuning"
+                ]
+        if result.get("seerScannerAutomation") is not None:
+            if project.update_option(
+                "sentry:seer_scanner_automation", result["seerScannerAutomation"]
+            ):
+                changed_proj_settings["sentry:seer_scanner_automation"] = result[
+                    "seerScannerAutomation"
                 ]
 
         if has_elevated_scopes:

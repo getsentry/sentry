@@ -119,10 +119,10 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
       ...(limitToTraceId ? {traceId: limitToTraceId} : {}),
       cursor,
       per_page: limit ? limit : undefined,
+      referrer,
     },
     pageFiltersReady,
     eventView,
-    referrer,
   };
 
   const queryKey: ApiQueryKey = [
@@ -471,6 +471,7 @@ export function useInfiniteLogsQuery({
     hasPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
+    lastPageLength: data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0,
   };
 }
 
