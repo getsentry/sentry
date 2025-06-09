@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -82,6 +83,13 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${projectId}/monitors/${monitor.slug}/`}
         onSubmitSuccess={onSubmitSuccess}
+        onSubmitError={error => {
+          if (error.status === 500) {
+            addErrorMessage(
+              t('An unknown error occurred when updating the cron monitor.')
+            );
+          }
+        }}
       />
     </Layout.Main>
   );

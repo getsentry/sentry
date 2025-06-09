@@ -68,6 +68,7 @@ type Props = {
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   monitor?: Monitor;
+  onSubmitError?: FormProps['onSubmitError'];
   submitLabel?: string;
 };
 
@@ -175,6 +176,7 @@ function MonitorForm({
   apiEndpoint,
   apiMethod,
   onSubmitSuccess,
+  onSubmitError,
 }: Props) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -254,6 +256,7 @@ function MonitorForm({
             }
       }
       onSubmitSuccess={onSubmitSuccess}
+      onSubmitError={onSubmitError}
       submitLabel={submitLabel}
     >
       <StyledList symbol="colored-numeric">
