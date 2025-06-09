@@ -18,7 +18,7 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
 )
-from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
+from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowEventData
@@ -80,16 +80,6 @@ def enqueue_workflow(
         filters={"project_id": project_id},
         field=f"{workflow.id}:{event.group.id}:{condition_groups}:{source}",
         value=value,
-    )
-
-    logger.info(
-        "workflow_engine.enqueue_workflow",
-        extra={
-            "workflow": workflow.id,
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "delayed_conditions": [condition.id for condition in delayed_conditions],
-        },
     )
 
 
@@ -177,7 +167,7 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
+    return filter_recently_fired_actions(filtered_action_groups, event_data)
 
 
 def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:

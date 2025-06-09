@@ -1,7 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
@@ -16,7 +15,6 @@ import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrence
 
 describe('OccurrenceSummary', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
 
   afterEach(() => {
     resetMockDate();
@@ -41,14 +39,12 @@ describe('OccurrenceSummary', () => {
           type: GroupActivityType.SET_RESOLVED,
           dateCreated: '2025-01-02T11:00:00Z',
           data: {},
-          project,
           id: '2',
         },
         {
           type: GroupActivityType.FIRST_SEEN,
           dateCreated: '2025-01-01T11:00:00Z',
           data: {},
-          project,
           id: '1',
         },
       ],

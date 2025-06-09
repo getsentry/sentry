@@ -35,10 +35,12 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -513,6 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
+    ingestThroughTrustedRelaysOnly: bool
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -558,6 +561,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     rollbackEnabled: bool
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
+    defaultSeerScannerAutomation: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -711,6 +715,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_autofix_automation_tuning",
                 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
             ),
+            "defaultSeerScannerAutomation": obj.get_option(
+                "sentry:default_seer_scanner_automation",
+                DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -730,6 +738,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             )
             context["samplingMode"] = str(
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            )
+
+        if features.has("organizations:ingest-through-trusted-relays-only", obj):
+            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+                "sentry:ingest-through-trusted-relays-only",
+                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
         if access.role is not None:
@@ -765,6 +779,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "quota",
         "rollbackEnabled",
         "streamlineOnly",
+        "ingestThroughTrustedRelaysOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

@@ -265,7 +265,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
-        self.event_data.event.occurrence = None
+        self.event_data.event._occurrence = None
 
         with pytest.raises(ValueError):
             self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)

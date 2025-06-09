@@ -715,6 +715,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         params=snuba_params,
                         query_string=scoped_query or "",
                         selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
                         orderby=self.get_orderby(request),
                         offset=offset,
                         limit=limit,

@@ -520,7 +520,7 @@ export function SearchQueryBuilderCombobox<
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
+        ref={mergeRefs(ref, inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}

@@ -77,7 +77,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "has:sentry.normalized_description span.module:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "query": "has:sentry.normalized_description span.category:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.starfish.get-span-domains",
         "sort": "-count()",
         "statsPeriod": "10d",
@@ -251,7 +251,11 @@ const setupMockRequests = (organization: Organization) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-stats/`,
     method: 'GET',
-    match: [MockApiClient.matchQuery({referrer: 'api.starfish.span-time-charts'})],
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing-series',
+      }),
+    ],
     body: {
       [`${EPM}()`]: {
         data: [

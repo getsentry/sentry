@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
-import {usePrefersOldNavWithEnforcedStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListSearchBar from './searchBar';
 
@@ -30,11 +30,9 @@ export function IssueSearchWithSavedSearches({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
-  const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
+  const prefersStackedNav = usePrefersStackedNav();
 
-  const shouldShowSavedSearchesButton =
-    !organization.features.includes('issue-stream-custom-views') ||
-    prefersOldNavWithEnforcement;
+  const shouldShowSavedSearchesButton = !prefersStackedNav;
 
   function onSavedSearchesToggleClicked() {
     const newOpenState = !isSavedSearchesOpen;

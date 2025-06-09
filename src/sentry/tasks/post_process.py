@@ -1547,8 +1547,8 @@ def detect_base_urls_for_uptime(job: PostProcessJob):
 
 
 def check_if_flags_sent(job: PostProcessJob) -> None:
-    from sentry.models.project import Project
     from sentry.signals import first_flag_received
+    from sentry.utils.projectflags import set_project_flag_and_signal
 
     event = job["event"]
     project = event.project
@@ -1557,8 +1557,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
     if flag_context:
         metrics.incr("feature_flags.event_has_flags_context")
         metrics.distribution("feature_flags.num_flags_sent", len(flag_context))
-        if not project.flags.has_flags:
-            first_flag_received.send_robust(project=project, sender=Project)
+        set_project_flag_and_signal(project, "has_flags", first_flag_received)
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
@@ -1589,6 +1588,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     seer_enabled = get_seer_org_acknowledgement(group.organization.id)
     if not seer_enabled:
+        return
+
+    project = group.project
+    if not project.get_option("sentry:seer_scanner_automation"):
         return
 
     start_seer_automation.delay(group.id)

@@ -4,7 +4,7 @@ from django.utils.functional import cached_property
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
@@ -16,7 +16,7 @@ class Validator:
     Validates general authorization params for all types of token exchanges.
     """
 
-    install: RpcSentryAppInstallation
+    install: SentryAppInstallation
     client_id: str
     user: User
 

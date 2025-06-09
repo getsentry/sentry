@@ -69,6 +69,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -287,6 +288,9 @@ from sentry.notifications.api.endpoints.user_notification_settings_options_detai
 from sentry.notifications.api.endpoints.user_notification_settings_providers import (
     UserNotificationSettingsProvidersEndpoint,
 )
+from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import (
+    ProjectPreprodArtifactAssembleEndpoint,
+)
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
@@ -375,8 +379,12 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
 )
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
+from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
+)
+from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
+    OrganizationUptimeAlertIndexCountEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
@@ -2342,6 +2350,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-uptime-alert-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime-count/$",
+        OrganizationUptimeAlertIndexCountEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-index-count",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
         OrganizationUptimeStatsEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-stats",
@@ -2494,6 +2507,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/difs/assemble/$",
         DifAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-dif-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/preprodartifacts/assemble/$",
+        ProjectPreprodArtifactAssembleEndpoint.as_view(),
+        name="sentry-api-0-assemble-preprod-artifact-files",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/unknown/$",
@@ -3226,6 +3244,14 @@ INTERNAL_URLS = [
     ),
 ]
 
+PREVENT_URLS = [
+    re_path(
+        r"^owner/(?P<owner>[^\/]+)/repository/(?P<repository>[^\/]+)/test-results/$",
+        TestResultsEndpoint.as_view(),
+        name="sentry-api-0-test-results",
+    ),
+]
+
 urlpatterns = [
     # Relay
     re_path(
@@ -3285,6 +3311,11 @@ urlpatterns = [
     re_path(
         r"^broadcasts/",
         include(BROADCAST_URLS),
+    ),
+    # Prevent
+    re_path(
+        r"^prevent/",
+        include(PREVENT_URLS),
     ),
     #
     #
@@ -3445,6 +3476,12 @@ urlpatterns = [
         r"^uptime-ips/$",
         UptimeIpsEndpoint.as_view(),
         name="sentry-api-0-uptime-ips",
+    ),
+    # Tempest public IP address list
+    re_path(
+        r"^tempest-ips/$",
+        TempestIpsEndpoint.as_view(),
+        name="sentry-api-0-tempest-ips",
     ),
     # Secret Scanning
     re_path(

@@ -10,7 +10,7 @@ import type {
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
@@ -172,8 +172,9 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
-    coreJs: '3.41',
+    coreJs: '3.41.0',
     targets: packageJson.browserslist.production,
+    shippedProposals: true,
   },
   jsc: {
     experimental: {
@@ -184,6 +185,15 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
             sourceMap: true,
             // The "dev-only" option does not seem to apply correctly
             autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+        [
+          'swc-plugin-component-annotate',
+          {
+            'annotate-fragments': false,
+            'component-attr': 'data-sentry-component',
+            'element-attr': 'data-sentry-element',
+            'source-file-attr': 'data-sentry-source-file',
           },
         ],
       ],
@@ -457,7 +467,7 @@ const appConfig: Configuration = {
     preferAbsolute: true,
     modules: ['node_modules'],
     extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
-    symlinks: false,
+    symlinks: true,
   },
   output: {
     crossOriginLoading: 'anonymous',
@@ -772,8 +782,8 @@ if (IS_PRODUCTION) {
         create: false,
       },
       reactComponentAnnotation: {
-        // Only enable in production, annotating is slow in development
-        enabled: true,
+        // Using swc-plugin-react-component-annotate instead
+        enabled: false,
       },
       bundleSizeOptimizations: {
         // This is enabled so that our SDKs send exceptions to Sentry

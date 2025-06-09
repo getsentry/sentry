@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, Never, TypedDict
 from urllib.parse import parse_qsl
 
 from django.http import HttpResponse
@@ -59,6 +59,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
@@ -66,6 +67,8 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
+from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -703,7 +706,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
         return [OAuthLoginView(), GithubOrganizationSelection(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -769,10 +774,10 @@ def record_event(event: IntegrationPipelineViewType):
     )
 
 
-class OAuthLoginView(PipelineView):
+class OAuthLoginView(PipelineView[Never]):
     client: GithubSetupApiClient
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
             lifecycle.add_extra(
@@ -888,8 +893,8 @@ class OAuthLoginView(PipelineView):
         ]
 
 
-class GithubOrganizationSelection(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class GithubOrganizationSelection(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
         has_scm_multi_org = (
             features.has(
@@ -926,7 +931,14 @@ class GithubOrganizationSelection(PipelineView):
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
 
-                if not has_scm_multi_org:
+                # Validate the same org is installing and that they have the multi org feature
+                installing_organization_slug = pipeline.fetch_state("installing_organization_slug")
+                is_same_installing_org = (
+                    (installing_organization_slug is not None)
+                    and installing_organization_slug
+                    == self.active_user_organization.organization.slug
+                )
+                if not has_scm_multi_org or not is_same_installing_org:
                     lifecycle.record_failure(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
                     return error(
                         request,
@@ -951,24 +963,33 @@ class GithubOrganizationSelection(PipelineView):
 
                 pipeline.bind_state("chosen_installation", chosen_installation_id)
                 return pipeline.next_step()
-
+            pipeline.bind_state(
+                "installing_organization_slug", self.active_user_organization.organization.slug
+            )
+            serialized_organization = organization_service.serialize_organization(
+                id=self.active_user_organization.organization.id,
+                as_user=(
+                    serialize_rpc_user(request.user) if isinstance(request.user, User) else None
+                ),
+            )
             return self.render_react_view(
                 request=request,
                 pipeline_name="githubInstallationSelect",
                 props={
                     "installation_info": installation_info,
                     "has_scm_multi_org": has_scm_multi_org,
+                    "organization": serialized_organization,
                     "organization_slug": self.active_user_organization.organization.slug,
                 },
             )
 
 
-class GitHubInstallation(PipelineView):
+class GitHubInstallation(PipelineView[Never]):
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
 
