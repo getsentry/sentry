@@ -333,6 +333,7 @@ module = [
     "sentry.nodestore.django.models",
     "sentry.nodestore.filesystem.backend",
     "sentry.nodestore.models",
+    "sentry.notifications.platform.*",
     "sentry.notifications.services.*",
     "sentry.options.rollout",
     "sentry.organizations.*",

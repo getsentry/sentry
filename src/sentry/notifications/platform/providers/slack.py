@@ -1,0 +1,21 @@
+from typing import Any
+
+from sentry.notifications.platform.providers.base import (
+    NotificationProvider,
+    NotificationProviderKey,
+)
+from sentry.notifications.platform.registry import provider_registry
+from sentry.organizations.services.organization.model import RpcOrganizationSummary
+
+# TODO(ecosystem): Figure out a way to use 'SlackBlock' type
+SlackMessage = Any
+
+
+@provider_registry.register(NotificationProviderKey.SLACK)
+class SlackNotificationProvider(NotificationProvider[SlackMessage]):
+    key = NotificationProviderKey.SLACK
+
+    @classmethod
+    def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
+        # TODO(ecosystem): Check for the integration, maybe a feature as well
+        return False
