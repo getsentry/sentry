@@ -81,7 +81,7 @@ class CodecovApiClient:
             "g_p": git_provider,
         }
 
-    def get(self, endpoint: str, params=None, headers=None) -> requests.Response | None:
+    def get(self, endpoint: str, params=None, headers=None) -> requests.Response:
         """
         Makes a GET request to the specified endpoint of the configured Codecov
         API host with the provided params and headers.
@@ -104,7 +104,7 @@ class CodecovApiClient:
 
         return response
 
-    def post(self, endpoint: str, data=None, headers=None) -> requests.Response | None:
+    def post(self, endpoint: str, data=None, json=None, headers=None) -> requests.Response:
         """
         Makes a POST request to the specified endpoint of the configured Codecov
         API host with the provided data and headers.
@@ -119,7 +119,9 @@ class CodecovApiClient:
         headers.update(jwt.authorization_header(token))
         url = f"{self.base_url}{endpoint}"
         try:
-            response = requests.post(url, data=data, headers=headers, timeout=TIMEOUT_SECONDS)
+            response = requests.post(
+                url, data=data, json=json, headers=headers, timeout=TIMEOUT_SECONDS
+            )
         except Exception:
             logger.exception("Error when making POST request")
             raise
@@ -128,7 +130,7 @@ class CodecovApiClient:
 
     def query(
         self, query: str, variables: dict, provider: GitProvider = GitProvider.GitHub
-    ) -> requests.Response | None:
+    ) -> requests.Response:
         """
         Convenience method for making a GraphQL query to the Codecov API, using the post method of this client.
         This method is used to make GraphQL queries to the Codecov API. Adds headers similar to what's done in Gazebo,
@@ -141,16 +143,16 @@ class CodecovApiClient:
         :return: The response from the Codecov API.
         """
 
-        data = {
+        json = {
             "query": query,
             "variables": variables,
         }
 
         return self.post(
             f"/graphql/sentry/{provider.value}",
-            data=data,
+            json=json,
             headers={
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
                 "Token-Type": f"{provider.value}-token",
             },
