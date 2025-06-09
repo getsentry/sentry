@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 MIN_FEEDBACKS_TO_SUMMARIZE = 10
 MAX_FEEDBACKS_TO_SUMMARIZE = 1000
-# The input token limit for the model is 1,048,576 tokens, see https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash
+# Token limit is 1,048,576 tokens, see https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash
 MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 
 
@@ -37,11 +37,15 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         Get the summary of the user feedbacks of an organization
         ``````````````````````````````````````````````````
 
-        Returns the summary of the user feedbacks. The user feedbacks can be filtered by a list of projects and the date range that they were created in.
+        Returns the summary of the user feedbacks. The user feedbacks can be filtered by:
+        - A list of projects
+        - The date range that they were first seen in (defaults to 7 days)
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string version: the version identifier of the release.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :qparam list[int] project: list of project IDs to filter by
+        :qparam string statsPeriod: filter feedbacks by date range (e.g. "14d")
+        :qparam string start: start date range (alternative to statsPeriod)
+        :qparam string end: end date range (alternative to statsPeriod)
         :auth: required
         """
 
