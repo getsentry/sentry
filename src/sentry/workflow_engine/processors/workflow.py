@@ -82,16 +82,6 @@ def enqueue_workflow(
         value=value,
     )
 
-    logger.info(
-        "workflow_engine.enqueue_workflow",
-        extra={
-            "workflow": workflow.id,
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "delayed_conditions": [condition.id for condition in delayed_conditions],
-        },
-    )
-
 
 def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
