@@ -20,11 +20,9 @@ import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
-import {isEapAlert} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
   AlertType as WizardAlertType,
-  MetricAlertType,
   WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
 import {
@@ -59,7 +57,6 @@ function Create(props: Props) {
     createFromDiscover,
     query,
     createFromWizard,
-    alertOption,
   } = location?.query ?? {};
   const alertType = params.alertType || AlertRuleType.METRIC;
 

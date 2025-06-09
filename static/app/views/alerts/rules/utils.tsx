@@ -179,10 +179,3 @@ export function isEapAlertType(alertType?: AlertType) {
     'trace_item_cls',
   ].includes(alertType);
 }
-
-export function isValidLogsAlert(alertType?: AlertType) {
-  if (!defined(alertType)) {
-    return false;
-  }
-  return ['trace_item_throughput', 'trace_item_failure_rate'].includes(alertType);
-}

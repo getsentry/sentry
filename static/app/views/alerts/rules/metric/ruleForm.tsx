@@ -57,7 +57,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlertType, isValidLogsAlert} from 'sentry/views/alerts/rules/utils';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -70,10 +70,7 @@ import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {
-  deprecateTransactionAlerts,
-  hasLogAlerts,
-} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -1350,11 +1347,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
-    const allowChangeEventTypesForEap =
-      hasLogAlerts(organization) &&
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-      isValidLogsAlert(alertType);
-
     // Rendering the main form body
     return (
       <Main fullWidth>
@@ -1427,9 +1419,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     aggregate={aggregate}
                     alertType={alertType}
                     allowChangeEventTypes={
-                      dataset === Dataset.ERRORS ||
-                      alertType === 'custom_transactions' ||
-                      allowChangeEventTypesForEap
+                      dataset === Dataset.ERRORS || alertType === 'custom_transactions'
                     }
                     comparisonDelta={comparisonDelta}
                     comparisonType={comparisonType}
