@@ -1,4 +1,10 @@
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import UTC, datetime
+from unittest.mock import patch
+
+import pytest
+from openai.types.chat.chat_completion import ChatCompletion, Choice
+from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.testutils.cases import APITestCase
@@ -6,20 +12,46 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 
 
-def create_dummy_summary_response(*args, **kwargs):
-    """Mock the AI summary response"""
-    if len(args[0]) <= 10:  # If less than 10 feedbacks, return None
-        return None
-    return "Summary: Test summary of feedback"
+def create_dummy_response(*args, **kwargs):
+    return ChatCompletion(
+        id="test",
+        choices=[
+            Choice(
+                index=0,
+                message=ChatCompletionMessage(
+                    content=("Summary: Test summary of feedback"),
+                    role="assistant",
+                ),
+                finish_reason="stop",
+            )
+        ],
+        created=int(time.time()),
+        model="gpt3.5-trubo",
+        object="chat.completion",
+    )
 
 
-def create_test_feedbacks(project, num_feedbacks=15, days_ago=3):
-    """Helper function to create test feedbacks using create_feedback_issue"""
-    now = datetime.now(timezone.utc)
-    feedbacks = []
+@pytest.fixture(autouse=True)
+def llm_settings(set_sentry_option):
+    with (
+        set_sentry_option(
+            "llm.provider.options",
+            {"openai": {"models": ["gpt-4-turbo-1.0"], "options": {"api_key": "fake_api_key"}}},
+        ),
+        set_sentry_option(
+            "llm.usecases.options",
+            {"feedbacksummaries": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
+        ),
+    ):
+        yield
 
-    base_event = {
-        "project_id": project.id,
+
+def mock_feedback_event(project_id: int, dt: datetime | None = None):
+    if dt is None:
+        dt = datetime.now(UTC)
+
+    return {
+        "project_id": project_id,
         "request": {
             "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             "headers": {
@@ -27,22 +59,22 @@ def create_test_feedbacks(project, num_feedbacks=15, days_ago=3):
             },
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-        "timestamp": (now - timedelta(days=days_ago)).timestamp(),
-        "received": (now - timedelta(days=days_ago)).isoformat(),
+        "timestamp": dt.timestamp(),
+        "received": dt.isoformat(),
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "user": {
             "ip_address": "72.164.175.154",
-            "email": "test.user@example.com",
+            "email": "josh.ferge@sentry.io",
             "id": 880461,
             "isStaff": False,
-            "name": "Test User",
+            "name": "Josh Ferge",
         },
         "contexts": {
             "feedback": {
-                "contact_email": "test.user@example.com",
-                "name": "Test User",
-                "message": "",  # Will be set per feedback
+                "contact_email": "josh.ferge@sentry.io",
+                "name": "Josh Ferge",
+                "message": "Testing!!",
                 "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
                 "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             },
@@ -51,23 +83,9 @@ def create_test_feedbacks(project, num_feedbacks=15, days_ago=3):
         "platform": "javascript",
     }
 
-    for i in range(num_feedbacks):
-        event = base_event.copy()
-        event["contexts"] = base_event["contexts"].copy()
-        event["contexts"]["feedback"] = base_event["contexts"]["feedback"].copy()
-        event["contexts"]["feedback"]["message"] = f"This is feedback message {i}"
-        event["timestamp"] = (now - timedelta(days=days_ago, hours=i)).timestamp()
-        event["received"] = (now - timedelta(days=days_ago, hours=i)).isoformat()
-
-        create_feedback_issue(event, project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-        # feedbacks.append(feedback)
-
-    # print("count feedbacks created", Group.objects.all().count())
-
-    return feedbacks
-
 
 @region_silo_test
+@pytest.mark.usefixtures("monkeypatch")
 class OrganizationFeedbackSummaryTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-summary"
 
@@ -76,146 +94,24 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
-        self.project = self.create_project(teams=[self.team])
+        self.project1 = self.create_project(teams=[self.team])
         self.project2 = self.create_project(teams=[self.team])
 
-        # Create feedback issues with different timestamps
-        # now = datetime.now(timezone.utc)
-        self.feedbacks = []
-
-        # event = {
-        #     "project_id": self.project.id,
-        #     "request": {
-        #         "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-        #         "headers": {
-        #             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-        #         },
-        #     },
-        #     "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-        #     "timestamp": 1698255009.574,
-        #     "received": "2021-10-24T22:23:29.574000+00:00",
-        #     "environment": "prod",
-        #     "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
-        #     "user": {
-        #         "ip_address": "72.164.175.154",
-        #         "email": "josh.ferge@sentry.io",
-        #         "id": 880461,
-        #         "isStaff": False,
-        #         "name": "Josh Ferge",
-        #     },
-        #     "contexts": {
-        #         "feedback": {
-        #             "contact_email": "josh.ferge@sentry.io",
-        #             "name": "Josh Ferge",
-        #             "message": "This is definitely spam",
-        #             "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
-        #             "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-        #         },
-        #     },
-        #     "breadcrumbs": [],
-        #     "platform": "javascript",
-        # }
-        # create_feedback_issue(event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-        # print(
-        #     Group.objects.all()[0].data["metadata"]["message"],
-        #     Group.objects.all()[0].first_seen.strftime("%B %d, %Y at %I:%M %p"),
-        # )
-
-        # for i in range(15):  # Create 15 feedbacks
-
-        #     # feedback = self.create_group(
-        #     #     project=self.project,
-        #     #     type=FeedbackGroup.type_id,
-        #     #     message=f"Feedback {i}",
-        #     #     status=GroupStatus.UNRESOLVED,
-        #     #     substatus=GroupSubStatus.NEW,
-        #     #     first_seen=now - timedelta(days=3, hours=i),  # Spread over 3 days
-        #     #     data={"metadata": {"message": f"This is feedback message {i}"}},
-        #     # )
-        #     # self.feedbacks.append(feedback)
-
-        # # Create some resolved feedbacks
-        # self.resolved_feedback = self.create_group(
-        #     project=self.project,
-        #     type=FeedbackGroup.type_id,
-        #     message="Resolved feedback",
-        #     status=GroupStatus.RESOLVED,
-        #     first_seen=now - timedelta(days=2),
-        #     data={"metadata": {"message": "This is a resolved feedback"}},
-        # )
-
-        # # Create some ignored feedbacks (should be excluded)
-        # self.ignored_feedback = self.create_group(
-        #     project=self.project,
-        #     type=FeedbackGroup.type_id,
-        #     message="Ignored feedback",
-        #     status=GroupStatus.IGNORED,
-        #     substatus=GroupSubStatus.FOREVER,
-        #     first_seen=now - timedelta(days=2),
-        #     data={"metadata": {"message": "This is an ignored feedback"}},
-        # )
-
     @django_db_all
-    def test_get_feedback_summary_basic(self):
+    @patch("sentry.llm.providers.openai.OpenAI")
+    def test_get_feedback_summary_basic(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
 
-        # now = datetime.now(timezone.utc)
-        # feedbacks = []
-
-        event = {
-            "project_id": self.project.id,
-            "request": {
-                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-                "headers": {
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-                },
-            },
-            "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-            "timestamp": 1698255009.574,
-            "received": "2021-10-24T22:23:29.574000+00:00",
-            "environment": "prod",
-            "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
-            "user": {
-                "ip_address": "72.164.175.154",
-                "email": "josh.ferge@sentry.io",
-                "id": 880461,
-                "isStaff": False,
-                "name": "Josh Ferge",
-            },
-            "contexts": {
-                "feedback": {
-                    "contact_email": "josh.ferge@sentry.io",
-                    "name": "Josh Ferge",
-                    "message": "This is a feedback message",
-                    "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
-                    "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-                },
-            },
-            "breadcrumbs": [],
-            "platform": "javascript",
-        }
-        create_feedback_issue(event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-        # for i in range(15):
-        # event = base_event.copy()
-        # event["contexts"] = base_event["contexts"].copy()
-        # event["contexts"]["feedback"] = base_event["contexts"]["feedback"].copy()
-        # event["contexts"]["feedback"]["message"] = f"This is feedback message {i}"
-        # event["timestamp"] = (now - timedelta(days=3, hours=i)).timestamp()
-        # event["received"] = (now - timedelta(days=3, hours=i)).isoformat()
-
-        # feedback = create_feedback_issue(
-        #     event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        # )
-        # feedbacks.append(feedback)
-
-        # print("count feedbacks created", Group.objects.all().count())
+        for _ in range(15):
+            event = mock_feedback_event(self.project.id)
+            create_feedback_issue(
+                event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
 
         response = self.get_success_response(self.org.slug)
-        # print("this is the print statement", response.data)
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
-        assert response.data["num_feedbacks_used"] == 15  # All feedbacks within 7 days
+        assert response.data["num_feedbacks_used"] == 15  # Uses all of the created feedbacks
 
     # @patch(
     #     "sentry.feedback.usecases.feedback_summaries.generate_summary",

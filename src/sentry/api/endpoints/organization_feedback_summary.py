@@ -18,6 +18,7 @@ from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
+MIN_FEEDBACKS_TO_SUMMARIZE = 10
 MAX_FEEDBACKS_TO_SUMMARIZE = 1000
 # The input token limit for the model is 1,048,576 tokens, see https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash
 MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
@@ -79,7 +80,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         ]
 
         # Experiment with this number; it also depends on the quality of the feedbacks and the diversity of topics that they touch upon
-        if groups.count() <= 10:
+        if groups.count() <= MIN_FEEDBACKS_TO_SUMMARIZE:
             return Response({"summary": None, "success": False, "num_feedbacks_used": 0})
 
         # A limit of 1000 feedbacks already exists, but we also want to cap the number of characters that we send to the LLM
