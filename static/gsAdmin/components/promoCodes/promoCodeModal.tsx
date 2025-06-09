@@ -57,7 +57,7 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
 
   const handleGenerateCode = () => {
     const newCode = generatePromoCode();
-    setInitialFormData(prev => ({...prev, code: newCode}));
+    setInitialFormData((prev: any) => ({...prev, code: newCode}));
 
     // Update the form field if the form ref is available
     if (formRef.current) {
@@ -89,7 +89,6 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
       </Header>
       <Body>
         <ApiForm
-          ref={formRef}
           apiMethod={promoCode ? 'PUT' : 'POST'}
           apiEndpoint={promoCode ? `/promocodes/${promoCode.code}/` : '/promocodes/'}
           onSubmitSuccess={(newCode: PromoCode) => {
