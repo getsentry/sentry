@@ -110,6 +110,7 @@ class ActionHandlerSerializer(Serializer):
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
+                "installationUuid": str(installation.uuid),
                 "status": installation.sentry_app.status,
             }
             if component:
