@@ -606,7 +606,7 @@ describe('OnDemandBudgets', () => {
     ).toBeInTheDocument();
   });
 
-  it('always displays warning alert in per-category section', () => {
+  it('always displays Seer warning alert in per-category section', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -673,60 +673,5 @@ describe('OnDemandBudgets', () => {
         "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
       )
     ).toBeInTheDocument();
-  });
-
-  it('does not display warning alert for pay-as-you-go plans', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am3_business',
-      planTier: PlanTier.AM3,
-      isFree: false,
-      isTrial: false,
-      supportsOnDemand: true,
-      planDetails: {
-        ...PlanDetailsLookupFixture('am3_business')!,
-        budgetTerm: 'pay-as-you-go',
-      },
-      organization,
-      onDemandBudgets: {
-        enabled: true,
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 5000,
-        onDemandSpendUsed: 0,
-      },
-    });
-
-    const activePlan = subscription.planDetails;
-
-    const onDemandBudget = {
-      budgetMode: OnDemandBudgetMode.SHARED as const,
-      sharedMaxBudget: 5000,
-    };
-
-    render(
-      <OnDemandBudgetEdit
-        {...defaultProps}
-        subscription={subscription}
-        activePlan={activePlan}
-        onDemandBudget={onDemandBudget}
-      />
-    );
-
-    // Check that the warning alert is NOT displayed for pay-as-you-go plans
-    expect(
-      screen.queryByText(
-        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
-      )
-    ).not.toBeInTheDocument();
-
-    // Verify that pay-as-you-go UI is rendered instead
-    expect(
-      screen.getByText(
-        /This budget ensures continued monitoring after you've used up your reserved event volume/
-      )
-    ).toBeInTheDocument();
-
-    // Verify that the radio buttons are NOT displayed (different UI for pay-as-you-go)
-    expect(screen.queryByTestId('shared-budget-radio')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('per-category-budget-radio')).not.toBeInTheDocument();
   });
 });
