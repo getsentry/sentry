@@ -2,10 +2,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import Placeholder from 'sentry/components/placeholder';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
-import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
@@ -29,17 +28,14 @@ export function DetectorListRow({
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
-      <Flex justify="space-between">
-        <CellWrapper>
-          <StyledTitleCell
-            name={name}
-            projectId={projectId}
-            link={link}
-            disabled={disabled}
-          />
-        </CellWrapper>
-        <StyledGraphCell />
-      </Flex>
+      <CellWrapper>
+        <StyledTitleCell
+          name={name}
+          projectId={projectId}
+          link={link}
+          disabled={disabled}
+        />
+      </CellWrapper>
       <CellWrapper className="type">
         <TypeCell type={type} />
       </CellWrapper>
@@ -59,15 +55,30 @@ export function DetectorListRow({
   );
 }
 
-const StyledCheckbox = styled(Checkbox)<{checked?: boolean}>`
-  visibility: ${p => (p.checked ? 'visible' : 'hidden')};
-  align-self: flex-start;
-  opacity: 1;
-`;
-
-const StyledGraphCell = styled(EmptyCell)`
-  width: 35%;
-`;
+export function DetectorListRowSkeleton() {
+  return (
+    <RowWrapper>
+      <CellWrapper>
+        <div style={{width: '100%'}}>
+          <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
+          <Placeholder height="16px" width="20%" />
+        </div>
+      </CellWrapper>
+      <CellWrapper className="type">
+        <Placeholder height="20px" />
+      </CellWrapper>
+      <CellWrapper className="last-issue">
+        <Placeholder height="20px" />
+      </CellWrapper>
+      <CellWrapper className="creator">
+        <Placeholder height="20px" />
+      </CellWrapper>
+      <CellWrapper className="connected-automations">
+        <Placeholder height="20px" />
+      </CellWrapper>
+    </RowWrapper>
+  );
+}
 
 const CellWrapper = styled(Flex)`
   padding: 0 ${space(2)};
@@ -93,16 +104,10 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      ${CellWrapper}, ${StyledGraphCell} {
+      ${CellWrapper}, {
         opacity: 0.6;
       }
     `}
-
-  &:hover {
-    ${StyledCheckbox} {
-      visibility: visible;
-    }
-  }
 
   .type,
   .owner,
