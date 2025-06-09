@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import logging
 from dataclasses import asdict
 from enum import StrEnum
@@ -79,7 +80,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
-    def get_handler(self) -> ActionHandler:
+    def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
