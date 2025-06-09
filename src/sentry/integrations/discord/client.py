@@ -166,7 +166,7 @@ class DiscordClient(ApiClient):
             code_to_use = code if isinstance(code, int) else None
             self._handle_failure(code=code_to_use, log_params=log_params, resp=resp)
         else:
-            self._handle_success(log_params=log_params)
+            self._handle_success()
 
     def _handle_failure(
         self,
@@ -218,17 +218,14 @@ class DiscordClient(ApiClient):
             metrics_key,
             sample_rate=1.0,
         )
-        self.logger.info("handled discord error", extra=log_params)
 
     def _handle_success(
         self,
-        log_params: dict[str, Any],
     ) -> None:
         metrics.incr(
             self._METRICS_SUCCESS_KEY,
             sample_rate=1.0,
         )
-        self.logger.info("handled discord success", extra=log_params)
 
     def send_message(self, channel_id: str, message: dict[str, object]) -> None:
         """

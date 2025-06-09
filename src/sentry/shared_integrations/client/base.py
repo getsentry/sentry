@@ -98,17 +98,6 @@ class BaseApiClient:
             tags={self.integration_type: self.name, "status": code},
         )
 
-        log_params = {
-            **(extra or {}),
-            "status_string": str(code),
-            "error": str(error)[:256] if error else None,
-        }
-        if self.integration_type:
-            log_params[self.integration_type] = self.name
-
-        log_params.update(getattr(self, "logging_context", None) or {})
-        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
-
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"
 

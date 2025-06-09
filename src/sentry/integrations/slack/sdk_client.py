@@ -33,14 +33,6 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
         tags={"ok": is_ok, "status": code},
     )
 
-    extra = {
-        "integration": "slack",
-        "status_string": str(code),
-        "error": error,
-        "method": method,
-    }
-    logger.info("integration.http_response", extra=extra)
-
 
 def is_response_fatal(response: SlackResponse) -> bool:
     if not response.get("ok"):
