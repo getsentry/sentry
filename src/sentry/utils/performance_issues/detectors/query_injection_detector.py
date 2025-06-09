@@ -58,10 +58,10 @@ class QueryInjectionDetector(PerformanceDetector):
         unsafe_inputs = []
         for input_pair in self.potential_unsafe_inputs:
             input_key, input_value = input_pair
-            # Replace all value in pair with "?" since the query description is sanitized
+            # Replace all operands in filter with "?" since the query description is sanitized
             if isinstance(input_value, dict):
                 for dict_key, dict_value in input_value.items():
-                    if dict_value and not isinstance(dict_value, dict):
+                    if dict_key and not isinstance(dict_value, dict):
                         input_value[dict_key] = "?"
 
             input_dict = {input_key: input_value}
