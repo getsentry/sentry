@@ -421,6 +421,7 @@ module = [
     "sentry.utils.redis_metrics",
     "sentry.utils.registry",
     "sentry.utils.sdk_crashes.*",
+    "sentry.utils.security.*",
     "sentry.utils.sentry_apps.*",
     "sentry.utils.services",
     "sentry.utils.sms",
