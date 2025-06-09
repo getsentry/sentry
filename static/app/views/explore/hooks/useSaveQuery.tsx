@@ -27,8 +27,6 @@ export function useSaveQuery() {
   const invalidateSavedQueries = useInvalidateSavedQueries();
   const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
-  const visualize = visualizes.map(v => v.toJSON());
-
   const data = useMemo(() => {
     return {
       name: title,
@@ -45,7 +43,7 @@ export function useSaveQuery() {
           orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
           groupby: groupBys.filter(groupBy => groupBy !== ''),
           query: query ?? '',
-          visualize,
+          visualize: visualizes.map(visualize => visualize.toJSON()),
           mode,
         },
       ],
@@ -53,7 +51,7 @@ export function useSaveQuery() {
   }, [
     groupBys,
     sortBys,
-    visualize,
+    visualizes,
     fields,
     query,
     mode,
