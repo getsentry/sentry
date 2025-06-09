@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import React, {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -134,22 +134,21 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
             placeholder="e.g. pycon"
             help="An optional campaign identifier for this promo code."
           />
-          <BooleanField
-            {...fieldProps}
-            name="isTrialPromo"
-            label="Create trial promo code?"
-            placeholder=""
-            onChange={() => setIsTrialPromo(!isTrialPromo)}
-          />
+          {React.createElement(BooleanField as any, {
+            ...fieldProps,
+            name: 'isTrialPromo',
+            label: 'Create trial promo code?',
+            placeholder: '',
+            onChange: () => setIsTrialPromo(!isTrialPromo),
+          })}
           {!isTrialPromo && (
             <div>
-              <SelectField
-                {...fieldProps}
-                name="duration"
-                label="Duration"
-                help="How many times will this promo be applied to their account?"
-                // TODO: make choices available on api endoint and retrieve when modal opens
-                choices={[
+              {React.createElement(SelectField as any, {
+                ...fieldProps,
+                name: 'duration',
+                label: 'Duration',
+                help: 'How many times will this promo be applied to their account?',
+                choices: [
                   ['1', 'Once'],
                   ['2', 'Two Months'],
                   ['3', 'Three Months'],
@@ -162,9 +161,9 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
                   ['10', 'Ten Months'],
                   ['11', 'Eleven Months'],
                   ['12', 'Twelve Months'],
-                ]}
-                required
-              />
+                ],
+                required: true,
+              })}
               <TextField
                 {...fieldProps}
                 name="amount"
@@ -190,28 +189,27 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
             help="The maximum number of accounts which can claim this code."
             required
           />
-          <BooleanField
-            {...fieldProps}
-            name="newOnly"
-            label="Only allow this code to be applied to new accounts."
-            placeholder=""
-          />
-          <BooleanField
-            {...fieldProps}
-            name="setExpiration"
-            label="Set an expiration date for the promo code?"
-            placeholder=""
-            onChange={() => setIsDateToggleEnabled(!isDateToggleEnabled)}
-          />
-          {isDateToggleEnabled && (
-            <DateTimeField
-              {...fieldProps}
-              name="dateExpires"
-              label="Date Expires"
-              help="Optional date the promotion will no longer be valid after."
-              readOnly={false}
-            />
-          )}
+          {React.createElement(BooleanField as any, {
+            ...fieldProps,
+            name: 'newOnly',
+            label: 'Only allow this code to be applied to new accounts.',
+            placeholder: '',
+          })}
+          {React.createElement(BooleanField as any, {
+            ...fieldProps,
+            name: 'setExpiration',
+            label: 'Set an expiration date for the promo code?',
+            placeholder: '',
+            onChange: () => setIsDateToggleEnabled(!isDateToggleEnabled),
+          })}
+          {isDateToggleEnabled &&
+            React.createElement(DateTimeField as any, {
+              ...fieldProps,
+              name: 'dateExpires',
+              label: 'Date Expires',
+              help: 'Optional date the promotion will no longer be valid after.',
+              readOnly: false,
+            })}
         </ApiForm>
       </Body>
     </Fragment>
