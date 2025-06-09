@@ -15,16 +15,15 @@ import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import packageJson from './package.json' with {type: 'json'};
 
-const remarkFrontmatter = import('remark-frontmatter');
-const remarkGfm = import('remark-gfm');
-
 const {env} = process;
+const __dirname = import.meta.dirname;
 
 // Environment configuration
 env.NODE_ENV = env.NODE_ENV ?? 'development';
@@ -365,7 +364,7 @@ const appConfig: Configuration = {
      * TODO(epurkhiser): Figure out if we still need these
      */
     new rspack.ProvidePlugin({
-      process: 'process/browser',
+      process: 'process/browser.js',
       Buffer: ['buffer', 'Buffer'],
     }),
 
@@ -477,7 +476,7 @@ const appConfig: Configuration = {
       // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
-      'process/browser': require.resolve('process/browser'),
+      'process/browser': import.meta.resolve('process/browser'),
     },
 
     // Prefers local modules over node_modules
@@ -813,7 +812,7 @@ if (IS_PRODUCTION) {
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
-  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+  const {codecovWebpackPlugin} = import('@codecov/webpack-plugin');
   // defaulting to an empty string which in turn will fallback to env var or
   // determine merge commit sha from git
   const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
