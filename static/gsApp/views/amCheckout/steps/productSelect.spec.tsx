@@ -17,7 +17,7 @@ describe('ProductSelect', function () {
   const params = {};
 
   beforeEach(function () {
-    organization.features = ['seer-billing'];
+    MockApiClient.clearMockResponses();
     subscription.reservedBudgets = [];
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -80,7 +80,16 @@ describe('ProductSelect', function () {
   });
 
   it('does not render products if flags are missing', async function () {
-    organization.features = [];
+    const mockBillingConfig = structuredClone(BillingConfigFixture(PlanTier.AM3));
+    mockBillingConfig.planList.forEach(plan => {
+      plan.features = plan.features.filter(feature => feature !== 'seer-billing');
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: mockBillingConfig,
+    });
+
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
