@@ -106,6 +106,10 @@ class ScheduleEntry:
         return self._task.fullname
 
     @property
+    def namespace(self) -> str:
+        return self._task.namespace.name
+
+    @property
     def taskname(self) -> str:
         return self._task.name
 
@@ -227,7 +231,13 @@ class ScheduleRunner:
             entry.set_last_run(now)
 
             logger.info("taskworker.scheduler.delay_task", extra={"fullname": entry.fullname})
-            metrics.incr("taskworker.scheduler.delay_task", tags={"taskname": entry.taskname})
+            metrics.incr(
+                "taskworker.scheduler.delay_task",
+                tags={
+                    "taskname": entry.taskname,
+                    "namespace": entry.namespace,
+                },
+            )
         else:
             # sync with last_run state in storage
             entry.set_last_run(self._run_storage.read(entry.fullname))
