@@ -10,8 +10,3 @@ export interface FlagDrawerItem extends GroupTag {
     score: undefined | number;
   };
 }
-
-export interface SuspectFlagDrawerItem extends FlagDrawerItem {
-  changeBeforeFirstSeen: undefined | unknown[];
-  changes: undefined | unknown[];
-}
