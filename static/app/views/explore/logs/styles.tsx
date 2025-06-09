@@ -328,6 +328,7 @@ export const BottomSectionBody = styled('div')`
 `;
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
+  height: 100%;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};

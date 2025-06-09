@@ -28,6 +28,7 @@ import {
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAggregate,
   useLogsAggregateFunction,
   useLogsAggregateParam,
   useLogsFields,
@@ -55,9 +56,9 @@ import {
   ToolbarAndBodyContainer,
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
+import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -89,19 +90,17 @@ export function LogsTabContent({
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
   const aggregateFunction = useLogsAggregateFunction();
-  const _aggregateParam = useLogsAggregateParam();
+  const aggregateParam = useLogsAggregateParam();
+  const aggregate = useLogsAggregate();
   const [sidebarOpen, setSidebarOpen] = useState(
-    !!(aggregateFunction !== 'count' || _aggregateParam || groupBy)
+    !!(aggregateFunction !== 'count' || aggregateParam || groupBy)
   );
-  const aggregateParam =
-    (aggregateFunction === 'count' ? null : _aggregateParam) ||
-    OurLogKnownFieldKey.MESSAGE;
   const timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
-      yAxis: [`${aggregateFunction}(${aggregateParam})`],
+      yAxis: [aggregate],
       interval,
-      fields: [...(groupBy ? [groupBy] : []), `${aggregateFunction}(${aggregateParam})`],
+      fields: [...(groupBy ? [groupBy] : []), aggregate],
       topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
@@ -262,7 +261,9 @@ export function LogsTabContent({
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
                 />
-              ) : null}
+              ) : (
+                <LogsAggregateTable />
+              )}
             </LogsItemContainer>
           </section>
         </BottomSectionBody>
