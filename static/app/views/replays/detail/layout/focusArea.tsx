@@ -1,4 +1,5 @@
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import AISummary from 'sentry/views/replays/detail/aiSummary';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
@@ -18,6 +19,8 @@ export default function FocusArea({
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
   switch (getActiveTab()) {
+    case TabKey.AI_SUMMARY:
+      return <AISummary replayRecord={replayRecord} />;
     case TabKey.NETWORK:
       return <NetworkList />;
     case TabKey.TRACE:
