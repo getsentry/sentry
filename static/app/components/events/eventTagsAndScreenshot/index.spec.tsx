@@ -510,6 +510,22 @@ describe('EventTagsAndScreenshot', function () {
 
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/repos/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: project,
+      });
+      MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: flexibleScreenshotAttachments,
       });
@@ -520,7 +536,9 @@ describe('EventTagsAndScreenshot', function () {
       await assertTagsView();
 
       // Should show Screenshots section (plural) since we have 2 screenshot files
-      expect(await screen.findByRole('region', {name: 'Screenshots'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('region', {name: 'Screenshots'})
+      ).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
 
       // Should detect crash_screenshot.png as the first screenshot
