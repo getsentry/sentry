@@ -6,9 +6,11 @@ import {
   getArgsToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {
-  FieldDefinitionGetter,
-  FocusOverride,
+import {
+  type FieldDefinitionGetter,
+  type FocusOverride,
+  isTermOperator,
+  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -92,7 +94,7 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: TermOperator;
+  op: SearchQueryBuilderOperators;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -163,7 +165,7 @@ function deleteQueryTokens(
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: SearchQueryBuilderOperators
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
@@ -172,7 +174,13 @@ function modifyFilterOperatorQuery(
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  if (isTermOperator(newOperator)) {
+    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  } else {
+    // whenever we have a wildcard operator, we want to set the operator to the default,
+    // because there is no special characters for the wildcard operators just the asterisk
+    newToken.operator = TermOperator.DEFAULT;
+  }
   newToken.negated = isNotEqual;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
@@ -198,7 +206,7 @@ function modifyFilterOperator(
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: SearchQueryBuilderOperators
 ): string {
   switch (newOperator) {
     case TermOperator.GREATER_THAN:

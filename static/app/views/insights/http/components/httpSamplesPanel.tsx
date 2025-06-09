@@ -419,7 +419,10 @@ export function HTTPSamplesPanel() {
                 <ModuleLayout.Full>
                   <InsightsLineChartWidget
                     showLegend="never"
-                    search={search}
+                    queryInfo={{
+                      search,
+                      referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
+                    }}
                     title={getDurationChartTitle('http')}
                     isLoading={isDurationDataFetching}
                     error={durationError}
@@ -435,6 +438,7 @@ export function HTTPSamplesPanel() {
                 <ModuleLayout.Full>
                   <ResponseCodeCountChart
                     search={search}
+                    referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
                     groupBy={[SpanFields.RESPONSE_CODE]}
                     series={Object.values(responseCodeData).filter(Boolean)}
                     isLoading={isResponseCodeDataLoading}

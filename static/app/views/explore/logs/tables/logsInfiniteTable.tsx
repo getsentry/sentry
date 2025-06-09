@@ -44,6 +44,7 @@ import {
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
+  getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getTableHeaderLabel,
   logsFieldAlignment,
@@ -58,7 +59,6 @@ type LogsTableProps = {
   stringAttributes?: TagCollection;
 };
 
-const LOGS_GRID_SCROLL_ITEM_THRESHOLD = 20; // Items from bottom of table to trigger table fetch.
 const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
 const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
@@ -84,6 +84,7 @@ export function LogsInfiniteTable({
     fetchPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
+    lastPageLength,
   } = infiniteLogsQueryResult;
 
   const tableRef = useRef<HTMLTableElement>(null);
@@ -171,7 +172,7 @@ export function LogsInfiniteTable({
       if (
         scrollDirection === 'forward' &&
         lastItemIndex &&
-        lastItemIndex >= data?.length - LOGS_GRID_SCROLL_ITEM_THRESHOLD
+        lastItemIndex >= data?.length - getDynamicLogsNextFetchThreshold(lastPageLength)
       ) {
         fetchNextPage();
       }
@@ -183,6 +184,7 @@ export function LogsInfiniteTable({
     isScrolling,
     fetchNextPage,
     fetchPreviousPage,
+    lastPageLength,
     scrollOffset,
     isFunctionScrolling,
   ]);

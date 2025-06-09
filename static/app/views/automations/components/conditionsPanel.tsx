@@ -2,16 +2,22 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Action} from 'sentry/types/workflowEngine/actions';
+import type {
+  Action,
+  ActionHandler,
+  ActionType,
+} from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,
   DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
 type ConditionsPanelProps = {
   actionFilters: DataConditionGroup[];
@@ -21,18 +27,18 @@ type ConditionsPanelProps = {
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      <Flex column gap={space(1)}>
-        <div>
+      <ConditionGroupWrapper>
+        <ConditionGroupHeader>
           {tct('[when:When] any of the following occur', {
             when: <ConditionBadge />,
           })}
-        </div>
+        </ConditionGroupHeader>
         {triggers.conditions.map((trigger, index) => (
           <div key={index}>
             <DataConditionDetails condition={trigger} />
           </div>
         ))}
-      </Flex>
+      </ConditionGroupWrapper>
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
           <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
@@ -42,19 +48,32 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   );
 }
 
+function findActionHandler(
+  type: ActionType,
+  availableActions: ActionHandler[]
+): ActionHandler | undefined {
+  return availableActions.find(handler => handler.type === type);
+}
+
 interface ActionFilterProps {
   actionFilter: DataConditionGroup;
   totalFilters: number;
 }
 
 function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
+  const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
   return (
-    <ActionFilterWrapper showDivider={totalFilters > 1}>
-      <div>
+    <ConditionGroupWrapper showDivider={totalFilters > 1}>
+      <ConditionGroupHeader>
         {tct('[if:If] any of these filters match', {
           if: <ConditionBadge />,
         })}
-      </div>
+      </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
         ? actionFilter.conditions.map((filter, index) => (
             <div key={index}>
@@ -62,17 +81,20 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
             </div>
           ))
         : t('Any event')}
-      <div>
+      <ConditionGroupHeader>
         {tct('[then:Then] perform these actions', {
           then: <ConditionBadge />,
         })}
-      </div>
+      </ConditionGroupHeader>
       {actionFilter.actions?.map((action, index) => (
         <div key={index}>
-          <ActionDetails action={action} />
+          <ActionDetails
+            action={action}
+            handler={findActionHandler(action.type, availableActions)}
+          />
         </div>
       ))}
-    </ActionFilterWrapper>
+    </ConditionGroupWrapper>
   );
 }
 
@@ -87,15 +109,24 @@ function DataConditionDetails({condition}: {condition: DataCondition}) {
   return <Component condition={condition} />;
 }
 
-function ActionDetails({action}: {action: Action}) {
+interface ActionDetailsProps {
+  action: Action;
+  handler: ActionHandler | undefined;
+}
+
+function ActionDetails({action, handler}: ActionDetailsProps) {
   const node = actionNodesMap.get(action.type);
   const Component = node?.details;
 
-  if (!Component) {
+  if (!Component || !handler) {
     return <span>{node?.label}</span>;
   }
 
-  return <Component action={action} />;
+  return (
+    <Flex wrap="wrap" gap={space(1)} flex={1}>
+      <Component action={action} handler={handler} />
+    </Flex>
+  );
 }
 
 const Panel = styled('div')`
@@ -108,10 +139,15 @@ const Panel = styled('div')`
   padding: ${space(1.5)};
 `;
 
-const ActionFilterWrapper = styled('div')<{showDivider?: boolean}>`
+const ConditionGroupHeader = styled('div')`
+  color: ${p => p.theme.textColor};
+`;
+
+const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  color: ${p => p.theme.subText};
 
   ${p =>
     p.showDivider &&

@@ -123,7 +123,7 @@ def _make_rpc_requests(
     partial_request = partial(
         _make_rpc_request,
         thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+        thread_current_scope=sentry_sdk.get_current_scope(),
     )
     response = [
         result
@@ -253,9 +253,7 @@ def _make_rpc_request(
         else thread_isolation_scope
     )
     thread_current_scope = (
-        sentry_sdk.Scope.get_current_scope()
-        if thread_current_scope is None
-        else thread_current_scope
+        sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
     )
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson

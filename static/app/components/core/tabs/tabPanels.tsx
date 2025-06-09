@@ -1,4 +1,5 @@
 import {useContext, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabPanelProps} from '@react-aria/tabs';
 import {useTabPanel} from '@react-aria/tabs';
@@ -7,13 +8,16 @@ import {ListCollection} from '@react-stately/list';
 import type {TabListState} from '@react-stately/tabs';
 import type {CollectionBase, Node, Orientation} from '@react-types/shared';
 
-import {Item} from './item';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
+
+import {TabPanelItem} from './item';
 import {tabsShouldForwardProp} from './utils';
 import {TabsContext} from '.';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-interface TabPanelsProps extends AriaTabPanelProps, CollectionBase<any> {
+interface TabPanelsProps extends AriaTabPanelProps {
+  children: CollectionBase<unknown>['children'];
   className?: string;
 }
 
@@ -52,7 +56,7 @@ export function TabPanels(props: TabPanelsProps) {
   );
 }
 
-TabPanels.Item = Item;
+TabPanels.Item = TabPanelItem;
 
 interface TabPanelProps extends AriaTabPanelProps {
   state: TabListState<any>;
@@ -88,7 +92,16 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 }>`
   border-radius: ${p => p.theme.borderRadius};
 
-  ${p => (p.orientation === 'horizontal' ? `height: 100%;` : `width: 100%;`)};
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          height: 100%;
+          padding-top: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
+        `
+      : css`
+          width: 100%;
+          padding-left: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
+        `};
 
   &:focus-visible {
     outline: none;
