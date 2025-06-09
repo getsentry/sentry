@@ -266,31 +266,25 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderEventTypeFilter() {
     const {organization, disabled, alertType, isErrorMigration} = this.props;
 
-    const dataSourceOptions: Array<{
-      label: string;
-      options: Array<{
-        label: string;
-        value: Datasource;
-      }>;
-    }> = [];
-
-    dataSourceOptions.push({
-      label: t('Errors'),
-      options: [
-        {
-          value: Datasource.ERROR_DEFAULT,
-          label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
-        },
-        {
-          value: Datasource.DEFAULT,
-          label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
-        },
-        {
-          value: Datasource.ERROR,
-          label: DATA_SOURCE_LABELS[Datasource.ERROR],
-        },
-      ],
-    });
+    const dataSourceOptions = [
+      {
+        label: t('Errors'),
+        options: [
+          {
+            value: Datasource.ERROR_DEFAULT,
+            label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
+          },
+          {
+            value: Datasource.DEFAULT,
+            label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
+          },
+          {
+            value: Datasource.ERROR,
+            label: DATA_SOURCE_LABELS[Datasource.ERROR],
+          },
+        ],
+      },
+    ];
 
     if (
       organization.features.includes('performance-view') &&

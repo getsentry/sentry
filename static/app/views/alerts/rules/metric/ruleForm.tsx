@@ -156,7 +156,6 @@ type State = {
   isExtrapolatedChartData?: boolean;
   seasonality?: AlertRuleSeasonality;
   seriesSamplingInfo?: SeriesSamplingInfo;
-  traceItemType?: Extract<EventTypes, 'trace_item_log' | 'trace_item_span'>;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -264,7 +263,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType,
-      traceItemType: isEapAlertType(alertType) ? eventTypes[0] : undefined,
     };
   }
 

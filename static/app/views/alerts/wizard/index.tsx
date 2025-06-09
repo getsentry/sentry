@@ -133,7 +133,6 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
                   project: projectSlug,
                   referrer: location?.query?.referrer,
-                  alertOption,
                 },
               }}
               hideIcon
