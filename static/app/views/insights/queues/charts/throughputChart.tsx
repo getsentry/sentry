@@ -119,6 +119,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
         },
       ]}
       exploreUrl={exploreUrl}
+      referrer={referrer}
     />,
   ];
 

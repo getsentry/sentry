@@ -9,6 +9,7 @@ import {type SpanFields} from 'sentry/views/insights/types';
 interface Props {
   groupBy: SpanFields[];
   isLoading: boolean;
+  referrer: string;
   search: MutableSearch;
   series: DiscoverSeries[];
   error?: Error | null;
@@ -20,6 +21,7 @@ export function ResponseCodeCountChart({
   error,
   search,
   groupBy,
+  referrer,
 }: Props) {
   // TODO: Temporary hack. `DiscoverSeries` meta field and the series name don't
   // match. This is annoying to work around, and will become irrelevant soon
@@ -50,7 +52,7 @@ export function ResponseCodeCountChart({
 
   return (
     <InsightsLineChartWidget
-      queryInfo={{search, groupBy}}
+      queryInfo={{search, groupBy, referrer}}
       title={t('Top 5 Response Codes')}
       series={seriesWithMeta}
       isLoading={isLoading}

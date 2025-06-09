@@ -5,6 +5,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
@@ -37,6 +38,7 @@ export function WebVitalStatusLineChart({
   const webVitalMedian = webVital ? PERFORMANCE_SCORE_MEDIANS[webVital] : 0;
 
   const search = new MutableSearch(defaultQuery);
+  const referrer = Referrer.WEB_VITAL_STATUS_LINE_CHART;
 
   if (transaction) {
     search.addFilterValue('transaction', transaction);
@@ -58,7 +60,7 @@ export function WebVitalStatusLineChart({
       yAxis: webVital ? [`p75(measurements.${webVital})`] : [],
       enabled: !!webVital,
     },
-    'api.performance.browser.web-vitals.timeseries'
+    referrer
   );
 
   const webVitalSeries: DiscoverSeries = webVital
@@ -97,6 +99,7 @@ export function WebVitalStatusLineChart({
           extraPlottables={extraPlottables}
           queryInfo={{
             search,
+            referrer,
           }}
           height={250}
         />
