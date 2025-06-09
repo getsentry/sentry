@@ -91,7 +91,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   uptime_monitor: t('Uptime Monitor'),
   trace_item_throughput: t('Throughput'),
-  trace_item_duration: t('Transaction Duration'),
+  trace_item_duration: t('Duration'),
   trace_item_apdex: t('Apdex'),
   trace_item_failure_rate: t('Failure Rate'),
   trace_item_lcp: t('Largest Contentful Paint'),
