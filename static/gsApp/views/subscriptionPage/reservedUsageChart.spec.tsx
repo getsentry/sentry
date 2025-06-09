@@ -763,13 +763,6 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
       plan: 'am3_business',
     });
 
-    // Set up some SEER usage data
-    subscription.categories.seerAutofix = MetricHistoryFixture({
-      category: DataCategory.SEER_AUTOFIX,
-      usage: 10,
-      reserved: 25_00, // $25.00 budget
-    });
-
     const usageStats = {
       seerAutofix: [
         {
@@ -844,13 +837,6 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
       plan: 'am3_business',
-    });
-
-    // Set up some SEER usage data
-    subscription.categories.seerAutofix = MetricHistoryFixture({
-      category: DataCategory.SEER_AUTOFIX,
-      usage: 10,
-      reserved: 25_00, // $25.00 budget
     });
 
     const usageStats = {
