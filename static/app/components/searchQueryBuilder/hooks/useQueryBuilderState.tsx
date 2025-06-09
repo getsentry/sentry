@@ -164,7 +164,6 @@ function deleteQueryTokens(
   };
 }
 
-/** Exported for testing purposes only */
 export function addWildcardToToken(
   token: TokenResult<Token.VALUE_TEXT>,
   isContains: boolean,
@@ -190,7 +189,6 @@ export function addWildcardToToken(
   return newTokenText;
 }
 
-/** Exported for testing purposes only */
 export function removeWildcardFromToken(
   token: TokenResult<Token.VALUE_TEXT>,
   isContains: boolean,
