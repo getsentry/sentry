@@ -75,6 +75,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         ]
 
         if groups.count() < MIN_FEEDBACKS_TO_SUMMARIZE:
+            logger.error("Too few feedbacks to summarize")
             return Response({"summary": None, "success": False, "num_feedbacks_used": 0})
 
         # Also cap the number of characters that we send to the LLM
@@ -86,9 +87,9 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 break
             group_feedbacks.append(group.data["metadata"]["message"])
 
-        # group_feedbacks can have less than MIN_FEEDBACKS_TO_SUMMARIZE feedbacks, what do we do in that case?
-        # it could be the case that there are like 1000 feedbacks, but we can only afford to take like the first 7 of them due to the character limit
-        # ^^ seems like an edge case that would never happen since the character limit is so high and the per-feedback character limit is relatively low
+        # Edge case
+        if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
+            logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
         try:
             summary = generate_summary(group_feedbacks)
