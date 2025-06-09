@@ -24,8 +24,11 @@ def serialize_api_application(api_app: ApiApplication | None) -> RpcApiApplicati
     )
 
 
-def serialize_sentry_app(app: SentryApp) -> RpcSentryApp:
-    avatars = SentryAppAvatar.objects.filter(sentry_app_id=app.id)
+def serialize_sentry_app(
+    app: SentryApp, avatars: list[SentryAppAvatar] | None = None
+) -> RpcSentryApp:
+    if avatars is None:
+        avatars = []
     return RpcSentryApp(
         id=app.id,
         scope_list=app.scope_list,
