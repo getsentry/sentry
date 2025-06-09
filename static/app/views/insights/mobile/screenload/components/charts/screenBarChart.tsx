@@ -25,6 +25,7 @@ import {
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
+import {Referrer} from 'sentry/views/insights/mobile/screenload/referrers';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 import type {MetricsProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -53,6 +54,7 @@ export function ScreensBarChart({
       : 'avg(measurements.time_to_full_display)';
 
   const groupBy = [SpanFields.DEVICE_CLASS, SpanFields.RELEASE] as const;
+  const referrer = Referrer.SCREEN_BAR_CHART;
 
   const {
     data: deviceClassEvents,
@@ -65,7 +67,7 @@ export function ScreensBarChart({
       orderby: breakdownMetric,
       fields: [...groupBy, breakdownMetric],
     },
-    'api.starfish.mobile-device-breakdown'
+    referrer
   );
 
   const transformedEvents = transformDeviceClassEvents({
@@ -161,6 +163,7 @@ export function ScreensBarChart({
               groupBy={groupBy as any as SpanFields[]} // TODO: this will be fixed when we remove `useInsightsEap`
               title={title}
               search={search}
+              referrer={referrer}
             />
             <Button
               size="xs"

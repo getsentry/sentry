@@ -5,19 +5,20 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {Referrer} from 'sentry/views/insights/llmMonitoring/referrers';
 
 export default function LlmPipelineDurationChartWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
   const aggregate = 'avg(span.duration)';
-
-  const query = 'span.category:"ai.pipeline"';
+  const referrer = Referrer.PIPELINE_DURATION_CHART;
+  const search = new MutableSearch('span.category:"ai.pipeline"');
   const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
-      search: new MutableSearch(query),
+      search,
       transformAliasToInputFormat: true,
     },
-    'api.ai-pipelines.view',
+    referrer,
     props.pageFilters
   );
 
@@ -30,6 +31,7 @@ export default function LlmPipelineDurationChartWidget(props: LoadableChartWidge
       series={[{...data[aggregate], color: colors[2]}]}
       isLoading={isPending}
       error={error}
+      queryInfo={{search, referrer}}
     />
   );
 }

@@ -33,6 +33,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
+import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
@@ -83,6 +84,7 @@ function DeviceClassBreakdownBarChart({
   const search = new MutableSearch(
     appendReleaseFilters(query, primaryRelease, secondaryRelease)
   );
+  const referrer = Referrer.DEVICE_CLASS_BREAKDOWN_BAR_CHART;
 
   const groupBy = [SpanFields.DEVICE_CLASS, SpanFields.RELEASE] as const;
   const appStartMetric =
@@ -100,7 +102,7 @@ function DeviceClassBreakdownBarChart({
       search,
       fields: [appStartMetric, ...groupBy],
     },
-    'api.insights.app-starts.mobile-startup-bar-chart'
+    referrer
   );
 
   const transformedData = transformDeviceClassEvents({
@@ -219,6 +221,7 @@ function DeviceClassBreakdownBarChart({
               groupBy={groupBy as any as SpanFields[]} // TODO: this casting will not be needed when we remove `useInsightsEap`
               search={search}
               title={title}
+              referrer={referrer}
             />
             <Button
               size="xs"

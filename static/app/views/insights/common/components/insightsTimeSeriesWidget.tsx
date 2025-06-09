@@ -66,6 +66,7 @@ export interface InsightsTimeSeriesWidgetProps
    * yAxis should only be provided if it's expected to be different when opening in explore
    */
   queryInfo?: {
+    referrer: string;
     search: MutableSearch;
     groupBy?: SpanFields[];
     yAxis?: string[];
@@ -215,6 +216,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                 title={props.title}
                 search={props.queryInfo?.search}
                 aliases={props.aliases}
+                referrer={props.queryInfo?.referrer ?? ''}
               />
             )}
             {props.loaderSource !== 'releases-drawer' && (

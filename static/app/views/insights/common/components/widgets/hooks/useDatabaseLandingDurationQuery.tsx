@@ -1,5 +1,6 @@
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {Referrer} from 'sentry/views/insights/database/referrers';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -16,6 +17,6 @@ export function useDatabaseLandingDurationQuery({search, enabled}: Props) {
       transformAliasToInputFormat: true,
       enabled,
     },
-    'api.starfish.span-landing-page-metrics-chart'
+    Referrer.LANDING_DURATION_CHART
   );
 }

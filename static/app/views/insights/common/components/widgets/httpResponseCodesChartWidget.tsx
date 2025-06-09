@@ -25,6 +25,8 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
   const {selection} = usePageFilters();
 
   const search = MutableSearch.fromQueryObject(chartFilters);
+  const referrer = Referrer.LANDING_RESPONSE_CODE_CHART;
+
   const {
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
@@ -35,7 +37,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
       transformAliasToInputFormat: true,
     },
-    Referrer.LANDING_RESPONSE_CODE_CHART,
+    referrer,
     props.pageFilters
   );
 
@@ -73,6 +75,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     <BaseChartActionDropdown
       key="http response chart widget"
       exploreUrl={exploreUrl}
+      referrer={referrer}
       alertMenuOptions={queries.map(query => ({
         key: query.label,
         label: query.label,

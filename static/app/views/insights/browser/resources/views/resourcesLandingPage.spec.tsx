@@ -251,7 +251,11 @@ const setupMockRequests = (organization: Organization) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-stats/`,
     method: 'GET',
-    match: [MockApiClient.matchQuery({referrer: 'api.starfish.span-time-charts'})],
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing-series',
+      }),
+    ],
     body: {
       [`${EPM}()`]: {
         data: [
