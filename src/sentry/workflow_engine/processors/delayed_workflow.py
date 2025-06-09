@@ -14,6 +14,7 @@ from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.rules.processing.buffer_processing import (
@@ -404,6 +405,7 @@ def get_group_to_groupevent(
 
 @sentry_sdk.trace
 def fire_actions_for_groups(
+    organization: Organization,
     groups_to_fire: dict[int, set[DataConditionGroup]],
     trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
@@ -454,9 +456,6 @@ def fire_actions_for_groups(
                 filtered_actions = filtered_actions.union(
                     evaluate_workflows_action_filters(workflows, event_data)
                 )
-
-                # temporary fetching of organization, so not passing in as parameter
-                organization = group.project.organization
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -604,7 +603,9 @@ def process_delayed_workflows(
             project_id,
         )
 
-    fire_actions_for_groups(groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent)
+    fire_actions_for_groups(
+        project.organization, groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent
+    )
     cleanup_redis_buffer(project_id, workflow_event_dcg_data, batch_key)
 
 
