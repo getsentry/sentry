@@ -70,7 +70,6 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
@@ -88,6 +87,9 @@ export function LogsTabContent({
     ?.value;
   const aggregateFunction = useLogsAggregateFunction();
   const _aggregateParam = useLogsAggregateParam();
+  const [sidebarOpen, setSidebarOpen] = useState(
+    !!(aggregateFunction !== 'count' || _aggregateParam || groupBy)
+  );
   const aggregateParam =
     (aggregateFunction === 'count' ? null : _aggregateParam) ||
     OurLogKnownFieldKey.MESSAGE;
