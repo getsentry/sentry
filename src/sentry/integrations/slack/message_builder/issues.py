@@ -671,15 +671,21 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        # set up block id
-        block_id = {"issue": self.group.id}
+        # set up block id info dictionary
+        block_id_info = {"issue": self.group.id}
         if rule_id:
-            block_id["rule"] = rule_id
+            block_id_info["rule"] = rule_id
+
+        # Generate the main block_id string
+        main_block_id_str = f"issue_{self.group.id}"
+        if rule_id:
+            main_block_id_str += f"_rule_{rule_id}"
 
         # build tags block
         tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
         if tags:
-            blocks.append(self.get_tags_block(tags, block_id))
+            # Pass the info dictionary to get_tags_block
+            blocks.append(self.get_tags_block(tags, block_id_info))
 
         # add event count, user count, substate, first seen
         context = get_context(self.group, self.rules)
@@ -741,6 +747,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(event_or_group, project.slug),
-            block_id=orjson.dumps(block_id).decode(),
+            # Pass the generated string block_id directly
+            block_id=main_block_id_str,
             skip_fallback=self.skip_fallback,
         )

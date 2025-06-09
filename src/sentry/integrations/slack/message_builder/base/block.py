@@ -75,7 +75,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_tags_block(
-        tags: Sequence[Mapping[str, str | bool]], block_id: dict[str, Any] | None = None
+        tags: Sequence[Mapping[str, str | bool]], base_id_info: dict[str, Any] | None = None
     ) -> SlackBlock:
         text = ""
         for tag in tags:
@@ -90,10 +90,16 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             "text": {"type": "mrkdwn", "text": text},
         }
 
-        if block_id:
-            tags_block_id = block_id.copy()
-            tags_block_id["block"] = "tags"
-            block["block_id"] = orjson.dumps(tags_block_id).decode()
+        if base_id_info:
+            issue_id = base_id_info.get("issue")
+            rule_id = base_id_info.get("rule")
+
+            # Construct a string block_id
+            tags_block_id_str = f"tags_issue_{issue_id}"
+            if rule_id:
+                tags_block_id_str += f"_rule_{rule_id}"
+
+            block["block_id"] = tags_block_id_str  # Assign the string
 
         return block
 
