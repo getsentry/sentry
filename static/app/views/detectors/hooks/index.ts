@@ -23,7 +23,7 @@ const makeDetectorListQueryKey = ({
   sortBy,
   projects,
 }: {
-  orgSlug?: string;
+  orgSlug: string;
   projects?: number[];
   query?: string;
   sortBy?: string;
