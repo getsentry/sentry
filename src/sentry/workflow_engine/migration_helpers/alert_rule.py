@@ -9,6 +9,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -285,12 +286,24 @@ def migrate_metric_data_conditions(
     )
     condition_result = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
 
-    detector_trigger = DataCondition.objects.create(
-        comparison=alert_rule_trigger.alert_threshold,
-        condition_result=condition_result,
-        type=threshold_type,
-        condition_group=detector_data_condition_group,
-    )
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        detector_trigger = DataCondition.objects.create(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": alert_rule.sensitivity,
+                "seasonality": alert_rule.seasonality,
+                "threshold_type": alert_rule.threshold_type,
+            },
+            condition_result=condition_result,
+            condition_group=detector_data_condition_group,
+        )
+    else:
+        detector_trigger = DataCondition.objects.create(
+            comparison=alert_rule_trigger.alert_threshold,
+            condition_result=condition_result,
+            type=threshold_type,
+            condition_group=detector_data_condition_group,
+        )
     DataConditionAlertRuleTrigger.objects.create(
         data_condition=detector_trigger,
         alert_rule_trigger_id=alert_rule_trigger.id,
@@ -584,7 +597,9 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
             for trigger_action in trigger_actions:
                 migrate_metric_action(trigger_action)
         # step 4: migrate alert rule resolution
-        migrate_resolve_threshold_data_condition(alert_rule)
+        # if the alert rule is an anomaly detection alert, then this is handled by the anomaly detection data condition
+        if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC:
+            migrate_resolve_threshold_data_condition(alert_rule)
 
 
 def dual_update_alert_rule(alert_rule: AlertRule) -> None:
@@ -699,6 +714,21 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
         )
         raise MissingDataConditionGroup
 
+    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
+    resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK).first()
+
+    # changing detector priority level for anomaly detection alerts is handled by the data condition
+    # so we should delete the explicit resolution condition if it exists
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        if resolve_condition is not None:
+            resolve_condition.delete()
+        return None
+
+    # if we're changing from anomaly detection alert to regular metric alert, we need to recreate the resolve condition
+    if resolve_condition is None:
+        resolve_condition = migrate_resolve_threshold_data_condition(alert_rule)
+        return resolve_condition
+
     if alert_rule.resolve_threshold is not None:
         resolve_threshold = alert_rule.resolve_threshold
     else:
@@ -706,13 +736,6 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
     if resolve_threshold == -1:
         raise UnresolvableResolveThreshold
 
-    data_conditions = DataCondition.objects.filter(condition_group=detector_data_condition_group)
-    try:
-        resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
-    except DataCondition.DoesNotExist:
-        # In the serializer, we call handle triggers before migrating the resolve data condition,
-        # so the resolve condition may not exist yet. Return early.
-        return None
     resolve_condition.update(comparison=resolve_threshold)
 
     return resolve_condition
@@ -732,6 +755,7 @@ def dual_update_migrated_alert_rule_trigger(
         condition_group=action_filter.condition_group,
         type=Condition.ISSUE_PRIORITY_DEESCALATING,
     ).first()
+
     updated_detector_trigger_fields: dict[str, Any] = {}
     updated_action_filter_fields: dict[str, Any] = {}
     label = alert_rule_trigger.label
@@ -739,7 +763,18 @@ def dual_update_migrated_alert_rule_trigger(
         label, DetectorPriorityLevel.HIGH
     )
     updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(label, DetectorPriorityLevel.HIGH)
-    updated_detector_trigger_fields["comparison"] = alert_rule_trigger.alert_threshold
+    alert_rule = alert_rule_trigger.alert_rule
+
+    # if we're changing to anomaly detection, we need to set the comparison JSON
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        updated_detector_trigger_fields["type"] = Condition.ANOMALY_DETECTION
+        updated_detector_trigger_fields["comparison"] = {
+            "sensitivity": alert_rule.sensitivity,
+            "seasonality": alert_rule.seasonality,
+            "threshold_type": alert_rule.threshold_type,
+        }
+    else:
+        updated_detector_trigger_fields["comparison"] = alert_rule_trigger.alert_threshold
 
     detector_trigger.update(**updated_detector_trigger_fields)
     if updated_action_filter_fields:
