@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
