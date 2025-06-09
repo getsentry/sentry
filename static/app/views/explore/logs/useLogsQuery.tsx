@@ -42,7 +42,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {
   type EventsLogsResult,
-  LogsAggregatesResult,
+  type LogsAggregatesResult,
   OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
