@@ -66,7 +66,16 @@ describe('ScreenshotModal', function () {
 
   it('renders with previous and next buttons when passed attachments', async function () {
     const eventAttachment = EventAttachmentFixture();
-    const attachments = [eventAttachment, EventAttachmentFixture({id: '2'})];
+    const attachments = [
+      eventAttachment,
+      EventAttachmentFixture({id: '2'}),
+      EventAttachmentFixture({name: 'other-image.png'}),
+      EventAttachmentFixture({
+        name: 'textfile.txt',
+        mimetype: 'text/plain',
+        headers: {'Content-Type': 'text/plain'},
+      }),
+    ];
 
     render(
       <ScreenshotModal
