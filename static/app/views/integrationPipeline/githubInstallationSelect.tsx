@@ -9,10 +9,13 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Installation = {
@@ -22,24 +25,54 @@ type Installation = {
 };
 
 type GithubInstallationProps = {
-  has_scm_multi_org: boolean;
   installation_info: Installation[];
-  organization_slug: string;
+  organization: Organization;
 };
+
+function InstallationButton({
+  handleSubmit,
+  isSaving,
+  installationID,
+  hasSCMMultiOrg,
+}: GithubInstallationInstallButtonProps) {
+  if (installationID !== '-1' && !hasSCMMultiOrg) {
+    return (
+      <FeatureDisabled
+        features={['integrations-scm-multi-org']}
+        featureName={t('Cross-Org Source Code Management')}
+        hideHelpToggle
+      />
+    );
+  }
+
+  return (
+    <Button
+      priority="primary"
+      onClick={handleSubmit}
+      disabled={isSaving || !installationID}
+    >
+      {t('Install')}
+    </Button>
+  );
+}
+
+const InstallButtonHook = HookOrDefault({
+  hookName: 'component:scm-multi-org-install-button',
+  defaultComponent: InstallationButton,
+});
 
 export function GithubInstallationSelect({
   installation_info,
-  has_scm_multi_org,
-  organization_slug,
+  organization,
 }: GithubInstallationProps) {
-  // -1 represents the "Install on another organization"/Skip option
   const [installationID, setInstallationID] = useState<SelectKey>('-1');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const hasSCMMultiOrg = organization.features.includes('integrations-scm-multi-org');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const source = 'github.multi_org';
 
   const doesntRequireUpgrade = (id: SelectKey): boolean => {
-    return has_scm_multi_org || isSelfHosted || id === '-1';
+    return hasSCMMultiOrg || isSelfHosted || id === '-1';
   };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -93,7 +126,7 @@ export function GithubInstallationSelect({
     })
   );
 
-  const renderInstallationButton = () => {
+  const renderInstallationButtonOld = () => {
     if (installationID !== '-1' && isSelfHosted) {
       return (
         <FeatureDisabled
@@ -122,10 +155,10 @@ export function GithubInstallationSelect({
         priority="primary"
         onClick={() => {
           trackAnalytics(`${source}.upsell`, {
-            organization: organization_slug,
+            organization: organization.slug,
           });
         }}
-        href={`${origin}/settings/${organization_slug}/billing/overview/?referrer=upgrade-${source}`}
+        href={`${origin}/settings/${organization.slug}/billing/overview/?referrer=upgrade-${source}`}
         disabled={isSaving || !installationID || isSelfHosted}
       >
         {t('Upgrade')}
@@ -142,13 +175,25 @@ export function GithubInstallationSelect({
             'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
           )}
         </p>
+
         <StyledSelect
           onChange={handleSelect}
           options={selectOptions}
           value={installationID}
           triggerLabel={installationID ? undefined : 'Choose Installation'}
         />
-        <ButtonContainer>{renderInstallationButton()}</ButtonContainer>
+        <ButtonContainer>
+          {organization.features.includes('github-multi-org-upsell-modal') ? (
+            <InstallButtonHook
+              hasSCMMultiOrg={hasSCMMultiOrg}
+              installationID={installationID}
+              isSaving={isSaving}
+              handleSubmit={handleSubmit}
+            />
+          ) : (
+            renderInstallationButtonOld()
+          )}
+        </ButtonContainer>
       </StyledContainer>
     </Fragment>
   );
