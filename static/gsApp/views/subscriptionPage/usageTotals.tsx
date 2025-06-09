@@ -836,7 +836,13 @@ export function CombinedUsageTotals({
     subscription.planTier === PlanTier.AM3;
   const onDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
   const totalMaxOndemandBudget =
-    'sharedMaxBudget' in onDemandBudgets ? onDemandBudgets.sharedMaxBudget : 0; // TODO: handle per category budgets
+    'sharedMaxBudget' in onDemandBudgets
+      ? onDemandBudgets.sharedMaxBudget
+      : Object.keys(productGroup.categories).reduce(
+          (acc, category) =>
+            acc + getOnDemandBudget(onDemandBudgets, category as DataCategory),
+          0
+        );
 
   let totalOnDemandSpent = 0;
   let totalOnDemandMax = 0;

@@ -1419,6 +1419,55 @@ describe('Subscription > CombinedUsageTotals', function () {
 
     expect(screen.queryByTestId('usage-card-seer')).not.toBeInTheDocument();
   });
+
+  it('renders PAYG legend with per-category', function () {
+    organization.features.push('ondemand-budgets');
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am2_business',
+      onDemandBudgets: {
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        attachmentsBudget: 0,
+        errorsBudget: 0,
+        replaysBudget: 0,
+        transactionsBudget: 0,
+        budgets: {
+          [DataCategory.SEER_AUTOFIX]: 4,
+          [DataCategory.SEER_SCANNER]: 5,
+        },
+        attachmentSpendUsed: 0,
+        errorSpendUsed: 0,
+        transactionSpendUsed: 0,
+        usedSpends: {
+          [DataCategory.SEER_AUTOFIX]: 4,
+          [DataCategory.SEER_SCANNER]: 5,
+        },
+        enabled: true,
+      },
+    });
+    seerSubscription.planTier = 'am2'; // TODO: fix subscription fixture to set planTier properly
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByTestId('reserved-seer')).toHaveTextContent('$25.00 Reserved');
+    expect(screen.getByText('Issue Fixes Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Issue Scans')).toBeInTheDocument();
+
+    organization.features.pop();
+  });
 });
 
 describe('calculateCategoryPrepaidUsage', () => {
