@@ -131,6 +131,34 @@ class DashboardFavoriteUserTest(TestCase):
         assert second_favorite_dashboard.position == 1
         assert first_favorite_dashboard.position == 0
 
+    def test_reorders_to_new_positions_with_missing_positions(self):
+        should_be_second = self.create_dashboard(
+            title="Should be second", organization=self.organization
+        )
+        should_be_first = self.create_dashboard(
+            title="Should be first", organization=self.organization
+        )
+
+        second_favorite_dashboard = self.create_dashboard_favorite_user(
+            should_be_second, self.user, self.organization, None
+        )
+        first_favorite_dashboard = self.create_dashboard_favorite_user(
+            should_be_first, self.user, self.organization, 1
+        )
+
+        assert second_favorite_dashboard.position is None
+        assert first_favorite_dashboard.position == 1
+
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            self.organization, self.user.id, [should_be_first.id, should_be_second.id]
+        )
+
+        for favorite_dashboard in [second_favorite_dashboard, first_favorite_dashboard]:
+            favorite_dashboard.refresh_from_db()
+
+        assert second_favorite_dashboard.position == 1
+        assert first_favorite_dashboard.position == 0
+
     def test_deletes_and_increments_existing_positions(self):
         first_dashboard = self.create_dashboard(
             title="First Dashboard", organization=self.organization

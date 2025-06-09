@@ -76,7 +76,6 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         existing_favorite_dashboards = self.filter(
             organization=organization,
             user_id=user_id,
-            position__isnull=False,
         )
 
         existing_dashboard_ids = {
