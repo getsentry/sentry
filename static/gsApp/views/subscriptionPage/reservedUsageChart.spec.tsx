@@ -330,7 +330,7 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 500_00],
+          value: ['Jan 1', 2000_00],
         },
         {
           value: ['Jan 2', 2000_00],
@@ -466,7 +466,7 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 1000_00],
+          value: ['Jan 1', 2000_00],
         },
         {
           value: ['Jan 2', 2000_00],
@@ -541,10 +541,10 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 500_00],
+          value: ['Jan 1', 2000_00],
         },
         {
-          value: ['Jan 2', 1500_00],
+          value: ['Jan 2', 2000_00],
         },
       ],
     });
@@ -645,10 +645,10 @@ describe('mapReservedBudgetStatsToChart', () => {
       ],
       reserved: [
         {
-          value: ['Jan 1', 1000_00],
+          value: ['Jan 1', 4000_00],
         },
         {
-          value: ['Jan 2', 1000_00],
+          value: ['Jan 2', 4000_00],
         },
       ],
     });

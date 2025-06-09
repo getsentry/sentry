@@ -8,6 +8,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     evaluate_data_conditions,
     get_data_conditions_for_group,
+    get_slow_conditions_for_groups,
     process_data_condition_group,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -405,3 +406,45 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
             ProcessedDataCondition(logic_result=True, condition=self.data_condition, result=True)
         ]
         assert remaining_conditions == []
+
+
+class TestGetSlowConditionsForGroups(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.dcg: DataConditionGroup = self.create_data_condition_group()
+
+    def create_slow_condition(self, condition_group: DataConditionGroup) -> DataCondition:
+        return self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1d",
+                "value": 7,
+            },
+        )
+
+    def test_get_slow_conditions_for_groups_basic(self) -> None:
+        condition = self.create_slow_condition(self.dcg)
+        assert get_slow_conditions_for_groups([self.dcg.id]) == {self.dcg.id: [condition]}
+
+    def test_get_slow_conditions_for_groups__no_slow_conditions(self) -> None:
+        self.create_data_condition(condition_group=self.dcg, type=Condition.EQUAL)
+        assert get_slow_conditions_for_groups([self.dcg.id]) == {self.dcg.id: []}
+
+    def test_multiple_dcgs(self) -> None:
+        dcg2 = self.create_data_condition_group()
+        condition1 = self.create_slow_condition(self.dcg)
+        condition2 = self.create_slow_condition(dcg2)
+        self.create_data_condition(condition_group=self.dcg, type=Condition.EQUAL)
+        condition4 = self.create_slow_condition(dcg2)
+        dcg3 = self.create_data_condition_group()
+        condition5 = self.create_slow_condition(dcg3)
+        assert get_slow_conditions_for_groups([self.dcg.id, dcg2.id]) == {
+            self.dcg.id: [condition1],
+            dcg2.id: [condition2, condition4],
+        }
+        assert get_slow_conditions_for_groups([self.dcg.id, dcg2.id, dcg3.id]) == {
+            self.dcg.id: [condition1],
+            dcg2.id: [condition2, condition4],
+            dcg3.id: [condition5],
+        }

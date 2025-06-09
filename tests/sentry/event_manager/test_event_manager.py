@@ -2864,6 +2864,284 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
+    def test_derive_client_error_sampling_rate_with_option_enabled(self) -> None:
+        """Test that sample_rate is extracted from contexts when option is enabled."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": 0.1}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was extracted and stored
+            assert event.data["sample_rate"] == 0.1
+
+    def test_derive_client_error_sampling_rate_with_option_disabled(self) -> None:
+        """Test that sample_rate is not extracted when option is disabled."""
+        # Option disabled (project not in allowlist)
+        event_data = make_event(
+            contexts={"error_sampling": {"client_sample_rate": 0.1}}, platform="python"
+        )
+
+        manager = EventManager(event_data)
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        # Check that sample_rate was not extracted
+        assert "sample_rate" not in event.data
+
+    def test_derive_client_error_sampling_rate_malformed_context(self) -> None:
+        """Test that sample_rate extraction handles malformed error_sampling context gracefully."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test with error_sampling as a number instead of a dict
+            event_data = make_event(
+                contexts={"error_sampling": 0.1},
+                platform="python",  # Should be a dict, not a number
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that no sample_rate was added due to malformed context
+            assert "sample_rate" not in event.data
+
+    def test_derive_client_error_sampling_rate_invalid_range(self) -> None:
+        """Test that sample_rate is not set when client_sample_rate is outside valid range (0-1)."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test with sample rate > 1
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": 1.5}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was not set due to invalid range
+            assert "sample_rate" not in event.data
+
+            # Test with negative sample rate
+            event_data = make_event(
+                contexts={"error_sampling": {"client_sample_rate": -0.1}}, platform="python"
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            # Check that sample_rate was not set due to invalid range
+            assert "sample_rate" not in event.data
+
+    def test_times_seen_new_group_default_behavior(self) -> None:
+        """Test that new groups start with times_seen=1 when no sample rate is provided"""
+        manager = EventManager(make_event(message="test message"))
+        manager.normalize()
+
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = event.group
+        assert group is not None
+        assert group.times_seen == 1
+
+    def test_times_seen_existing_group_increment(self) -> None:
+        """Test that existing groups have their times_seen incremented"""
+        # Create first event to establish the group
+        manager1 = EventManager(make_event(message="test message", fingerprint=["group1"]))
+        manager1.normalize()
+
+        with self.tasks():
+            event1 = manager1.save(self.project.id)
+
+        group = event1.group
+        assert group is not None
+        initial_times_seen = group.times_seen
+        assert initial_times_seen == 1
+
+        # Create second event for the same group
+        manager2 = EventManager(make_event(message="test message 2", fingerprint=["group1"]))
+        manager2.normalize()
+
+        with self.tasks():
+            event2 = manager2.save(self.project.id)
+
+        # Should be the same group
+        assert event2.group_id == event1.group_id
+
+        # Refresh group from database to get updated times_seen
+        group.refresh_from_db()
+        assert group.times_seen == initial_times_seen + 1
+
+    def test_times_seen_weighted_with_sample_rate_option_enabled(self) -> None:
+        """Test that times_seen is weighted by 1/sample_rate when the project is in the allowlist"""
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Create event with a sample rate of 0.5 (50%)
+            event_data = make_event(
+                message="sampled event", contexts={"error_sampling": {"client_sample_rate": 0.5}}
+            )
+
+            manager = EventManager(event_data)
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+
+            group = event.group
+            assert group is not None
+            # With sample rate 0.5, times_seen should be 1/0.5 = 2
+            assert group.times_seen == 2
+
+    def test_times_seen_weighted_with_sample_rate_option_disabled(self) -> None:
+        """Test that times_seen is not weighted when the project is not in the allowlist"""
+
+        # Create event with a sample rate of 0.5 (50%) but project not in allowlist
+        event_data = make_event(
+            message="sampled event", contexts={"error_sampling": {"client_sample_rate": 0.5}}
+        )
+
+        manager = EventManager(event_data)
+        manager.normalize()
+
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = event.group
+        assert group is not None
+        # With the project not in allowlist, times_seen should remain 1 regardless of sample rate
+        assert group.times_seen == 1
+
+    def test_times_seen_weighted_existing_group_with_sample_rate(self) -> None:
+        """Test that existing groups are incremented by weighted amount when project is in allowlist"""
+
+        # Create first event to establish the group
+        manager1 = EventManager(make_event(message="test message", fingerprint=["group1"]))
+        manager1.normalize()
+
+        with self.tasks():
+            event1 = manager1.save(self.project.id)
+
+        group = event1.group
+        assert group is not None
+        initial_times_seen = group.times_seen
+        assert initial_times_seen == 1
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Create second event for the same group with sample rate 0.25 (25%)
+            event_data = make_event(
+                message="test message 2",
+                fingerprint=["group1"],
+                contexts={"error_sampling": {"client_sample_rate": 0.25}},
+            )
+
+            manager2 = EventManager(event_data)
+            manager2.normalize()
+
+            with self.tasks():
+                event2 = manager2.save(self.project.id)
+
+            # Should be the same group
+            assert event2.group_id == event1.group_id
+
+            # Refresh group from database to get updated times_seen
+            group.refresh_from_db()
+            # Should be incremented by 1/0.25 = 4
+            assert group.times_seen == initial_times_seen + 4
+
+    def test_times_seen_no_sample_rate_meta(self) -> None:
+        """Test that times_seen defaults to 1 when no sample rate meta exists"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Create event with no error_sampling context
+            manager = EventManager(make_event(fingerprint=["no_context"]))
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Create event with empty error_sampling context
+            manager = EventManager(
+                make_event(fingerprint=["empty_context"], contexts={"error_sampling": {}})
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Create event with null client_sample_rate
+            manager = EventManager(
+                make_event(
+                    fingerprint=["null_client_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": None}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+    def test_times_seen_invalid_sample_rate(self) -> None:
+        """Test times_seen calculation with invalid sample rates (null, 0, negative, > 1)"""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Test null sample rate
+            manager = EventManager(make_event(fingerprint=["null_sample_rate"]))
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Test sample rate of 0 (should result in times_seen = 1)
+            manager = EventManager(
+                make_event(
+                    fingerprint=["zero_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": 0}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Test negative sample rate (should result in times_seen = 1)
+            manager = EventManager(
+                make_event(
+                    fingerprint=["negative_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": -0.5}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
+            # Test sample rate > 1 (should result in times_seen = 1)
+            manager = EventManager(
+                make_event(
+                    fingerprint=["high_sample_rate"],
+                    contexts={"error_sampling": {"client_sample_rate": 1.5}},
+                )
+            )
+            manager.normalize()
+
+            with self.tasks():
+                event = manager.save(self.project.id)
+            assert event.group is not None
+            assert event.group.times_seen == 1
+
 
 class ReleaseIssueTest(TestCase):
     def setUp(self) -> None:

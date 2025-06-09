@@ -29,3 +29,4 @@ class ApiOwner(Enum):
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
     GDX = "gdx"
+    EMERGE_TOOLS = "emerge-tools"
