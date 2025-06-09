@@ -607,6 +607,7 @@ describe('OnDemandBudgets', () => {
   });
 
   it('always displays Seer warning alert in per-category section', () => {
+    organization.features = ['seer-billing'];
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
