@@ -12,13 +12,14 @@ export default function ResourceSummaryThroughputChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {groupId} = useParams();
-  const referrer = Referrer.RESOURCE_SUMMARY_CHARTS;
+  const referrer = Referrer.RESOURCE_SUMMARY_THROUGHPUT_CHART;
   const {search, enabled} = useResourceSummarySeriesSearch(groupId);
 
   const {data, isPending, error} = useResourceSummarySeries({
     search,
     pageFilters: props.pageFilters,
     enabled,
+    referrer,
   });
 
   return (
