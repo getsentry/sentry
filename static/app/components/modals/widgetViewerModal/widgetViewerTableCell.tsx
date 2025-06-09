@@ -51,9 +51,10 @@ type Props = {
   eventView?: EventView;
   isFirstPage?: boolean;
   isMetricsData?: boolean;
-  onHeaderClick?: () => void;
+  onHeaderClick?: (s?: string) => void;
   projects?: Project[];
   tableData?: TableDataWithTitle;
+  usesLocationQuery?: boolean;
 };
 
 export const renderIssueGridHeaderCell = ({
@@ -62,6 +63,7 @@ export const renderIssueGridHeaderCell = ({
   tableData,
   organization,
   onHeaderClick,
+  usesLocationQuery = true,
 }: Props) =>
   function (
     column: TableColumn<keyof TableDataRow>,
@@ -77,24 +79,30 @@ export const renderIssueGridHeaderCell = ({
         title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
         direction={widget.queries[0]!.orderby === sortField ? 'desc' : undefined}
         canSort={!!sortField}
-        generateSortLink={() => ({
-          ...location,
-          query: {
-            ...location.query,
-            [WidgetViewerQueryField.SORT]: sortField,
-            [WidgetViewerQueryField.PAGE]: undefined,
-            [WidgetViewerQueryField.CURSOR]: undefined,
-          },
-        })}
+        generateSortLink={
+          usesLocationQuery
+            ? () => ({
+                ...location,
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.SORT]: sortField,
+                  [WidgetViewerQueryField.PAGE]: undefined,
+                  [WidgetViewerQueryField.CURSOR]: undefined,
+                },
+              })
+            : () => ({...location})
+        }
         onClick={() => {
-          onHeaderClick?.();
-          trackAnalytics('dashboards_views.widget_viewer.sort', {
-            organization,
-            widget_type: WidgetType.ISSUE,
-            display_type: widget.displayType,
-            column: column.name,
-            order: 'desc',
-          });
+          onHeaderClick?.(sortField ? sortField : undefined);
+          if (usesLocationQuery) {
+            trackAnalytics('dashboards_views.widget_viewer.sort', {
+              organization,
+              widget_type: WidgetType.ISSUE,
+              display_type: widget.displayType,
+              column: column.name,
+              order: 'desc',
+            });
+          }
         }}
         preventScrollReset
       />
@@ -109,6 +117,7 @@ export const renderDiscoverGridHeaderCell = ({
   organization,
   onHeaderClick,
   isMetricsData,
+  usesLocationQuery = true,
 }: Props) =>
   function (
     column: TableColumn<keyof TableDataRow>,
@@ -130,6 +139,10 @@ export const renderDiscoverGridHeaderCell = ({
     function generateSortLink(): LocationDescriptorObject | undefined {
       if (!tableMeta) {
         return undefined;
+      }
+
+      if (!usesLocationQuery) {
+        return {...location};
       }
 
       const nextEventView = eventView.sortOnField(field, tableMeta, undefined, true);
@@ -161,14 +174,16 @@ export const renderDiscoverGridHeaderCell = ({
         canSort={canSort}
         generateSortLink={generateSortLink}
         onClick={() => {
-          onHeaderClick?.();
-          trackAnalytics('dashboards_views.widget_viewer.sort', {
-            organization,
-            widget_type: WidgetType.DISCOVER,
-            display_type: widget.displayType,
-            column: column.name,
-            order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
-          });
+          onHeaderClick?.(currentSort?.kind === 'asc' ? '-' + column.name : column.name);
+          if (usesLocationQuery) {
+            trackAnalytics('dashboards_views.widget_viewer.sort', {
+              organization,
+              widget_type: WidgetType.DISCOVER,
+              display_type: widget.displayType,
+              column: column.name,
+              order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
+            });
+          }
         }}
         preventScrollReset
       />
@@ -275,6 +290,7 @@ export const renderReleaseGridHeaderCell = ({
   tableData,
   organization,
   onHeaderClick,
+  usesLocationQuery = true,
 }: Props) =>
   function (
     column: TableColumn<keyof TableDataRow>,
@@ -291,6 +307,9 @@ export const renderReleaseGridHeaderCell = ({
     const titleText = column.name;
 
     function generateSortLink(): LocationDescriptorObject {
+      if (!usesLocationQuery) {
+        return {...location};
+      }
       const columnSort =
         column.name === sort.field
           ? {...sort, kind: sort.kind === 'desc' ? 'asc' : 'desc'}
@@ -316,14 +335,16 @@ export const renderReleaseGridHeaderCell = ({
         canSort={canSort}
         generateSortLink={generateSortLink}
         onClick={() => {
-          onHeaderClick?.();
-          trackAnalytics('dashboards_views.widget_viewer.sort', {
-            organization,
-            widget_type: WidgetType.RELEASE,
-            display_type: widget.displayType,
-            column: column.name,
-            order: sort?.kind === 'desc' ? 'asc' : 'desc',
-          });
+          onHeaderClick?.(sort.kind === 'asc' ? '-' + column.name : column.name);
+          if (usesLocationQuery) {
+            trackAnalytics('dashboards_views.widget_viewer.sort', {
+              organization,
+              widget_type: WidgetType.RELEASE,
+              display_type: widget.displayType,
+              column: column.name,
+              order: sort?.kind === 'desc' ? 'asc' : 'desc',
+            });
+          }
         }}
         preventScrollReset
       />

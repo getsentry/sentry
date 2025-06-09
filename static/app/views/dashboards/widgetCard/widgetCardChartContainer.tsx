@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -91,6 +91,7 @@ export function WidgetCardChartContainer({
   showLoadingText,
 }: Props) {
   const location = useLocation();
+  const [currentWidget, setCurrentWidget] = useState<Widget>(widget);
 
   function keepLegendState({
     selected,
@@ -122,7 +123,7 @@ export function WidgetCardChartContainer({
 
   return (
     <WidgetCardDataLoader
-      widget={widget}
+      widget={currentWidget}
       dashboardFilters={dashboardFilters}
       selection={selection}
       onDataFetched={onDataFetched}
@@ -161,12 +162,14 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
-                transformedResults={tableResults?.[0]!.data ?? []}
+                tableResults={tableResults}
                 loading={loading}
                 errorMessage={errorOrEmptyMessage}
                 widget={widget}
                 location={location}
                 selection={selection}
+                setCurrentWidget={setCurrentWidget}
+                organization={organization}
               />
             </Fragment>
           );
@@ -184,7 +187,7 @@ export function WidgetCardChartContainer({
               errorMessage={errorOrEmptyMessage}
               loading={loading}
               location={location}
-              widget={widget}
+              widget={currentWidget}
               selection={selection}
               organization={organization}
               isMobile={isMobile}
@@ -210,6 +213,7 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
+              setCurrentWidget={setCurrentWidget}
             />
           </Fragment>
         );

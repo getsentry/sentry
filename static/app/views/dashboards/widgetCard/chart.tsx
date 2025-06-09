@@ -1,4 +1,5 @@
 import type React from 'react';
+import type {Dispatch, SetStateAction} from 'react';
 import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
@@ -15,11 +16,14 @@ import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  renderDiscoverGridHeaderCell,
+  renderReleaseGridHeaderCell,
+} from 'sentry/components/modals/widgetViewerModal/widgetViewerTableCell';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -39,7 +43,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -48,18 +52,16 @@ import {
   getMeasurementSlug,
   isEquation,
   maybeEquationAlias,
-  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {WidgetTable} from 'sentry/views/dashboards/widgetTable';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
@@ -98,14 +100,20 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
+  setCurrentWidget?: Dispatch<SetStateAction<Widget>>;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showLoadingText?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
-
 class WidgetCardChart extends Component<WidgetCardChartProps> {
+  // Used for the table widget to maintain column widths between table sorts and column resizing.
+  // Eventually this will live in Widget to allow users to save custom widths for tables
+  state = {
+    widths: [],
+  };
+
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
     if (
       this.props.widget.displayType === DisplayType.BIG_NUMBER &&
@@ -136,52 +144,47 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return !isEqual(currentProps, nextProps);
   }
 
+  setWidths(newWidths: string[]) {
+    this.setState({widths: newWidths});
+  }
+
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {location, widget, selection, minTableColumnWidth} = this.props;
+    const {widget, selection, organization, setCurrentWidget} = this.props;
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
+    const sort = widget.queries[0]?.orderby;
 
-    const datasetConfig = getDatasetConfig(widget.widgetType);
-
-    const getCustomFieldRenderer = (
-      field: string,
-      meta: MetaType,
-      organization?: Organization
-    ) => {
-      return (
-        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-      );
-    };
-
-    return tableResults.map((result, i) => {
-      const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
-      const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
-      const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
-
-      return (
-        <TableWrapper key={`table:${result.title}`}>
-          <StyledSimpleTableChart
-            eventView={eventView}
-            fieldAliases={fieldAliases}
-            location={location}
-            fields={fields}
-            title={tableResults.length > 1 ? result.title : ''}
-            // Bypass the loading state for span widgets because this renders the loading placeholder
-            // and we want to show the underlying data during preflight instead
-            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-            loader={<LoadingPlaceholder />}
-            metadata={result.meta}
-            data={result.data}
-            stickyHeaders
-            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={getCustomFieldRenderer}
-            minColumnWidth={minTableColumnWidth}
-          />
-        </TableWrapper>
-      );
-    });
+    return (
+      <TableWrapper key={`table:${tableResults[0]?.title}`}>
+        <WidgetTable
+          style={{
+            borderRadius: 0,
+            marginBottom: 0,
+            borderLeft: 0,
+            borderRight: 0,
+            borderBottom: 0,
+          }}
+          loading={widget.widgetType === WidgetType.SPANS ? false : loading}
+          tableResults={tableResults}
+          widget={widget}
+          selection={selection}
+          renderHeaderGridCell={
+            widget.widgetType === WidgetType.RELEASE
+              ? renderReleaseGridHeaderCell
+              : renderDiscoverGridHeaderCell
+          }
+          sort={sort || ''}
+          widths={this.state.widths}
+          organization={organization}
+          stickyHeader
+          setCurrentWidget={setCurrentWidget}
+          setWidths={(w: string[]) => this.setWidths(w)}
+          usesLocationQuery={false}
+        />
+      </TableWrapper>
+    );
   }
 
   bigNumberComponent({loading, tableResults}: TableResultProps): React.ReactNode {
@@ -656,11 +659,7 @@ const TableWrapper = styled('div')`
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
   overflow: auto;
-  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

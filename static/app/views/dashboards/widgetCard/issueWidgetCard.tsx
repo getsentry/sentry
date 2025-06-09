@@ -1,29 +1,27 @@
+import type {Dispatch, SetStateAction} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {renderIssueGridHeaderCell} from 'sentry/components/modals/widgetViewerModal/widgetViewerTableCell';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {WidgetTable} from 'sentry/views/dashboards/widgetTable';
 
 type Props = {
   loading: boolean;
   location: Location;
+  organization: Organization;
   selection: PageFilters;
-  transformedResults: TableDataRow[];
+  tableResults: TableDataWithTitle[] | undefined;
   widget: Widget;
   errorMessage?: string;
+  setCurrentWidget?: Dispatch<SetStateAction<Widget>>;
 };
 
 export function IssueWidgetCard({
@@ -31,10 +29,11 @@ export function IssueWidgetCard({
   widget,
   errorMessage,
   loading,
-  transformedResults,
-  location,
+  tableResults,
+  setCurrentWidget,
+  organization,
 }: Props) {
-  const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
+  const [widths, setWidths] = useState<string[]>([]);
 
   if (errorMessage) {
     return (
@@ -44,42 +43,37 @@ export function IssueWidgetCard({
     );
   }
 
-  if (loading) {
+  if (loading || !tableResults) {
     // Align height to other charts.
     return <LoadingPlaceholder height="200px" />;
   }
 
-  const query = widget.queries[0]!;
-  const queryFields = defined(query.fields)
-    ? query.fields
-    : [...query.columns, ...query.aggregates];
-  const fieldAliases = query.fieldAliases ?? [];
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
-
-  const getCustomFieldRenderer = (
-    field: string,
-    meta: MetaType,
-    organization?: Organization
-  ) => {
-    return (
-      datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
-    );
-  };
+  const sort = widget.queries[0]?.orderby;
 
   return (
-    <StyledSimpleTableChart
-      location={location}
-      title=""
-      eventView={eventView}
-      fields={queryFields}
-      fieldAliases={fieldAliases}
-      loading={loading}
-      metadata={ISSUE_FIELDS}
-      data={transformedResults}
-      getCustomFieldRenderer={getCustomFieldRenderer}
-      fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
-      stickyHeaders
-    />
+    <div style={{overflow: 'auto'}}>
+      <StyledWidgetTable
+        style={{
+          borderRadius: 0,
+          marginBottom: 0,
+          borderLeft: 0,
+          borderRight: 0,
+          borderBottom: 0,
+        }}
+        loading={loading}
+        tableResults={tableResults}
+        widget={widget}
+        selection={selection}
+        renderHeaderGridCell={renderIssueGridHeaderCell}
+        sort={sort || ''}
+        widths={widths}
+        organization={organization}
+        stickyHeader
+        setCurrentWidget={setCurrentWidget}
+        setWidths={(w: string[]) => setWidths(w)}
+        usesLocationQuery={false}
+      />
+    </div>
   );
 }
 
@@ -87,10 +81,10 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface300};
 `;
 
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
+const StyledWidgetTable = styled(WidgetTable)`
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
+  overflow: auto;
 `;
