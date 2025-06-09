@@ -30,6 +30,7 @@ def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
     task = Task(name="test.do_things", func=do_things, namespace=task_namespace)
     assert task.retry is None
     assert task.name == "test.do_things"
+    assert task.namespace == task_namespace
 
 
 def test_define_task_retry(task_namespace: TaskNamespace) -> None:
