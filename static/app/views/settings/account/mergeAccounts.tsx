@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -31,6 +32,7 @@ function MergeAccounts() {
       </TextBlock>
 
       <Users />
+      <Button priority="danger">Confirm and merge</Button>
     </Fragment>
   );
 }
@@ -44,6 +46,7 @@ function Users() {
         <div>{t('Name')}</div>
         <div>{t('Last Active')}</div>
         <div>{t('Organizations')}</div>
+        <div>{t('Keep')}</div>
       </UserPanelHeader>
       <PanelBody>
         <UserRow
@@ -69,13 +72,22 @@ function UserRow({name, lastSeen, organizations}: UserRowProps) {
         <StyledTimeSince date={lastSeen} />
       </div>
       <Organizations>{organizations}</Organizations>
+      <div>
+        <input
+          type="checkbox"
+          name="user"
+          value={name}
+          onChange={() => null}
+          style={{margin: 5}}
+        />
+      </div>
     </UserPanelItem>
   );
 }
 
 export const tableLayout = `
   display: grid;
-  grid-template-columns: auto 140px 140px;
+  grid-template-columns: auto 140px 140px 60px;
   gap ${space(1)};
   align-items: center;
 `;
