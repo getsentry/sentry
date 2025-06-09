@@ -14,7 +14,7 @@ class OrganizationDataConditionAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.registry = Registry[DataConditionHandler](enable_reverse_lookup=False)
+        self.registry = Registry[type[DataConditionHandler]](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_data_condition_index.condition_handler_registry",
             new=self.registry,

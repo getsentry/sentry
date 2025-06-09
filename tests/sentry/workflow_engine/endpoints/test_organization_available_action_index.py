@@ -29,7 +29,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-        self.registry = Registry[ActionHandler](enable_reverse_lookup=False)
+        self.registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_available_action_index.action_handler_registry",
             new=self.registry,

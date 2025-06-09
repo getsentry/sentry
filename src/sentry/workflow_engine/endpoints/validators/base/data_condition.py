@@ -40,7 +40,7 @@ class AbstractDataConditionValidator(
 class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
-    def _get_handler(self) -> DataConditionHandler | None:
+    def _get_handler(self) -> type[DataConditionHandler] | None:
         if self._is_operator_condition():
             return None
 

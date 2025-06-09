@@ -35,7 +35,7 @@ class RegistryTest(TestCase):
         assert test_registry.get("something else") == unregistered_func
 
     def test_allow_duplicate_values(self):
-        test_registry = Registry[str](enable_reverse_lookup=False)
+        test_registry = Registry[Callable[[], None]](enable_reverse_lookup=False)
 
         @test_registry.register("something")
         @test_registry.register("something 2")
