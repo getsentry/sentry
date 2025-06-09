@@ -18,14 +18,10 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListRowProps {
   detector: Detector;
-  handleSelect: (id: string, checked: boolean) => void;
-  selected: boolean;
 }
 
 export function DetectorListRow({
   detector: {workflowIds, createdBy, id, projectId, name, disabled, type},
-  handleSelect,
-  selected,
 }: DetectorListRowProps) {
   const organization = useOrganization();
   const link = makeMonitorDetailsPathname(organization.slug, id);
@@ -34,12 +30,6 @@ export function DetectorListRow({
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
       <Flex justify="space-between">
-        <StyledCheckbox
-          checked={selected}
-          onChange={() => {
-            handleSelect(id, !selected);
-          }}
-        />
         <CellWrapper>
           <StyledTitleCell
             name={name}
