@@ -11,7 +11,7 @@ type Geo = Record<string, string>;
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
-export type ReplayRecord = {
+type HydratedReplayRecord = {
   /**
    * Number that represents how much user activity happened in a replay.
    */
@@ -99,13 +99,27 @@ export type ReplayRecord = {
   count_rage_clicks?: number;
 };
 
+interface ArchivedReplayRecord extends Partial<HydratedReplayRecord> {
+  is_archived: true;
+  user: {
+    display_name: 'Archived Replay';
+    email: null | string;
+    id: 'Archived Replay';
+    ip: null | string;
+    username: null | string;
+    geo?: Geo;
+  };
+}
+
+export type ReplayRecord = HydratedReplayRecord & ArchivedReplayRecord;
+
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
 export type ReplayRecordNestedFieldName =
   | keyof ReplayRecord
-  | `browser.${keyof ReplayRecord['browser']}`
-  | `device.${keyof ReplayRecord['device']}`
-  | `os.${keyof ReplayRecord['os']}`
-  | `user.${keyof ReplayRecord['user']}`;
+  | `browser.${keyof HydratedReplayRecord['browser']}`
+  | `device.${keyof HydratedReplayRecord['device']}`
+  | `os.${keyof HydratedReplayRecord['os']}`
+  | `user.${keyof HydratedReplayRecord['user']}`;
 
 export type ReplayListLocationQuery = {
   cursor?: string;

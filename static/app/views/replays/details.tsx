@@ -69,6 +69,7 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
       <ReplayDetailsPage readerResult={readerResult} />
     </Fragment>
   );
+
   return (
     <SentryDocumentTitle title={title}>
       <FullViewport>

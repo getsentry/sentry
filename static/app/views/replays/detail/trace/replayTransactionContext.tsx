@@ -79,7 +79,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const orgSlug = organization.slug;
 
   const listEventView = useMemo(() => {
-    if (!replayRecord) {
+    if (!replayRecord || !replayRecord.is_archived) {
       return null;
     }
     const replayId = replayRecord?.id;
