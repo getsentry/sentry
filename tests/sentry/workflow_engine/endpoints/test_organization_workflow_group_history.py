@@ -9,7 +9,6 @@ from sentry.workflow_engine.endpoints.serializers import (
     WorkflowGroupHistorySerializer,
 )
 from sentry.workflow_engine.models import WorkflowFireHistory
-from sentry.workflow_engine.processors.workflow_fire_history import fetch_workflow_groups_paginated
 
 pytestmark = [requires_snuba]
 
