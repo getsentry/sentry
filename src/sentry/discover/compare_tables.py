@@ -132,7 +132,7 @@ def compare_tables_for_dashboard_widget_queries(
 
     snuba_params = SnubaParams(
         environments=environments,
-        projects=projects,
+        projects=list(projects),
         organization=organization,
         stats_period="7d",
     )
