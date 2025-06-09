@@ -19,12 +19,12 @@ interface FeatureFlagsLogTableProps {
   flags: RawFlag[];
   isPending: boolean;
   pageLinks: string | null;
-  scrollable: boolean;
   cursorKeyName?: string;
   highlightedRowKey?: number;
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
   onRowMouseOver?: (dataRow: RawFlag, key: number) => void;
+  scrollable?: boolean;
 }
 
 export function FeatureFlagsLogTable({
