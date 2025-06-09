@@ -791,7 +791,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_trigger.call_count == 2
@@ -809,7 +812,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
 
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_enqueue.call_count == 2
@@ -844,7 +850,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_dcgs[1]},
         }
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert WorkflowFireHistory.objects.filter(
