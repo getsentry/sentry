@@ -74,6 +74,8 @@ class ConfigurableThresholds(Enum):
     CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED = "consecutive_http_spans_min_time_saved_threshold"
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
     HTTP_OVERHEAD_REQUEST_DELAY = "http_request_delay_threshold"
+    SQL_INJECTION_ENABLED = "sql_injection_detection_enabled"
+    SQL_INJECTION_QUERY_VALUE_LENGTH = "sql_injection_query_value_length_threshold"
 
 
 project_settings_to_group_map: dict[str, type[GroupType]] = {

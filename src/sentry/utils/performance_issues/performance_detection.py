@@ -196,6 +196,9 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         "n_plus_one_api_calls_total_duration_threshold": options.get(
             "performance.issues.n_plus_one_api_calls.total_duration"
         ),
+        "sql_injection_query_value_length_threshold": options.get(
+            "performance.issues.sql_injection.query_value_length_threshold"
+        ),
     }
 
     default_project_settings = (

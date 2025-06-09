@@ -1786,6 +1786,11 @@ register(
     default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
+register(
+    "performance.issues.sql_injection.query_value_length_threshold",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
