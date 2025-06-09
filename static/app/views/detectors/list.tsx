@@ -19,7 +19,7 @@ import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-  const {data: detectors} = useDetectorsQuery();
+  const {data: detectors, isPending} = useDetectorsQuery();
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -27,7 +27,7 @@ export default function DetectorsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <DetectorListTable detectors={detectors ?? []} />
+            <DetectorListTable detectors={detectors ?? []} isPending={isPending} />
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>
