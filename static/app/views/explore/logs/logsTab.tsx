@@ -3,6 +3,7 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,6 +14,7 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import SchemaHintsList, {
@@ -70,6 +72,7 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
+  const organization = useOrganization();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const groupBy = useLogsGroupBy();
@@ -104,6 +107,7 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
+  const [tableTab, setTableTab] = useState('logs');
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -225,6 +229,17 @@ export function LogsTabContent({
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
+              <Feature
+                features="organizations:ourlogs-visualize-sidebar"
+                renderDisabled={() => <div />}
+              >
+                <Tabs value={tableTab} onChange={setTableTab} size="sm">
+                  <TabList hideBorder variant="floating">
+                    <TabList.Item key={'logs'}>{t('Logs')}</TabList.Item>
+                    <TabList.Item key={'aggregates'}>{t('Aggregates')}</TabList.Item>
+                  </TabList>
+                </Tabs>
+              </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle />
@@ -236,20 +251,18 @@ export function LogsTabContent({
             </LogsTableActionsContainer>
 
             <LogsItemContainer>
-              <Feature
-                features="organizations:ourlogs-infinite-scroll"
-                renderDisabled={() => (
-                  <LogsTable
-                    stringAttributes={stringAttributes}
-                    numberAttributes={numberAttributes}
-                  />
-                )}
-              >
+              {tableTab === 'logs' &&
+              organization.features.includes('ourlogs-infinite-scroll') ? (
                 <LogsInfiniteTable
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
                 />
-              </Feature>
+              ) : tableTab === 'logs' ? (
+                <LogsTable
+                  stringAttributes={stringAttributes}
+                  numberAttributes={numberAttributes}
+                />
+              ) : null}
             </LogsItemContainer>
           </section>
         </BottomSectionBody>

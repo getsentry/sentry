@@ -214,6 +214,8 @@ export const LogsItemContainer = styled('div')`
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
   margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
