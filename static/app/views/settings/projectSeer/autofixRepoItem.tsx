@@ -151,7 +151,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   value={instructionsValue}
                   onChange={handleInstructionsChange}
                   placeholder={t(
-                    'Add any extra context or instructions for Seer when it works in this repository...'
+                    'Add any general context or instructions to help Seer understand this repository...'
                   )}
                   rows={3}
                 />
