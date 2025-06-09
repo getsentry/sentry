@@ -267,9 +267,9 @@ function EAPOverviewPage() {
                     <CompactSelect
                       value={spanOp}
                       triggerProps={{
-                        prefix: t('Page Type'),
+                        prefix: t('Operation'),
                       }}
-                      menuTitle={t('Filter by page type')}
+                      menuTitle={t('Filter by operation')}
                       options={[
                         {value: 'all', label: t('All')},
                         {value: 'pageload', label: t('Page Load')},
