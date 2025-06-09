@@ -272,8 +272,8 @@ function EAPOverviewPage() {
                       menuTitle={t('Filter by page type')}
                       options={[
                         {value: 'all', label: t('All')},
-                        {value: 'pageload', label: t('Page Loads')},
-                        {value: 'navigation', label: t('Navigations')},
+                        {value: 'pageload', label: t('Page Load')},
+                        {value: 'navigation', label: t('Navigation')},
                       ]}
                       onChange={(selectedOption: SelectOption<PageSpanOps>) => {
                         navigate({
