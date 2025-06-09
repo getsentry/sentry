@@ -10,7 +10,7 @@ export type RawGroupBy = {
   groupBy: string;
 };
 
-export function isRawGroupBy(value: any): value is RawGroupBy {
+function isRawGroupBy(value: any): value is RawGroupBy {
   return typeof value === 'object' && typeof value.groupBy === 'string';
 }
 

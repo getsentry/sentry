@@ -18,7 +18,7 @@ export interface GroupBy {
   groupBy: string;
 }
 
-export function isBaseVisualize(value: any): value is BaseVisualize {
+function isBaseVisualize(value: any): value is BaseVisualize {
   return (
     typeof value === 'object' &&
     Array.isArray(value.yAxes) &&
