@@ -164,7 +164,7 @@ export const useAutofixData = ({
   isUserWatching = false,
 }: {
   groupId: string;
-  isUserWatching: boolean;
+  isUserWatching?: boolean;
 }) => {
   const orgSlug = useOrganization().slug;
 
