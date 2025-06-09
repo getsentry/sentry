@@ -412,6 +412,28 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert isinstance(result["assigned_to"], Team)
         assert result["assigned_to"].id == 0
 
+    def test_assigned_removed_team_from_project(self):
+        """Test that teams removed from a project can still be found by slug when searching in that project"""
+        # Create a team and add it to the project
+        team = self.create_team(organization=self.organization, slug="removed-team")
+        self.create_team_membership(team=team, user=self.user)
+
+        # Add team to project
+        self.create_project_team(project=self.project, team=team)
+
+        # Parse query when team is associated with project - should work
+        result = self.parse_query(f"assigned:#{team.slug}")
+        assert result["assigned_to"] == team
+
+        # Remove team from project
+        from sentry.models.projectteam import ProjectTeam
+        ProjectTeam.objects.filter(project=self.project, team=team).delete()
+
+        # Parse query after team is removed from project - should still work
+        result = self.parse_query(f"assigned:#{team.slug}")
+        assert result["assigned_to"] == team
+        assert result["assigned_to"].id == team.id
+
     def test_bookmarks_me(self):
         result = self.parse_query("bookmarks:me")
         assert result == {"bookmarked_by": self.current_rpc_user, "tags": {}, "query": ""}

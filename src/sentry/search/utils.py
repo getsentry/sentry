@@ -304,8 +304,15 @@ def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, dat
 
 
 def parse_team_value(projects: Sequence[Project], value: Sequence[str]) -> Team:
+    # Remove project filtering to allow finding teams that were previously associated
+    # with a project but have since been removed. We only filter by organization
+    # to maintain proper access boundaries.
+    organization_id = projects[0].organization_id if projects else None
+    if organization_id is None:
+        return Team(id=0)
+
     return Team.objects.filter(
-        slug__iexact=value[1:], projectteam__project__in=projects
+        slug__iexact=value[1:], organization_id=organization_id
     ).first() or Team(id=0)
 
 

@@ -4088,1662 +4088,310 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response()
         assert response.status_code == 500
 
+    def test_assigned_to_removed_team_in_project_filter(self):
+        """
+        Test that issues assigned to teams that have been removed from a project
+        can still be found when searching within that specific project.
 
-class GroupUpdateTest(APITestCase, SnubaTestCase):
-    endpoint = "sentry-api-0-organization-group-index"
-    method = "put"
+        This reproduces the bug reported in the Slack thread where a team was
+        removed from a project but issues assigned to that team couldn't be found
+        when searching within the project filter.
+        """
+        # Create a team and add it to the project initially
+        removed_team = self.create_team(organization=self.organization, slug="removed-team")
+        self.create_team_membership(team=removed_team, user=self.user)
+        self.create_project_team(project=self.project, team=removed_team)
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
-
-    def get_response(self, *args, **kwargs):
-        if not args:
-            org = self.project.organization.slug
-        else:
-            org = args[0]
-        return super().get_response(org, **kwargs)
-
-    def assertNoResolution(self, group: Group) -> None:
-        assert not GroupResolution.objects.filter(group=group).exists()
-
-    def test_global_resolve(self) -> None:
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={
-                "status": "unresolved",
-                "project": self.project.id,
-                "query": "is:unresolved",
-            },
-            status="resolved",
-        )
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
-
-        # the previously resolved entry should not be included
-        new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.status == GroupStatus.RESOLVED
-        assert new_group1.resolved_at is None
-
-        # this wont exist because it wasn't affected
-        assert not GroupSubscription.objects.filter(user_id=self.user.id, group=new_group1).exists()
-
-        new_group2 = Group.objects.get(id=group2.id)
-        assert new_group2.status == GroupStatus.RESOLVED
-        assert new_group2.resolved_at is not None
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=new_group2, is_active=True
-        ).exists()
-
-        # the ignored entry should not be included
-        new_group3 = Group.objects.get(id=group3.id)
-        assert new_group3.status == GroupStatus.IGNORED
-        assert new_group3.resolved_at is None
-
-        assert not GroupSubscription.objects.filter(user_id=self.user.id, group=new_group3)
-
-        new_group4 = Group.objects.get(id=group4.id)
-        assert new_group4.status == GroupStatus.UNRESOLVED
-        assert new_group4.resolved_at is None
-
-        assert not GroupSubscription.objects.filter(user_id=self.user.id, group=new_group4)
-        assert not GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.RESOLVED
-        ).exists()
-        assert GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.RESOLVED
-        ).exists()
-        assert not GroupHistory.objects.filter(
-            group=group3, status=GroupHistoryStatus.RESOLVED
-        ).exists()
-        assert not GroupHistory.objects.filter(
-            group=group4, status=GroupHistoryStatus.RESOLVED
-        ).exists()
-
-    def test_resolve_member(self) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-        member = self.create_user()
-        self.create_member(
-            organization=self.organization, teams=group.project.teams.all(), user=member
-        )
-
-        self.login_as(user=member)
-        response = self.get_success_response(
-            qs_params={
-                "status": "unresolved",
-                "project": self.project.id,
-                "query": "is:unresolved",
-            },
-            status="resolved",
-        )
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
-        assert response.status_code == 200
-
-    def test_resolve_ignored(self) -> None:
-        group = self.create_group(status=GroupStatus.IGNORED)
-        snooze = GroupSnooze.objects.create(
-            group=group, until=timezone.now() - timedelta(minutes=1)
-        )
-
-        member = self.create_user()
-        self.create_member(
-            organization=self.organization, teams=group.project.teams.all(), user=member
-        )
-
-        self.login_as(user=member)
-        response = self.get_success_response(
-            qs_params={"id": group.id, "project": self.project.id}, status="resolved"
-        )
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
-        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
-
-    def test_bulk_resolve(self) -> None:
-        self.login_as(user=self.user)
-
-        for i in range(101):
-            self.store_event(
-                data={
-                    "fingerprint": [i],
-                    "timestamp": (self.min_ago - timedelta(seconds=i)).isoformat(),
-                },
-                project_id=self.project.id,
-            )
-
-        response = self.get_success_response(query="is:unresolved", sort_by="date", method="get")
-        assert len(response.data) == 100
-
-        response = self.get_success_response(qs_params={"status": "unresolved"}, status="resolved")
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
-
-        response = self.get_success_response(query="is:unresolved", sort_by="date", method="get")
-        assert len(response.data) == 0
-
-    @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
-        self.login_as(user=self.user)
-
-        org = self.organization
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", name="Example")
-            integration.add_organization(org, self.user)
+        # Create an issue and assign it to the team
         event = self.store_event(
-            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+            data={
+                "timestamp": before_now(seconds=100).isoformat(),
+                "fingerprint": ["assigned-to-removed-team"],
+            },
+            project_id=self.project.id,
         )
         group = event.group
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(
-                integration_id=integration.id, organization_id=group.organization.id
-            ).update(
-                config={
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            )
-        external_issue = ExternalIssue.objects.get_or_create(
-            organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
-        )[0]
+        # Assign the issue to the team
+        from sentry.models.groupassignee import GroupAssignee
+        GroupAssignee.objects.assign(group, removed_team)
 
-        GroupLink.objects.get_or_create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )[0]
-
-        response = self.get_success_response(sort_by="date", query="is:unresolved", method="get")
+        # Verify assignment works when team is still in project
+        self.login_as(user=self.user)
+        response = self.get_response(
+            project=self.project.id,
+            query=f"assigned:#{removed_team.slug}",
+        )
+        assert response.status_code == 200
         assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
 
-        with self.tasks():
-            with self.feature({"organizations:integrations-issue-sync": True}):
-                response = self.get_success_response(
-                    qs_params={"status": "unresolved"}, status="resolved"
-                )
-                group = Group.objects.get(id=group.id)
-                assert group.status == GroupStatus.RESOLVED
+        # Remove the team from the project
+        from sentry.models.projectteam import ProjectTeam
+        ProjectTeam.objects.filter(project=self.project, team=removed_team).delete()
 
-                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
-                mock_sync_status_outbound.assert_called_once_with(
-                    external_issue, True, group.project_id
-                )
-
-        response = self.get_success_response(sort_by="date", query="is:unresolved", method="get")
-        assert len(response.data) == 0
-
-    @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_set_unresolved_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
-        release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(status=GroupStatus.RESOLVED)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            org = self.organization
-            integration = self.create_provider_integration(provider="example", name="Example")
-            integration.add_organization(org, self.user)
-            OrganizationIntegration.objects.filter(
-                integration_id=integration.id, organization_id=group.organization.id
-            ).update(
-                config={
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            )
-        GroupResolution.objects.create(group=group, release=release)
-        external_issue = ExternalIssue.objects.get_or_create(
-            organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
-        )[0]
-
-        GroupLink.objects.get_or_create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )[0]
-
-        self.login_as(user=self.user)
-
-        with self.tasks():
-            with self.feature({"organizations:integrations-issue-sync": True}):
-                response = self.get_success_response(
-                    qs_params={"id": group.id}, status="unresolved"
-                )
-                assert response.status_code == 200
-                assert response.data == {"status": "unresolved", "statusDetails": {}}
-
-                group = Group.objects.get(id=group.id)
-                assert group.status == GroupStatus.UNRESOLVED
-
-                self.assertNoResolution(group)
-
-                assert GroupSubscription.objects.filter(
-                    user_id=self.user.id, group=group, is_active=True
-                ).exists()
-                mock_sync_status_outbound.assert_called_once_with(
-                    external_issue, False, group.project_id
-                )
-
-    def test_self_assign_issue(self) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-        user = self.user
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            uo1 = UserOption.objects.create(
-                key="self_assign_issue", value="1", project_id=None, user=user
-            )
-
-        self.login_as(user=user)
-        response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
-        assert response.data["assignedTo"]["id"] == str(user.id)
-        assert response.data["assignedTo"]["type"] == "user"
-        assert response.data["status"] == "resolved"
-
-        assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
-
-        assert GroupSubscription.objects.filter(
-            user_id=user.id, group=group, is_active=True
-        ).exists()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            uo1.delete()
-
-    def test_self_assign_issue_next_release(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            uo1 = UserOption.objects.create(
-                key="self_assign_issue", value="1", project_id=None, user=self.user
-            )
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["assignedTo"]["id"] == str(self.user.id)
-        assert response.data["assignedTo"]["type"] == "user"
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        assert GroupResolution.objects.filter(group=group, release=release).exists()
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == ""
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            uo1.delete()
-
-    def test_in_semver_projects_group_resolution_stores_current_release_version(self) -> None:
-        """
-        Test that ensures that when we resolve a group in the next release, then
-        GroupResolution.current_release_version is set to the latest release associated with a
-        Group, when the project follows semantic versioning scheme
-        """
-        release_21_1_0 = self.create_release(version="fake_package@21.1.0")
-        release_21_1_1 = self.create_release(version="fake_package@21.1.1")
-        release_21_1_2 = self.create_release(version="fake_package@21.1.2")
-
-        self.store_event(
-            data={
-                "timestamp": before_now(seconds=10).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_21_1_1.version,
-            },
-            project_id=self.project.id,
-        )
-        group = self.store_event(
-            data={
-                "timestamp": before_now(seconds=12).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_21_1_0.version,
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-
-        # The current_release_version should be to the latest (in semver) release associated with
-        # a group
-        grp_resolution = GroupResolution.objects.get(group=group)
-
-        assert grp_resolution.current_release_version == release_21_1_2.version
-
-        # "resolvedInNextRelease" with semver releases is considered as "resolvedInRelease"
-        assert grp_resolution.type == GroupResolution.Type.in_release
-        assert grp_resolution.status == GroupResolution.Status.resolved
-
-        # Add release that is between 2 and 3 to ensure that any release after release 2 should
-        # not have a resolution
-        release_21_1_1_plus_1 = self.create_release(version="fake_package@21.1.1+1")
-        release_21_1_3 = self.create_release(version="fake_package@21.1.3")
-
-        for release in [release_21_1_0, release_21_1_1, release_21_1_1_plus_1, release_21_1_2]:
-            assert GroupResolution.has_resolution(group=group, release=release)
-
-        for release in [release_21_1_3]:
-            assert not GroupResolution.has_resolution(group=group, release=release)
-
-        # Ensure that Activity has `current_release_version` set on `Resolved in next release`
-        activity = Activity.objects.get(
-            group=grp_resolution.group,
-            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-            ident=grp_resolution.id,
-        )
-
-        assert activity.data["current_release_version"] == release_21_1_2.version
-
-    def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
-        """
-        Test that ensures that when we resolve a group in the next release, then
-        GroupResolution.current_release_version is set to the most recent release associated with a
-        Group, when the project does not follow semantic versioning scheme
-        """
-        release_1 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
-        )
-        release_2 = self.create_release(version="foobar 2")
-
-        group = self.store_event(
-            data={
-                "timestamp": before_now(seconds=12).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_1.version,
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-
-        # Add a new release that is between 1 and 2, to make sure that if a the same issue/group
-        # occurs in that issue, then it should not have a resolution
-        release_3 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=30), version="foobar 3"
-        )
-
-        grp_resolution = GroupResolution.objects.filter(group=group)
-
-        assert len(grp_resolution) == 1
-        assert grp_resolution[0].current_release_version == release_1.version
-
-        assert GroupResolution.has_resolution(group=group, release=release_1)
-        for release in [release_2, release_3]:
-            assert not GroupResolution.has_resolution(group=group, release=release)
-
-    def test_in_non_semver_projects_store_actual_current_release_version_not_cached_version(
-        self,
-    ) -> None:
-        """
-        Test that ensures that the current_release_version is actually the latest version
-        associated with a group, not the cached version because currently
-        `group.get_last_release` fetches the latest release associated with a group and caches
-        that value, and we don't want to cache that value when resolving in next release in case a
-        new release appears to be associated with a group because if we store the cached rather
-        than the actual latest release, we might have unexpected results with the regression
-        algorithm
-        """
-        release_1 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
-        )
-        release_2 = self.create_release(version="foobar 2")
-
-        group = self.store_event(
-            data={
-                "timestamp": before_now(seconds=12).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_1.version,
-            },
-            project_id=self.project.id,
-        ).group
-
-        # Call this function to cache the `last_seen` release to release_1
-        # i.e. Set the first last observed by Sentry
-        assert group.get_last_release() == release_1.version
-
-        self.login_as(user=self.user)
-
-        self.store_event(
-            data={
-                "timestamp": before_now(seconds=0).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_2.version,
-            },
-            project_id=self.project.id,
-        )
-
-        # Cached (i.e. first last observed release by Sentry) is returned here since `use_cache`
-        # is set to its default of `True`
-        assert Group.objects.get(id=group.id).get_last_release() == release_1.version
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-
-        # Changes here to release_2 and actual latest because `resolvedInNextRelease`,
-        # sets `use_cache` to False when fetching the last release associated with a group
-        assert Group.objects.get(id=group.id).get_last_release() == release_2.version
-
-        grp_resolution = GroupResolution.objects.filter(group=group)
-
-        assert len(grp_resolution) == 1
-        assert grp_resolution[0].current_release_version == release_2.version
-
-    def test_in_non_semver_projects_resolved_in_next_release_is_equated_to_in_release(self) -> None:
-        """
-        Test that ensures that if we basically know the next release when clicking on Resolved
-        In Next Release because that release exists, then we can short circuit setting
-        GroupResolution to type "inNextRelease", and then having `clear_expired_resolutions` run
-        once a new release is created to convert GroupResolution to in_release and set Activity.
-        Basically we treat "ResolvedInNextRelease" as "ResolvedInRelease" when there is a release
-        that was created after the last release associated with the group being resolved
-        """
-        release_1 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
-        )
-        release_2 = self.create_release(version="foobar 2")
-        self.create_release(version="foobar 3")
-
-        group = self.store_event(
-            data={
-                "timestamp": before_now(seconds=12).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_1.version,
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-
-        grp_resolution = GroupResolution.objects.get(group=group)
-
-        assert grp_resolution.current_release_version == release_1.version
-        assert grp_resolution.release.id == release_2.id
-        assert grp_resolution.type == GroupResolution.Type.in_release
-        assert grp_resolution.status == GroupResolution.Status.resolved
-
-        activity = Activity.objects.get(
-            group=grp_resolution.group,
-            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-            ident=grp_resolution.id,
-        )
-        assert activity.data["version"] == release_2.version
-
-    def test_selective_status_update(self) -> None:
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group1.resolved_at = timezone.now()
-        group1.save()
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
-            )
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
-
-        new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.resolved_at is not None
-        assert new_group1.status == GroupStatus.RESOLVED
-
-        new_group2 = Group.objects.get(id=group2.id)
-        assert new_group2.resolved_at is not None
-        assert new_group2.status == GroupStatus.RESOLVED
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=new_group2, is_active=True
-        ).exists()
-
-        new_group3 = Group.objects.get(id=group3.id)
-        assert new_group3.resolved_at is None
-        assert new_group3.status == GroupStatus.IGNORED
-
-        new_group4 = Group.objects.get(id=group4.id)
-        assert new_group4.resolved_at is None
-        assert new_group4.status == GroupStatus.UNRESOLVED
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_current_release(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == release.version
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
-        ).exists()
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_current_release_without_open_period(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-        GroupOpenPeriod.objects.all().delete()
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == release.version
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
-        ).exists()
-
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_explicit_release(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-        release2 = Release.objects.create(organization_id=self.project.organization_id, version="b")
-        release2.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inRelease": release.version},
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == release.version
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
-    def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
-        release_1 = self.create_release(version="fake_package@3.0.0")
-        release_2 = self.create_release(version="fake_package@2.0.0")
-        release_3 = self.create_release(version="fake_package@3.0.1")
-
-        group = self.store_event(
-            data={
-                "timestamp": before_now(seconds=10).isoformat(),
-                "fingerprint": ["group-1"],
-                "release": release_1.version,
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inRelease": release_1.version},
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inRelease"] == release_1.version
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release_1
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == release_1.version
-
-        assert GroupResolution.has_resolution(group=group, release=release_2)
-        assert not GroupResolution.has_resolution(group=group, release=release_3)
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    def test_set_resolved_in_next_release(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inNextRelease": True}
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_next_release
-        assert resolution.status == GroupResolution.Status.pending
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == ""
-
-    def test_set_resolved_in_next_release_legacy(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_next_release
-        assert resolution.status == GroupResolution.Status.pending
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == ""
-
-    def test_set_resolved_in_explicit_commit_unreleased(self) -> None:
-        repo = self.create_repo(project=self.project, name=self.project.name)
-        commit = self.create_commit(project=self.project, repo=repo)
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" not in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        link = GroupLink.objects.get(group_id=group.id)
-        assert link.linked_type == GroupLink.LinkedType.commit
-        assert link.relationship == GroupLink.Relationship.resolves
-        assert link.linked_id == commit.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
-        assert activity.data["commit"] == commit.id
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
-        ).exists()
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_explicit_commit_released(self) -> None:
-        release = self.create_release(project=self.project)
-        repo = self.create_repo(project=self.project, name=self.project.name)
-        commit = self.create_commit(project=self.project, repo=repo, release=release)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-        assert "activity" in response.data
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        link = GroupLink.objects.get(group_id=group.id)
-        assert link.project_id == self.project.id
-        assert link.linked_type == GroupLink.LinkedType.commit
-        assert link.relationship == GroupLink.Relationship.resolves
-        assert link.linked_id == commit.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
-        assert activity.data["commit"] == commit.id
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
-        ).exists()
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_explicit_commit_missing(self) -> None:
-        repo = self.create_repo(project=self.project, name=self.project.name)
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
+        # Verify we can still find the issue when searching within the project
+        # This should work after the fix - before the fix this would return no results
         response = self.get_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inCommit": {"commit": "a" * 40, "repository": repo.name}},
+            project=self.project.id,
+            query=f"assigned:#{removed_team.slug}",
         )
-        assert response.status_code == 400
-        assert (
-            response.data["statusDetails"]["inCommit"]["commit"][0]
-            == "Unable to find the given commit."
+        assert response.status_code == 200
+        assert len(response.data) == 1, "Issue assigned to removed team should still be findable in project"
+        assert response.data[0]["id"] == str(group.id)
+
+        # Also verify it works without project filter (All Projects)
+        response = self.get_response(
+            query=f"assigned:#{removed_team.slug}",
         )
-        assert not GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
-        ).exists()
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended is None
+    def test_snuba_assignee_filter(self, _: MagicMock) -> None:
 
-    def test_set_unresolved(self) -> None:
-        release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(status=GroupStatus.IGNORED)
-        GroupResolution.objects.create(group=group, release=release)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(qs_params={"id": group.id}, status="unresolved")
-        assert response.data == {"status": "unresolved", "statusDetails": {}}
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.UNRESOLVED
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.UNRESOLVED
-        ).exists()
-
-        self.assertNoResolution(group)
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-    def test_set_unresolved_on_snooze(self) -> None:
-        group = self.create_group(status=GroupStatus.IGNORED)
-
-        GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(days=1))
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(qs_params={"id": group.id}, status="unresolved")
-        assert response.data == {"status": "unresolved", "statusDetails": {}}
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.UNRESOLVED
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.UNRESOLVED
-        ).exists()
-
-    def test_basic_ignore(self) -> None:
-        group = self.create_group(status=GroupStatus.RESOLVED)
-
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now())
-
-        self.login_as(user=self.user)
-        assert not GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.IGNORED
-        ).exists()
-        response = self.get_success_response(qs_params={"id": group.id}, status="ignored")
-        # existing snooze objects should be cleaned up
-        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.IGNORED
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.ARCHIVED_FOREVER
-        ).exists()
-
-        assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
-
-    def test_snooze_duration(self) -> None:
-        group = self.create_group(status=GroupStatus.RESOLVED)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="ignored", ignoreDuration=30
+        # issue 1: assigned to user
+        time = datetime.now() - timedelta(minutes=10)
+        event1 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
         )
-        snooze = GroupSnooze.objects.get(group=group)
-        snooze.until = snooze.until
+        GroupAssignee.objects.assign(event1.group, self.user)
 
-        now = timezone.now()
+        # issue 2: assigned to team
+        time = datetime.now() - timedelta(minutes=9)
+        event2 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event2.group, self.team)
 
-        assert snooze.count is None
-        assert snooze.until is not None
-        assert snooze.until > now + timedelta(minutes=29)
-        assert snooze.until < now + timedelta(minutes=31)
-        assert snooze.user_count is None
-        assert snooze.user_window is None
-        assert snooze.window is None
+        # issue 3: suspect commit for user
+        time = datetime.now() - timedelta(minutes=8)
+        event3 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event3.group,
+            project=event3.group.project,
+            organization=event3.group.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            team_id=None,
+            user_id=self.user.id,
+        )
 
-        response.data["statusDetails"]["ignoreUntil"] = response.data["statusDetails"][
-            "ignoreUntil"
+        # issue 4: ownership rule for team
+        time = datetime.now() - timedelta(minutes=7)
+        event4 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-4"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event4.group,
+            project=event4.group.project,
+            organization=event4.group.project.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            team_id=self.team.id,
+            user_id=None,
+        )
+
+        # issue 5: assigned to another user
+        time = datetime.now() - timedelta(minutes=6)
+        event5 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-5"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event5.group, self.create_user())
+
+        # issue 6: assigned to another team
+        time = datetime.now() - timedelta(minutes=5)
+        event6 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-6"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event6.group, self.create_team())
+
+        # issue 7: suggested to another user
+        time = datetime.now() - timedelta(minutes=4)
+        event7 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-7"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event7.group,
+            project=event7.group.project,
+            organization=event7.group.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            team_id=None,
+            user_id=self.create_user().id,
+        )
+        # issue 8: suggested to another team
+        time = datetime.now() - timedelta(minutes=3)
+        event8 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-8"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event8.group,
+            project=event8.group.project,
+            organization=event8.group.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            team_id=self.create_team().id,
+            user_id=None,
+        )
+
+        # issue 9: unassigned
+        time = datetime.now() - timedelta(minutes=2)
+        event9 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-9"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        queries_with_expected_ids = [
+            ("assigned_or_suggested:[me]", [event3.group.id, event1.group.id]),
+            ("assigned_or_suggested:[my_teams]", [event4.group.id, event2.group.id]),
+            (
+                "assigned_or_suggested:[me, my_teams]",
+                [event4.group.id, event3.group.id, event2.group.id, event1.group.id],
+            ),
+            (
+                "assigned_or_suggested:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            ("assigned_or_suggested:none", [event9.group.id]),
+            ("assigned:[me]", [event1.group.id]),
+            ("assigned:[my_teams]", [event2.group.id]),
+            ("assigned:[me, my_teams]", [event2.group.id, event1.group.id]),
+            (
+                "assigned:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "assigned:none",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams, none]",
+                [event8.group.id, event7.group.id, event6.group.id, event5.group.id],
+            ),
+            (
+                "!assigned_or_suggested:none",
+                [
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            ("!assigned:[me, my_teams, none]", [event6.group.id, event5.group.id]),
+            (
+                "!assigned:none",
+                [event6.group.id, event5.group.id, event2.group.id, event1.group.id],
+            ),
         ]
 
-        assert response.data["status"] == "ignored"
-        assert response.data["statusDetails"]["ignoreCount"] == snooze.count
-        assert response.data["statusDetails"]["ignoreWindow"] == snooze.window
-        assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
-        assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
-        assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-    def test_snooze_count(self) -> None:
-        group = self.create_group(status=GroupStatus.RESOLVED, times_seen=1)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="ignored", ignoreCount=100
-        )
-        snooze = GroupSnooze.objects.get(group=group)
-        assert snooze.count == 100
-        assert snooze.until is None
-        assert snooze.user_count is None
-        assert snooze.user_window is None
-        assert snooze.window is None
-        assert snooze.state is not None
-        assert snooze.state["times_seen"] == 1
-
-        assert response.data["status"] == "ignored"
-        assert response.data["statusDetails"]["ignoreCount"] == snooze.count
-        assert response.data["statusDetails"]["ignoreWindow"] == snooze.window
-        assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
-        assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
-        assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-    def test_snooze_user_count(self) -> None:
-        for i in range(10):
-            event = self.store_event(
-                data={
-                    "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": str(i)},
-                    "timestamp": (self.min_ago + timedelta(seconds=i)).isoformat(),
-                },
-                project_id=self.project.id,
-            )
-
-        assert event.group is not None
-        group = Group.objects.get(id=event.group.id)
-        group.status = GroupStatus.RESOLVED
-        group.substatus = None
-        group.save()
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="ignored", ignoreUserCount=10
-        )
-        snooze = GroupSnooze.objects.get(group=group)
-        assert snooze.count is None
-        assert snooze.until is None
-        assert snooze.user_count == 10
-        assert snooze.user_window is None
-        assert snooze.window is None
-        assert snooze.state is not None
-        assert snooze.state["users_seen"] == 10
-
-        assert response.data["status"] == "ignored"
-        assert response.data["statusDetails"]["ignoreCount"] == snooze.count
-        assert response.data["statusDetails"]["ignoreWindow"] == snooze.window
-        assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
-        assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
-        assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-    def test_set_bookmarked(self) -> None:
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
+        for query, expected_group_ids in queries_with_expected_ids:
             response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isBookmarked="true"
+                sort="new",
+                query=query,
             )
-        assert response.data == {"isBookmarked": True}
-
-        bookmark1 = GroupBookmark.objects.filter(group=group1, user_id=self.user.id)
-        assert bookmark1.exists()
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group1, is_active=True
-        ).exists()
-
-        bookmark2 = GroupBookmark.objects.filter(group=group2, user_id=self.user.id)
-        assert bookmark2.exists()
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group2, is_active=True
-        ).exists()
-
-        bookmark3 = GroupBookmark.objects.filter(group=group3, user_id=self.user.id)
-        assert not bookmark3.exists()
-
-        bookmark4 = GroupBookmark.objects.filter(group=group4, user_id=self.user.id)
-        assert not bookmark4.exists()
-
-    def test_subscription(self) -> None:
-        group1 = self.create_group()
-        group2 = self.create_group()
-        group3 = self.create_group()
-        group4 = self.create_group(project=self.create_project(slug="foo"))
-
-        self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isSubscribed="true"
-            )
-        assert response.data == {"isSubscribed": True, "subscriptionDetails": {"reason": "unknown"}}
-
-        assert GroupSubscription.objects.filter(
-            group=group1, user_id=self.user.id, is_active=True
-        ).exists()
-
-        assert GroupSubscription.objects.filter(
-            group=group2, user_id=self.user.id, is_active=True
-        ).exists()
-
-        assert not GroupSubscription.objects.filter(group=group3, user_id=self.user.id).exists()
-
-        assert not GroupSubscription.objects.filter(group=group4, user_id=self.user.id).exists()
-
-    def test_set_public(self) -> None:
-        group1 = self.create_group()
-        group2 = self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id]}, isPublic="true"
-        )
-        assert response.data["isPublic"] is True
-        assert "shareId" in response.data
-
-        new_group1 = Group.objects.get(id=group1.id)
-        assert bool(new_group1.get_share_id())
-
-        new_group2 = Group.objects.get(id=group2.id)
-        assert bool(new_group2.get_share_id())
-
-    def test_set_private(self) -> None:
-        group1 = self.create_group()
-        group2 = self.create_group()
-
-        # Manually mark them as shared
-        for g in group1, group2:
-            GroupShare.objects.create(project_id=g.project_id, group=g)
-            assert bool(g.get_share_id())
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id]}, isPublic="false"
-        )
-        assert response.data == {"isPublic": False, "shareId": None}
-
-        new_group1 = Group.objects.get(id=group1.id)
-        assert not bool(new_group1.get_share_id())
-
-        new_group2 = Group.objects.get(id=group2.id)
-        assert not bool(new_group2.get_share_id())
-
-    def test_set_has_seen(self) -> None:
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, hasSeen="true"
-            )
-        assert response.data == {"hasSeen": True}
-
-        r1 = GroupSeen.objects.filter(group=group1, user_id=self.user.id)
-        assert r1.exists()
-
-        r2 = GroupSeen.objects.filter(group=group2, user_id=self.user.id)
-        assert r2.exists()
-
-        r3 = GroupSeen.objects.filter(group=group3, user_id=self.user.id)
-        assert not r3.exists()
-
-        r4 = GroupSeen.objects.filter(group=group4, user_id=self.user.id)
-        assert not r4.exists()
-
-    @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.eventstream.backend")
-    def test_merge(
-        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
-    ) -> None:
-        eventstream_state = object()
-        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
-
-        mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group2 = self.create_group(times_seen=50)
-        group3 = self.create_group(times_seen=2)
-        self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
-        )
-        assert response.data["merge"]["parent"] == str(group2.id)
-        assert sorted(response.data["merge"]["children"]) == sorted(
-            [str(group1.id), str(group3.id)]
-        )
-
-        mock_eventstream.start_merge.assert_called_once_with(
-            group1.project_id, [group3.id, group1.id], group2.id
-        )
-
-        assert len(merge_groups.mock_calls) == 1
-        merge_groups.delay.assert_any_call(
-            from_object_ids=[group3.id, group1.id],
-            to_object_id=group2.id,
-            transaction_id="abc123",
-            eventstream_state=eventstream_state,
-        )
-
-    @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.eventstream.backend")
-    def test_merge_performance_issues(
-        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
-    ) -> None:
-        eventstream_state = object()
-        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
-
-        mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1, type=PerformanceSlowDBQueryGroupType.type_id)
-        group2 = self.create_group(times_seen=50, type=PerformanceSlowDBQueryGroupType.type_id)
-        group3 = self.create_group(times_seen=2, type=PerformanceSlowDBQueryGroupType.type_id)
-        self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.get_error_response(
-            qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
-        )
-
-        assert response.status_code == 400, response.content
-
-    def test_assign(self) -> None:
-        group1 = self.create_group(is_public=True)
-        group2 = self.create_group(is_public=True)
-        user = self.user
-
-        self.login_as(user=user)
-        response = self.get_success_response(qs_params={"id": group1.id}, assignedTo=user.username)
-        assert response.data["assignedTo"]["id"] == str(user.id)
-        assert response.data["assignedTo"]["type"] == "user"
-        assert GroupAssignee.objects.filter(group=group1, user_id=user.id).exists()
-        assert GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.ASSIGNED
-        ).exists()
-
-        assert not GroupAssignee.objects.filter(group=group2, user_id=user.id).exists()
-
-        assert (
-            Activity.objects.filter(
-                group=group1, user_id=user.id, type=ActivityType.ASSIGNED.value
-            ).count()
-            == 1
-        )
-
-        assert GroupSubscription.objects.filter(
-            user_id=user.id, group=group1, is_active=True
-        ).exists()
-
-        response = self.get_success_response(qs_params={"id": group1.id}, assignedTo="")
-        assert response.data["assignedTo"] is None
-
-        assert not GroupAssignee.objects.filter(group=group1, user_id=user.id).exists()
-        assert GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.UNASSIGNED
-        ).exists()
-
-    def test_assign_non_member(self) -> None:
-        group = self.create_group(is_public=True)
-        member = self.user
-        non_member = self.create_user("bar@example.com")
-
-        self.login_as(user=member)
-
-        response = self.get_response(qs_params={"id": group.id}, assignedTo=non_member.username)
-        assert not GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.ASSIGNED
-        ).exists()
-        assert response.status_code == 400, response.content
-
-    def test_assign_team(self) -> None:
-        self.login_as(user=self.user)
-
-        group = self.create_group()
-        other_member = self.create_user("bar@example.com")
-        team = self.create_team(
-            organization=group.project.organization, members=[self.user, other_member]
-        )
-
-        group.project.add_team(team)
-
-        assert not GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.ASSIGNED
-        ).exists()
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, assignedTo=f"team:{team.id}"
-        )
-        assert response.data["assignedTo"]["id"] == str(team.id)
-        assert response.data["assignedTo"]["type"] == "team"
-        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ASSIGNED).exists()
-        assert GroupAssignee.objects.filter(group=group, team=team).exists()
-
-        assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
-
-        assert GroupSubscription.objects.filter(group=group, is_active=True).count() == 2
-
-        response = self.get_success_response(qs_params={"id": group.id}, assignedTo="")
-        assert response.data["assignedTo"] is None
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.UNASSIGNED
-        ).exists()
-
-    def test_discard(self) -> None:
-        group1 = self.create_group(is_public=True)
-        group2 = self.create_group(is_public=True)
-        group_hash = GroupHash.objects.create(hash="x" * 32, project=group1.project, group=group1)
-        user = self.user
-
-        self.login_as(user=user)
-        with self.tasks():
-            with self.feature("projects:discard-groups"):
-                response = self.get_response(qs_params={"id": group1.id}, discard=True)
-
-        assert response.status_code == 204
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert Group.objects.filter(id=group2.id).exists()
-        assert GroupHash.objects.filter(id=group_hash.id).exists()
-        tombstone = GroupTombstone.objects.get(
-            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id
-        )
-        assert tombstone.message == group1.message
-        assert tombstone.culprit == group1.culprit
-        assert tombstone.project == group1.project
-        assert tombstone.data == group1.data
-
-    def test_set_inbox(self) -> None:
-        group1 = self.create_group()
-        group2 = self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
-        assert response.data == {"inbox": True}
-        assert GroupInbox.objects.filter(group=group1).exists()
-        assert GroupInbox.objects.filter(group=group2).exists()
-        assert not GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.REVIEWED
-        ).exists()
-        assert not GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.REVIEWED
-        ).exists()
-
-        response = self.get_success_response(qs_params={"id": [group2.id]}, inbox="false")
-        assert response.data == {"inbox": False}
-        assert GroupInbox.objects.filter(group=group1).exists()
-        assert not GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.REVIEWED
-        ).exists()
-        assert GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.REVIEWED
-        ).exists()
-        assert not GroupInbox.objects.filter(group=group2).exists()
-
-    def test_set_resolved_inbox(self) -> None:
-        group1 = self.create_group()
-        group2 = self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id]}, status="resolved"
-        )
-        assert response.data["inbox"] is None
-        assert not GroupInbox.objects.filter(group=group1).exists()
-        assert not GroupInbox.objects.filter(group=group2).exists()
-
-        self.get_success_response(qs_params={"id": [group2.id]}, status="unresolved")
-        assert not GroupInbox.objects.filter(group=group1).exists()
-        assert not GroupInbox.objects.filter(group=group2).exists()
-        assert not GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.UNRESOLVED
-        ).exists()
-        assert GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.REGRESSED
-        ).exists()
-
-    def test_update_priority(self) -> None:
-        """
-        Bulk-setting priority successfully changes the priority of the groups
-        and also creates a GroupHistory and Activity entry for each group.
-        """
-        group1 = self.create_group(priority=PriorityLevel.HIGH.value)
-        group2 = self.create_group(priority=PriorityLevel.MEDIUM.value)
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id]}, priority=PriorityLevel.LOW.to_str()
-        )
-
-        assert response.data["priority"] == PriorityLevel.LOW.to_str()
-
-        for group in (group1, group2):
-            assert Group.objects.get(id=group.id).priority == PriorityLevel.LOW.value
-            assert GroupHistory.objects.filter(
-                group=group, status=GroupHistoryStatus.PRIORITY_LOW
-            ).exists()
-            assert Activity.objects.filter(
-                group=group, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
-            ).exists()
-
-    def test_update_priority_no_change(self) -> None:
-        """
-        When the priority is the same as the current priority, no changes are made
-        """
-        group1 = self.create_group(priority=PriorityLevel.HIGH.value)
-        group2 = self.create_group(priority=PriorityLevel.MEDIUM.value)
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id]}, priority=PriorityLevel.MEDIUM.to_str()
-        )
-
-        assert response.data["priority"] == PriorityLevel.MEDIUM.to_str()
-
-        # First group should have medium priority and history/activity entries
-        assert Group.objects.get(id=group1.id).priority == PriorityLevel.MEDIUM.value
-        assert GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.PRIORITY_MEDIUM
-        ).exists()
-        assert Activity.objects.filter(
-            group=group1, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
-        ).exists()
-
-        # Second group should still have medium priority and no history/activity entries
-        assert Group.objects.get(id=group1.id).priority == PriorityLevel.MEDIUM
-        assert not GroupHistory.objects.filter(
-            group=group2,
-        ).exists()
-        assert not Activity.objects.filter(
-            group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
-        ).exists()
-
-    def test_resolved_in_upcoming_release_multiple_projects(self) -> None:
-        project_2 = self.create_project(slug="foo")
-        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED, project=project_2)
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            qs_params={
-                "id": [group1.id, group2.id],
-                "statd": "resolved",
-                "statusDetails": {"inUpcomingRelease": True},
-            }
-        )
-
-        assert response.status_code == 400
-
-
-class GroupDeleteTest(APITestCase, SnubaTestCase):
-    endpoint = "sentry-api-0-organization-group-index"
-    method = "delete"
-
-    def get_response(self, *args, **kwargs):
-        if not args:
-            org = self.project.organization.slug
-        else:
-            org = args[0]
-        return super().get_response(org, **kwargs)
-
-    def create_n_groups(self, n: int, type: int | None = None) -> list[Group]:
-        groups = []
-        for _ in range(n):
-            if type:
-                group = self.create_group(
-                    project=self.project, status=GroupStatus.RESOLVED, type=type
-                )
-            else:
-                group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
-            hash = uuid4().hex
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
-            groups.append(group)
-
-        return groups
-
-    def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-    def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
-        for group in groups:
-            assert not Group.objects.filter(id=group.id).exists()
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-    @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": str(uuid4())}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        hashes = []
-        for g in group1, group2, group3, group4:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
-
-        self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-            )
-
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
-
-        assert response.status_code == 204
-
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
-
-        with self.tasks():
-            with self.feature("organizations:global-views"):
-                response = self.get_response(
-                    qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-                )
-
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
-        ]
-
-        assert response.status_code == 204
-
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert not Group.objects.filter(id=group2.id).exists()
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.filter(id=group3.id).exists()
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.filter(id=group4.id).exists()
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-    @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": str(uuid4())}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
-        group1 = self.create_group(
-            status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
-        )
-        group2 = self.create_group(
-            status=GroupStatus.UNRESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
-        )
-
-        hashes = []
-        for g in group1, group2:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
-
-        self.login_as(user=self.user)
-        with self.feature("organizations:global-views"), self.tasks():
-            response = self.get_response(qs_params={"id": [group1.id, group2.id]})
-
-        assert response.status_code == 204
-
-        self.assert_deleted_groups([group1, group2])
-
-    def test_bulk_delete(self) -> None:
-        groups = self.create_n_groups(20)
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
-
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
-
-        with self.tasks():
-            response = self.get_success_response(qs_params={"query": ""})
-            assert response.status_code == 204
-
-        self.assert_deleted_groups(groups)
-
-    def test_bulk_delete_performance_issues(self) -> None:
-        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id)
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
-
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
-        with self.tasks():
-            # if query is '' it defaults to is:unresolved
-            response = self.get_response(qs_params={"query": ""})
-            assert response.status_code == 204
-
-        self.assert_deleted_groups(groups)
+            assert [int(row["id"]) for row in response.data] == expected_group_ids
