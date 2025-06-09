@@ -293,7 +293,6 @@ export function ToolbarSaveAs() {
               {
                 query,
                 groupBys,
-                fields,
                 sortBys,
                 yAxes: [visualizeYAxes[0]!],
                 chartType: visualizes[0]!.chartType,
