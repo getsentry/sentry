@@ -921,7 +921,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if ((!isSpanNode(node) && !isEAPSpanNode(node)) || node.children.length > 1) {
+      if (
+        (!isSpanNode(node) && !isNonTransactionEAPSpanNode(node)) ||
+        node.children.length > 1
+      ) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -941,7 +944,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        (isSpanNode(tail.children[0]!) || isEAPSpanNode(tail.children[0]!)) &&
+        (isSpanNode(tail.children[0]!) ||
+          isNonTransactionEAPSpanNode(tail.children[0]!)) &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
@@ -963,7 +967,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
-      const spanId = isEAPSpanNode(head) ? head.value.event_id : head.value.span_id;
+      const spanId = isNonTransactionEAPSpanNode(head)
+        ? head.value.event_id
+        : head.value.span_id;
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
@@ -1076,7 +1082,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       while (index < node.children.length) {
         // Skip until we find a span candidate
-        if (!isSpanNode(node.children[index]!) && !isEAPSpanNode(node.children[index]!)) {
+        if (
+          !isSpanNode(node.children[index]!) &&
+          !isNonTransactionEAPSpanNode(node.children[index]!)
+        ) {
           index++;
           matchCount = 0;
           continue;
@@ -1091,7 +1100,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         if (
           next &&
-          (isSpanNode(next) || isEAPSpanNode(next)) &&
+          (isSpanNode(next) || isNonTransactionEAPSpanNode(next)) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans
@@ -1111,7 +1120,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
-              span_id: isEAPSpanNode(current)
+              span_id: isNonTransactionEAPSpanNode(current)
                 ? current.value.event_id
                 : current.value.span_id,
               op: current.value.op ?? '',
