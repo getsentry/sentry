@@ -29,7 +29,7 @@ class QueryInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
-        self.potential_unsafe_inputs: list[tuple[str, dict[str, any]]] = []
+        self.potential_unsafe_inputs: list[tuple[str, dict[str, Any]]] = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
@@ -52,17 +52,16 @@ class QueryInjectionDetector(PerformanceDetector):
             return
 
         description = span.get("description", None) or ""
-        # description_dict = json.loads(description)
         op = span.get("op", None) or ""
         spans_involved = [span["span_id"]]
 
         unsafe_inputs = []
         for input_pair in self.potential_unsafe_inputs:
             input_key, input_value = input_pair
-            # Replace all value in pair with "?" since the query string is parameterized
+            # Replace all value in pair with "?" since the query description is sanitized
             if isinstance(input_value, dict):
                 for dict_key, dict_value in input_value.items():
-                    if not isinstance(dict_value, dict):
+                    if dict_value and not isinstance(dict_value, dict):
                         input_value[dict_key] = "?"
 
             input_dict = {input_key: input_value}
