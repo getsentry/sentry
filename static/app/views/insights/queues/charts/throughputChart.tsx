@@ -128,7 +128,6 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
       id={id}
       extraActions={extraActions}
       title={title}
-      queryInfo={{search, referrer}}
       series={[
         renameDiscoverSeries(
           {
