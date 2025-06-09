@@ -1,3 +1,4 @@
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 
@@ -21,9 +22,10 @@ import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 //
 interface CreateReleaseBucketsParams {
   finalTime: number;
+  flags: RawFlag[] | undefined;
   maxTime: number | undefined;
   minTime: number | undefined;
-  releases: ReleaseMetaBasic[];
+  releases: ReleaseMetaBasic[] | undefined;
   desiredBuckets?: number;
 }
 
@@ -31,6 +33,7 @@ export function createReleaseBuckets({
   minTime,
   maxTime,
   finalTime,
+  flags,
   releases,
   desiredBuckets = 10,
 }: CreateReleaseBucketsParams): Bucket[] {
@@ -57,7 +60,12 @@ export function createReleaseBuckets({
     // evenly distributed
     const isLastBucket = i === desiredBuckets - 1;
     const bucketEndTs = isLastBucket ? maxTime : bucketStartTs + interval;
-    const item: Bucket = {start: bucketStartTs, end: bucketEndTs, releases: []};
+    const item: Bucket = {
+      start: bucketStartTs,
+      end: bucketEndTs,
+      releases: [],
+      flags: [],
+    };
 
     if (isLastBucket) {
       item.final = finalTime;
@@ -67,7 +75,7 @@ export function createReleaseBuckets({
   }
 
   // Loop through releases and update its bucket's counters
-  for (const release of releases) {
+  for (const release of releases ?? []) {
     if (!release) {
       break;
     }
@@ -100,6 +108,20 @@ export function createReleaseBuckets({
       // If we couldn't find a bucket, add release to latest bucket
       const lastBucket = buckets.at(-1);
       lastBucket?.releases.push(release);
+    }
+  }
+
+  for (const flag of flags ?? []) {
+    const flagTs = new Date(flag.createdAt).getTime();
+    const bucketIndex = Math.floor((flagTs - minTime) / interval);
+    const currentBucket = buckets[bucketIndex];
+    const bucketEndTs = currentBucket?.end;
+    if (bucketEndTs) {
+      currentBucket.flags.push(flag);
+    } else if (flagTs > maxTime) {
+      // If we couldn't find a bucket, add release to latest bucket
+      const lastBucket = buckets.at(-1);
+      lastBucket?.flags.push(flag);
     }
   }
 
