@@ -142,7 +142,7 @@ const isPolling = (
 };
 
 export const useAutofixRepos = (groupId: string) => {
-  const {data} = useAutofixData({groupId});
+  const {data} = useAutofixData({groupId, isUserWatching: true});
 
   return useMemo(() => {
     const repos = data?.request?.repos ?? [];
@@ -159,11 +159,17 @@ export const useAutofixRepos = (groupId: string) => {
   }, [data]);
 };
 
-export const useAutofixData = ({groupId}: {groupId: string}) => {
+export const useAutofixData = ({
+  groupId,
+  isUserWatching = false,
+}: {
+  groupId: string;
+  isUserWatching: boolean;
+}) => {
   const orgSlug = useOrganization().slug;
 
   const {data, isPending} = useApiQuery<AutofixResponse>(
-    makeAutofixQueryKey(orgSlug, groupId),
+    makeAutofixQueryKey(orgSlug, groupId, isUserWatching),
     {
       staleTime: Infinity,
       enabled: false,
