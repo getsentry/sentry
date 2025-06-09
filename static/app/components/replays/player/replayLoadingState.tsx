@@ -44,9 +44,14 @@ export default function ReplayLoadingState({
     );
   }
 
-  // Prioritize loading state when we're still fetching data, even if there are temporary errors
-  // This prevents the error state from flickering during initial load
-  if (readerResult.fetching) {
+  // Check if we're still loading data or if we're missing essential data for ReplayReader.factory
+  // ReplayReader.factory returns null if any of attachments, replayRecord, or errors are falsy
+  const isStillLoading =
+    readerResult.fetching ||
+    (!readerResult.fetchError &&
+      (!readerResult.attachments || !readerResult.replayRecord || !readerResult.errors));
+
+  if (isStillLoading) {
     return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
   }
 

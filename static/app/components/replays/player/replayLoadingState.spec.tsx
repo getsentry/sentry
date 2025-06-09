@@ -35,19 +35,54 @@ describe('ReplayLoadingState', () => {
     } as ReturnType<typeof useLoadReplayReader>,
   };
 
-  it('should prioritize loading state over fetch error when fetching is true', () => {
-    const propsWithFetchErrorButStillFetching = {
+  it('should show loading state when fetching is true', () => {
+    const propsWithFetching = {
       ...defaultProps,
       readerResult: {
         ...defaultProps.readerResult,
-        fetchError: {status: 400} as RequestError,
-        fetching: true, // This is the key: still fetching despite error
+        fetching: true,
       },
     };
 
-    render(<ReplayLoadingState {...propsWithFetchErrorButStillFetching} />);
+    render(<ReplayLoadingState {...propsWithFetching} />);
 
-    // Should show loading indicator, not error message
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
+  it('should show loading state when essential data is missing even if fetching is false', () => {
+    // Missing replayRecord
+    const propsWithMissingData = {
+      ...defaultProps,
+      readerResult: {
+        ...defaultProps.readerResult,
+        fetching: false,
+        attachments: [],
+        errors: [],
+        replayRecord: undefined, // This is missing
+      },
+    };
+
+    render(<ReplayLoadingState {...propsWithMissingData} />);
+
+    // Should show loading indicator because essential data is missing
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('should show loading state when attachments are missing', () => {
+    const propsWithMissingAttachments = {
+      ...defaultProps,
+      readerResult: {
+        ...defaultProps.readerResult,
+        fetching: false,
+        attachments: undefined, // This is missing
+        errors: [],
+        replayRecord: {id: 'test'} as any,
+      },
+    };
+
+    render(<ReplayLoadingState {...propsWithMissingAttachments} />);
+
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -64,26 +99,29 @@ describe('ReplayLoadingState', () => {
 
     render(<ReplayLoadingState {...propsWithFetchError} />);
 
-    // Should show error alert since we're not fetching anymore
+    // Should show error alert since we have a real fetch error
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('should show loading state when fetching is true without errors', () => {
-    const propsWithFetching = {
+  it('should prioritize loading state over fetch error when fetching is true', () => {
+    const propsWithFetchErrorButStillFetching = {
       ...defaultProps,
       readerResult: {
         ...defaultProps.readerResult,
-        fetching: true,
+        fetchError: {status: 400} as RequestError,
+        fetching: true, // This takes priority
       },
     };
 
-    render(<ReplayLoadingState {...propsWithFetching} />);
+    render(<ReplayLoadingState {...propsWithFetchErrorButStillFetching} />);
 
+    // Should show loading indicator, not error message
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('should render children when replay is available and not fetching', () => {
+  it('should render children when replay is available and all data is ready', () => {
     const mockReplay = {
       hasProcessingErrors: jest.fn(() => false),
     };
@@ -94,6 +132,9 @@ describe('ReplayLoadingState', () => {
         ...defaultProps.readerResult,
         replay: mockReplay as any,
         fetching: false,
+        attachments: ['some-attachment'],
+        errors: [],
+        replayRecord: {id: 'test'} as any,
       },
     };
 
