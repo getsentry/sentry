@@ -1024,3 +1024,20 @@ Available fields are:
 - `myqueries`
         """,
     )
+
+
+class PreventParams:
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="path",
+        required=True,
+        type=str,
+        description="The owner of the repository.",
+    )
+    REPOSITORY = OpenApiParameter(
+        name="repository",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the repository.",
+    )
