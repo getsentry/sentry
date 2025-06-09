@@ -15,7 +15,7 @@ type Props = {
   group?: Group;
 };
 
-interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
+interface ReplayReaderResult extends Omit<ReturnType<typeof useReplayData>, 'fetching'> {
   replay: ReplayReader | null;
   replayId: string;
 }
@@ -72,7 +72,7 @@ export default function useLoadReplayReader({
     ...replayData,
     attachments,
     errors,
-    fetching,
+    // fetching,
     replay,
     replayId,
     replayRecord,

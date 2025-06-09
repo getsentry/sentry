@@ -50,7 +50,7 @@ export default function ReplayLoadingState({
       <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
-  if (readerResult.fetching) {
+  if (readerResult.replay?.isFetching()) {
     return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
   }
   if (!readerResult.replay) {

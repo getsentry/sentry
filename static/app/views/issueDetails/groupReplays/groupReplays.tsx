@@ -150,12 +150,12 @@ function GroupReplaysTableInner({
     replaySlug,
     group,
   });
-  const {fetching, replay} = readerResult;
+  const {replay} = readerResult;
 
   return (
     <ReplayContextProvider
       analyticsContext="replay_tab"
-      isFetching={fetching}
+      isFetching={replay?.isFetching() ?? true}
       replay={replay}
       autoStart
     >
