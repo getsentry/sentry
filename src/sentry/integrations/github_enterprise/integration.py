@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Never
 from urllib.parse import urlparse
 
 from django import forms
@@ -333,8 +333,8 @@ class InstallationForm(forms.Form):
         self.fields["verify_ssl"].initial = True
 
 
-class InstallationConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class InstallationConfigView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -409,15 +409,17 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             config=identity_pipeline_config,
         )
 
-    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
+        return (
             InstallationConfigView(),
             GitHubEnterpriseInstallationRedirect(),
             # The identity provider pipeline should be constructed at execution
             # time, this allows for the oauth configuration parameters to be made
             # available from the installation config view.
             lambda: self._make_identity_pipeline_view(),
-        ]
+        )
 
     def post_install(
         self,
@@ -514,7 +516,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         )
 
 
-class GitHubEnterpriseInstallationRedirect(PipelineView):
+class GitHubEnterpriseInstallationRedirect(PipelineView[Never]):
     def get_app_url(self, installation_data):
         if installation_data.get("public_link"):
             return installation_data["public_link"]
@@ -523,7 +525,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         installation_data = pipeline.fetch_state(key="installation_data")
 
         if "installation_id" in request.GET:
