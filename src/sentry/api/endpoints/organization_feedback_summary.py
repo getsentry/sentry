@@ -62,15 +62,12 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             "type": FeedbackGroup.type_id,
             "first_seen__gte": start,
             "first_seen__lte": end,
-            "status__in": [
-                GroupStatus.RESOLVED,
-                GroupStatus.UNRESOLVED,
-            ],
+            "status": GroupStatus.UNRESOLVED,
         }
 
-        # Only filter by projects if projects are explicitly selected
-        projects = self.get_projects(request, organization)
+        # If no project is specified, use all projects
         if request.GET.get("project"):
+            projects = self.get_projects(request, organization)
             filters["project__in"] = projects
 
         groups = Group.objects.filter(**filters).order_by("-first_seen")[

@@ -26,7 +26,7 @@ def create_dummy_response(*args, **kwargs):
             )
         ],
         created=int(time.time()),
-        model="gpt3.5-trubo",
+        model="gpt3.5-turbo",
         object="chat.completion",
     )
 
@@ -155,7 +155,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        for _ in range(10):
+        for _ in range(12):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
                 event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -188,7 +188,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     @django_db_all
     @patch("sentry.llm.providers.openai.OpenAI")
-    # is this a bad use of patch?
     @patch(
         "sentry.api.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
         1000,
