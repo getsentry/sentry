@@ -32,7 +32,29 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         self.dashboard = self.create_dashboard(
             organization=self.organization, filters={"environment": []}
         )
+        self.dashboard_2 = self.create_dashboard(
+            organization=self.organization, filters={"environment": []}
+        )
         self.dashboard.projects.set([self.project])
+        self.dashboard_2.projects.set([])
+
+        self.successful_widget_2 = DashboardWidget.objects.create(
+            dashboard=self.dashboard_2,
+            title="Test Successful Widget 2",
+            order=0,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        self.successful_widget_query_2 = DashboardWidgetQuery.objects.create(
+            widget=self.successful_widget_2,
+            name="Test Successful Widget Query 2",
+            order=0,
+            conditions="",
+            aggregates=["count()"],
+            columns=["count()", "transaction"],
+            fields=["count()", "transaction"],
+        )
 
         self.successful_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -299,3 +321,10 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         assert comparison_result["passed"] is False
         assert comparison_result["reason"] == CompareTableResult.QUERY_FAILED
         assert comparison_result["mismatches"] is not None and [] == comparison_result["mismatches"]
+
+    def test_compare_widget_query_with_no_project(self):
+        comparison_result = compare_tables_for_dashboard_widget_queries(
+            self.successful_widget_query_2
+        )
+        assert comparison_result["passed"] is True
+        assert comparison_result["mismatches"] == []
