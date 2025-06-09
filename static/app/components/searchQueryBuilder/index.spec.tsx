@@ -1665,6 +1665,34 @@ describe('SearchQueryBuilder', function () {
       const listBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
       expect(listBox).toBeChecked();
     });
+
+    it('strips multiple wildcards into a single wildcard', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.type(
+        screen.getByRole('combobox'),
+        '****random****Value*****{enter}'
+      );
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:[Firefox,*random*Value*]',
+        expect.anything()
+      );
+    });
   });
 
   describe('filter types', function () {
