@@ -205,8 +205,8 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       '@sentry/toolbar':
-        specifier: 1.0.0-beta.15
-        version: 1.0.0-beta.15(react@19.1.0)
+        specifier: 1.0.0-beta.16
+        version: 1.0.0-beta.16(react@19.1.0)
       '@sentry/webpack-plugin':
         specifier: ^3.4.0
         version: 3.4.0(encoding@0.1.13)(webpack@5.99.6(esbuild@0.25.3))
@@ -2857,8 +2857,8 @@ packages:
     resolution: {integrity: sha512-umFIGPsFo8wjT5xLSraUd69GDJhBv8a8YgpAt8zE23SlkFNiWZcDP+Wr6yif2EQvB6Z6i3TmnQcz3mBN1j1kNA==}
     engines: {node: '>=14'}
 
-  '@sentry/toolbar@1.0.0-beta.15':
-    resolution: {integrity: sha512-2v7vOVati2INqDYqHDI20B1HZ/vwsNJ51QG01IiZevV433YxbSfSnx6DqsstT0oCZKZOjWEMlsAyjecdtI3lcA==}
+  '@sentry/toolbar@1.0.0-beta.16':
+    resolution: {integrity: sha512-5ca29J9dzBkXShe2pHcNX32XpetxH8eAIgPRLvN9REDK8rMZpyQW08tP1S3Y+c8VLNAbJXONaiS6RR+3Cs8BUQ==}
     peerDependencies:
       react: '>=18'
 
@@ -11079,7 +11079,7 @@ snapshots:
 
   '@sentry/status-page-list@0.6.0': {}
 
-  '@sentry/toolbar@1.0.0-beta.15(react@19.1.0)':
+  '@sentry/toolbar@1.0.0-beta.16(react@19.1.0)':
     dependencies:
       react: 19.1.0
 
