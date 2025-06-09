@@ -266,13 +266,10 @@ function EAPOverviewPage() {
                   <InsightsSpanTagProvider>
                     <CompactSelect
                       value={spanOp}
-                      triggerProps={{
-                        prefix: t('Operation'),
-                      }}
                       menuTitle={t('Filter by operation')}
                       options={[
-                        {value: 'all', label: t('All')},
-                        {value: 'pageload', label: t('Page Load')},
+                        {value: 'all', label: t('All Transactions')},
+                        {value: 'pageload', label: t('Pageload')},
                         {value: 'navigation', label: t('Navigation')},
                       ]}
                       onChange={(selectedOption: SelectOption<PageSpanOps>) => {
