@@ -29,6 +29,7 @@
 {% if form %}
 <h3>{% trans "Step 2: Connect Sentry with your App" %}</h3>
   <p>{% trans "Add your GitLab App credentials to Sentry." %}</p>
+  <p>{% trans "We recommend using a service account on Gitlab to install the integration. See the" %} <a href="https://docs.sentry.io/organization/integrations/source-code-mgmt/gitlab/#install" target="_blank">{% trans "docs" %}</a>.</p>
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
     <input type="hidden" name="provider" value="gitlab" />
@@ -51,9 +52,9 @@
   <p>{% trans "To configure GitLab with Sentry, you will need to create a Sentry app in your GitLab instance." %}</p>
   <p>{% trans "You'll also need to be a maintainer or owner in GitLab. Projects owned by users are not supported." %}</p>
   <ol>
-    <li>{% trans "Navigate to the User Settings section of your GitLab instance." %} </li>
-    <li>{% trans "In the sidebar, select 'Applications'.<br /> Or go to the <code>/-/profile/applications</code> path in your GitLab instance." %}</li>
-    <li>{% trans "In the resulting form, enter the following information:" %}
+    <li>{% trans "Navigate to the Settings section of your GitLab group instance." %} </li>
+    <li>{% trans "In the sidebar, select 'Applications'.<br /> Or go to the <code>/-/settings/applications</code> path in your GitLab instance." %}</li>
+    <li>{% trans "In the resulting form, enter the following information to create a group application:" %}
       <ul class="list-unstyled code-list">
         {% for val in setup_values %}
           <li class="p-a-0">{{ val.label }}: {{ val.value }}</li>
