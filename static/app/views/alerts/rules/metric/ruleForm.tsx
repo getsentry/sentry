@@ -57,7 +57,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlert, isValidLogsAlert} from 'sentry/views/alerts/rules/utils';
+import {isEapAlertType, isValidLogsAlert} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -183,7 +183,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      isEapAlert(alertType)
+      isEapAlertType(alertType)
         ? query
         : query
           ? `(${query}) AND (${eventTypeFilter})`
@@ -267,7 +267,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType,
-      traceItemType: isEapAlert(alertType) ? eventTypes[0] : undefined,
+      traceItemType: isEapAlertType(alertType) ? eventTypes[0] : undefined,
     };
   }
 
@@ -1046,7 +1046,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
-    if (isEapAlert(this.state.alertType)) {
+    if (isEapAlertType(this.state.alertType)) {
       this.handleEAPMetricsAlertDataset(data);
     }
   };
@@ -1209,7 +1209,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
 
     const func = parseFunction(aggregate);
-    if (func && isEapAlert(alertType)) {
+    if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
     }
 
@@ -1242,7 +1242,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (isEapAlert(alertType)) {
+    if (isEapAlertType(alertType)) {
       formattedQuery = '';
     }
 

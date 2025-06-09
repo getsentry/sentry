@@ -50,7 +50,9 @@ import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {
+  findSpanAttributeValue,
   getProfileMeta,
+  getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -376,7 +378,7 @@ function EAPSpanNodeDetails({
 
   const {
     data: eventTransaction,
-    isPending: isEventTransactionPending,
+    isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
     event_id: node.value.transaction_id,
@@ -388,7 +390,7 @@ function EAPSpanNodeDetails({
 
   const traceState = useTraceState();
 
-  if (isTraceItemPending || isEventTransactionPending) {
+  if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;
   }
 
@@ -403,8 +405,8 @@ function EAPSpanNodeDetails({
       ? 1
       : undefined;
 
-  const isTransaction = isEAPTransactionNode(node);
-  const profileMeta = getProfileMeta(eventTransaction) || '';
+  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
@@ -473,6 +475,11 @@ function EAPSpanNodeDetails({
                           location,
                           organization,
                         }}
+                        getCustomActions={getTraceAttributesTreeActions({
+                          location,
+                          organization,
+                          projectIds: findSpanAttributeValue(attributes, 'project_id'),
+                        })}
                       />
                     </FoldSection>
 

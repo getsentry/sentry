@@ -260,6 +260,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_indexed,
                         spans_metrics,
                         spans_rpc,
+                        ourlogs,
                         errors,
                         transactions,
                     ]

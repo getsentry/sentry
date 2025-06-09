@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
@@ -47,8 +48,6 @@ SQL_KEYWORDS = [
 
 
 class SQLInjectionDetector(PerformanceDetector):
-    __slots__ = "stored_problems"
-
     type = DetectorType.SQL_INJECTION
     settings_key = DetectorType.SQL_INJECTION
 
@@ -56,6 +55,7 @@ class SQLInjectionDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
+        self.request_parameters: list[Sequence[Any]] = []
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
@@ -74,9 +74,9 @@ class SQLInjectionDetector(PerformanceDetector):
         valid_parameters = []
         request_data = []
 
-        if self.query_string:
+        if self.query_string and isinstance(self.query_string, list):
             request_data.extend(self.query_string)
-        if self.request_body:
+        if self.request_body and isinstance(self.request_body, dict):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
@@ -94,7 +94,7 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not SQLInjectionDetector.is_span_eligible(span):
+        if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
             return
 
         description = span.get("description") or ""
@@ -105,7 +105,7 @@ class SQLInjectionDetector(PerformanceDetector):
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if value in description:
+            if key in description and value in description:
                 description = description.replace(value, "?")
                 vulnerable_parameters.append(key)
 
@@ -128,7 +128,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": vulnerable_parameters,
+                "vulnerable_parameters": list(set(vulnerable_parameters)),
                 "request_url": self.request_url,
             },
             evidence_display=[

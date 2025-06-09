@@ -164,7 +164,7 @@ export function getAlertRuleExploreUrl({
   });
 }
 
-export function isEapAlert(alertType?: AlertType) {
+export function isEapAlertType(alertType?: AlertType) {
   if (!defined(alertType)) {
     return false;
   }

@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import {isEapAlert} from 'sentry/views/alerts/rules/utils';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -108,7 +108,7 @@ function ThresholdTypeForm({
   if (
     hasAnomalyDetection &&
     (validAnomalyDetectionAlertTypes.has(alertType) ||
-      (hasAnomalyDetectionForEAP && isEapAlert(alertType)))
+      (hasAnomalyDetectionForEAP && isEapAlertType(alertType)))
   ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,

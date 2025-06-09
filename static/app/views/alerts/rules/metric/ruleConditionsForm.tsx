@@ -59,11 +59,7 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
-import {
-  getProjectOptions,
-  isEapAlert,
-  isValidLogsAlert,
-} from 'sentry/views/alerts/rules/utils';
+import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -278,26 +274,23 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       }>;
     }> = [];
 
-    if (isValidLogsAlert(alertType)) {
-    } else {
-      dataSourceOptions.push({
-        label: t('Errors'),
-        options: [
-          {
-            value: Datasource.ERROR_DEFAULT,
-            label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
-          },
-          {
-            value: Datasource.DEFAULT,
-            label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
-          },
-          {
-            value: Datasource.ERROR,
-            label: DATA_SOURCE_LABELS[Datasource.ERROR],
-          },
-        ],
-      });
-    }
+    dataSourceOptions.push({
+      label: t('Errors'),
+      options: [
+        {
+          value: Datasource.ERROR_DEFAULT,
+          label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
+        },
+        {
+          value: Datasource.DEFAULT,
+          label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
+        },
+        {
+          value: Datasource.ERROR,
+          label: DATA_SOURCE_LABELS[Datasource.ERROR],
+        },
+      ],
+    });
 
     if (
       organization.features.includes('performance-view') &&
@@ -537,7 +530,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               traceItemType={TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
-                isEapAlert(alertType)
+                isEapAlertType(alertType)
               }
             >
               {isExtrapolatedChartData && (
@@ -597,7 +590,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
-                    return isEapAlert(alertType) ? (
+                    return isEapAlertType(alertType) ? (
                       <EAPSpanSearchQueryBuilderWithContext
                         initialQuery={value ?? ''}
                         onSearch={(query, {parsedQuery}) => {
