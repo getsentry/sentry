@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Never
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -20,7 +20,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
     # want it to actually appear of the Integrations page.
     visible = False
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[Never]]:
         views = super().get_pipeline_views()
         views = [view for view in views if not isinstance(view, AccountConfigView)]
         views.append(VstsExtensionFinishedView())
@@ -38,8 +38,8 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         )
 
 
-class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class VstsExtensionFinishedView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         response = pipeline.finish_pipeline()
 
         integration = getattr(pipeline, "integration", None)

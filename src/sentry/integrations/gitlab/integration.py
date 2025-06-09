@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Never
 from urllib.parse import urlparse
 
 from django import forms
@@ -553,8 +553,8 @@ class InstallationForm(forms.Form):
         return self.cleaned_data["url"].rstrip("/")
 
 
-class InstallationConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class InstallationConfigView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -595,8 +595,8 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class InstallationGuideView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class InstallationGuideView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
@@ -632,7 +632,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def _make_identity_pipeline_view(self):
+    def _make_identity_pipeline_view(self) -> PipelineView[Never]:
         """
         Make the nested identity provider view. It is important that this view is
         not constructed until we reach this step and the
@@ -685,12 +685,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 f"The requested GitLab group {requested_group} could not be found."
             )
 
-    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
+        return (
             InstallationGuideView(),
             InstallationConfigView(),
             lambda: self._make_identity_pipeline_view(),
-        ]
+        )
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]

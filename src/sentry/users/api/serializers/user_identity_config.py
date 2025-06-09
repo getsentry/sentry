@@ -4,13 +4,14 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Self, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user_social_auth import get_provider_label
+from sentry.db.models.base import Model as SentryModel
 from sentry.exceptions import NotRegistered
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
@@ -53,7 +54,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: PipelineProvider) -> UserIdentityProvider:
+    def adapt[M: SentryModel](cls, provider: PipelineProvider[M]) -> Self:
         return cls(provider.key, provider.name)
 
 
@@ -77,8 +78,6 @@ class UserIdentityConfig:
 
     @classmethod
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
-        provider: PipelineProvider
-
         def base(**kwargs: Any) -> UserIdentityConfig:
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
@@ -94,6 +93,7 @@ class UserIdentityConfig:
                 is_login=False,
             )
         elif isinstance(identity, Identity):
+            provider: PipelineProvider[Any]
             try:
                 provider = identity.get_provider()
             except NotRegistered:

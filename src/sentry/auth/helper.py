@@ -4,7 +4,7 @@ import logging
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import orjson
@@ -650,7 +650,7 @@ class AuthIdentityHandler:
         return auth_identity
 
 
-class AuthHelper(Pipeline):
+class AuthHelper(Pipeline[AuthProvider]):
     """
     Helper class which is passed into AuthView's.
 
@@ -731,9 +731,9 @@ class AuthHelper(Pipeline):
 
     def get_provider(
         self, provider_key: str | None, *, organization: RpcOrganization | None
-    ) -> PipelineProvider:
+    ) -> PipelineProvider[AuthProvider]:
         if self.provider_model:
-            return cast(PipelineProvider, self.provider_model.get_provider())
+            return self.provider_model.get_provider()
         elif provider_key:
             return super().get_provider(provider_key, organization=organization)
         else:

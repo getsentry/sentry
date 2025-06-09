@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, TypedDict
+from typing import Any, Never, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -1139,7 +1139,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[Never]]:
         return []
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

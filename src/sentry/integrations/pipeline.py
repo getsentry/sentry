@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import Any, Never, TypedDict
 
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
@@ -88,7 +88,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(Pipeline):
+class IntegrationPipeline(Pipeline[Never]):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 

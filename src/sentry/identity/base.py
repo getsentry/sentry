@@ -4,10 +4,10 @@ from typing import Any
 
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.pipeline import PipelineProvider
-from sentry.users.models.identity import Identity
+from sentry.users.models.identity import Identity, IdentityProvider
 
 
-class Provider(PipelineProvider, abc.ABC):
+class Provider(PipelineProvider[IdentityProvider], abc.ABC):
     """
     A provider indicates how identity authenticate should happen for a given service.
     """

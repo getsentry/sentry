@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Never
 
 from botocore.exceptions import ClientError
 from django.http.request import HttpRequest
@@ -203,7 +203,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[Never]]:
         return [
             AwsLambdaProjectSelectPipelineView(),
             AwsLambdaCloudFormationPipelineView(),
@@ -261,8 +261,8 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             oi.update(config={"default_project_id": default_project_id})
 
 
-class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class AwsLambdaProjectSelectPipelineView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -288,8 +288,8 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
         )
 
 
-class AwsLambdaCloudFormationPipelineView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class AwsLambdaCloudFormationPipelineView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
@@ -351,8 +351,8 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         return render_response()
 
 
-class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class AwsLambdaListFunctionsPipelineView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -379,8 +379,8 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
         )
 
 
-class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class AwsLambdaSetupLayerPipelineView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 

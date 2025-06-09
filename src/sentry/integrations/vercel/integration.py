@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import Any, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, Never, TypedDict
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -366,17 +366,15 @@ class VercelIntegrationProvider(IntegrationProvider):
     # feature flag handler is in getsentry
     requires_feature_flag = True
 
-    def get_pipeline_views(self) -> list[PipelineView]:
-        identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}
-
-        identity_pipeline_view = NestedPipelineView(
-            bind_key="identity",
-            provider_key=self.key,
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-
-        return [identity_pipeline_view]
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
+        return [
+            NestedPipelineView(
+                bind_key="identity",
+                provider_key=self.key,
+                pipeline_cls=IdentityProviderPipeline,
+                config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
+            )
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]
