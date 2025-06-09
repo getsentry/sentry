@@ -47,7 +47,7 @@ export function formatXAxisTimestamp(
     format = 'MMM Do';
   } else if (parsed.second() === 0) {
     // Hours, minutes
-    format = getTimeFormat({});
+    format = getTimeFormat();
   } else {
     // Hours, minutes, seconds
     format = getTimeFormat({seconds: true});
