@@ -21,7 +21,7 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
     csrf_protect = False
 
     def handle(self, request: HttpRequest, organization, provider_id) -> HttpResponseBase:
-        scope = sentry_sdk.Scope.get_current_scope()
+        scope = sentry_sdk.get_current_scope()
         scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
 
         pipeline = IntegrationPipeline(

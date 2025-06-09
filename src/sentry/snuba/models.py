@@ -81,6 +81,8 @@ class SnubaQueryEventType(Model):
         ERROR = 0
         DEFAULT = 1
         TRANSACTION = 2
+        TRACE_ITEM_SPAN = 3
+        TRACE_ITEM_LOG = 4
 
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery")
     type = models.SmallIntegerField()

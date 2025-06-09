@@ -347,9 +347,6 @@ function DashboardTable({
         renderHeadCell: column => renderHeadCell(column),
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
-          if (!organization.features.includes('dashboards-favourite')) {
-            return [];
-          }
           const favoriteColumn = {
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
@@ -369,9 +366,7 @@ function DashboardTable({
           }
           return [renderBodyCell(favoriteColumn, dataRow) as any];
         },
-        prependColumnWidths: organization.features.includes('dashboards-favourite')
-          ? ['max-content']
-          : [],
+        prependColumnWidths: ['max-content'],
       }}
       isLoading={isLoading}
       emptyMessage={
