@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.feedback.usecases.feedback_summaries import FeedbackSummaryParseError, parse_response
+from sentry.feedback.usecases.feedback_summaries import parse_response
 
 
 def test_parse_response_valid():
@@ -21,5 +21,5 @@ def test_parse_response_valid_extra_whitespace():
 def test_parse_response_response_invalid():
     invalid_response = "This is not a valid summary"
 
-    with pytest.raises(FeedbackSummaryParseError, match="Error parsing AI feedback summary"):
+    with pytest.raises(Exception, match="Error parsing AI feedback summary"):
         parse_response(invalid_response)
