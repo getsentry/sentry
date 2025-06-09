@@ -6,13 +6,16 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.endpoints.serializers import WorkflowGroupHistory
 from sentry.workflow_engine.models import WorkflowFireHistory
-from sentry.workflow_engine.processors.workflow_fire_history import fetch_workflow_groups_paginated
+from sentry.workflow_engine.processors.workflow_fire_history import (
+    fetch_workflow_groups_paginated,
+    fetch_workflow_hourly_stats,
+)
 
 pytestmark = [requires_snuba]
 
 
 @freeze_time()
-class WorkflowFireHistoryProcessorTest(TestCase):
+class WorkflowGroupsPaginatedTest(TestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -182,3 +185,69 @@ class WorkflowFireHistoryProcessorTest(TestCase):
                 ),
             ],
         )
+
+
+@freeze_time()
+class WorkflowHourlyStatsTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.group = self.create_group()
+        self.project = self.group.project
+        self.organization = self.project.organization
+
+        self.history: list[WorkflowFireHistory] = []
+        self.workflow = self.create_workflow(organization=self.organization)
+
+        for i in range(3):
+            for _ in range(i + 1):
+                self.history.append(
+                    WorkflowFireHistory(
+                        workflow=self.workflow,
+                        group=self.group,
+                    )
+                )
+
+        self.workflow_2 = self.create_workflow(organization=self.organization)
+        for i in range(2):
+            self.history.append(
+                WorkflowFireHistory(
+                    workflow=self.workflow_2,
+                    group=self.group,
+                )
+            )
+
+        histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
+
+        # manually update date_added
+        index = 0
+        for i in range(3):
+            for _ in range(i + 1):
+                histories[index].update(date_added=before_now(hours=i + 1))
+                index += 1
+
+        for i in range(2):
+            histories[i + 6].update(date_added=before_now(hours=i + 4))
+
+        self.base_triggered_date = before_now(days=1)
+
+        self.login_as(self.user)
+
+    def test_workflow_hourly_stats(self):
+        results = fetch_workflow_hourly_stats(self.workflow, before_now(hours=6), before_now())
+        assert len(results) == 6
+        assert [result.count for result in results] == [
+            0,
+            0,
+            3,
+            2,
+            1,
+            0,
+        ]  # last zero is for the current hour
+
+    def test_workflow_hourly_stats__past_date_range(self):
+        results = fetch_workflow_hourly_stats(
+            self.workflow_2, before_now(hours=6), before_now(hours=2)
+        )
+        assert len(results) == 4
+        assert [result.count for result in results] == [1, 1, 0, 0]
