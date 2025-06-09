@@ -464,6 +464,12 @@ function ReservedUsageChart({
   const isReservedBudgetCategory =
     subscription.reservedBudgetCategories?.includes(category) ?? false;
 
+  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
+  // since they don't have access to the usage/cost toggle
+  if (isReservedBudgetCategory && !subscription.canSelfServe) {
+    displayMode = 'cost';
+  }
+
   function chartMetadata() {
     let dataCategoryMetadata: {
       chartData: ChartStats;

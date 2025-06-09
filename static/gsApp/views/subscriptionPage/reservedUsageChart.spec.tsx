@@ -757,6 +757,26 @@ describe('getCategoryOptions', () => {
 describe('DisplayMode Toggle for Reserved Budget Categories', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
 
+  // Helper function to extract reservedBudgetCategoryInfo from subscription
+  function getReservedBudgetCategoryInfo(subscription: any) {
+    const info: Record<string, any> = {};
+    subscription.reservedBudgets?.forEach((budget: any) => {
+      Object.entries(budget.categories || {}).forEach(
+        ([category, categoryData]: [string, any]) => {
+          info[category] = {
+            freeBudget: budget.freeBudget || 0,
+            prepaidBudget: budget.reservedBudget || 0,
+            reservedCpe: categoryData.reservedCpe || 0,
+            reservedSpend: categoryData.reservedSpend || 0,
+            totalReservedBudget: budget.reservedBudget || 0,
+            apiName: budget.apiName || 'seer',
+          };
+        }
+      );
+    });
+    return info;
+  }
+
   it('should respect displayMode="usage" for SEER reserved budget categories', async () => {
     const subscription = SubscriptionWithSeerFixture({
       organization,
@@ -788,16 +808,7 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
       ],
     };
 
-    const reservedBudgetCategoryInfo = {
-      seerAutofix: {
-        freeBudget: 0,
-        prepaidBudget: 25_00,
-        reservedCpe: 1_00, // $1.00 per fix
-        reservedSpend: 10_00, // $10.00 spent
-        totalReservedBudget: 25_00,
-        apiName: 'seer',
-      },
-    };
+    const reservedBudgetCategoryInfo = getReservedBudgetCategoryInfo(subscription);
 
     const location = {
       pathname: '/billing',
@@ -864,16 +875,7 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
       ],
     };
 
-    const reservedBudgetCategoryInfo = {
-      seerAutofix: {
-        freeBudget: 0,
-        prepaidBudget: 25_00,
-        reservedCpe: 1_00, // $1.00 per fix
-        reservedSpend: 10_00, // $10.00 spent
-        totalReservedBudget: 25_00,
-        apiName: 'seer',
-      },
-    };
+    const reservedBudgetCategoryInfo = getReservedBudgetCategoryInfo(subscription);
 
     const location = {
       pathname: '/billing',
@@ -905,6 +907,63 @@ describe('DisplayMode Toggle for Reserved Budget Categories', () => {
 
     // When displayMode is 'cost' for reserved budget categories,
     // it should show "Estimated ... Spend This Period" title (cost mode)
+    await screen.findByText(/Estimated.*Spend This Period/);
+    expect(screen.queryByText('Current Usage Period')).not.toBeInTheDocument();
+  });
+
+  it('should force displayMode="cost" for sales-led customers with reserved budget categories', async () => {
+    const subscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+      canSelfServe: false, // Sales-led customer
+    });
+
+    const usageStats = {
+      seerAutofix: [
+        {
+          date: '2019-01-01',
+          ts: '',
+          accepted: 5,
+          filtered: 0,
+          total: 5,
+          dropped: {total: 0},
+          onDemandCostRunningTotal: 0,
+          isProjected: false,
+        },
+      ],
+    };
+
+    const reservedBudgetCategoryInfo = getReservedBudgetCategoryInfo(subscription);
+
+    const location = {
+      pathname: '/billing',
+      query: {
+        category: DataCategory.SEER_AUTOFIX,
+        displayMode: 'usage', // Try to set usage mode
+      },
+      search: '',
+      hash: '',
+      state: null,
+      key: '',
+      action: 'PUSH' as const,
+    };
+
+    const mockProps = {
+      location,
+      organization,
+      subscription,
+      usagePeriodStart: '2019-01-01',
+      usagePeriodEnd: '2019-01-31',
+      usageStats,
+      displayMode: 'usage' as const, // Try to set usage mode
+      reservedBudgetCategoryInfo,
+    };
+
+    act(() => {
+      render(<ReservedUsageChart {...mockProps} />);
+    });
+
+    // Sales-led customers should be forced to cost view, regardless of displayMode prop
     await screen.findByText(/Estimated.*Spend This Period/);
     expect(screen.queryByText('Current Usage Period')).not.toBeInTheDocument();
   });
