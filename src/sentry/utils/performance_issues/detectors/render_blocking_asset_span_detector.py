@@ -22,7 +22,7 @@ from ..types import Span
 
 
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
-    __slots__ = ("stored_problems", "fcp", "transaction_start")
+    __slots__ = ("fcp", "transaction_start")
 
     type = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
@@ -30,7 +30,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
         self.fcp_value = 0

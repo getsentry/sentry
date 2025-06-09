@@ -107,12 +107,13 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.load_page(url)
 
-        self.browser.click('[data-test-id="token-delete"]')
+        self.browser.click('[aria-label="Revoke"]')
         self.browser.click('[data-test-id="confirm-button"]')
         self.browser.wait_until(".ref-success")
 
         assert self.browser.find_element(
-            by=By.XPATH, value="//div[contains(text(), 'No tokens created yet.')]"
+            by=By.XPATH,
+            value='//p[contains(text(), "You haven\'t created any authentication tokens yet.")]',
         )
 
     def test_add_tokens_internal_app(self):

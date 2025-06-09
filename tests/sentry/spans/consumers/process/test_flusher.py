@@ -16,7 +16,10 @@ def test_backpressure(monkeypatch):
     # Flush very aggressively to make join() faster
     monkeypatch.setattr("time.sleep", lambda _: None)
 
-    buffer = SpansBuffer(assigned_shards=list(range(1)))
+    buffer = SpansBuffer(
+        assigned_shards=list(range(1)),
+        max_flush_segments=1,
+    )
 
     messages = []
 
@@ -26,7 +29,6 @@ def test_backpressure(monkeypatch):
 
     flusher = SpanFlusher(
         buffer,
-        max_flush_segments=1,
         max_memory_percentage=1.0,
         produce_to_pipe=append,
         next_step=Noop(),

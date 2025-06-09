@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Flex} from 'sentry/components/container/flex';
@@ -13,15 +14,16 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import {BillingType} from 'getsentry/types';
+import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial} from 'getsentry/utils/billing';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
@@ -52,6 +54,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const isTouchCustomer = subscription?.type === BillingType.INVOICED;
   const isSponsoredCustomer = Boolean(subscription?.isSponsored);
 
+  const isPerCategoryOnDemand =
+    subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY;
+
   const userHasBillingAccess = organization.access.includes('org:billing');
 
   const autofixAcknowledgeMutation = useMutation({
@@ -73,11 +78,16 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   });
 
   function handlePurchaseSeer() {
-    navigate(`/settings/billing/checkout/?referrer=manage_subscription`);
+    navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
   }
 
   function handleAddBudget() {
     if (!subscription) {
+      return;
+    }
+    if (isPerCategoryOnDemand) {
+      // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
+      navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent#step3`);
       return;
     }
     openOnDemandBudgetEditModal({
@@ -161,29 +171,43 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                       )}
                     </ErrorText>
                     <Flex>
-                      <AddBudgetButton
-                        priority="primary"
-                        onClick={() => {
-                          handleAddBudget();
-                          autofixAcknowledgeMutation.mutate();
-                        }}
-                        size="md"
-                        disabled={!userHasBillingAccess}
-                        title={
-                          userHasBillingAccess
-                            ? undefined
-                            : t(
-                                "You don't have access to manage billing. Contact a billing admin for your org."
-                              )
-                        }
-                        analyticsEventKey="seer_drawer.add_budget_clicked"
-                        analyticsEventName="Seer Drawer: Clicked Add Budget"
-                      >
-                        {t('Add Budget')}
-                      </AddBudgetButton>
+                      {userHasBillingAccess ? (
+                        <AddBudgetButton
+                          priority="primary"
+                          onClick={() => {
+                            handleAddBudget();
+                            autofixAcknowledgeMutation.mutate();
+                          }}
+                          size="md"
+                          analyticsEventKey="seer_drawer.add_budget_clicked"
+                          analyticsEventName="Seer Drawer: Clicked Add Budget"
+                        >
+                          {t('Add Budget')}
+                        </AddBudgetButton>
+                      ) : (
+                        <Button
+                          priority="primary"
+                          onClick={async () => {
+                            await sendAddEventsRequest({
+                              api,
+                              organization,
+                              eventTypes: [DataCategoryExact.SEER_AUTOFIX],
+                            });
+                            autofixAcknowledgeMutation.mutate();
+                          }}
+                          size="md"
+                          analyticsEventKey="seer_drawer.request_budget_clicked"
+                          analyticsEventName="Seer Drawer: Clicked Request Budget"
+                        >
+                          {t('Request Budget')}
+                        </Button>
+                      )}
                       <Button
                         icon={<IconRefresh size="xs" />}
-                        onClick={() => refetch()}
+                        onClick={async () => {
+                          await refetch();
+                          addSuccessMessage(t('Refreshed Seer quota'));
+                        }}
                         size="md"
                         priority="default"
                         aria-label={t('Refresh')}

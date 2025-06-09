@@ -1,11 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AlertStore from 'sentry/stores/alertStore';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 
 jest.mock(
@@ -21,6 +24,7 @@ describe('OrganizationLayout', function () {
     OrganizationStore.reset();
     ProjectsStore.reset();
     PageFiltersStore.reset();
+    ConfigStore.set('user', UserFixture());
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -137,5 +141,40 @@ describe('OrganizationLayout', function () {
     expect(
       await screen.findByText(/Celery workers have not checked in/)
     ).toBeInTheDocument();
+  });
+
+  describe('new navigation layout', () => {
+    beforeEach(() => {
+      ConfigStore.set('user', {
+        ...ConfigStore.get('user'),
+        options: {
+          ...ConfigStore.get('user').options,
+          prefersStackedNavigation: true,
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/starred/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [],
+      });
+    });
+
+    it('can render navigation without an organization', async function () {
+      OrganizationStore.setNoOrganization();
+
+      render(
+        <OrganizationContext.Provider value={null}>
+          <OrganizationLayout>
+            <div />
+          </OrganizationLayout>
+        </OrganizationContext.Provider>
+      );
+
+      await screen.findByTestId('no-organization-sidebar');
+    });
   });
 });

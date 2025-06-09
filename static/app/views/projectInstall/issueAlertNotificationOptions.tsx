@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export const providerDetails = {
@@ -120,15 +121,6 @@ export function useCreateNotificationAction() {
     }
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
 
-  type Props = {
-    actionMatch: string | undefined;
-    conditions: Array<{id: string; interval: string; value: string}> | undefined;
-    frequency: number | undefined;
-    name: string | undefined;
-    projectSlug: string;
-    shouldCreateRule: boolean | undefined;
-  };
-
   const createNotificationAction = useCallback(
     ({
       shouldCreateRule,
@@ -137,7 +129,7 @@ export function useCreateNotificationAction() {
       conditions,
       actionMatch,
       frequency,
-    }: Props) => {
+    }: Partial<RequestDataFragment> & {projectSlug: string}) => {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );

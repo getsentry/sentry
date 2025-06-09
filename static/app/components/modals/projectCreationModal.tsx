@@ -24,6 +24,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
@@ -160,12 +161,20 @@ export default function ProjectCreationModal({
             alertSetting={
               alertRuleConfig?.shouldCreateCustomRule
                 ? RuleAction.CUSTOMIZED_ALERTS
-                : alertRuleConfig?.shouldCreateRule
-                  ? RuleAction.DEFAULT_ALERT
-                  : RuleAction.CREATE_ALERT_LATER
+                : alertRuleConfig?.shouldCreateRule === false
+                  ? RuleAction.CREATE_ALERT_LATER
+                  : RuleAction.DEFAULT_ALERT
             }
-            interval={alertRuleConfig?.conditions?.[0]?.interval}
-            threshold={alertRuleConfig?.conditions?.[0]?.value}
+            interval={
+              defined(alertRuleConfig?.conditions?.[0]?.interval)
+                ? String(alertRuleConfig?.conditions?.[0]?.interval)
+                : undefined
+            }
+            threshold={
+              defined(alertRuleConfig?.conditions?.[0]?.value)
+                ? String(alertRuleConfig?.conditions?.[0]?.value)
+                : undefined
+            }
             metric={
               alertRuleConfig?.conditions?.[0]?.id.endsWith('EventFrequencyCondition')
                 ? MetricValues.ERRORS

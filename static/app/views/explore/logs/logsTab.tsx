@@ -26,7 +26,10 @@ import {
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAggregateFunction,
+  useLogsAggregateParam,
   useLogsFields,
+  useLogsGroupBy,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsPageParams,
@@ -67,9 +70,9 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
+  const groupBy = useLogsGroupBy();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
@@ -82,11 +85,21 @@ export function LogsTabContent({
   // always use the smallest interval possible (the most bars)
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
+  const aggregateFunction = useLogsAggregateFunction();
+  const _aggregateParam = useLogsAggregateParam();
+  const [sidebarOpen, setSidebarOpen] = useState(
+    !!(aggregateFunction !== 'count' || _aggregateParam || groupBy)
+  );
+  const aggregateParam =
+    (aggregateFunction === 'count' ? null : _aggregateParam) ||
+    OurLogKnownFieldKey.MESSAGE;
   const timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
-      yAxis: [`count(${OurLogKnownFieldKey.MESSAGE})`],
+      yAxis: [`${aggregateFunction}(${aggregateParam})`],
       interval,
+      fields: [...(groupBy ? [groupBy] : []), `${aggregateFunction}(${aggregateParam})`],
+      topEvents: !!groupBy?.length && aggregateFunction !== 'count' ? 5 : undefined,
     },
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
@@ -216,7 +229,7 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle />
                 </Feature>
-                <Button onClick={openColumnEditor} icon={<IconTable />}>
+                <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
               </TableActionsContainer>

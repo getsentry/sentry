@@ -56,6 +56,16 @@ export function DO_NOT_USE_getChonkButtonStyles(
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
 
+  const buttonSizes = {
+    ...p.theme.form,
+    zero: {
+      height: '24px',
+      minHeight: '24px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+    },
+  } as const;
+
   return {
     position: 'relative',
     display: 'inline-flex',
@@ -74,16 +84,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     background: 'none',
 
-    height:
-      p.size === 'md'
-        ? '36px'
-        : p.size === 'sm'
-          ? '32px'
-          : p.size === 'xs'
-            ? '28px'
-            : '24px',
-
-    fontSize: p.size === 'xs' || p.size === 'zero' ? '12px' : '14px',
+    ...buttonSizes[p.size],
 
     '&::before': {
       content: '""',
@@ -292,23 +293,23 @@ function getChonkButtonSizeTheme(
   switch (size) {
     case 'md':
       return {
-        borderRadius: theme.radius.xl,
+        borderRadius: theme.radius.lg,
         padding: `${theme.space.md} ${theme.space.xl}`,
       };
     case 'sm':
       return {
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.md,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     case 'xs':
       return {
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius.sm,
         padding: `${theme.space.sm} ${theme.space.md}`,
       };
     case 'zero':
       return {
-        borderRadius: theme.radius.sm,
-        padding: `${theme.space.mini} ${theme.space.sm}`,
+        borderRadius: theme.radius.xs,
+        padding: `${theme.space.xs} ${theme.space.sm}`,
       };
     default:
       return {};

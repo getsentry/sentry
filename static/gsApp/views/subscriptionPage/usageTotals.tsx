@@ -200,6 +200,32 @@ export function calculateCategoryPrepaidUsage(
     subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
+  // If reservedCpe or reservedSpend aren't provided but category is in reservedBudgetCategories,
+  // try to extract them from subscription.reservedBudgets
+  let effectiveReservedCpe = reservedCpe ?? undefined;
+  let effectiveReservedSpend = reservedSpend ?? undefined;
+
+  if (
+    (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
+    subscription.reservedBudgetCategories?.includes(category)
+  ) {
+    // Look for the category in reservedBudgets
+    for (const budget of subscription.reservedBudgets || []) {
+      if (category in budget.categories) {
+        const categoryBudget = budget.categories[category];
+        if (categoryBudget) {
+          if (effectiveReservedCpe === undefined) {
+            effectiveReservedCpe = categoryBudget.reservedCpe;
+          }
+          if (effectiveReservedSpend === undefined) {
+            effectiveReservedSpend = categoryBudget.reservedSpend;
+          }
+          break;
+        }
+      }
+    }
+  }
+
   // Calculate the prepaid total
   let prepaidTotal: any;
   if (isUnlimitedReserved(prepaid)) {
@@ -215,9 +241,13 @@ export function calculateCategoryPrepaidUsage(
           ? MILLISECONDS_IN_HOUR
           : 1);
   }
-  const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
+
+  const hasReservedBudget = Boolean(
+    reservedCpe || typeof effectiveReservedSpend === 'number'
+  ); // reservedSpend can be 0
+
   const prepaidUsed = hasReservedBudget
-    ? (reservedSpend ?? usage * (reservedCpe ?? 0))
+    ? (effectiveReservedSpend ?? usage * (effectiveReservedCpe ?? 0))
     : usage;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
@@ -986,6 +1016,11 @@ export function CombinedUsageTotals({
     );
   }
 
+  // match the unused bar to the last category in category order that has been used
+  // for that budget; otherwise default to the first category in category 0order
+  let categoryForUnusedPrepaid = firstCategory;
+  let categoryForUnusedOnDemand = firstCategory;
+
   return (
     <SubscriptionCard data-test-id={`usage-card-${apiName}`}>
       <CardBody>
@@ -1112,6 +1147,7 @@ export function CombinedUsageTotals({
                           )
                           .map(([rbCategory, rbInfo]) => {
                             if (rbInfo.reservedSpend > 0) {
+                              categoryForUnusedPrepaid = rbCategory as DataCategory;
                               return (
                                 <PlanUseBar
                                   style={{
@@ -1134,7 +1170,7 @@ export function CombinedUsageTotals({
                       style={{
                         width: `${unusedPrepaidWidth}%`,
                         backgroundColor: colorFn(
-                          categoryToColors[firstCategory]?.reserved
+                          categoryToColors[categoryForUnusedPrepaid]?.reserved
                         )
                           .fade(0.5)
                           .string(),
@@ -1151,6 +1187,7 @@ export function CombinedUsageTotals({
                       );
 
                       if (ondemandPercentUsed >= 1) {
+                        categoryForUnusedOnDemand = rbCategory as DataCategory;
                         return (
                           <PlanUseBar
                             key={rbCategory}
@@ -1169,7 +1206,7 @@ export function CombinedUsageTotals({
                         style={{
                           width: `${unusedOnDemandWidth}%`,
                           backgroundColor: colorFn(
-                            categoryToColors[firstCategory]?.ondemand
+                            categoryToColors[categoryForUnusedOnDemand]?.ondemand
                           )
                             .fade(0.5)
                             .string(),

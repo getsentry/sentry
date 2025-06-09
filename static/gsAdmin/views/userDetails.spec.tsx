@@ -1,4 +1,3 @@
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -43,13 +42,13 @@ describe('User Details', function () {
 
   describe('page rendering', function () {
     it('renders correct sections', async function () {
-      const router = RouterFixture({
-        params: {userId: mockUser.id},
-      });
-
       render(<UserDetails />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: `/admin/users/:userId/`,
+        },
       });
 
       expect(await screen.findByText('Active')).toBeInTheDocument();
@@ -58,13 +57,13 @@ describe('User Details', function () {
     });
 
     it('renders correct dropdown options for active account', async function () {
-      const router = RouterFixture({
-        params: {userId: mockUser.id},
-      });
-
       render(<UserDetails />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: `/admin/users/:userId/`,
+        },
       });
 
       await userEvent.click(
@@ -75,18 +74,18 @@ describe('User Details', function () {
     });
 
     it('renders correct UserOverview', async function () {
-      const router = RouterFixture({
-        params: {userId: mockUser.id},
-      });
-
       render(<UserDetails />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: `/admin/users/:userId/`,
+        },
       });
 
       expect(await screen.findByText('test-username')).toBeInTheDocument();
       expect(screen.getByText('test-email@gmail.com')).toBeInTheDocument();
-      expect(screen.getByText('Remove')).toBeInTheDocument();
+      expect(screen.getByText('Revoke')).toBeInTheDocument();
     });
   });
 });
