@@ -240,7 +240,7 @@ export function SeerAutomationProjectList() {
   return (
     <Fragment>
       <Panel>
-        <PanelHeader>
+        <PanelHeader hasButtons>
           {selected.size > 0 ? (
             <Flex gap={space(1)} align="center">
               <ActionDropdownMenu
