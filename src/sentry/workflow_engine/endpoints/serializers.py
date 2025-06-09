@@ -50,6 +50,7 @@ class SentryAppContext(TypedDict):
     id: str
     name: str
     installationId: str
+    installationUuid: str
     status: int
     settings: NotRequired[dict[str, Any]]
     title: NotRequired[str]
