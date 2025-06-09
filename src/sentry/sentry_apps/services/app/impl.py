@@ -52,16 +52,12 @@ class DatabaseBackedAppService(AppService):
         as_user: RpcUser | None = None,
         auth_context: AuthenticationContext | None = None,
     ) -> list[OpaqueSerializedResponse]:
-        query = self._FQ.base_query().using(router.db_for_read(SentryAppInstallation, replica=True))
-        query = self._FQ.apply_filters(query, filter)
-        return [self._FQ.serialize_rpc(install) for install in query]
+        return self._FQ.serialize_many(filter, as_user, auth_context)
 
     def get_many(
         self, *, filter: SentryAppInstallationFilterArgs
     ) -> list[RpcSentryAppInstallation]:
-        query = self._FQ.base_query().using(router.db_for_read(SentryAppInstallation, replica=True))
-        query = self._FQ.apply_filters(query, filter)
-        return [self._FQ.serialize_rpc(install) for install in query]
+        return self._FQ.get_many(filter)
 
     def find_app_components(self, *, app_id: int) -> list[RpcSentryAppComponent]:
         return [

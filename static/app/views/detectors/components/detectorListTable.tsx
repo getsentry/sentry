@@ -4,10 +4,6 @@ import {Flex} from 'sentry/components/container/flex';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {
-  BulkActions,
-  useBulkActions,
-} from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -18,26 +14,10 @@ type DetectorListTableProps = {
 };
 
 function DetectorListTable({detectors}: DetectorListTableProps) {
-  const {
-    selectedRows,
-    handleSelect,
-    isSelectAllChecked,
-    toggleSelectAll,
-    bulkActionsVisible,
-    canDelete,
-  } = useBulkActions(detectors);
-
   return (
     <Panel>
       <StyledPanelHeader>
-        <BulkActions
-          bulkActionsVisible={bulkActionsVisible}
-          canDelete={canDelete}
-          isSelectAllChecked={isSelectAllChecked}
-          toggleSelectAll={toggleSelectAll}
-        />
         <Flex className="type">
-          <HeaderDivider />
           <Heading>{t('Type')}</Heading>
         </Flex>
         <Flex className="issue">
@@ -55,12 +35,7 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
       </StyledPanelHeader>
       <PanelBody>
         {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            detector={detector}
-            handleSelect={handleSelect}
-            selected={selectedRows.includes(detector.id)}
-          />
+          <DetectorListRow key={detector.id} detector={detector} />
         ))}
       </PanelBody>
     </Panel>

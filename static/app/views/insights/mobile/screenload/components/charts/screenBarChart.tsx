@@ -1,195 +1,185 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {IconWarning} from 'sentry/icons/iconWarning';
-import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {Button} from 'sentry/components/core/button';
+import {IconExpand} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
-import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
-
-type ChartSelectOptions = {
-  title: string;
-  yAxis: string;
-  series?: Series[];
-  subtitle?: string;
-  xAxisLabel?: string[];
-};
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
+import {
+  ChartContainer,
+  ModalChartContainer,
+} from 'sentry/views/insights/common/components/insightsChartContainer';
+import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
+import {Referrer} from 'sentry/views/insights/mobile/screenload/referrers';
+import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
+import type {MetricsProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export function ScreensBarChart({
   chartHeight,
-  chartKey,
-  chartOptions,
-  isLoading,
   chartProps,
+  search,
+  type,
 }: {
-  chartKey: string;
-  chartOptions: ChartSelectOptions[];
+  search: MutableSearch;
+  type: 'ttid' | 'ttfd';
   chartHeight?: number;
   chartProps?: BaseChartProps;
-  isLoading?: boolean;
 }) {
-  const location = useLocation();
-  const router = useRouter();
-  const yAxis = decodeScalar(location.query[chartKey]);
-  const selectedDisplay = yAxis ? chartOptions.findIndex(o => o.yAxis === yAxis) : 0;
+  const theme = useTheme();
+  const {
+    isLoading: isReleasesLoading,
+    primaryRelease,
+    secondaryRelease,
+  } = useReleaseSelection();
 
-  const menuOptions: Array<SelectOption<string>> = [];
+  const breakdownMetric: MetricsProperty =
+    type === 'ttid'
+      ? 'avg(measurements.time_to_initial_display)'
+      : 'avg(measurements.time_to_full_display)';
 
-  for (const option of chartOptions) {
-    menuOptions.push({
-      value: option.yAxis,
-      label: option.title,
-      disabled: chartOptions[selectedDisplay]?.title === option.title,
-    });
+  const groupBy = [SpanFields.DEVICE_CLASS, SpanFields.RELEASE] as const;
+  const referrer = Referrer.SCREEN_BAR_CHART;
+
+  const {
+    data: deviceClassEvents,
+    isPending,
+    error,
+  } = useMetrics(
+    {
+      enabled: !isReleasesLoading,
+      search,
+      orderby: breakdownMetric,
+      fields: [...groupBy, breakdownMetric],
+    },
+    referrer
+  );
+
+  const transformedEvents = transformDeviceClassEvents({
+    yAxes: [type === 'ttid' ? YAxis.TTID : YAxis.TTFD],
+    primaryRelease,
+    secondaryRelease,
+    data: deviceClassEvents,
+    theme,
+  });
+
+  const title = type === 'ttid' ? t('TTID by Device Class') : t('TTFD by Device Class');
+
+  const Title = <Widget.WidgetTitle title={title} />;
+
+  if (isPending || isReleasesLoading) {
+    return (
+      <ChartContainer height={chartHeight}>
+        <Widget
+          Title={Title}
+          Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+        />
+      </ChartContainer>
+    );
   }
+
+  if (error) {
+    return (
+      <ChartContainer height={chartHeight}>
+        <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />
+      </ChartContainer>
+    );
+  }
+
+  const series = Object.values(
+    transformedEvents[YAXIS_COLUMNS[type === 'ttid' ? YAxis.TTID : YAxis.TTFD]]!
+  )?.map(s => ({
+    ...s,
+    name: formatVersion(s.seriesName),
+  }));
+
+  const Visualization = (
+    <BarChart
+      {...chartProps}
+      autoHeightResize
+      series={series}
+      grid={{
+        left: '0',
+        right: '0',
+        top: 25,
+        bottom: '0',
+        containLabel: true,
+      }}
+      xAxis={{
+        type: 'category',
+        axisTick: {show: true},
+        data: [t('high'), t('medium'), t('low'), t('Unknown')],
+        truncate: 14,
+        axisLabel: {
+          interval: 0,
+        },
+      }}
+      legend={{show: true, top: 0, left: 0}}
+      yAxis={{
+        axisLabel: {
+          formatter(value: number) {
+            return axisLabelFormatter(
+              value,
+              aggregateOutputType(breakdownMetric),
+              undefined,
+              getDurationUnit(series ?? [])
+            );
+          },
+        },
+      }}
+      tooltip={{
+        valueFormatter: (value, _seriesName) => {
+          return tooltipFormatter(value, aggregateOutputType(breakdownMetric));
+        },
+      }}
+    />
+  );
 
   return (
-    <MiniChartPanel>
-      <HeaderContainer>
-        <Header>
-          <ChartLabel>
-            {chartOptions.length > 1 ? (
-              <StyledCompactSelect
-                options={menuOptions}
-                value={chartOptions[selectedDisplay]?.yAxis}
-                onChange={option => {
-                  const chartOption = chartOptions.find(o => o.yAxis === option.value);
-                  if (defined(chartOption)) {
-                    router.replace({
-                      pathname: router.location.pathname,
-                      query: {...router.location.query, [chartKey]: chartOption.yAxis},
-                    });
-                  }
-                }}
-                triggerProps={{
-                  borderless: true,
-                  size: 'zero',
-                  'aria-label': chartOptions[selectedDisplay]?.title,
-                }}
-                offset={4}
-              />
-            ) : (
-              chartOptions[selectedDisplay]?.title
-            )}
-          </ChartLabel>
-        </Header>
-        {chartOptions[selectedDisplay]!.subtitle && (
-          <Subtitle>{chartOptions[selectedDisplay]!.subtitle}</Subtitle>
-        )}
-      </HeaderContainer>
-      <TransitionChart
-        loading={Boolean(isLoading)}
-        reloading={Boolean(isLoading)}
-        height={chartHeight ? `${chartHeight}px` : undefined}
-      >
-        <LoadingScreen loading={Boolean(isLoading)} />
-        {selectedDisplay === -1 ? (
-          <ErrorPanel height={`${chartHeight ?? 180}px`}>
-            <IconWarning color="gray300" size="lg" />
-          </ErrorPanel>
-        ) : (
-          <BarChart
-            {...chartProps}
-            height={chartHeight ?? 180}
-            series={
-              chartOptions[selectedDisplay]!.series?.map(series => ({
-                ...series,
-                name: formatVersion(series.seriesName),
-              })) ?? []
-            }
-            grid={{
-              left: '0',
-              right: '0',
-              top: '8px',
-              bottom: '0',
-              containLabel: true,
-            }}
-            xAxis={{
-              type: 'category',
-              axisTick: {show: true},
-              data: chartOptions[selectedDisplay]!.xAxisLabel,
-              truncate: 14,
-              axisLabel: {
-                interval: 0,
-              },
-            }}
-            yAxis={{
-              axisLabel: {
-                formatter(value: number) {
-                  return axisLabelFormatter(
-                    value,
-                    aggregateOutputType(chartOptions[selectedDisplay]!.yAxis),
-                    undefined,
-                    getDurationUnit(chartOptions[selectedDisplay]!.series ?? [])
-                  );
-                },
-              },
-            }}
-            tooltip={{
-              valueFormatter: (value, _seriesName) => {
-                return tooltipFormatter(
-                  value,
-                  aggregateOutputType(chartOptions[selectedDisplay]!.yAxis)
-                );
-              },
-            }}
-          />
-        )}
-      </TransitionChart>
-    </MiniChartPanel>
+    <ChartContainer height={chartHeight}>
+      <Widget
+        Title={Title}
+        Visualization={Visualization}
+        Actions={
+          <Widget.WidgetToolbar>
+            <ChartActionDropdown
+              chartType={ChartType.LINE}
+              yAxes={[breakdownMetric]}
+              groupBy={groupBy as any as SpanFields[]} // TODO: this will be fixed when we remove `useInsightsEap`
+              title={title}
+              search={search}
+              referrer={referrer}
+            />
+            <Button
+              size="xs"
+              aria-label={t('Open Full-Screen View')}
+              borderless
+              icon={<IconExpand />}
+              onClick={() => {
+                openInsightChartModal({
+                  title: Title,
+                  children: <ModalChartContainer>{Visualization}</ModalChartContainer>,
+                });
+              }}
+            />
+          </Widget.WidgetToolbar>
+        }
+      />
+    </ChartContainer>
   );
 }
-
-const ChartLabel = styled('p')`
-  /* @TODO(jonasbadalic) This should be a title component and not a p */
-  font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.2;
-`;
-
-const HeaderContainer = styled('div')`
-  padding: 0 ${space(1)} 0 0;
-`;
-
-const Header = styled('div')`
-  min-height: 24px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
-   * setting this higher up causes it to trickle into the menus */
-  font-weight: ${p => p.theme.fontWeightNormal};
-  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
-  min-width: 0;
-
-  button {
-    padding: ${space(0.5)} ${space(1)};
-    font-size: ${p => p.theme.fontSizeLarge};
-  }
-`;
-
-const Subtitle = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  display: inline-block;
-`;

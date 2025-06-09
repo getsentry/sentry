@@ -76,6 +76,35 @@ describe('EAPField', () => {
     expect(inputs[1]).toBeDisabled();
   });
 
+  it('renders failure_rate with argument disabled', () => {
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'failure_rate()'} onChange={() => {}} />
+      </SpanTagsProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string'}),
+      })
+    );
+    expect(screen.getByText('failure_rate')).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
+  });
+
   it('should call onChange with the new aggregate string when switching aggregates', async () => {
     const onChange = jest.fn();
     render(

@@ -10,6 +10,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
+from sentry.rules.history.base import TimeSeriesValue
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -29,7 +30,7 @@ from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, Da
 class ActionSerializerResponse(TypedDict):
     id: str
     type: str
-    integration_id: int | None
+    integrationId: str | None
     data: dict
     config: dict
 
@@ -40,7 +41,7 @@ class ActionSerializer(Serializer):
         return {
             "id": str(obj.id),
             "type": obj.type,
-            "integration_id": obj.integration_id,
+            "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": obj.data,
             "config": obj.config,
         }
@@ -50,6 +51,7 @@ class SentryAppContext(TypedDict):
     id: str
     name: str
     installationId: str
+    installationUuid: str
     status: int
     settings: NotRequired[dict[str, Any]]
     title: NotRequired[str]
@@ -96,7 +98,9 @@ class ActionHandlerSerializer(Serializer):
             for i in integrations:
                 i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
                 if i["services"]:
-                    i_result["services"] = [{"id": id, "name": name} for id, name in i["services"]]
+                    i_result["services"] = [
+                        {"id": str(id), "name": name} for id, name in i["services"]
+                    ]
                 integrations_result.append(i_result)
             result["integrations"] = integrations_result
 
@@ -108,6 +112,7 @@ class ActionHandlerSerializer(Serializer):
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
+                "installationUuid": str(installation.uuid),
                 "status": installation.sentry_app.status,
             }
             if component:
@@ -431,6 +436,21 @@ class WorkflowGroupHistorySerializer(Serializer):
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
             "eventId": obj.event_id,
+        }
+
+
+class TimeSeriesValueResponse(TypedDict):
+    date: datetime
+    count: int
+
+
+class TimeSeriesValueSerializer(Serializer):
+    def serialize(
+        self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> TimeSeriesValueResponse:
+        return {
+            "date": obj.bucket,
+            "count": obj.count,
         }
 
 

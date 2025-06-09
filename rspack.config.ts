@@ -10,7 +10,7 @@ import type {
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
@@ -467,7 +467,7 @@ const appConfig: Configuration = {
     preferAbsolute: true,
     modules: ['node_modules'],
     extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
-    symlinks: false,
+    symlinks: true,
   },
   output: {
     crossOriginLoading: 'anonymous',
