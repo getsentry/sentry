@@ -1,4 +1,5 @@
 import {useParams} from 'sentry/utils/useParams';
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {
   useResourceSummarySeries,
@@ -11,7 +12,7 @@ export default function ResourceSummaryThroughputChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {groupId} = useParams();
-
+  const referrer = Referrer.RESOURCE_SUMMARY_CHARTS;
   const {search, enabled} = useResourceSummarySeriesSearch(groupId);
 
   const {data, isPending, error} = useResourceSummarySeries({
@@ -23,7 +24,7 @@ export default function ResourceSummaryThroughputChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      queryInfo={{search}}
+      queryInfo={{search, referrer}}
       id="resourceSummaryThroughputChartWidget"
       title={getThroughputChartTitle('resource')}
       series={[data?.[`epm()`]]}
