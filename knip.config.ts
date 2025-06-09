@@ -24,8 +24,6 @@ const productionEntryPoints = [
 ];
 
 const testingEntryPoints = [
-  // benchmarks are opt-in for development
-  'static/app/**/*.benchmark.{js,mjs,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
