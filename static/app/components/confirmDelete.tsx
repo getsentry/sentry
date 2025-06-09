@@ -40,7 +40,6 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
             <Input
               type="text"
               id={id}
-              aria-labelledby="confirm-delte"
               placeholder={confirmInput}
               onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
             />
