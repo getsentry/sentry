@@ -66,8 +66,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if not access_check_cache_value:
             check_repo_access = True
 
+        is_user_watching = request.GET.get("isUserWatching", False)
+
         autofix_state = get_autofix_state(
-            group_id=group.id, check_repo_access=check_repo_access, is_user_fetching=True
+            group_id=group.id,
+            check_repo_access=check_repo_access,
+            is_user_fetching=is_user_watching,
         )
 
         if check_repo_access:
