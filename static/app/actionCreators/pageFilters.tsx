@@ -365,7 +365,11 @@ export function initializeUrlState({
 
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
   if (shouldUpdateLocalStorage) {
-    setPageFiltersStorage(organization.slug, new Set(['projects', 'environments']));
+    setPageFiltersStorage(
+      organization.slug,
+      new Set(['projects', 'environments']),
+      storageNamespace
+    );
   }
 
   if (shouldCheckDesyncedURLState) {
