@@ -135,7 +135,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             )
 
         params = {
-            "statsPeriod": "14d",  # Look at last 14 days
+            "statsPeriod": "14d",
         }
 
         response = self.get_success_response(self.org.slug, **params)
@@ -196,7 +196,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
     def test_get_feedback_summary_character_limit(self, mock_openai):
         mock_openai.return_value.chat.completions.create = create_dummy_response
 
-        # Create 9 older feedbacks with normal size, skipped due to the middle one exceeded the character limit
+        # Create 9 older feedbacks with normal size, skipped due to the middle one exceeding the character limit
         for _ in range(9):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))
             create_feedback_issue(
@@ -207,7 +207,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         event["contexts"]["feedback"]["message"] = "a" * 2000
         create_feedback_issue(event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-        # Create 12 newer feedbacks with normal size - these should be the ones included
         for _ in range(12):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=1))
             create_feedback_issue(
