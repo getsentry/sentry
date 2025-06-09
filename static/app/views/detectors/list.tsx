@@ -12,14 +12,29 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-  const {data: detectors, isPending} = useDetectorsQuery();
+
+  const location = useLocation();
+  const {selection} = usePageFilters();
+
+  const query =
+    typeof location.query.query === 'string' ? location.query.query : undefined;
+  const sortBy =
+    typeof location.query.sort === 'string' ? location.query.sort : undefined;
+
+  const {data: detectors, isPending} = useDetectorsQuery({
+    query,
+    sortBy,
+    projects: selection.projects,
+  });
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -54,6 +69,7 @@ function Actions() {
         to={`${makeMonitorBasePathname(organization.slug)}new/`}
         priority="primary"
         icon={<IconAdd />}
+        size="sm"
       >
         {t('Create Monitor')}
       </LinkButton>
