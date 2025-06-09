@@ -65,6 +65,10 @@ class Task(Generic[P, R]):
         return f"{self._namespace.name}:{self.name}"
 
     @property
+    def namespace(self) -> TaskNamespace:
+        return self._namespace
+
+    @property
     def retry(self) -> Retry | None:
         return self._retry
 
