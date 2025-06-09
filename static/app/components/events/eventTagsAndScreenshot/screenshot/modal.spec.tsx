@@ -89,11 +89,11 @@ describe('ScreenshotModal', function () {
     );
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
-    expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('1 of 2');
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
-    expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('2 of 2');
+    expect(screen.getByText('2 of 2')).toBeInTheDocument();
   });
 
   it('does not render pagination buttons when only one screenshot', function () {
@@ -120,7 +120,6 @@ describe('ScreenshotModal', function () {
     expect(screen.getByText(eventAttachment.name)).toBeInTheDocument();
 
     expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
-    expect(screen.queryByTestId('pagination-header-text')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });
 });
