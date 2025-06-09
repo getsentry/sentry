@@ -44,6 +44,22 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
     );
   }
 
+  if (aggregateFunction !== 'count' && !aggregateParam) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={
+          <Widget.WidgetError
+            error={t(
+              "Please specify a parameter for the '%s' aggregate",
+              aggregateFunction
+            )}
+          />
+        }
+      />
+    );
+  }
+
   if (error) {
     return <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />;
   }
