@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
-import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
 import {DataSection} from 'sentry/components/events/styles';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -24,7 +23,10 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
     {enabled: !isShare}
   );
   const screenshots =
-    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
+    attachments?.filter(
+      ({name}) =>
+        name.includes('screenshot') && (name.endsWith('.jpg') || name.endsWith('.png'))
+    ) ?? [];
 
   if (!tags.length && (isShare || !screenshots.length)) {
     return null;
