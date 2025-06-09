@@ -88,7 +88,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
       <SelectedRepoHeader role="button" onClick={toggleExpanded}>
         <InteractionStateLayer />
         <RepoNameAndExpandToggle>
-          <StyledIconExpandToggle direction={isExpanded ? 'down' : 'right'} size="xs" />
+          <StyledIconExpandToggle direction={isExpanded ? 'up' : 'down'} size="xs" />
           <RepoInfoWrapper>
             <RepoName>{repo.name}</RepoName>
           </RepoInfoWrapper>
@@ -146,12 +146,12 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
               </SettingsGroup>
 
               <SettingsGroup>
-                <BranchInputLabel>{t('Instructions for Seer')}</BranchInputLabel>
+                <BranchInputLabel>{t('Context for Seer')}</BranchInputLabel>
                 <StyledTextArea
                   value={instructionsValue}
                   onChange={handleInstructionsChange}
                   placeholder={t(
-                    'Any special instructions for Seer in this repository...'
+                    'Add any general context or instructions to help Seer understand this repository...'
                   )}
                   rows={3}
                 />
@@ -258,23 +258,8 @@ const FormActions = styled('div')`
 
 const StyledTextArea = styled(TextArea)`
   width: 100%;
-  padding: ${space(1)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  background-color: ${p => p.theme.background};
   resize: vertical;
   min-height: 80px;
-
-  &:focus {
-    outline: none;
-    border-color: ${p => p.theme.focus};
-    box-shadow: ${p => p.theme.focusBorder};
-  }
-
-  &::placeholder {
-    color: ${p => p.theme.gray300};
-  }
 `;
 
 const ClearButton = styled(Button)`
