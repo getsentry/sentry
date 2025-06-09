@@ -7,13 +7,24 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {DetectorListRow} from 'sentry/views/detectors/components/detectorListRow';
+import {
+  DetectorListRow,
+  DetectorListRowSkeleton,
+} from 'sentry/views/detectors/components/detectorListRow';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 type DetectorListTableProps = {
   detectors: Detector[];
+  isPending: boolean;
 };
 
-function DetectorListTable({detectors}: DetectorListTableProps) {
+function LoadingSkeletons() {
+  return Array.from({length: DETECTOR_LIST_PAGE_LIMIT}).map((_, index) => (
+    <DetectorListRowSkeleton key={index} />
+  ));
+}
+
+function DetectorListTable({detectors, isPending}: DetectorListTableProps) {
   return (
     <Panel>
       <StyledPanelHeader>
@@ -34,9 +45,13 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
         </Flex>
       </StyledPanelHeader>
       <PanelBody>
-        {detectors.map(detector => (
-          <DetectorListRow key={detector.id} detector={detector} />
-        ))}
+        {isPending ? (
+          <LoadingSkeletons />
+        ) : (
+          detectors.map(detector => (
+            <DetectorListRow key={detector.id} detector={detector} />
+          ))
+        )}
       </PanelBody>
     </Panel>
   );

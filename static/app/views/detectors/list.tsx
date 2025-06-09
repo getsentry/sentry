@@ -30,7 +30,7 @@ export default function DetectorsList() {
   const sortBy =
     typeof location.query.sort === 'string' ? location.query.sort : undefined;
 
-  const {data: detectors} = useDetectorsQuery({
+  const {data: detectors, isPending} = useDetectorsQuery({
     query,
     sortBy,
     projects: selection.projects,
@@ -42,7 +42,7 @@ export default function DetectorsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <DetectorListTable detectors={detectors ?? []} />
+            <DetectorListTable detectors={detectors ?? []} isPending={isPending} />
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>
