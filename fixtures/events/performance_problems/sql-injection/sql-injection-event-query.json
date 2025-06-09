@@ -20,7 +20,9 @@
     "method": "GET",
     "query_string": [
       ["username", "hello"],
-      ["sort", "username"]
+      ["sort", "username"],
+      ["empty", ""],
+      ["single", "u"]
     ]
   },
   "spans": [
