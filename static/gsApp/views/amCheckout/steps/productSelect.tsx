@@ -28,14 +28,13 @@ function ProductSelect({
   activePlan,
   formData,
   onUpdate,
-  organization,
-}: Pick<StepProps, 'activePlan' | 'organization' | 'onUpdate' | 'formData'>) {
+}: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData'>) {
   const availableProducts = Object.values(activePlan.availableReservedBudgetTypes)
     .filter(
       productInfo =>
         productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
         productInfo.billingFlag &&
-        organization.features.includes(productInfo.billingFlag)
+        activePlan.features.includes(productInfo.billingFlag)
     )
     .map(productInfo => {
       return productInfo;

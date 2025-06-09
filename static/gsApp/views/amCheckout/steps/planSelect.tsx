@@ -330,12 +330,7 @@ function PlanSelect({
       />
       {isActive && renderBody()}
       {isActive && (
-        <ProductSelect
-          activePlan={activePlan}
-          organization={organization}
-          formData={formData}
-          onUpdate={onUpdate}
-        />
+        <ProductSelect activePlan={activePlan} formData={formData} onUpdate={onUpdate} />
       )}
       {isActive && renderFooter()}
     </Panel>
