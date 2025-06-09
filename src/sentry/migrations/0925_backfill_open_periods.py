@@ -194,7 +194,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0923_dashboard_starred_backfill_orgs"),
+        ("sentry", "0924_dashboard_add_unique_constraint_for_user_org_position"),
     ]
 
     operations = [

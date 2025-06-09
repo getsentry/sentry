@@ -12,8 +12,8 @@ from sentry.types.group import GroupSubStatus
 
 
 class BackfillGroupOpenPeriodsTest(TestMigrations):
-    migrate_from = "0923_dashboard_starred_backfill_orgs"
-    migrate_to = "0924_backfill_open_periods"
+    migrate_from = "0924_dashboard_add_unique_constraint_for_user_org_position"
+    migrate_to = "0925_backfill_open_periods"
 
     def _create_resolved_group(self):
         group = Group.objects.create(
