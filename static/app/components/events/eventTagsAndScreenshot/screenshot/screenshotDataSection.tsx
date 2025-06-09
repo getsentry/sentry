@@ -51,7 +51,8 @@ export function ScreenshotDataSection({
   const screenshots =
     attachments?.filter(
       (attachment: EventAttachment) =>
-        attachment.name.includes('screenshot') && (attachment.name.endsWith('.jpg') || attachment.name.endsWith('.png'))
+        attachment.name.includes('screenshot') &&
+        (attachment.name.endsWith('.jpg') || attachment.name.endsWith('.png'))
     ) ?? [];
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
