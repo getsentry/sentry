@@ -219,6 +219,9 @@ class DiscordClient(ApiClient):
             sample_rate=1.0,
         )
 
+        if options.get("integrations.http-response.logs"):
+            self.logger.info("handled discord error", extra=log_params)
+
     def _handle_success(
         self,
         log_params: dict[str, Any],
