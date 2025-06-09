@@ -135,7 +135,7 @@ function SegmentedIssueViewSaveButton({
               <DropdownTrigger
                 {...props}
                 disabled={!hasFeature || isSaving}
-                icon={<IconChevron direction="down" />}
+                icon={<IconChevron direction="down" color="gray300" />}
                 aria-label={t('More save options')}
                 priority={buttonPriority}
               />
