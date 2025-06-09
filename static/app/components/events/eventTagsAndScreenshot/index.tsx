@@ -24,7 +24,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
   );
   const screenshots =
     attachments?.filter(
-      ({name}) => name.endsWith('screenshot.jpg') || name.endsWith('screenshot.png')
+      ({name}) =>
+        name.includes('screenshot') && (name.endsWith('.jpg') || name.endsWith('.png'))
     ) ?? [];
 
   if (!tags.length && (isShare || !screenshots.length)) {

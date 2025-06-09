@@ -51,7 +51,8 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     eventId: event.id,
   });
   const screenshot = attachments.find(
-    ({name}) => name.endsWith('screenshot.jpg') || name.endsWith('screenshot.png')
+    ({name}) =>
+      name.includes('screenshot') && (name.endsWith('.jpg') || name.endsWith('.png'))
   );
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
