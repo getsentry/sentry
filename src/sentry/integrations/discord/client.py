@@ -166,7 +166,7 @@ class DiscordClient(ApiClient):
             code_to_use = code if isinstance(code, int) else None
             self._handle_failure(code=code_to_use, log_params=log_params, resp=resp)
         else:
-            self._handle_success()
+            self._handle_success(log_params=log_params)
 
     def _handle_failure(
         self,
