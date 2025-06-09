@@ -1,11 +1,8 @@
 import type {Organization} from 'sentry/types/organization';
-import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
-
-export type TraceItemType = Extract<EventTypes, 'trace_item_log' | 'trace_item_span'>;
 
 // A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
 const alertTypeIdentifiers: Record<
