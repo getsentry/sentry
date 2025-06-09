@@ -46,7 +46,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
     error_messages = {
         "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
         "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
-        "git_sha": "The git_sha field must be a 40-character hexadecimal string.",
+        "git_sha": "The git_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "build_configuration": "The build_configuration field must be a string.",
     }
 
