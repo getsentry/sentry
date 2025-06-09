@@ -10,6 +10,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
+from sentry.rules.history.base import TimeSeriesValue
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -433,6 +434,21 @@ class WorkflowGroupHistorySerializer(Serializer):
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
             "eventId": obj.event_id,
+        }
+
+
+class TimeSeriesValueResponse(TypedDict):
+    date: datetime
+    count: int
+
+
+class TimeSeriesValueSerializer(Serializer):
+    def serialize(
+        self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> TimeSeriesValueResponse:
+        return {
+            "date": obj.bucket,
+            "count": obj.count,
         }
 
 
