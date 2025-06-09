@@ -463,7 +463,10 @@ function ReservedUsageChart({
   const categoryStats = usageStats[category];
   const isReservedBudgetCategory =
     subscription.reservedBudgetCategories?.includes(category) ?? false;
-  if (isReservedBudgetCategory) {
+
+  // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
+  // since they don't have access to the usage/cost toggle
+  if (isReservedBudgetCategory && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -487,7 +490,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory) {
+      if (isReservedBudgetCategory && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
