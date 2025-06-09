@@ -34,8 +34,10 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
@@ -122,6 +124,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const organization = useOrganization();
   const hasTraceTabsUi = useHasTraceTabsUI();
 
+  const [storedTraceFormat] = useSyncedLocalStorageState(
+    TRACE_FORMAT_PREFERENCE_KEY,
+    'non-eap'
+  );
+  const isEAP =
+    storedTraceFormat === 'eap' && organization.features.includes('trace-spans-format');
+
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
 
@@ -165,6 +174,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
+      type: isEAP ? 'eap' : 'non-eap',
       api,
       filters,
       replayTraces: props.replayTraces,

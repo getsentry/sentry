@@ -313,10 +313,13 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  }
-): Promise<TraceSplitResults<TraceTree.Transaction>> {
+  },
+  type: 'eap' | 'non-eap'
+): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    type === 'eap'
+      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
+      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -2138,6 +2141,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
+    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
@@ -2154,15 +2158,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(api, {
-              orgSlug: organization.slug,
-              query: qs.stringify(
-                getTraceQueryParams(urlParams, filters.selection, {
-                  timestamp: batchTraceData.timestamp,
-                })
-              ),
-              traceId: batchTraceData.traceSlug,
-            });
+            return fetchTrace(
+              api,
+              {
+                orgSlug: organization.slug,
+                query: qs.stringify(
+                  getTraceQueryParams(urlParams, filters.selection, {
+                    timestamp: batchTraceData.timestamp,
+                  })
+                ),
+                traceId: batchTraceData.traceSlug,
+              },
+              options.type
+            );
           })
         );
 
@@ -2170,22 +2178,38 @@ export class TraceTree extends TraceTreeEventDispatcher {
           return;
         }
 
-        const updatedData = results.reduce(
-          (acc, result) => {
-            // Ignoring the error case for now
-            if (result.status === 'fulfilled') {
+        const accumulator: TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace =
+          options.type === 'eap'
+            ? []
+            : {
+                transactions: [],
+                orphan_errors: [],
+              };
+
+        const updatedData = results.reduce((acc, result) => {
+          // Ignoring the error case for now
+          if (result.status === 'fulfilled') {
+            if (
+              isTraceSplitResult<
+                TraceSplitResults<TraceTree.Transaction>,
+                TraceTree.EAPTrace
+              >(result.value) &&
+              isTraceSplitResult<
+                TraceSplitResults<TraceTree.Transaction>,
+                TraceTree.EAPTrace
+              >(acc)
+            ) {
               const {transactions, orphan_errors} = result.value;
               acc.transactions.push(...transactions);
               acc.orphan_errors.push(...orphan_errors);
+            } else if (Array.isArray(acc) && Array.isArray(result.value)) {
+              // accumulate eap trace
+              acc.push(...result.value);
             }
+          }
 
-            return acc;
-          },
-          {
-            transactions: [],
-            orphan_errors: [],
-          } as TraceSplitResults<TraceTree.Transaction>
-        );
+          return acc;
+        }, accumulator);
 
         this.appendTree(
           TraceTree.FromTrace(updatedData, {
