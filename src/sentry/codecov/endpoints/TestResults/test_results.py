@@ -80,11 +80,7 @@ class TestResultsEndpoint(CodecovEndpoint):
         owner_var = owner if owner else "codecov"
         repository_var = repository if repository else "gazebo"
 
-        order_by = (
-            request.query_params.get("orderBy")
-            if request.query_params.get("orderBy")
-            else OrderingParameter.COMMITS_WHERE_FAIL.value
-        )
+        order_by = request.query_params.get("orderBy", OrderingParameter.COMMITS_WHERE_FAIL.value)
 
         if order_by and order_by.startswith("-"):
             order_by = order_by[1:]
@@ -110,20 +106,10 @@ class TestResultsEndpoint(CodecovEndpoint):
             "owner": owner_var,
             "repo": repository_var,
             "filters": {
-                "branch": (
-                    request.query_params.get("branch")
-                    if request.query_params.get("branch")
-                    else "main"
-                ),
-                "parameter": (
-                    request.query_params.get("sortBy")
-                    if request.query_params.get("sortBy")
-                    else None
-                ),
+                "branch": request.query_params.get("branch", "main"),
+                "parameter": request.query_params.get("sortBy"),
                 "interval": (
-                    request.query_params.get("interval")
-                    if request.query_params.get("interval")
-                    else MeasurementInterval.INTERVAL_30_DAY.value
+                    request.query_params.get("interval", MeasurementInterval.INTERVAL_30_DAY.value)
                 ),
                 "flags": None,
                 "term": None,
