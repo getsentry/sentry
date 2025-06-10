@@ -140,6 +140,7 @@ class OrganizationAuthTokenCreateTest(APITestCase):
 
         # Assert that region and control URLs are both set correctly
         token_payload = parse_token(token=token.get("token"))
+        assert token_payload is not None
         assert token_payload.get("region_url", None)
         assert token_payload.get("region_url") == get_region_by_name(name="us").address
         assert token_payload.get("url") == options.get("system.url-prefix")

@@ -82,12 +82,15 @@ function CopyRulesButton({rules}: {rules: string}) {
   );
 }
 
-export function getAIRulesForCursorOrWindsurfStep({rules}: {rules: string}) {
+export function getAIRulesForCodeEditorStep({rules}: {rules: string}) {
   return {
     collapsible: true,
-    title: t('AI Rules for Cursor or Windsurf (optional)'),
-    description: t(
-      'Sentry provides a set of rules you can use to help your LLM use Sentry correctly. Copy this file and add it to your projects rules configuration.'
+    title: t('AI Rules for Code Editors (optional)'),
+    description: tct(
+      'Sentry provides a set of rules you can use to help your LLM use Sentry correctly. Copy this file and add it to your projects rules configuration. When created as a rules file this should be placed alongside other editor specific rule files. For example, if you are using Cursor, place this file in the [code:.cursorrules] directory.',
+      {
+        code: <code />,
+      }
     ),
     trailingItems: <CopyRulesButton rules={rules} />,
     configurations: [

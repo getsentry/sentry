@@ -311,6 +311,25 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
+function DBQueryInjectionVulnerabilityEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Vulnerable Parameters'), evidenceData.vulnerableParameters),
+        makeRow(t('Request URL'), evidenceData.requestUrl),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -330,6 +349,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.DB_QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
 };
 
 export function SpanEvidenceKeyValueList({

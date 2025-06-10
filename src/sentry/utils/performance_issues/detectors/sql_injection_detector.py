@@ -83,11 +83,17 @@ class SQLInjectionDetector(PerformanceDetector):
             query_value = query_pair[1]
             query_key = query_pair[0]
 
-            if not isinstance(query_value, str):
+            # Filters out empty strings or single character strings
+            if (
+                not isinstance(query_value, str)
+                or not isinstance(query_key, str)
+                or not query_value
+                or len(query_value) == 1
+            ):
                 continue
             if query_key == query_value:
                 continue
-            if query_value.upper() in SQL_KEYWORDS:
+            if query_value.upper() in SQL_KEYWORDS or query_key.upper() in SQL_KEYWORDS:
                 continue
             valid_parameters.append(query_pair)
 
@@ -105,7 +111,7 @@ class SQLInjectionDetector(PerformanceDetector):
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if value in description:
+            if key in description and value in description:
                 description = description.replace(value, "?")
                 vulnerable_parameters.append(key)
 
@@ -128,7 +134,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": vulnerable_parameters,
+                "vulnerable_parameters": list(set(vulnerable_parameters)),
                 "request_url": self.request_url,
             },
             evidence_display=[
