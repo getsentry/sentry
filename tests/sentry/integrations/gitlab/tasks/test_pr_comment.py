@@ -330,9 +330,17 @@ class TestGetCommentBody(GitlabCommentTestCase):
         expected_comment = f"""## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{ev1.group.id}/?referrer=gitlab-pr-bot) Environment: `dev`
-- ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/baz/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
-- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/baz/issues/{ev3.group.id}/?referrer=gitlab-pr-bot) Environment: `prod`"""
+‼️ **{ev1.group.title}** `{ev1.group.culprit}`
+ - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=gitlab-pr-bot)
+ - Environment: `dev`
+
+‼️ **{ev2.group.title}** `{ev2.group.culprit}`
+ - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
+
+‼️ **{ev3.group.title}** `{ev3.group.culprit}`
+ - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=gitlab-pr-bot)
+ - Environment: `prod`
+"""
         assert formatted_comment == expected_comment
 
 
@@ -370,8 +378,12 @@ class TestCommentWorkflow(GitlabCommentTestCase):
 ## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/baz/issues/{groups[0]}/?referrer=gitlab-pr-bot)
-- ‼️ **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=gitlab-pr-bot)"""
+‼️ **{titles[0]}** `{culprits[0]}`
+ - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
+
+‼️ **{titles[1]}** `{culprits[1]}`
+ - [View Issue](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
+"""
         }
 
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -387,7 +399,10 @@ This merge request was deployed and Sentry observed the following issues:
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
-        groups = [g.id for g in Group.objects.all()]
+        group_objs = Group.objects.order_by("id").all()
+        groups = [g.id for g in group_objs]
+        titles = [g.title for g in group_objs]
+        culprits = [g.culprit for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
         pull_request_comment = PullRequestComment.objects.create(
             external_id=1,
@@ -421,8 +436,12 @@ This merge request was deployed and Sentry observed the following issues:
 ## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{groups[0]}/?referrer=gitlab-pr-bot)
-- ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=gitlab-pr-bot)"""
+‼️ **{titles[0]}** `{culprits[0]}`
+ - [View Issue](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
+
+‼️ **{titles[1]}** `{culprits[1]}`
+ - [View Issue](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
+"""
         }
 
         pull_request_comment.refresh_from_db()
