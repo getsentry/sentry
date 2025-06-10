@@ -5,16 +5,14 @@ from typing import Any
 import pytest
 
 from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
-from sentry.testutils.cases import TestCase
-from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.utils.performance_issues.detectors.query_injection_detector import (
-    QueryInjectionDetector,
-)
-from sentry.utils.performance_issues.performance_detection import (
+from sentry.performance_issues.detectors.query_injection_detector import QueryInjectionDetector
+from sentry.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.testutils.cases import TestCase
+from sentry.testutils.performance_issues.event_generators import get_event
 
 
 @pytest.mark.django_db
