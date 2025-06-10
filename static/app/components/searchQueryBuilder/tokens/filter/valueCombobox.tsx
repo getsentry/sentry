@@ -370,12 +370,7 @@ function useFilterSuggestions({
     // disable exhaustive deps because we want to debounce the query key above
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey,
-    queryFn: async () => {
-      const delay = new Promise(resolve => setTimeout(() => resolve(true), 400));
-      const response = await getTagValues(...queryParams);
-      await delay;
-      return response;
-    },
+    queryFn: () => getTagValues(...queryParams),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
