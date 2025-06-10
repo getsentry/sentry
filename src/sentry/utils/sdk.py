@@ -203,9 +203,7 @@ def traces_sampler(sampling_context):
 
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
-        "spans.process.process_message": options.get(
-            "standalone-spans.profile-process-messages.rate"
-        )
+        "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
     if "transaction_context" in sampling_context:
         transaction_name = sampling_context["transaction_context"].get("name")
@@ -490,7 +488,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )
@@ -584,7 +582,7 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
-    scope = sentry_sdk.Scope.get_current_scope()
+    scope = sentry_sdk.get_current_scope()
     transaction_from_request = get_transaction_name_from_request(request)
 
     if (

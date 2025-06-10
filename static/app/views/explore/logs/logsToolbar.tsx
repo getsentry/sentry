@@ -71,6 +71,14 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const setLogsPageParams = useSetLogsPageParams();
   const setLogsSortBys = useSetLogsSortBys();
 
+  const aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+    label: prettifyTagKey(key),
+    value: key,
+  }));
+  if (aggregateFunction === 'count') {
+    aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
+  }
+
   return (
     <Container>
       <ToolbarItem>
@@ -93,16 +101,11 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
             value={aggregateFunction}
           />
           <Select
-            options={[
-              {label: t('logs'), value: 'logs'},
-              ...Object.keys(numberTags ?? {}).map(key => ({
-                label: prettifyTagKey(key),
-                value: key,
-              })),
-            ]}
+            options={aggregatableKeys}
             onChange={val =>
               setLogsPageParams({aggregateParam: val.value as string | undefined})
             }
+            searchable
             value={aggregateParam}
             disabled={aggregateFunction === 'count'}
           />
@@ -154,7 +157,6 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
               ])
             }
             value={sortBys[0]!.field}
-            searchable
             triggerProps={{style: {width: '100%'}}}
           />
           <Select

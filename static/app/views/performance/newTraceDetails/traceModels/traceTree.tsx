@@ -313,10 +313,13 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  }
-): Promise<TraceSplitResults<TraceTree.Transaction>> {
+  },
+  type: 'eap' | 'non-eap'
+): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    type === 'eap'
+      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
+      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -918,7 +921,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if ((!isSpanNode(node) && !isEAPSpanNode(node)) || node.children.length > 1) {
+      if (
+        (!isSpanNode(node) && !isNonTransactionEAPSpanNode(node)) ||
+        node.children.length > 1
+      ) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -938,7 +944,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        (isSpanNode(tail.children[0]!) || isEAPSpanNode(tail.children[0]!)) &&
+        (isSpanNode(tail.children[0]!) ||
+          isNonTransactionEAPSpanNode(tail.children[0]!)) &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
@@ -960,7 +967,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
-      const spanId = isEAPSpanNode(head) ? head.value.event_id : head.value.span_id;
+      const spanId = isNonTransactionEAPSpanNode(head)
+        ? head.value.event_id
+        : head.value.span_id;
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
@@ -1073,7 +1082,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       while (index < node.children.length) {
         // Skip until we find a span candidate
-        if (!isSpanNode(node.children[index]!) && !isEAPSpanNode(node.children[index]!)) {
+        if (
+          !isSpanNode(node.children[index]!) &&
+          !isNonTransactionEAPSpanNode(node.children[index]!)
+        ) {
           index++;
           matchCount = 0;
           continue;
@@ -1088,7 +1100,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         if (
           next &&
-          (isSpanNode(next) || isEAPSpanNode(next)) &&
+          (isSpanNode(next) || isNonTransactionEAPSpanNode(next)) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans
@@ -1108,7 +1120,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
-              span_id: isEAPSpanNode(current)
+              span_id: isNonTransactionEAPSpanNode(current)
                 ? current.value.event_id
                 : current.value.span_id,
               op: current.value.op ?? '',
@@ -2138,6 +2150,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
+    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
@@ -2154,15 +2167,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(api, {
-              orgSlug: organization.slug,
-              query: qs.stringify(
-                getTraceQueryParams(urlParams, filters.selection, {
-                  timestamp: batchTraceData.timestamp,
-                })
-              ),
-              traceId: batchTraceData.traceSlug,
-            });
+            return fetchTrace(
+              api,
+              {
+                orgSlug: organization.slug,
+                query: qs.stringify(
+                  getTraceQueryParams(urlParams, filters.selection, {
+                    timestamp: batchTraceData.timestamp,
+                  })
+                ),
+                traceId: batchTraceData.traceSlug,
+              },
+              options.type
+            );
           })
         );
 
@@ -2170,22 +2187,38 @@ export class TraceTree extends TraceTreeEventDispatcher {
           return;
         }
 
-        const updatedData = results.reduce(
-          (acc, result) => {
-            // Ignoring the error case for now
-            if (result.status === 'fulfilled') {
+        const accumulator: TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace =
+          options.type === 'eap'
+            ? []
+            : {
+                transactions: [],
+                orphan_errors: [],
+              };
+
+        const updatedData = results.reduce((acc, result) => {
+          // Ignoring the error case for now
+          if (result.status === 'fulfilled') {
+            if (
+              isTraceSplitResult<
+                TraceSplitResults<TraceTree.Transaction>,
+                TraceTree.EAPTrace
+              >(result.value) &&
+              isTraceSplitResult<
+                TraceSplitResults<TraceTree.Transaction>,
+                TraceTree.EAPTrace
+              >(acc)
+            ) {
               const {transactions, orphan_errors} = result.value;
               acc.transactions.push(...transactions);
               acc.orphan_errors.push(...orphan_errors);
+            } else if (Array.isArray(acc) && Array.isArray(result.value)) {
+              // accumulate eap trace
+              acc.push(...result.value);
             }
+          }
 
-            return acc;
-          },
-          {
-            transactions: [],
-            orphan_errors: [],
-          } as TraceSplitResults<TraceTree.Transaction>
-        );
+          return acc;
+        }, accumulator);
 
         this.appendTree(
           TraceTree.FromTrace(updatedData, {

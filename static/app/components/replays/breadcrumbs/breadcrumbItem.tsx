@@ -1,5 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {isValidElement, useCallback, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -81,7 +82,9 @@ function BreadcrumbItem({
   updateDimensions,
   allowShowSnippet,
 }: Props) {
-  const {color, description, title, icon} = getFrameDetails(frame);
+  const theme = useTheme();
+  const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
+  const colorHex = theme.tokens.graphics[colorGraphicsToken];
   const {replay} = useReplayContext();
   const organization = useOrganization();
   const {data: extraction, isPending} = useExtractDomNodes({
@@ -214,7 +217,7 @@ function BreadcrumbItem({
       ref={ref}
       icon={icon}
       title={title}
-      colorConfig={{title: color, icon: color, iconBorder: color}}
+      colorConfig={{title: colorHex, icon: colorHex, iconBorder: colorHex}}
       timestamp={
         <ReplayTimestamp>
           <TimestampButton
