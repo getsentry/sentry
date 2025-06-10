@@ -49,4 +49,29 @@ describe('useFormField', function () {
     expect(typedResult.current).toBe(42);
     expect(typeof typedResult.current).toBe('number');
   });
+
+  it('handles fields that are added after subscription', function () {
+    // Start with a hook subscribed to a field that doesn't exist yet
+    const {result} = renderHook(() => useFormField('laterField'), {
+      wrapper: withFormContext,
+    });
+
+    // Initially should return empty string for non-existent field
+    expect(result.current).toBe('');
+
+    // Add the field later
+    act(() => {
+      model.setValue('laterField', 'newly added');
+    });
+
+    // Should now return the newly added field value
+    expect(result.current).toBe('newly added');
+
+    // Should continue to update when the field changes
+    act(() => {
+      model.setValue('laterField', 'updated value');
+    });
+
+    expect(result.current).toBe('updated value');
+  });
 });

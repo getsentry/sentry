@@ -13,9 +13,20 @@ export function useFormField<Value extends FieldValue = FieldValue>(
   const subscribe = useCallback(
     (callback: () => void) => {
       const form = context.form;
+      if (!form) {
+        return noop;
+      }
+
       // Check if the field exists
       if (!form?.fields.has(field)) {
-        return noop;
+        // Allow field to be created later by subscribing to all fields
+        return observe(form.fields, () => {
+          // Only call callback if our specific field now exists
+          // This is less efficient than observing the specific field
+          if (form.fields.has(field)) {
+            callback();
+          }
+        });
       }
 
       // Use MobX observe for specific field watching
