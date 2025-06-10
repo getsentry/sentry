@@ -189,6 +189,7 @@
     "@testing-library/react": "16.2.0",
     "@testing-library/user-event": "14.6.1",
     "@types/gettext-parser": "8.0.0",
+    "@types/moment-timezone": "^0.5.30",
     "@types/node": "^22.9.1",
     "babel-jest": "29.7.0",
     "benchmark": "^2.1.4",
