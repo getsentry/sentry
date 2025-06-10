@@ -260,17 +260,23 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
     """Download segment data from remote storage."""
     yield b"["
 
+    for i, segment in iter_segment_data(segments):
+        yield segment
+        if i < len(segments) - 1:
+            yield b","
+
+    yield b"]"
+
+
+def iter_segment_data(segments: list[RecordingSegmentStorageMeta]) -> Iterator[tuple[int, bytes]]:
     with ThreadPoolExecutor(max_workers=10) as pool:
         segment_data = pool.map(_download_segment, segments)
 
     for i, result in enumerate(segment_data):
         if result is None:
-            yield b"[]"
+            yield i, b"[]"
         else:
-            yield result[1]
-            if i < len(segments) - 1:
-                yield b","
-    yield b"]"
+            yield i, result[1]
 
 
 def download_segment(segment: RecordingSegmentStorageMeta, span: Any) -> bytes:
