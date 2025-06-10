@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
-from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
+from sentry.incidents.metric_alert_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
@@ -168,7 +168,7 @@ class MetricIssue(GroupType):
     enable_escalation_detection = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
-        validator=MetricAlertsDetectorValidator,
+        validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of a metric alert firing",

@@ -3,11 +3,9 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry import audit_log
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
-from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
@@ -15,13 +13,9 @@ from sentry.workflow_engine.endpoints.validators.base import (
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     AbstractDataConditionValidator,
 )
-from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
-from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.types import (
-    DataConditionType,
-    DetectorPriorityLevel,
-    SnubaQueryDataSourceType,
-)
+from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
 class MetricAlertComparisonConditionValidator(
@@ -73,58 +67,16 @@ class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
         return value
 
 
-class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
+class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True)
     condition_group = MetricAlertConditionGroupValidator(required=True)
 
     def validate(self, attrs):
-        """
-        This is just a sample implementation. We should have all the same logic here that
-        we have for conditions, query validation, etc in
-        https://github.com/getsentry/sentry/blob/837d5c1e13a8dc71b622aafec5191d84d0e827c7/src/sentry/incidents/serializers/alert_rule.py#L65
-        """
         attrs = super().validate(attrs)
         conditions = attrs.get("condition_group", {}).get("conditions")
         if len(conditions) > 2:
             raise serializers.ValidationError("Too many conditions")
         return attrs
-
-    # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
-    def update_data_conditions(self, instance: Detector, data_conditions: list[DataConditionType]):
-        """
-        Update the data condition if it already exists, create one if it does not
-        """
-        if instance.workflow_condition_group:
-            try:
-                data_condition_group = DataConditionGroup.objects.get(
-                    id=instance.workflow_condition_group.id
-                )
-            except DataConditionGroup.DoesNotExist:
-                raise serializers.ValidationError("DataConditionGroup not found, can't update")
-        # TODO make one if it doesn't exist and data is passed?
-
-        for data_condition in data_conditions:
-            if not data_condition.get("id"):
-                current_data_condition = None
-            else:
-                try:
-                    current_data_condition = DataCondition.objects.get(
-                        id=str(data_condition.get("id")), condition_group=data_condition_group
-                    )
-                except DataCondition.DoesNotExist:
-                    continue
-
-            if current_data_condition:
-                current_data_condition.update(**data_condition)
-                current_data_condition.save()
-            else:
-                DataCondition.objects.create(
-                    type=data_condition["type"],
-                    comparison=data_condition["comparison"],
-                    condition_result=data_condition["condition_result"],
-                    condition_group=data_condition_group,
-                )
-        return data_condition_group
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
@@ -155,27 +107,12 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
         )
 
-    # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
     def update(self, instance: Detector, validated_data: dict[str, Any]):
-        instance.name = validated_data.get("name", instance.name)
-        instance.type = validated_data.get("detector_type", instance.group_type).slug
-        condition_group = validated_data.pop("condition_group")
-        data_conditions: list[DataConditionType] = condition_group.get("conditions")
-
-        if data_conditions:
-            self.update_data_conditions(instance, data_conditions)
+        super().update(instance, validated_data)
 
         data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
         if data_source:
             self.update_data_source(instance, data_source)
 
         instance.save()
-
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=instance.id,
-            event=audit_log.get_event_id("DETECTOR_EDIT"),
-            data=instance.get_audit_log_data(),
-        )
         return instance

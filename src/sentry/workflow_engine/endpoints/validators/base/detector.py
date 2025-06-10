@@ -1,4 +1,5 @@
 import builtins
+from typing import Any
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -20,6 +21,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.types import DataConditionType
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
@@ -54,8 +56,61 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
-    def update(self, instance, validated_data):
-        raise NotImplementedError
+    def update_data_conditions(self, instance: Detector, data_conditions: list[DataConditionType]):
+        """
+        Update the data condition if it already exists, create one if it does not
+        """
+        if instance.workflow_condition_group:
+            try:
+                data_condition_group = DataConditionGroup.objects.get(
+                    id=instance.workflow_condition_group.id
+                )
+            except DataConditionGroup.DoesNotExist:
+                raise serializers.ValidationError("DataConditionGroup not found, can't update")
+        # TODO make one if it doesn't exist and data is passed?
+
+        for data_condition in data_conditions:
+            if not data_condition.get("id"):
+                current_data_condition = None
+            else:
+                try:
+                    current_data_condition = DataCondition.objects.get(
+                        id=str(data_condition.get("id")), condition_group=data_condition_group
+                    )
+                except DataCondition.DoesNotExist:
+                    continue
+
+            if current_data_condition:
+                current_data_condition.update(**data_condition)
+                current_data_condition.save()
+            else:
+                DataCondition.objects.create(
+                    type=data_condition["type"],
+                    comparison=data_condition["comparison"],
+                    condition_result=data_condition["condition_result"],
+                    condition_group=data_condition_group,
+                )
+        return data_condition_group
+
+    def update(self, instance: Detector, validated_data: dict[str, Any]):
+        instance.name = validated_data.get("name", instance.name)
+        instance.type = validated_data.get("detector_type", instance.group_type).slug
+        condition_group = validated_data.pop("condition_group")
+        data_conditions: list[DataConditionType] = condition_group.get("conditions")
+
+        if data_conditions:
+            self.update_data_conditions(instance, data_conditions)
+
+        instance.save()
+
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=instance.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=instance.get_audit_log_data(),
+        )
+        return instance
 
     def create(self, validated_data):
         with transaction.atomic(router.db_for_write(Detector)):
