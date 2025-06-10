@@ -202,7 +202,9 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("detectorType") == [
-            ErrorDetail(string="Unknown detector type", code="invalid")
+            ErrorDetail(
+                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+            )
         ]
 
     def test_too_many_conditions(self):

@@ -28,6 +28,7 @@ from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import can_edit_detector
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
 
 
@@ -36,7 +37,8 @@ def get_detector_validator(
 ):
     detector_type = grouptype.registry.get_by_slug(detector_type_slug)
     if detector_type is None:
-        raise ValidationError({"detectorType": ["Unknown detector type"]})
+        error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
+        raise ValidationError({"detectorType": [error_message]})
 
     if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
         raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
