@@ -294,7 +294,6 @@ class DashboardDetail extends Component<Props, State> {
           navigate: this.props.navigate,
           dashboard: this.props.dashboard,
         }),
-        modifiedDashboard: this.updateModifiedDashboard(this.state.dashboardState),
       });
     }
   }
