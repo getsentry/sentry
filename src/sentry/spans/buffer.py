@@ -74,12 +74,13 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry import options
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
-# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
+# "span-buf:s:{partition}:project_id:trace_id:span_id", and the type is bytes because our
 # redis client is bytes.
 #
 # The segment ID in the Kafka protocol is only the span ID.
@@ -91,16 +92,27 @@ logger = logging.getLogger(__name__)
 
 
 def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
-    return parse_segment_key(segment_key)[2]
+    return parse_segment_key(segment_key)[-1]
 
 
-def parse_segment_key(segment_key: SegmentKey) -> tuple[bytes, bytes, bytes]:
+def parse_segment_key(segment_key: SegmentKey) -> tuple[int | None, bytes, bytes, bytes]:
     segment_key_parts = segment_key.split(b":")
-    project_id = segment_key_parts[2][1:]
-    trace_id = segment_key_parts[3][:-1]
-    span_id = segment_key_parts[4]
+    # Old format without partition
+    if len(segment_key_parts) == 5:
+        partition = None
+        project_id = segment_key_parts[2][1:]
+        trace_id = segment_key_parts[3][:-1]
+        span_id = segment_key_parts[4]
+    # New format with partition
+    elif len(segment_key_parts) == 6:
+        partition = int(segment_key_parts[2][1:-1])
+        project_id = segment_key_parts[3]
+        trace_id = segment_key_parts[4]
+        span_id = segment_key_parts[5]
+    else:
+        raise ValueError("unsupported segment key format")
 
-    return project_id, trace_id, span_id
+    return partition, project_id, trace_id, span_id
 
 
 def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -112,6 +124,7 @@ add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 # NamedTuples are faster to construct than dataclasses
 class Span(NamedTuple):
+    partition: int
     trace_id: str
     span_id: str
     parent_span_id: str | None
@@ -121,9 +134,8 @@ class Span(NamedTuple):
 
     def effective_parent_id(self):
         # Note: For the case where the span's parent is in another project, we
-        # will still flush the segment-without-root-span as one unit, just
-        # after span_buffer_timeout_secs rather than
-        # span_buffer_root_timeout_secs.
+        # will still flush the segment-without-root-span as one unit, just after
+        # `timeout` rather than `root-timeout` seconds.
         if self.is_segment_span:
             return self.span_id
         else:
@@ -140,25 +152,8 @@ class FlushedSegment(NamedTuple):
 
 
 class SpansBuffer:
-    def __init__(
-        self,
-        assigned_shards: list[int],
-        span_buffer_timeout_secs: int = 60,
-        span_buffer_root_timeout_secs: int = 10,
-        segment_page_size: int = 100,
-        max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
-        max_segment_spans: int = 1001,
-        max_flush_segments: int = 500,
-        redis_ttl: int = 3600,
-    ):
+    def __init__(self, assigned_shards: list[int]):
         self.assigned_shards = list(assigned_shards)
-        self.span_buffer_timeout_secs = span_buffer_timeout_secs
-        self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
-        self.segment_page_size = segment_page_size
-        self.max_segment_bytes = max_segment_bytes
-        self.max_segment_spans = max_segment_spans
-        self.max_flush_segments = max_flush_segments
-        self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
 
@@ -168,22 +163,10 @@ class SpansBuffer:
 
     # make it pickleable
     def __reduce__(self):
-        return (
-            SpansBuffer,
-            (
-                self.assigned_shards,
-                self.span_buffer_timeout_secs,
-                self.span_buffer_root_timeout_secs,
-                self.segment_page_size,
-                self.max_segment_bytes,
-                self.max_segment_spans,
-                self.max_flush_segments,
-                self.redis_ttl,
-            ),
-        )
+        return (SpansBuffer, (self.assigned_shards,))
 
-    def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
-        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
+    def _get_span_key(self, partition: int, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{partition}}}:{project_and_trace}:{span_id}".encode("ascii")
 
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -191,6 +174,10 @@ class SpansBuffer:
         :param now: The current time to be used for setting expiration/flush
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
+
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        timeout = options.get("spans.buffer.timeout")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
         result_meta = []
         is_root_span_count = 0
@@ -201,8 +188,8 @@ class SpansBuffer:
             trees = self._group_by_parent(spans)
 
             with self.client.pipeline(transaction=False) as p:
-                for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = self._get_span_key(project_and_trace, parent_span_id)
+                for (partition, project_and_trace, parent_span_id), subsegment in trees.items():
+                    set_key = self._get_span_key(partition, project_and_trace, parent_span_id)
                     p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
@@ -214,21 +201,22 @@ class SpansBuffer:
             add_buffer_sha = self._ensure_script()
 
             with self.client.pipeline(transaction=False) as p:
-                for (project_and_trace, parent_span_id), subsegment in trees.items():
+                for (partition, project_and_trace, parent_span_id), subsegment in trees.items():
                     p.execute_command(
                         "EVALSHA",
                         add_buffer_sha,
                         1,
+                        partition,
                         project_and_trace,
                         len(subsegment),
                         parent_span_id,
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
-                        self.redis_ttl,
+                        redis_ttl,
                         *[span.span_id for span in subsegment],
                     )
 
                     is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    result_meta.append((project_and_trace, parent_span_id))
+                    result_meta.append((partition, project_and_trace, parent_span_id))
 
                 results = p.execute()
 
@@ -238,14 +226,10 @@ class SpansBuffer:
 
             assert len(result_meta) == len(results)
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (partition, project_and_trace, parent_span_id), result in zip(result_meta, results):
                 redirect_depth, set_key, has_root_span = result
 
-                shard = self.assigned_shards[
-                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
-                ]
-                queue_key = self._get_queue_key(shard)
-
+                queue_key = self._get_queue_key(partition)
                 min_redirect_depth = min(min_redirect_depth, redirect_depth)
                 max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
@@ -253,17 +237,18 @@ class SpansBuffer:
                 # already had a root span inside, use a different timeout than
                 # usual.
                 if has_root_span:
-                    offset = self.span_buffer_root_timeout_secs
+                    offset = root_timeout
                 else:
-                    offset = self.span_buffer_timeout_secs
+                    offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
 
-                subsegment_spans = trees[project_and_trace, parent_span_id]
+                subsegment_spans = trees[partition, project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
+                    self._get_span_key(partition, project_and_trace, span.span_id)
+                    for span in subsegment_spans
                 )
                 delete_set.discard(set_key)
 
@@ -271,7 +256,7 @@ class SpansBuffer:
                 for queue_key, adds in queue_adds.items():
                     if adds:
                         p.zadd(queue_key, adds)
-                        p.expire(queue_key, self.redis_ttl)
+                        p.expire(queue_key, redis_ttl)
 
                 for queue_key, deletes in queue_deletes.items():
                     if deletes:
@@ -296,7 +281,7 @@ class SpansBuffer:
     def _get_queue_key(self, shard: int) -> bytes:
         return f"span-buf:q:{shard}".encode("ascii")
 
-    def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
+    def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[int, str, str], list[Span]]:
         """
         Groups partial trees of spans by their top-most parent span ID in the
         provided list. The result is a dictionary where the keys identify a
@@ -307,7 +292,7 @@ class SpansBuffer:
         :return: Dictionary of grouped spans. The key is a tuple of
             the `project_and_trace`, and the `parent_span_id`.
         """
-        trees: dict[tuple[str, str], list[Span]] = {}
+        trees: dict[tuple[int, str, str], list[Span]] = {}
         redirects: dict[str, dict[str, str]] = {}
 
         for span in spans:
@@ -318,9 +303,9 @@ class SpansBuffer:
             while redirect := trace_redirects.get(parent):
                 parent = redirect
 
-            subsegment = trees.setdefault((project_and_trace, parent), [])
+            subsegment = trees.setdefault((span.partition, project_and_trace, parent), [])
             if parent != span.span_id:
-                subsegment.extend(trees.pop((project_and_trace, span.span_id), []))
+                subsegment.extend(trees.pop((span.partition, project_and_trace, span.span_id), []))
                 trace_redirects[span.span_id] = parent
             subsegment.append(span)
 
@@ -352,7 +337,8 @@ class SpansBuffer:
 
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
-        max_segments_per_shard = math.ceil(self.max_flush_segments / shard_factor)
+        max_flush_segments = options.get("spans.buffer.max-flush-segments")
+        max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
@@ -435,6 +421,10 @@ class SpansBuffer:
         :return: Dictionary mapping segment keys to lists of span payloads.
         """
 
+        page_size = options.get("spans.buffer.segment-page-size")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_segment_spans = options.get("spans.buffer.max-segment-spans")
+
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
@@ -443,14 +433,14 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.sscan(key, cursor=cursor, count=self.segment_page_size)
+                    p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
             for key, (cursor, spans) in zip(current_keys, results):
                 sizes[key] += sum(len(span) for span in spans)
-                if sizes[key] > self.max_segment_bytes:
+                if sizes[key] > max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
@@ -459,7 +449,7 @@ class SpansBuffer:
                     continue
 
                 payloads[key].extend(spans)
-                if len(payloads[key]) > self.max_segment_spans:
+                if len(payloads[key]) > max_segment_spans:
                     metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
                     logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
 
@@ -487,13 +477,19 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    hrs_key = b"span-buf:hrs:" + segment_key
-                    p.delete(hrs_key)
+                    p.delete(b"span-buf:hrs:" + segment_key)
                     p.unlink(segment_key)
-
-                    project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     p.zrem(flushed_segment.queue_key, segment_key)
+
+                    partition, project_id, trace_id, _ = parse_segment_key(segment_key)
+                    if partition is None:
+                        redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    else:
+                        redirect_map_key = b"span-buf:sr:{%d}:%s:%s" % (
+                            partition,
+                            project_id,
+                            trace_id,
+                        )
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         p.hdel(
