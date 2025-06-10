@@ -356,8 +356,6 @@ def get_attribute_values_with_substring(
             else:
                 values[field] = {value for value in values_response.values if value}
 
-    # values = {field: list(unique_values[field]) for field in unique_values}
-
     return {"values": values}
 
 
