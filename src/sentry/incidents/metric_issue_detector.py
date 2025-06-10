@@ -18,7 +18,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
-class MetricAlertComparisonConditionValidator(
+class MetricIssueComparisonConditionValidator(
     AbstractDataConditionValidator[float, DetectorPriorityLevel]
 ):
     supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
@@ -57,11 +57,11 @@ class MetricAlertComparisonConditionValidator(
         return result
 
 
-class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
+class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
     def validate_conditions(self, value):
-        MetricAlertComparisonConditionValidator(data=value, many=True).is_valid(
+        MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
         return value
@@ -69,7 +69,7 @@ class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_source = SnubaQueryValidator(required=True)
-    condition_group = MetricAlertConditionGroupValidator(required=True)
+    condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

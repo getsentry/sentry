@@ -4,8 +4,8 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.metric_alert_detector import (
-    MetricAlertComparisonConditionValidator,
+from sentry.incidents.metric_issue_detector import (
+    MetricIssueComparisonConditionValidator,
     MetricIssueDetectorValidator,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -25,9 +25,9 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidatorTest
 
 
-class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
+class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
     def test(self):
-        validator = MetricAlertComparisonConditionValidator(
+        validator = MetricIssueComparisonConditionValidator(
             data={
                 "type": Condition.GREATER,
                 "comparison": 100,
@@ -50,14 +50,14 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
             "comparison": 100,
             "result": DetectorPriorityLevel.HIGH,
         }
-        validator = MetricAlertComparisonConditionValidator(data=data)
+        validator = MetricIssueComparisonConditionValidator(data=data)
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(string=f"Unsupported type {unsupported_condition}", code="invalid")
         ]
 
     def test_unregistered_condition(self):
-        validator = MetricAlertComparisonConditionValidator(
+        validator = MetricIssueComparisonConditionValidator(
             data={"type": "invalid", "comparison": 100, "result": DetectorPriorityLevel.HIGH}
         )
         assert not validator.is_valid()
@@ -66,7 +66,7 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
         ]
 
     def test_invalid_comparison(self):
-        validator = MetricAlertComparisonConditionValidator(
+        validator = MetricIssueComparisonConditionValidator(
             data={
                 "type": Condition.GREATER,
                 "comparison": "not_a_number",
@@ -79,7 +79,7 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
         ]
 
     def test_invalid_result(self):
-        validator = MetricAlertComparisonConditionValidator(
+        validator = MetricIssueComparisonConditionValidator(
             data={
                 "type": Condition.GREATER,
                 "comparison": 100,

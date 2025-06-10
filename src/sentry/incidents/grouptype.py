@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
-from sentry.incidents.metric_alert_detector import MetricIssueDetectorValidator
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
