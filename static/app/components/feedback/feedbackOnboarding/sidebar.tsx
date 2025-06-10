@@ -271,6 +271,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
+  const excludedPlatformOptions = ['react-native'];
+
   const radioButtons = (
     <Header>
       {showRadioButtons ? (
@@ -315,6 +317,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       ) : (
         newDocs?.platformOptions &&
         widgetPlatform &&
+        !excludedPlatformOptions.includes(currentPlatform.id) &&
         !crashReportOnboarding &&
         !isLoading && (
           <PlatformSelect>

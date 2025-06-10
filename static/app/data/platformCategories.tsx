@@ -520,6 +520,7 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 // Feedback platforms that show only NPM widget setup instructions (no loader)
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
+  'react-native',
   ...replayFrontendPlatforms,
 ];
 
@@ -550,7 +551,6 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-logback',
   'kotlin',
   'node-koa',
-  'react-native',
   'unity',
   'unreal',
 ];
