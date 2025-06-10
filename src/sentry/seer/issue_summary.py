@@ -351,9 +351,17 @@ def _has_seer_scanner_budget(group: Group, source: SeerAutomationSource) -> bool
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return True
 
-    return quotas.backend.has_available_reserved_budget(
+    cache_key = f"seer-scanner-budget:{group.organization.id}"
+    if cached_budget := cache.get(cache_key):
+        return bool(cached_budget)
+
+    has_budget = quotas.backend.has_available_reserved_budget(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
+
+    cache.set(cache_key, has_budget, timeout=10)  # 10 second cache to avoid hammering the quota API
+
+    return bool(has_budget)
 
 
 def get_issue_summary(
