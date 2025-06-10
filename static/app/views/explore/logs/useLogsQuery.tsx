@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -25,7 +25,6 @@ import {
   useLogsIsFrozen,
   useLogsLimitToTraceId,
   useLogsProjectIds,
-  useLogsRefreshInterval,
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -36,12 +35,15 @@ import {
 import {
   AlwaysPresentLogFields,
   LOG_INGEST_DELAY,
-  VIRTUAL_STREAMED_INTERVAL_MS,
 } from 'sentry/views/explore/logs/constants';
 import {
   type EventsLogsResult,
   OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
+import {
+  isRowVisibleInVirtualStream,
+  useVirtualStreaming,
+} from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
@@ -396,30 +398,27 @@ export function useInfiniteLogsQuery({
     );
   }, [queryClient, queryKeyWithInfinite, sortBys]);
 
-  const numberOfPages = data?.pages.length ?? 0;
-
-  const {virtualStreamedTimestamp} = useVirtualStreaming(numberOfPages);
+  const {virtualStreamedTimestamp} = useVirtualStreaming(data);
 
   const _data = useMemo(() => {
     const usedRowIds = new Set();
-    return (
+    const filteredData =
       data?.pages.flatMap(([pageData]) =>
         pageData.data.filter(row => {
           if (usedRowIds.has(row[UNIQUE_ROW_ID])) {
             return false;
           }
-          if (virtualStreamedTimestamp) {
-            const rowTimestamp =
-              BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n;
-            if (rowTimestamp > virtualStreamedTimestamp) {
-              return false;
-            }
+
+          if (!isRowVisibleInVirtualStream(row, virtualStreamedTimestamp)) {
+            return false;
           }
+
           usedRowIds.add(row[UNIQUE_ROW_ID]);
           return true;
         })
-      ) ?? []
-    );
+      ) ?? [];
+
+    return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
   const _meta = useMemo<EventsMetaType>(() => {
@@ -473,60 +472,6 @@ export function useInfiniteLogsQuery({
     isFetchingPreviousPage,
     lastPageLength: data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0,
   };
-}
-
-function useVirtualStreaming(numberOfPages: number) {
-  const autoRefresh = useLogsAutoRefresh();
-  const refreshInterval = useLogsRefreshInterval();
-  const rafOn = useRef(false);
-  const [virtualStreamedQueryTimestamp, setVirtualStreamedQueryTimestamp] = useState(
-    Date.now()
-  );
-
-  useEffect(() => {
-    let rafId = 0;
-    rafOn.current = autoRefresh;
-    if (autoRefresh) {
-      const callback = () => {
-        if (!rafOn.current) {
-          return;
-        }
-        const targetVirtualTime = Date.now() - LOG_INGEST_DELAY;
-        setVirtualStreamedQueryTimestamp(prev => {
-          if (prev + VIRTUAL_STREAMED_INTERVAL_MS > targetVirtualTime) {
-            return prev;
-          }
-          return prev + VIRTUAL_STREAMED_INTERVAL_MS;
-        });
-        rafId = requestAnimationFrame(callback);
-      };
-
-      rafId = requestAnimationFrame(callback);
-    }
-
-    return () => {
-      rafOn.current = false;
-      if (rafId) {
-        window.cancelAnimationFrame(rafId);
-      }
-    };
-  }, [autoRefresh]);
-
-  const virtualStreamedTimestamp = useMemo(() => {
-    if (!autoRefresh || numberOfPages < 2) {
-      return undefined;
-    }
-    return virtualStreamedQueryTimestamp - refreshInterval - 1000; // We subtract the refresh interval when it comes to the UI updated virtual time
-  }, [autoRefresh, numberOfPages, refreshInterval, virtualStreamedQueryTimestamp]);
-
-  if (!autoRefresh || numberOfPages < 2) {
-    return {
-      virtualStreamedQueryTimestamp: undefined,
-      virtualStreamedTimestamp: undefined,
-    };
-  }
-
-  return {virtualStreamedQueryTimestamp, virtualStreamedTimestamp};
 }
 
 export type UseLogsQueryResult = ReturnType<typeof useLogsQuery>;

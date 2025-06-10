@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -13,6 +14,8 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -21,6 +24,7 @@ import {
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
 import {
+  type EventsLogsResult,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
@@ -192,8 +196,11 @@ export function getLogRowItem(
   };
 }
 
-export function checkSortIsTimeBased(sortBys: Sort[]) {
-  return getTimeBasedSortBy(sortBys) !== undefined;
+export function checkSortIsTimeBasedDescending(sortBys: Sort[]) {
+  return (
+    getTimeBasedSortBy(sortBys) !== undefined &&
+    sortBys.some(sortBy => sortBy.kind === 'desc')
+  );
 }
 
 export function getTimeBasedSortBy(sortBys: Sort[]) {
@@ -238,4 +245,11 @@ export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
     return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
   }
   return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
+}
+
+export function parseLinkHeaderFromLogsPage(
+  page: InfiniteQueryObserverResult<InfiniteData<ApiResult<EventsLogsResult>>>
+) {
+  const linkHeader = page.data?.pages?.[0]?.[2]?.getResponseHeader('Link');
+  return parseLinkHeader(linkHeader ?? null);
 }
