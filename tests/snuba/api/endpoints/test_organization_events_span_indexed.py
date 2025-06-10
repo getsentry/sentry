@@ -5502,6 +5502,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "field": [
                     "file_extension",
                 ],
+                "orderby": "file_extension",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
