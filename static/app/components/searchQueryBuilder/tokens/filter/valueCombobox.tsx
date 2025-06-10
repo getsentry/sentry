@@ -362,9 +362,13 @@ function useFilterSuggestions({
     [filterValue, key, keyName]
   );
 
-  const {value: queryKey, isDebouncing} = useDebouncedValue(
-    useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
+  const baseQueryKey = useMemo(
+    () => ['search-query-builder-tag-values', queryParams],
+    [queryParams]
   );
+  const queryKey = useDebouncedValue(baseQueryKey);
+  const isDebouncing = baseQueryKey !== queryKey;
+
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
     // disable exhaustive deps because we want to debounce the query key above
@@ -472,8 +476,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
-    isFetching,
-    isDebouncing,
+    isFetching: isFetching || isDebouncing,
   };
 }
 
@@ -608,7 +611,7 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
-  const {items, suggestionSectionItems, isFetching, isDebouncing} = useFilterSuggestions({
+  const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
     selectedValues: selectedValuesUnescaped,
@@ -846,7 +849,6 @@ export function SearchQueryBuilderValueCombobox({
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
-              isDebouncing={isDebouncing}
               canUseWildcard={canUseWildcard}
             />
           );
@@ -889,7 +891,6 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       items,
       isFetching,
-      isDebouncing,
       canUseWildcard,
       inputValue,
       token,

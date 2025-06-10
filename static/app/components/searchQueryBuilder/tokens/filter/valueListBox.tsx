@@ -50,7 +50,6 @@ function constrainAndAlignListBox({
 
 interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   canUseWildcard: boolean;
-  isDebouncing: boolean;
   isLoading: boolean;
   isMultiSelect: boolean;
   items: T[];
@@ -94,7 +93,6 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   canUseWildcard,
   portalTarget,
   wrapperRef,
-  isDebouncing,
 }: ValueListBoxProps<T>) {
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -158,7 +156,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               size="sm"
               style={{maxWidth: overlayProps.style!.maxWidth}}
             />
-            {(isDebouncing || isLoading) && anyItemsShowing ? (
+            {isLoading && anyItemsShowing ? (
               <LoadingWrapper height="32px" width="100%">
                 <LoadingIndicator size={24} />
               </LoadingWrapper>
