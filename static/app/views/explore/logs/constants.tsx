@@ -13,7 +13,7 @@ export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = 
   [OurLogKnownFieldKey.TRACE_ID]: t('Trace'),
 };
 
-export const LOG_INGEST_DELAY = 10_000;
+export const LOG_INGEST_DELAY = 15_000;
 
 /**
  * These are required fields are always added to the query when fetching the log table.
@@ -66,6 +66,6 @@ export const LOGS_INSTRUCTIONS_URL =
 
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 
-export const VIRTUAL_STREAMED_INTERVAL_MS = 333;
+export const VIRTUAL_STREAMED_INTERVAL_MS = 250;
 
 export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 100; // Items from bottom of table to trigger table fetch.

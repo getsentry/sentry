@@ -204,6 +204,11 @@ export function updateVirtualStreamingTimestamp({
   latestTimestamp: number;
   targetVirtualTime: number;
 }): number {
+  if (currentTimestamp > targetVirtualTime) {
+    // If we're ahead of the target virtual time (eg. virtual time was just initialized), don't change the current virtual time.
+    return currentTimestamp;
+  }
+
   // Calculate how far behind we are based on latest data
   const timeBehind = latestTimestamp - currentTimestamp;
 

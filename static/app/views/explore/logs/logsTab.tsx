@@ -57,6 +57,7 @@ import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
+import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -93,7 +94,7 @@ export function LogsTabContent({
   const aggregateParam =
     (aggregateFunction === 'count' ? null : _aggregateParam) ||
     OurLogKnownFieldKey.MESSAGE;
-  const timeseriesResult = useSortedTimeSeries(
+  const _timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
       yAxis: [`${aggregateFunction}(${aggregateParam})`],
@@ -104,6 +105,7 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
+  const timeseriesResult = useStreamingTimeseriesResult(tableData, _timeseriesResult);
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');

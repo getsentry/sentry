@@ -216,7 +216,13 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
-    if (pageParams.sortBys || pageParams.search) {
+    if (
+      pageParams.sortBys ||
+      pageParams.search ||
+      pageParams.aggregateFn ||
+      pageParams.aggregateParam ||
+      pageParams.groupBy
+    ) {
       // make sure to clear the cursor every time the query is updated
       delete target.query[LOGS_CURSOR_KEY];
       delete target.query[LOGS_AUTO_REFRESH_KEY];

@@ -4,7 +4,9 @@ import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsAutoRefresh,
@@ -34,6 +36,10 @@ export function AutorefreshToggle() {
   const refreshInterval = useLogsRefreshInterval();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {fetchPreviousPage} = infiniteLogsQueryResult;
+
+  // Location tracking for reset
+  const location = useLocation();
+  const previousLocation = usePrevious(location);
 
   // State for disable reason
   const [disableReason, setDisableReason] = useState<DisableReason>('sort');
@@ -65,6 +71,13 @@ export function AutorefreshToggle() {
 
     return () => {}; // No cleanup needed when disabled
   }, [enabled]);
+
+  // Reset disableReason when location changes
+  useEffect(() => {
+    if (previousLocation && location !== previousLocation) {
+      setDisableReason('sort');
+    }
+  }, [location, previousLocation]);
 
   const shouldPauseForVisibility = useCallback((): boolean => {
     if (document.visibilityState === 'hidden') {
