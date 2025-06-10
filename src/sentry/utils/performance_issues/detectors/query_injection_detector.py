@@ -56,8 +56,7 @@ class QueryInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
 
         unsafe_inputs = []
-        for input_pair in self.potential_unsafe_inputs:
-            input_key, input_value = input_pair
+        for input_key, input_value in self.potential_unsafe_inputs:
             # Replace all operands in filter with "?" since the query description is sanitized
             if input_value and isinstance(input_value, dict):
                 for dict_key, dict_value in input_value.items():
