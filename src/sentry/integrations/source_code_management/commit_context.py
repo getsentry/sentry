@@ -139,7 +139,9 @@ class PullRequestFile:
     patch: str
 
 
-MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url}){environment}"
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = (
+    "‼️ **{title}** `{subtitle}`\n - [View Issue]({url}){environment}\n"
+)
 
 
 class CommitContextIntegration(ABC):
@@ -579,7 +581,7 @@ class PRCommentWorkflow(ABC):
             if recommended_event:
                 environment = recommended_event.get_environment()
                 if environment and environment.name:
-                    return f" Environment: *({environment.name})*"
+                    return f"\n - Environment: `{environment.name}`"
         except Exception as e:
             # If anything goes wrong, just continue without environment info
             logger.info(
