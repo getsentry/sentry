@@ -142,6 +142,7 @@ export default function ChartWithIssues(props: Props) {
                       <TimeSeriesWidgetVisualization
                         {...props}
                         id={id}
+                        showReleaseAs={hideReleaseLines ? 'none' : 'line'}
                         releases={releases}
                         plottables={plottables}
                         legendSelection={legendSelection}
