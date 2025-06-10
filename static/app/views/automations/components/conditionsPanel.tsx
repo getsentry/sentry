@@ -6,10 +6,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Action,
-  ActionHandler,
+import {
+  type Action,
+  type ActionHandler,
   ActionType,
+  SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,
@@ -49,10 +50,20 @@ function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
 }
 
 function findActionHandler(
-  type: ActionType,
+  action: Action,
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
-  return availableActions.find(handler => handler.type === type);
+  if (action.type === ActionType.SENTRY_APP) {
+    if (action.config.sentry_app_identifier === SentryAppIdentifier.SENTRY_APP_ID) {
+      return availableActions.find(
+        handler => handler.sentryApp?.id === action.config.target_identifier
+      );
+    }
+    return availableActions.find(
+      handler => handler.sentryApp?.installationUuid === action.config.target_identifier
+    );
+  }
+  return availableActions.find(handler => handler.type === action.type);
 }
 
 interface ActionFilterProps {
@@ -90,7 +101,7 @@ function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
         <div key={index}>
           <ActionDetails
             action={action}
-            handler={findActionHandler(action.type, availableActions)}
+            handler={findActionHandler(action, availableActions)}
           />
         </div>
       ))}
