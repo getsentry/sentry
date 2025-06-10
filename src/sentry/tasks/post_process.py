@@ -13,7 +13,8 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, options, projectoptions, quotas
+from sentry.constants import DataCategory
 from sentry.exceptions import PluginError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
@@ -1581,8 +1582,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ]:
         return
 
-    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization
+    if (
+        not features.has("organizations:gen-ai-features", group.organization)
+        or not features.has("organizations:trigger-autofix-on-issue-summary", group.organization)
+        or not features.has("organizations:seer-added", group.organization)
     ):
         return
 
@@ -1592,6 +1595,11 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     project = group.project
     if not project.get_option("sentry:seer_scanner_automation"):
+        return
+
+    if not quotas.backend.has_available_reserved_budget(
+        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
+    ):
         return
 
     start_seer_automation.delay(group.id)
