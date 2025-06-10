@@ -68,14 +68,12 @@ describe('useFetchParallelPages', () => {
     expect(result.current.isFetching).toBeTruthy();
     expect(getQueryKey).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.isFetching).toBeFalsy());
+    // Wait for the query to resolve
+    await waitFor(() => expect(result.current.status).toBe('pending'));
+    expect(result.current.isFetching).toBeTruthy();
   });
 
   it('should call the queryFn zero times, when hits is 0', () => {
-    MockApiClient.addMockResponse({
-      url: MOCK_API_ENDPOINT,
-      body: 'text result',
-    });
     const getQueryKey = queryKeyFactory();
 
     const {result} = renderHook(useFetchParallelPages, {
@@ -88,7 +86,31 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    expect(result.current.status).toBe('success');
+    expect(result.current.isFetching).toBeFalsy();
+    expect(getQueryKey).not.toHaveBeenCalled();
+  });
+
+  it('should call the queryFn zero times, and flip to state=success when hits is 0', () => {
+    const getQueryKey = queryKeyFactory();
+
+    const {result, rerender} = renderHook(useFetchParallelPages, {
+      wrapper: makeWrapper(makeTestQueryClient()),
+      initialProps: {
+        enabled: false,
+        getQueryKey,
+        hits: 0,
+        perPage: 10,
+      },
+    });
+
     expect(result.current.status).toBe('pending');
+    expect(result.current.isFetching).toBeFalsy();
+    expect(getQueryKey).not.toHaveBeenCalled();
+
+    rerender({enabled: true, getQueryKey, hits: 0, perPage: 10});
+
+    expect(result.current.status).toBe('success');
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).not.toHaveBeenCalled();
   });
@@ -113,6 +135,7 @@ describe('useFetchParallelPages', () => {
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
 
+    // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(1);
@@ -138,6 +161,7 @@ describe('useFetchParallelPages', () => {
     expect(result.current.status).toBe('pending');
     expect(result.current.isFetching).toBeTruthy();
 
+    // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
     expect(getQueryKey).toHaveBeenCalledTimes(3);
@@ -166,6 +190,7 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
     expect(result.current.pages).toEqual([
@@ -192,6 +217,7 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
     expect(result.current.isError).toBeFalsy();
@@ -222,6 +248,7 @@ describe('useFetchParallelPages', () => {
       },
     });
 
+    // Wait for the query to resolve
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.isFetching).toBeFalsy();
     expect(result.current.getLastResponseHeader).toStrictEqual(expect.any(Function));
