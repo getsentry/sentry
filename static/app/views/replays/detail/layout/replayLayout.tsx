@@ -23,7 +23,7 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-function ReplayLayout({
+export default function ReplayLayout({
   isVideoReplay = false,
   replayRecord,
   isLoading,
@@ -170,4 +170,3 @@ const PanelContainer = styled('div')`
     pointer-events: none !important;
   }
 `;
-export default ReplayLayout;
