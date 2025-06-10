@@ -196,8 +196,11 @@ def run_task_with_multiprocessing(
 
 
 def _import_and_run(
-    initializer: Callable[[], None], main_fn_pickle: bytes, args_pickle: bytes, *additional_args
-):
+    initializer: Callable[[], None],
+    main_fn_pickle: bytes,
+    args_pickle: bytes,
+    *additional_args: Any,
+) -> None:
     initializer()
 
     # explicitly use pickle so that we can be sure arguments get unpickled
@@ -208,7 +211,7 @@ def _import_and_run(
     main_fn(*args, *additional_args)
 
 
-def run_with_initialized_sentry(main_fn: Callable[..., None], *args):
+def run_with_initialized_sentry(main_fn: Callable[..., None], *args: Any) -> Callable[..., None]:
     main_fn_pickle = pickle.dumps(main_fn)
     args_pickle = pickle.dumps(args)
     return partial(
