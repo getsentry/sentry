@@ -588,14 +588,14 @@ A POST request is issued with no body. The URL and authorization context is used
 
 ### Fetch Replay Summarize Breadcrumb [GET]
 
-| Column                   | Type            | Description                                          |
-| ------------------------ | --------------- | ---------------------------------------------------- |
-| title                    | str             | A short title describing the behavior of the replay. |
-| overall_issue            | str             | A summary of the replay's events.                    |
-| time_ranges              | list[TimeRange] | A list of TimeRange objects.                         |
-| time_ranges.period_start | number          | The start time of the analysis window.               |
-| time_ranges.period_end   | number          | The end time of the analysis window.                 |
-| time_ranges.period_title | str             | A short summary of the activity within the window.   |
+| Column                   | Type            | Description                                                                                   |
+| ------------------------ | --------------- | --------------------------------------------------------------------------------------------- |
+| title                    | str             | The main title of the user journey summary.                                                   |
+| summary                  | str             | A concise summary featuring the highlights of the user's journey while using the application. |
+| time_ranges              | list[TimeRange] | A list of TimeRange objects.                                                                  |
+| time_ranges.period_start | number          | The start time of the analysis window.                                                        |
+| time_ranges.period_end   | number          | The end time of the analysis window.                                                          |
+| time_ranges.period_title | str             | A concise summary utilizing 6 words or fewer describing what happened during the time range.  |
 
 - Response 200
 
