@@ -15,8 +15,8 @@ from sentry.utils.samples import load_data
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).isoformat()
-        self.two_min_ago = before_now(minutes=2).isoformat()
+        self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.project1 = self.create_project()
         self.project2 = self.create_project()
 
@@ -26,7 +26,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group1"],
-                "timestamp": self.two_min_ago,
+                "timestamp": self.two_min_ago.isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project1.id,
@@ -37,7 +37,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group1"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
@@ -48,7 +48,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group2"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
@@ -176,7 +176,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             dummy_event = Event(
                 project_id=self.project2.id,
                 event_id="1" * 32,
-                data={"something": "hi", "timestamp": self.min_ago, "type": "error"},
+                data={"something": "hi", "timestamp": self.min_ago.isoformat(), "type": "error"},
             )
             mock_event.return_value = dummy_event
             event = self.eventstore.get_event_by_id(self.project2.id, "1" * 32)
@@ -185,7 +185,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         # Now we store the event properly, so it will exist in Snuba.
         self.store_event(
-            data={"event_id": "1" * 32, "timestamp": self.min_ago, "type": "error"},
+            data={"event_id": "1" * 32, "timestamp": self.min_ago.isoformat(), "type": "error"},
             project_id=self.project2.id,
         )
 
@@ -217,33 +217,47 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def test_get_adjacent_event_ids(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
-        _filter = Filter(project_ids=[self.project1.id, self.project2.id])
+        filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
-        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=filter)
 
         assert prev_event == (str(self.project1.id), "a" * 32)
 
         # Events with the same timestamp are sorted by event_id
         assert next_event == (str(self.project2.id), "c" * 32)
 
-        # Returns None if no event
-        prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
-            None, filter=_filter
+        # Returns None if the prev event is outside the start window
+        period_filter = Filter(
+            project_ids=[self.project1.id, self.project2.id],
+            start=self.min_ago,
         )
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=period_filter)
+        assert prev_event is None
+        assert next_event == (str(self.project2.id), "c" * 32)
 
-        assert prev_event_none is None
-        assert next_event_none is None
+        # Returns None if the next event is outside the end window
+        period_filter = Filter(
+            project_ids=[self.project1.id, self.project2.id],
+            end=self.min_ago,
+        )
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=period_filter)
+        assert prev_event == (str(self.project1.id), "a" * 32)
+        assert next_event is None
+
+        # Returns None if no event
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(None, filter=filter)
+
+        assert prev_event is None
+        assert next_event is None
 
         # Returns None if the query fails for a known reason
         with mock.patch(
             "sentry.utils.snuba.bulk_raw_query", side_effect=snuba.QueryOutsideRetentionError()
         ):
-            prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
-                event, filter=_filter
-            )
+            prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=filter)
 
-        assert prev_event_none is None
-        assert next_event_none is None
+        assert prev_event is None
+        assert next_event is None
 
     def test_adjacent_event_ids_same_timestamp(self):
         project = self.create_project()
@@ -254,7 +268,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -264,7 +278,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -316,36 +330,33 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_get_adjacent_event_ids_snql(self):
         project = self.create_project()
+        data = {
+            "type": "default",
+            "platform": "python",
+            "fingerprint": ["group"],
+        }
+        self.store_event(
+            data={**data, "event_id": "a" * 32, "timestamp": before_now(minutes=10).isoformat()},
+            project_id=project.id,
+        )
         event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "type": "default",
-                "platform": "python",
-                "fingerprint": ["group"],
-                "timestamp": self.two_min_ago,
-            },
+            data={**data, "event_id": "b" * 32, "timestamp": before_now(minutes=4).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "type": "default",
-                "platform": "python",
-                "fingerprint": ["group"],
-                "timestamp": self.min_ago,
-            },
+            data={**data, "event_id": "c" * 32, "timestamp": before_now(minutes=3).isoformat()},
             project_id=project.id,
         )
         event3 = self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "type": "default",
-                "platform": "python",
-                "fingerprint": ["group"],
-                "timestamp": before_now(minutes=0).isoformat(),
-            },
+            data={**data, "event_id": "d" * 32, "timestamp": before_now(minutes=2).isoformat()},
             project_id=project.id,
         )
+        self.store_event(
+            data={**data, "event_id": "e" * 32, "timestamp": before_now(minutes=0).isoformat()},
+            project_id=project.id,
+        )
+
+        # Finds next and previous IDs
         prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
             organization_id=event2.organization.id,
             project_id=event2.project_id,
@@ -357,6 +368,28 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_ids == (str(event1.project_id), event1.event_id)
         assert next_ids == (str(event3.project_id), event3.event_id)
 
+        # Filter previous events that are outside of the start window
+        prev_ids, _ = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event1.organization.id,
+            project_id=event1.project_id,
+            group_id=event1.group_id,
+            environments=[],
+            event=event1,
+            start=before_now(minutes=5),
+        )
+        assert prev_ids is None
+
+        # Filter next events that are outside of the end window
+        _, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event3.organization.id,
+            project_id=event3.project_id,
+            group_id=event3.group_id,
+            environments=[],
+            event=event3,
+            end=before_now(minutes=1),
+        )
+        assert next_ids is None
+
     def test_get_adjacent_event_ids_snql_order_of_event_ids(self):
         project = self.create_project()
         event1 = self.store_event(
@@ -365,7 +398,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.two_min_ago,
+                "timestamp": self.two_min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -375,7 +408,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -408,7 +441,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -418,7 +451,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -458,7 +491,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
                 "tags": {"organization.slug": "sentry"},
             },
             project_id=project.id,
@@ -469,7 +502,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -479,7 +512,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
                 "tags": {"organization.slug": "sentry"},
             },
             project_id=project.id,
