@@ -9,7 +9,6 @@ import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type Props = {
   traceEventView: EventView;
@@ -19,11 +18,10 @@ type Props = {
 export function TraceOpenInExploreButton({trace_id, traceEventView}: Props) {
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const hasTraceTabsUi = useHasTraceTabsUI();
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (!hasExploreEnabled || !hasTraceTabsUi || !trace_id) {
+  if (!hasExploreEnabled || !trace_id) {
     return null;
   }
 
