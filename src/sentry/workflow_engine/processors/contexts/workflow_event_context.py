@@ -39,7 +39,6 @@ class WorkflowEventContextData:
     environment: Environment | None = None
 
 
-# _id is a unique identifier for the workflow context, this can be used in logs to trace a single context
 WorkflowEventContext: ContextVar[WorkflowEventContextData] = ContextVar(
     "workflow_context", default=WorkflowEventContextData()
 )
