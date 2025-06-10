@@ -32,7 +32,7 @@ export function SlackDetails({
       logo: ActionMetadata[ActionType.SLACK]?.icon,
       workspace: integrationName,
       channel: action.config.target_display
-        ? `#${action.config.target_display}`
+        ? `${action.config.target_display}`
         : action.config.target_identifier,
       tagsAndNotes: SlackTagsAndNotes(action),
     }
