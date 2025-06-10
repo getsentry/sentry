@@ -50,7 +50,10 @@ export default function ReplayLoadingState({
       <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
-  if (readerResult.fetching) {
+  if (readerResult.replayRecord?.is_archived) {
+    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
+  }
+  if (readerResult.isPending) {
     return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
   }
   if (!readerResult.replay) {
@@ -60,9 +63,7 @@ export default function ReplayLoadingState({
       <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
-  if (readerResult.replayRecord?.is_archived) {
-    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
-  }
+
   if (readerResult.replay.hasProcessingErrors()) {
     return renderProcessingError ? (
       renderProcessingError(readerResult)
