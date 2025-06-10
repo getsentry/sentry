@@ -330,9 +330,9 @@ class TestGetCommentBody(GitlabCommentTestCase):
         expected_comment = f"""## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{ev1.group.id}/?referrer=gitlab-pr-bot) Environment: *(dev)*
+- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{ev1.group.id}/?referrer=gitlab-pr-bot) Environment: `dev`
 - ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/baz/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
-- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/baz/issues/{ev3.group.id}/?referrer=gitlab-pr-bot) Environment: *(prod)*"""
+- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/baz/issues/{ev3.group.id}/?referrer=gitlab-pr-bot) Environment: `prod`"""
         assert formatted_comment == expected_comment
 
 
