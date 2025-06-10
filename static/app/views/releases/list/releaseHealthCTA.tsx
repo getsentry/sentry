@@ -51,7 +51,7 @@ export default function ReleaseHealthCTA({
   const projectCanHaveReleases =
     project.platform && releaseHealth.includes(project.platform);
 
-  if (project.hasSessions !== false || !projectCanHaveReleases) {
+  if (project.hasSessions || !projectCanHaveReleases) {
     return null;
   }
 
