@@ -1,8 +1,10 @@
 import logging
 import multiprocessing
+import multiprocessing.context
 import threading
 import time
 from collections.abc import Callable
+from functools import partial
 
 import orjson
 import sentry_sdk
@@ -15,6 +17,7 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
+from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 MAX_PROCESS_RESTARTS = 10
@@ -44,41 +47,45 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.buffer = buffer
         self.next_step = next_step
 
-        self.stopped = multiprocessing.Value("i", 0)
+        self.mp_context = mp_context = multiprocessing.get_context("spawn")
+        self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
-        self.current_drift = multiprocessing.Value("i", 0)
-        self.backpressure_since = multiprocessing.Value("i", 0)
-        self.healthy_since = multiprocessing.Value("i", 0)
+        self.current_drift = mp_context.Value("i", 0)
+        self.backpressure_since = mp_context.Value("i", 0)
+        self.healthy_since = mp_context.Value("i", 0)
         self.process_restarts = 0
         self.produce_to_pipe = produce_to_pipe
 
         self._create_process()
 
     def _create_process(self):
-        from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
-
         # Optimistically reset healthy_since to avoid a race between the
         # starting process and the next flush cycle. Keep back pressure across
         # the restart, however.
         self.healthy_since.value = int(time.time())
 
-        make_process: Callable[..., multiprocessing.Process | threading.Thread]
+        make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
-            initializer = _get_arroyo_subprocess_initializer(None)
-            make_process = multiprocessing.Process
+            target = run_with_initialized_sentry(
+                SpanFlusher.main,
+                # unpickling buffer will import sentry, so it needs to be
+                # pickled separately. at the same time, pickling
+                # synchronization primitives like multiprocessing.Value can
+                # only be done by the Process
+                self.buffer,
+            )
+            make_process = self.mp_context.Process
         else:
-            initializer = None
+            target = partial(SpanFlusher.main, self.buffer)
             make_process = threading.Thread
 
         self.process = make_process(
-            target=SpanFlusher.main,
+            target=target,
             args=(
-                initializer,
                 self.stopped,
                 self.current_drift,
                 self.backpressure_since,
                 self.healthy_since,
-                self.buffer,
                 self.produce_to_pipe,
             ),
             daemon=True,
@@ -88,17 +95,13 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
     @staticmethod
     def main(
-        initializer: Callable | None,
+        buffer: SpansBuffer,
         stopped,
         current_drift,
         backpressure_since,
         healthy_since,
-        buffer: SpansBuffer,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
-        if initializer:
-            initializer()
-
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
 
         try:
