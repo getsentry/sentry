@@ -302,30 +302,30 @@ def get_attribute_values_with_substring(
 ) -> dict:
     values: dict[str, list[str]] = {}
 
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
     for field_with_substring in fields_with_substrings:
         field = field_with_substring["field"]
         substring = field_with_substring["substring"]
-
-        period = parse_stats_period(stats_period)
-        if period is None:
-            period = datetime.timedelta(days=7)
-
-        end = datetime.datetime.now()
-        start = end - period
-
-        start_time_proto = ProtobufTimestamp()
-        start_time_proto.FromDatetime(start)
-        end_time_proto = ProtobufTimestamp()
-        end_time_proto.FromDatetime(end)
-
-        resolver = SearchResolver(
-            params=SnubaParams(
-                start=start,
-                end=end,
-            ),
-            config=SearchResolverConfig(),
-            definitions=SPAN_DEFINITIONS,
-        )
 
         resolved_field, _ = resolver.resolve_attribute(field)
         if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
