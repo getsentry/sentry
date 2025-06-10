@@ -10,8 +10,13 @@ import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-export interface ActorAvatarProps extends BaseAvatarProps {
-  actor: Actor;
+// Allows us to pass in an actor if we do not have any info aside from the ID
+interface SimpleActor extends Omit<Actor, 'name'> {
+  name?: string;
+}
+
+interface ActorAvatarProps extends BaseAvatarProps {
+  actor: SimpleActor;
   ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
@@ -69,7 +74,7 @@ function AsyncTeamAvatar({ref, teamId, ...props}: AsyncTeamAvatarProps) {
  * Wrapper to assist loading the user from api or store
  */
 interface AsyncMemberAvatarProps extends Omit<UserAvatarProps, 'user'> {
-  userActor: Actor;
+  userActor: SimpleActor;
   ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
