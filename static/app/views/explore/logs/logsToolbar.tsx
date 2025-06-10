@@ -13,6 +13,7 @@ import {
   useSetLogsPageParams,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
 const TOOLBAR_AGGREGATES = [
   {
@@ -55,7 +56,7 @@ const TOOLBAR_AGGREGATES = [
     label: t('min'),
     value: AggregationKey.MIN,
   },
-];
+] satisfies Array<{label: string; value: OurLogsAggregate}>;
 
 interface LogsToolbarProps {
   numberTags?: TagCollection;
