@@ -11,8 +11,9 @@ class FirstSourcemapsSentEvent(analytics.Event):
     project_platform: str | None = None
 
 
+@analytics.eventclass("first_sourcemaps_for_project.sent")
 class FirstSourcemapsSentEventForProject(FirstSourcemapsSentEvent):
-    type = "first_sourcemaps_for_project.sent"
+    pass
 
 
 analytics.register(FirstSourcemapsSentEvent)

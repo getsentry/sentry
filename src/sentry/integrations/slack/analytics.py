@@ -55,8 +55,9 @@ class IntegrationSlackApproveMemberInvitation(analytics.Event):
     invited_member_id: str
 
 
+@analytics.eventclass("integrations.slack.reject_member_invitation")
 class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvitation):
-    type = "integrations.slack.reject_member_invitation"
+    pass
 
 
 analytics.register(SlackIntegrationAssign)

@@ -14,13 +14,15 @@ class FirstEventSentEvent(analytics.Event):
 
 
 # first error for a project
+@analytics.eventclass("first_event_for_project.sent")
 class FirstEventSentEventForProject(FirstEventSentEvent):
-    type = "first_event_for_project.sent"
+    pass
 
 
 # first error with minified stack trace for a project
+@analytics.eventclass("first_event_with_minified_stack_trace_for_project.sent")
 class FirstEventSentEventWithMinifiedStackTraceForProject(FirstEventSentEvent):
-    type = "first_event_with_minified_stack_trace_for_project.sent"
+    pass
 
 
 analytics.register(FirstEventSentEvent)
