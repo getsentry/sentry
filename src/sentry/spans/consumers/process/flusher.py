@@ -45,11 +45,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.buffer = buffer
         self.next_step = next_step
 
-        self.stopped = multiprocessing.Value("i", 0)
+        self.mp_context = mp_context = multiprocessing.get_context("spawn")
+        self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
-        self.current_drift = multiprocessing.Value("i", 0)
-        self.backpressure_since = multiprocessing.Value("i", 0)
-        self.healthy_since = multiprocessing.Value("i", 0)
+        self.current_drift = mp_context.Value("i", 0)
+        self.backpressure_since = mp_context.Value("i", 0)
+        self.healthy_since = mp_context.Value("i", 0)
         self.process_restarts = 0
         self.produce_to_pipe = produce_to_pipe
 
@@ -66,7 +67,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
             initializer = _get_arroyo_subprocess_initializer(None)
-            make_process = multiprocessing.get_context("spawn").Process
+            make_process = self.mp_context.Process
         else:
             initializer = None
             make_process = threading.Thread
