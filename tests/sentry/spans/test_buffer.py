@@ -34,7 +34,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
-    return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+    return f"span-buf:s:{{0}}:{project_id}:{trace_id}:{span_id}".encode("ascii")
 
 
 def _payload(span_id: bytes) -> bytes:
@@ -133,6 +133,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
@@ -140,6 +141,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -147,6 +149,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -154,6 +157,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -198,6 +202,7 @@ def test_basic(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -206,6 +211,7 @@ def test_basic(buffer: SpansBuffer, spans):
                 ),
                 _SplitBatch(),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -213,6 +219,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
@@ -221,6 +228,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -264,6 +272,7 @@ def test_deep(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
@@ -271,6 +280,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -278,6 +288,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -285,6 +296,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -292,6 +304,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
@@ -337,6 +350,7 @@ def test_deep2(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -344,6 +358,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -351,6 +366,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
@@ -358,6 +374,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -409,6 +426,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
     shallow_permutations(
         [
             Span(
+                partition=0,
                 payload=_payload(b"c" * 16),
                 trace_id="a" * 32,
                 span_id="c" * 16,
@@ -417,6 +435,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 is_segment_span=True,
             ),
             Span(
+                partition=0,
                 payload=_payload(b"d" * 16),
                 trace_id="a" * 32,
                 span_id="d" * 16,
@@ -424,6 +443,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 project_id=1,
             ),
             Span(
+                partition=0,
                 payload=_payload(b"e" * 16),
                 trace_id="a" * 32,
                 span_id="e" * 16,
@@ -431,6 +451,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 project_id=1,
             ),
             Span(
+                partition=0,
                 payload=_payload(b"b" * 16),
                 trace_id="a" * 32,
                 span_id="b" * 16,
@@ -485,6 +506,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
 def test_flush_rebalance(buffer: SpansBuffer):
     spans = [
         Span(
+            partition=0,
             payload=_payload(b"a" * 16),
             trace_id="a" * 32,
             span_id="a" * 16,
