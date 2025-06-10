@@ -38,8 +38,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int | None,
         output_block_size: int | None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
-        max_memory_percentage: float = -1,  # DEPRECATED
-        max_flush_segments: int = -1,  # DEPRECATED
     ):
         super().__init__()
 
