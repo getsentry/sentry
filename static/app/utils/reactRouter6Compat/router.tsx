@@ -90,9 +90,9 @@ function Redirect({to, ...rest}: RedirectProps) {
       {
         name: 'Redirect route used',
         op: 'navigation.redirect',
+        attributes: {routePath},
       },
       () => {
-        Sentry.setTag('routePath', routePath);
         // End span automatically
       }
     );
