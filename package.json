@@ -289,7 +289,7 @@
       "current node"
     ]
   },
-  "packageManager": "pnpm@10.10.0",
+  "packageManager": "pnpm@10.12.1",
   "volta": {
     "extends": ".volta.json"
   },
