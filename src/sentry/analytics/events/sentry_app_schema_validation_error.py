@@ -1,9 +1,11 @@
+from pydantic import Field
+
 from sentry import analytics
 
 
 @analytics.eventclass("sentry_app.schema_validation_error")
 class SentryAppSchemaValidationError(analytics.Event):
-    schema: str
+    app_schema: str = Field(alias="schema")
     user_id: str
     sentry_app_id: str | None = None
     sentry_app_name: str

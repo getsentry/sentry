@@ -3,12 +3,14 @@ from __future__ import annotations
 import typing
 from base64 import b64encode
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict
 from datetime import datetime as dt
 from typing import Any, ClassVar, overload
 from uuid import UUID, uuid1
 
 from django.utils import timezone
+from pydantic import Field
+from pydantic.dataclasses import dataclass
 
 
 # for using it with parenthesis, first parameter is optional
@@ -52,7 +54,7 @@ def eventclass(
         # set the Event subclass `type` attribute, if it is set to anything
         if isinstance(event_name_or_class, str):
             cls.type = event_name_or_class
-        return dataclass(slots=True, kw_only=True)
+        return dataclass(kw_only=True)(cls)
 
     # for using without parenthesis, wrap the passed class
     if isinstance(event_name_or_class, type) and issubclass(event_name_or_class, Event):
@@ -63,7 +65,7 @@ def eventclass(
 
 
 # unfortunately we cannot directly use `eventclass` here, as it is making a typecheck to Event
-@dataclass(slots=True, kw_only=True)
+@dataclass(kw_only=True)
 class Event:
     """
     Base class for custom analytics Events. Subclasses *must* use the `eventclass` decorator.
@@ -71,8 +73,8 @@ class Event:
 
     type: ClassVar[str]
 
-    uuid: UUID = field(default_factory=uuid1)
-    datetime: dt = field(default_factory=timezone.now)
+    uuid: UUID = Field(default_factory=lambda: uuid1())
+    datetime: dt = Field(default_factory=timezone.now)
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event(self)
