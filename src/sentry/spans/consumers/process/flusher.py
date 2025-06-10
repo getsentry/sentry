@@ -16,6 +16,7 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
+from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 MAX_PROCESS_RESTARTS = 10
@@ -57,8 +58,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self._create_process()
 
     def _create_process(self):
-        from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
-
         # Optimistically reset healthy_since to avoid a race between the
         # starting process and the next flush cycle. Keep back pressure across
         # the restart, however.
@@ -66,21 +65,24 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
-            initializer = _get_arroyo_subprocess_initializer(None)
             make_process = self.mp_context.Process
         else:
-            initializer = None
             make_process = threading.Thread
 
         self.process = make_process(
-            target=SpanFlusher.main,
+            target=run_with_initialized_sentry(
+                "sentry.spans.consumers.process.flusher.main",
+                # unpickling buffer will import sentry, so it needs to be
+                # pickled separately. at the same time, pickling
+                # synchronization primitives like multiprocessing.Value can
+                # only be done by the Process
+                self.buffer,
+            ),
             args=(
-                initializer,
                 self.stopped,
                 self.current_drift,
                 self.backpressure_since,
                 self.healthy_since,
-                self.buffer,
                 self.produce_to_pipe,
             ),
             daemon=True,
@@ -90,17 +92,13 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
     @staticmethod
     def main(
-        initializer: Callable | None,
+        buffer: SpansBuffer,
         stopped,
         current_drift,
         backpressure_since,
         healthy_since,
-        buffer: SpansBuffer,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
-        if initializer:
-            initializer()
-
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
 
         try:
@@ -261,3 +259,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         if isinstance(self.process, multiprocessing.Process):
             self.process.terminate()
+
+
+main = SpanFlusher.main

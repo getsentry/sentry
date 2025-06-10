@@ -3,7 +3,7 @@ from __future__ import annotations
 import pickle
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
@@ -17,7 +17,9 @@ from arroyo.types import Message, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 from django.conf import settings
 
-from sentry.metrics.base import MetricsBackend
+if TYPE_CHECKING:
+    from sentry.metrics.base import MetricsBackend
+
 
 Tags = Mapping[str, str]
 
@@ -191,3 +193,22 @@ def run_task_with_multiprocessing(
         assert pool.pool is not None
 
         return ArroyoRunTaskWithMultiprocessing(pool=pool.pool, function=function, **kwargs)
+
+
+def _import_and_run(initializer: Callable[[], None], import_path: str, args_pickle: bytes, *args):
+    initializer()
+
+    # explicitly use pickle so that we can be sure arguments get unpickled
+    # after sentry gets initialized
+    pickle_args = pickle.loads(args_pickle)
+
+    from sentry.utils.imports import import_string
+
+    import_string(import_path)(*pickle_args, *args)
+
+
+def run_with_initialized_sentry(import_path: str, *args):
+    args_pickle = pickle.dumps(args)
+    return partial(
+        _import_and_run, _get_arroyo_subprocess_initializer(None), import_path, args_pickle
+    )
