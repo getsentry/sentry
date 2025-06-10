@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
+import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
@@ -25,8 +26,9 @@ export default function TestsPage() {
     <LayoutGap>
       <p>Test Analytics</p>
       <PageFilterBar condensed>
-        <DatePicker />
+        <IntegratedOrgSelector />
         <RepoPicker />
+        <DatePicker />
       </PageFilterBar>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />

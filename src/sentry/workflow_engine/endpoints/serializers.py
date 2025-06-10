@@ -10,6 +10,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
+from sentry.rules.history.base import TimeSeriesValue
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -50,6 +51,7 @@ class SentryAppContext(TypedDict):
     id: str
     name: str
     installationId: str
+    installationUuid: str
     status: int
     settings: NotRequired[dict[str, Any]]
     title: NotRequired[str]
@@ -110,6 +112,7 @@ class ActionHandlerSerializer(Serializer):
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
+                "installationUuid": str(installation.uuid),
                 "status": installation.sentry_app.status,
             }
             if component:
@@ -433,6 +436,21 @@ class WorkflowGroupHistorySerializer(Serializer):
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
             "eventId": obj.event_id,
+        }
+
+
+class TimeSeriesValueResponse(TypedDict):
+    date: datetime
+    count: int
+
+
+class TimeSeriesValueSerializer(Serializer):
+    def serialize(
+        self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> TimeSeriesValueResponse:
+        return {
+            "date": obj.bucket,
+            "count": obj.count,
         }
 
 
