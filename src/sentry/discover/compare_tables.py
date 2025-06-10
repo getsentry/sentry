@@ -188,7 +188,7 @@ def compare_tables_for_dashboard_widget_queries(
 
     widget_viewer_url = (
         generate_organization_url(organization.slug)
-        + f"/dashboard/{dashboard.id}/widget/{widget.order}/"
+        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
     )
 
     if has_metrics_error and has_eap_error:
