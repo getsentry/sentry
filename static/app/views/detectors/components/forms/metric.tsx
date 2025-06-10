@@ -14,7 +14,7 @@ import Spinner from 'sentry/components/forms/spinner';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
