@@ -1,6 +1,7 @@
 from enum import Enum
 
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -97,6 +98,11 @@ class TestResultsEndpoint(CodecovEndpoint):
 
         if not first and not last:
             first = 20
+        if first and last:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "Cannot specify both `first` and `last`"},
+            )
 
         variables = {
             "owner": owner_var,
