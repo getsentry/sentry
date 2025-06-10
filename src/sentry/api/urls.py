@@ -69,6 +69,9 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 )
 from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
+from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
+    TestResultsAggregatesEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -3243,6 +3246,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^\/]+)/repository/(?P<repository>[^\/]+)/test-results/$",
         TestResultsEndpoint.as_view(),
         name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^\/]+)/repository/(?P<repository>[^\/]+)/test-results-aggregates/$",
+        TestResultsAggregatesEndpoint.as_view(),
+        name="sentry-api-0-test-results-aggregates",
     ),
 ]
 
