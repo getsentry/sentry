@@ -34,6 +34,10 @@ describe('DetectorNew', function () {
     await userEvent.click(screen.getByRole('textbox', {name: 'Select Environment'}));
     await userEvent.click(await screen.findByText('prod-2'));
 
+    // Set title
+    await userEvent.click(screen.getByText('New Monitor'));
+    await userEvent.type(await screen.findByRole('textbox', {name: ''}), 'test-title');
+
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(router.location).toEqual(
@@ -43,6 +47,7 @@ describe('DetectorNew', function () {
           detectorType: 'uptime',
           project: '2',
           environment: 'prod-2',
+          title: 'test-title',
         },
       })
     );

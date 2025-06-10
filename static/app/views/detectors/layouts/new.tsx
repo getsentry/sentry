@@ -16,7 +16,7 @@ export default function NewDetectorLayout({children}: {children: React.ReactNode
       <BreadcrumbsProvider
         crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
       >
-        <EditLayout title={title}>{children}</EditLayout>
+        <EditLayout>{children}</EditLayout>
       </BreadcrumbsProvider>
     </SentryDocumentTitle>
   );
