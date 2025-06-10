@@ -48,8 +48,7 @@ export function ScreenshotDataSection({
     {enabled: !isShare}
   );
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots =
-    attachments?.filter(({name}) => name.includes('eboot.bin-crash-video.webm')) ?? [];
+  const screenshots = attachments?.filter(({name}) => name.includes('screenshot')) ?? [];
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
