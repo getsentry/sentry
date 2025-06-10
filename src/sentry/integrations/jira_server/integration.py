@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Never, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -211,12 +211,12 @@ class InstallationForm(forms.Form):
         return data
 
 
-class InstallationConfigView(PipelineView):
+class InstallationConfigView(PipelineView[Never]):
     """
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -234,14 +234,14 @@ class InstallationConfigView(PipelineView):
         )
 
 
-class OAuthLoginView(PipelineView):
+class OAuthLoginView(PipelineView[Never]):
     """
     Start the OAuth dance by creating a request token
     and redirecting the user to approve it.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -277,14 +277,14 @@ class OAuthLoginView(PipelineView):
         return HttpResponseRedirect(authorize_url)
 
 
-class OAuthCallbackView(PipelineView):
+class OAuthCallbackView(PipelineView[Never]):
     """
     Complete the OAuth dance by exchanging our request token
     into an access token.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         config = pipeline.fetch_state("installation_data")
         if config is None:
             return pipeline.error("Missing installation_data")
@@ -1389,7 +1389,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView[Never]]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

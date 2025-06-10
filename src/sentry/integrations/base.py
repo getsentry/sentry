@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, Never, NoReturn, NotRequired, TypedDict
 
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -182,7 +182,7 @@ class IntegrationData(TypedDict):
     provider: NotRequired[str]  # maybe unused ???
 
 
-class IntegrationProvider(PipelineProvider, abc.ABC):
+class IntegrationProvider(PipelineProvider[Never], abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
 
@@ -295,7 +295,9 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView | Callable[[], PipelineView]]:
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
