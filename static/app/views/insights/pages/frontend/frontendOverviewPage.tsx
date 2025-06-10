@@ -50,6 +50,7 @@ import {
   DEFAULT_SPAN_OP_SELECTION,
   EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
+  PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
@@ -83,9 +84,9 @@ function EAPOverviewPage() {
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const spanOp: PageSpanOps =
-    (decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]) as PageSpanOps) ||
-    DEFAULT_SPAN_OP_SELECTION;
+  const spanOp: PageSpanOps = getSpanOpFromQuery(
+    decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
+  );
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
@@ -345,6 +346,13 @@ function FrontendOverviewPageWithProviders() {
     </DomainOverviewPageProviders>
   );
 }
+
+const getSpanOpFromQuery = (op?: string): PageSpanOps => {
+  if (op && op in PAGE_SPAN_OPS) {
+    return op as PageSpanOps;
+  }
+  return DEFAULT_SPAN_OP_SELECTION;
+};
 
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;

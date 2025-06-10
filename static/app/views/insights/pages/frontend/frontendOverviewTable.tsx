@@ -148,10 +148,12 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
     });
   };
 
-  const column_order = [...COLUMN_ORDER];
+  let column_order = [...COLUMN_ORDER];
 
   if (!displayPerfScore) {
-    column_order.pop();
+    column_order = column_order.filter(
+      col => col.key !== 'performance_score(measurements.score.total)'
+    );
   }
 
   return (

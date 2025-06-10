@@ -46,6 +46,7 @@ export const DEFAULT_SORT: ValidSort = {
   kind: 'desc',
 };
 
-export type PageSpanOps = 'all' | 'pageload' | 'navigation';
+export const PAGE_SPAN_OPS = ['all', 'pageload', 'navigation'] as const;
+export type PageSpanOps = (typeof PAGE_SPAN_OPS)[number];
 export const DEFAULT_SPAN_OP_SELECTION: PageSpanOps = 'all';
 export const SPAN_OP_QUERY_PARAM = 'span.op';
