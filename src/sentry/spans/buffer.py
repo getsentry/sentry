@@ -92,15 +92,25 @@ logger = logging.getLogger(__name__)
 
 
 def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
-    return parse_segment_key(segment_key)[3]
+    return parse_segment_key(segment_key)[-1]
 
 
-def parse_segment_key(segment_key: SegmentKey) -> tuple[int, bytes, bytes, bytes]:
+def parse_segment_key(segment_key: SegmentKey) -> tuple[int | None, bytes, bytes, bytes]:
     segment_key_parts = segment_key.split(b":")
-    partition = int(segment_key_parts[2][1:-1])
-    project_id = segment_key_parts[3]
-    trace_id = segment_key_parts[4]
-    span_id = segment_key_parts[5]
+    # Old format without partition
+    if len(segment_key_parts) == 5:
+        partition = None
+        project_id = segment_key_parts[2][1:]
+        trace_id = segment_key_parts[3][:-1]
+        span_id = segment_key_parts[4]
+    # New format with partition
+    elif len(segment_key_parts) == 6:
+        partition = int(segment_key_parts[2][1:-1])
+        project_id = segment_key_parts[3]
+        trace_id = segment_key_parts[4]
+        span_id = segment_key_parts[5]
+    else:
+        raise ValueError("unsupported segment key format: %s" % segment_key)
 
     return partition, project_id, trace_id, span_id
 
@@ -470,14 +480,17 @@ class SpansBuffer:
                     hrs_key = b"span-buf:hrs:" + segment_key
                     p.delete(hrs_key)
                     p.unlink(segment_key)
+                    p.zrem(flushed_segment.queue_key, segment_key)
 
                     partition, project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%d}:%s:%s" % (
-                        partition,
-                        project_id,
-                        trace_id,
-                    )
-                    p.zrem(flushed_segment.queue_key, segment_key)
+                    if partition is None:
+                        redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    else:
+                        redirect_map_key = b"span-buf:sr:{%d}:%s:%s" % (
+                            partition,
+                            project_id,
+                            trace_id,
+                        )
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         p.hdel(
