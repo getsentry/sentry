@@ -228,16 +228,16 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow, workflow}
 
-    @patch("sentry.workflow_engine.processors.detector.metrics")
+    @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
-    def test_no_detector(self, mock_logger, mock_metrics):
+    def test_no_detector(self, mock_logger, mock_incr):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         triggered_workflows = process_workflows(self.event_data)
 
         assert not triggered_workflows
 
-        mock_metrics.incr.assert_called_once_with("workflow_engine.detectors.error")
+        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
             extra={
@@ -247,15 +247,17 @@ class TestProcessWorkflows(BaseWorkflowTest):
             },
         )
 
-    @patch("sentry.workflow_engine.processors.workflow.metrics")
+    @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_no_environment(self, mock_logger, mock_metrics):
+    def test_no_environment(self, mock_logger, mock_incr):
         Environment.objects.all().delete()
         triggered_workflows = process_workflows(self.event_data)
 
         assert not triggered_workflows
 
-        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_incr.assert_called_once_with(
+            "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
+        )
         mock_logger.exception.assert_called_once_with(
             "Missing environment for event",
             extra={"event_id": self.event.event_id},
@@ -561,6 +563,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         process_workflows(self.event_data)
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.fired_actions",
+            1,
             tags={
                 "detector_type": self.detector.type,
             },
