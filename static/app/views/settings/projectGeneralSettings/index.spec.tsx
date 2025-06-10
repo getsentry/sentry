@@ -40,6 +40,13 @@ describe('projectGeneralSettings', function () {
   let putMock: jest.Mock;
   const mockOnChangeSlug = jest.fn();
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/',
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -76,12 +83,7 @@ describe('projectGeneralSettings', function () {
 
       {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/${project.slug}/`,
-          },
-          route: '/:projectId/',
-        },
+        initialRouterConfig,
       }
     );
 
@@ -110,12 +112,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
-        },
-        route: '/:projectId/',
-      },
+      initialRouterConfig,
     });
 
     expect(
@@ -161,12 +158,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
-        },
-        route: '/:projectId/',
-      },
+      initialRouterConfig,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
@@ -201,12 +193,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
-        },
-        route: '/:projectId/',
-      },
+      initialRouterConfig,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
@@ -222,9 +209,7 @@ describe('projectGeneralSettings', function () {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0], {
-      deprecatedRouterMocks: true,
-    });
+    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
@@ -237,12 +222,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
-        },
-        route: '/:projectId/',
-      },
+      initialRouterConfig,
     });
 
     // Wait for the component to load
@@ -263,12 +243,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: readOnlyOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: `/${project.slug}/`,
-        },
-        route: '/:projectId/',
-      },
+      initialRouterConfig,
     });
 
     // no textboxes are enabled
@@ -295,12 +270,7 @@ describe('projectGeneralSettings', function () {
       </ProjectContextProvider>,
       {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/${project.slug}/`,
-          },
-          route: '/:projectId/',
-        },
+        initialRouterConfig,
       }
     );
 
@@ -330,12 +300,7 @@ describe('projectGeneralSettings', function () {
       </ProjectContextProvider>,
       {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/${project.slug}/`,
-          },
-          route: '/:projectId/',
-        },
+        initialRouterConfig,
       }
     );
 
@@ -378,12 +343,7 @@ describe('projectGeneralSettings', function () {
         </ProjectContextProvider>,
         {
           organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/${project.slug}/`,
-            },
-            route: '/:projectId/',
-          },
+          initialRouterConfig,
         }
       );
     }

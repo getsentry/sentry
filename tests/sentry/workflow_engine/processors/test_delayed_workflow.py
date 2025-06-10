@@ -1,7 +1,9 @@
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+import pytest
 
 from sentry import buffer
 from sentry.eventstore.models import Event
@@ -18,6 +20,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+    BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
     QueryResult,
@@ -522,6 +525,26 @@ class TestGetSnubaResults(BaseWorkflowTest):
             offset_percent_query: {group_id: 1},
         }
 
+    def test_get_condition_group_results_exception_propagation(self) -> None:
+        """
+        When we get an exception from the handler, we should propagate it.
+        We don't want to proceed with partial data.
+        """
+        mock_handler = Mock(spec=BaseEventFrequencyQueryHandler)
+        mock_handler.get_rate_bulk.side_effect = ValueError("Escaping exception")
+        mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
+
+        unique_query = UniqueConditionQuery(
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
+            interval="1h",
+            environment_id=None,
+        )
+
+        condition_groups = {unique_query: {1}}  # One group ID to query
+
+        with pytest.raises(ValueError, match="Escaping exception"):
+            get_condition_group_results(condition_groups)
+
 
 class TestGetGroupsToFire(TestDelayedWorkflowBase):
     def setUp(self):
@@ -768,7 +791,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_trigger.call_count == 2
@@ -786,7 +812,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
 
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_enqueue.call_count == 2
@@ -821,7 +850,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2.id: {self.workflow2_dcgs[1]},
         }
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert WorkflowFireHistory.objects.filter(
