@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -50,7 +51,13 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
               />
             ) : null}
           </ContextContainer>
-          {!isFetching && replay?.hasProcessingErrors() ? (
+          {isLoading ? (
+            <FluidHeight>
+              <Panel>
+                <NegativeSpaceContainer />
+              </Panel>
+            </FluidHeight>
+          ) : !isFetching && replay?.hasProcessingErrors() ? (
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <FluidHeight>
