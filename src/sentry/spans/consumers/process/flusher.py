@@ -4,6 +4,7 @@ import multiprocessing.context
 import threading
 import time
 from collections.abc import Callable
+from functools import partial
 
 import orjson
 import sentry_sdk
@@ -65,19 +66,21 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
-            make_process = self.mp_context.Process
-        else:
-            make_process = threading.Thread
-
-        self.process = make_process(
-            target=run_with_initialized_sentry(
+            target = run_with_initialized_sentry(
                 "sentry.spans.consumers.process.flusher.main",
                 # unpickling buffer will import sentry, so it needs to be
                 # pickled separately. at the same time, pickling
                 # synchronization primitives like multiprocessing.Value can
                 # only be done by the Process
                 self.buffer,
-            ),
+            )
+            make_process = self.mp_context.Process
+        else:
+            target = partial(main, self.buffer)
+            make_process = threading.Thread
+
+        self.process = make_process(
+            target=target,
             args=(
                 self.stopped,
                 self.current_drift,
