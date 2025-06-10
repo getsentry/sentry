@@ -23,7 +23,7 @@ preprod: 0001_emerge_upload_models
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0925_backfill_open_periods
+sentry: 0926_dashboard_favorite_defer_position_constraint
 
 social_auth: 0001_squashed_0002_default_auto_field
 
