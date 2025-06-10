@@ -83,7 +83,7 @@ class TestResultsEndpointTest(APITestCase):
         url = self.reverse_url()
         response = self.client.get(url)
 
-        mock_codecov_client_class.assert_called_once_with(git_provider_org="codecov")
+        mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
 
         # Verify the correct variables are passed to the GraphQL query
         expected_variables = {
