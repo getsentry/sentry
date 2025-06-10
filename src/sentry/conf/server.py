@@ -1514,6 +1514,11 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
     },
 }
 
+TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {}
+
+if SILO_MODE == "CONTROL":
+    TASKWORKER_SCHEDULES = TASKWORKER_CONTROL_SCHEDULES
+
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
     "ingest.transactions",
