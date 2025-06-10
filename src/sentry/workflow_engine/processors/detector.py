@@ -45,6 +45,8 @@ def create_issue_platform_payload(result: DetectorEvaluationResult):
         event_data=result.event_data,
     )
 
+    metrics.incr("workflow_engine.issue_platform.payload.sent")
+
 
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
