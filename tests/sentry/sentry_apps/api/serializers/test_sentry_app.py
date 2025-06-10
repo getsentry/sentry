@@ -101,6 +101,6 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         assert result["clientSecret"] is not None
 
         now = datetime.now()
-        with freeze_time(now + timedelta(hours=25)):
+        with freeze_time(now + timedelta(minutes=10)):
             result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
             assert result["clientSecret"] is None

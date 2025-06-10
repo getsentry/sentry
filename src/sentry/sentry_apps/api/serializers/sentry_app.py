@@ -145,7 +145,7 @@ class SentryAppSerializer(Serializer):
                 is_active_superuser(env.request) or is_active_staff(env.request)
             )
             if elevated_user or owner.id in user_org_ids:
-                is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
+                is_secret_visible = obj.date_added > timezone.now() - timedelta(minutes=5)
 
                 owner_context = organization_service.get_organization_by_id(
                     id=owner.id, user_id=user.id
