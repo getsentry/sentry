@@ -122,7 +122,7 @@ function Create(props: Props) {
   let wizardAlertType: undefined | WizardAlertType;
   if (createFromWizard && alertType === AlertRuleType.METRIC) {
     wizardAlertType = wizardTemplate
-      ? getAlertTypeFromAggregateDataset(wizardTemplate)
+      ? getAlertTypeFromAggregateDataset({...wizardTemplate, organization})
       : 'issues';
   }
 

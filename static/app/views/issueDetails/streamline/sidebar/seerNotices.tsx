@@ -18,7 +18,6 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -38,11 +37,6 @@ interface SeerNoticesProps {
   project: Project;
   hasGithubIntegration?: boolean;
 }
-
-const SeerBetaClosingAlert = HookOrDefault({
-  hookName: 'component:seer-beta-closing-alert',
-  defaultComponent: () => <div data-test-id="seer-beta-closing-alert" />,
-});
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
@@ -145,7 +139,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   return (
     <NoticesContainer>
-      <SeerBetaClosingAlert />
       {/* Collapsed summary */}
       {anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>

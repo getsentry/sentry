@@ -168,5 +168,14 @@ export function isEapAlertType(alertType?: AlertType) {
   if (!defined(alertType)) {
     return false;
   }
-  return alertType === 'eap_metrics';
+  return [
+    'eap_metrics',
+    'trace_item_throughput',
+    'trace_item_duration',
+    'trace_item_apdex',
+    'trace_item_failure_rate',
+    'trace_item_lcp',
+    'trace_item_fid',
+    'trace_item_cls',
+  ].includes(alertType);
 }

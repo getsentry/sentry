@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {
   fireEvent,
@@ -15,6 +16,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import OnDemandBudgets from 'getsentry/views/onDemandBudgets';
+import OnDemandBudgetEdit from 'getsentry/views/onDemandBudgets/onDemandBudgetEdit';
 
 describe('OnDemandBudgets', () => {
   const organization = OrganizationFixture();
@@ -26,6 +28,15 @@ describe('OnDemandBudgets', () => {
   const createWrapper = (
     props: Omit<React.ComponentProps<typeof OnDemandBudgets>, 'organization'>
   ) => render(getComponent(props));
+
+  const defaultProps = {
+    organization,
+    onDemandEnabled: true,
+    onDemandSupported: true,
+    currentBudgetMode: OnDemandBudgetMode.SHARED,
+    setBudgetMode: jest.fn(),
+    setOnDemandBudget: jest.fn(),
+  };
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -591,6 +602,76 @@ describe('OnDemandBudgets', () => {
     expect(
       screen.getByText(
         `This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage. This will be part of your FOO bill.`
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('always displays Seer warning alert in per-category section', () => {
+    organization.features = ['seer-billing'];
+    const subscription = SubscriptionFixture({
+      plan: 'am1_business',
+      planTier: PlanTier.AM1,
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am1_business')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        errorsBudget: 1000,
+        transactionsBudget: 2000,
+        attachmentsBudget: 3000,
+        replaysBudget: 4000,
+        budgets: {
+          errors: 1000,
+          transactions: 2000,
+          attachments: 3000,
+          monitorSeats: 4000,
+        },
+        attachmentSpendUsed: 0,
+        errorSpendUsed: 0,
+        transactionSpendUsed: 0,
+        usedSpends: {},
+      },
+    });
+
+    const activePlan = subscription.planDetails;
+
+    const onDemandBudget = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY as const,
+      errorsBudget: 1000,
+      transactionsBudget: 2000,
+      attachmentsBudget: 3000,
+      replaysBudget: 4000,
+      budgets: {
+        errors: 1000,
+        transactions: 2000,
+        attachments: 3000,
+        monitorSeats: 4000,
+      },
+    };
+
+    render(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    expect(screen.getByTestId('shared-budget-radio')).toBeInTheDocument();
+    expect(screen.getByTestId('per-category-budget-radio')).toBeInTheDocument();
+
+    expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
+    expect(screen.getByTestId('shared-budget-radio')).not.toBeChecked();
+
+    expect(
+      screen.getByText(
+        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
       )
     ).toBeInTheDocument();
   });

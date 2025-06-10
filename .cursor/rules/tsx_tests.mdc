@@ -1,12 +1,13 @@
 ---
 description: Rules and guidelines for running *.spec.tsx tests and writing React tests
 globs: *.spec.tsx
+alwaysApply: false
 ---
 
 # Running *.spec.tsx tests
 
-Please run tests with command: CI=true yarn test
-For example: CI=true yarn test path/to/file.spec.tsx
+Please run tests with command: CI=true pnpm test
+For example: CI=true pnpm test path/to/file.spec.tsx
 
 NOTE: `CI=true` runs jest in non-interactive mode.
 
