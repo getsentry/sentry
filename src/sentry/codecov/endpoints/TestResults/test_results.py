@@ -60,7 +60,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
             PreventParams.TEST_RESULTS_SORT_BY,
-            PreventParams.TEST_RESULTS_ORDER_BY,
+            PreventParams.TEST_RESULTS_FILTER_BY,
             PreventParams.INTERVAL,
             PreventParams.BRANCH,
             PreventParams.FIRST,
@@ -77,10 +77,10 @@ class TestResultsEndpoint(CodecovEndpoint):
     def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
-        order_by = request.query_params.get("orderBy", OrderingParameter.COMMITS_WHERE_FAIL.value)
+        sort_by = request.query_params.get("sortBy", OrderingParameter.COMMITS_WHERE_FAIL.value)
 
-        if order_by and order_by.startswith("-"):
-            order_by = order_by[1:]
+        if sort_by and sort_by.startswith("-"):
+            sort_by = sort_by[1:]
             direction = OrderingDirection.DESC.value
         else:
             direction = OrderingDirection.ASC.value
@@ -104,7 +104,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             "repo": repository,
             "filters": {
                 "branch": request.query_params.get("branch", "main"),
-                "parameter": request.query_params.get("sortBy"),
+                "parameter": request.query_params.get("filterBy"),
                 "interval": (
                     request.query_params.get("interval", MeasurementInterval.INTERVAL_30_DAY.value)
                 ),
@@ -114,7 +114,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             },
             "ordering": {
                 "direction": direction,
-                "parameter": order_by,
+                "parameter": sort_by,
             },
             "first": first,
             "last": last,

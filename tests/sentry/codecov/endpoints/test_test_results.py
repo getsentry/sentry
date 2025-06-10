@@ -149,8 +149,8 @@ class TestResultsEndpointTest(APITestCase):
         url = self.reverse_url()
         query_params = {
             "branch": "develop",
-            "sortBy": "FLAKY_TESTS",
-            "orderBy": "-AVG_DURATION",
+            "filterBy": "FLAKY_TESTS",
+            "sortBy": "-AVG_DURATION",
             "interval": "INTERVAL_7_DAY",
             "first": "10",
         }

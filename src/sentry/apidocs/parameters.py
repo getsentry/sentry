@@ -1062,20 +1062,18 @@ Available fields are:
         description="""The branch to search for results by. If not specified, the default branch is returned.
         """,
     )
-    TEST_RESULTS_ORDER_BY = OpenApiParameter(
-        name="orderBy",
+    TEST_RESULTS_FILTER_BY = OpenApiParameter(
+        name="filterBy",
         location="query",
         required=False,
         type=str,
-        description="""An optional field to order by, which must be one of the fields provided in `field`. Use `-`
-        for descending order.
+        description="""An optional field to filter by, which will constrain the results to only include tests that match the filter.
 
 Available fields are:
-- `AVG_DURATION`
-- `FLAKE_RATE`
-- `FAILURE_RATE`
-- `COMMITS_WHERE_FAIL`
-- `UPDATED_AT`
+- `FLAKY_TESTS`
+- `FAILED_TESTS`
+- `SLOWEST_TESTS`
+- `SKIPPED_TESTS`
         """,
     )
     TEST_RESULTS_SORT_BY = OpenApiParameter(
@@ -1087,10 +1085,11 @@ Available fields are:
         for descending order.
 
 Available fields are:
-- `FLAKY_TESTS`
-- `FAILED_TESTS`
-- `SLOWEST_TESTS`
-- `SKIPPED_TESTS`
+- `AVG_DURATION`
+- `FLAKE_RATE`
+- `FAILURE_RATE`
+- `COMMITS_WHERE_FAIL`
+- `UPDATED_AT`
         """,
     )
     FIRST = OpenApiParameter(
