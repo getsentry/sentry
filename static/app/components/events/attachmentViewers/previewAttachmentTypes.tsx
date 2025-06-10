@@ -2,6 +2,7 @@ import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer'
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
+import {WebMViewer} from 'sentry/components/events/attachmentViewers/webmViewer';
 import type {IssueAttachment} from 'sentry/types/group';
 
 export const getInlineAttachmentRenderer = (
@@ -26,6 +27,8 @@ export const getInlineAttachmentRenderer = (
     case 'image/png':
     case 'image/gif':
       return ImageViewer;
+    case 'video/webm':
+      return WebMViewer;
     default:
       return undefined;
   }
