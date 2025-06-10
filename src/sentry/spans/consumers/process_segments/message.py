@@ -158,7 +158,7 @@ def _create_models(segment: Span, project: Project) -> None:
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
 def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
-    if not options.get("standalone-spans.detect-performance-problems.enable"):
+    if not options.get("spans.process-segments.detect-performance-problems.enable"):
         return
 
     event_data = _build_shim_event_data(segment_span, spans)

@@ -38,12 +38,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def __init__(
         self,
         buffer: SpansBuffer,
-        max_memory_percentage: float,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
+        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         self.buffer = buffer
-        self.max_memory_percentage = max_memory_percentage
         self.next_step = next_step
 
         self.stopped = multiprocessing.Value("i", 0)
@@ -169,7 +167,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step.poll()
 
     def _ensure_process_alive(self) -> None:
-        max_unhealthy_seconds = options.get("standalone-spans.buffer.flusher.max_unhealthy_seconds")
+        max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds")
         if not self.process.is_alive():
             cause = "no_process"
         elif int(time.time()) - self.healthy_since.value > max_unhealthy_seconds:
@@ -205,9 +203,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
         if self.backpressure_since.value > 0:
-            if int(time.time()) - self.backpressure_since.value > options.get(
-                "standalone-spans.buffer.flusher.backpressure_seconds"
-            ):
+            backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
+            if int(time.time()) - self.backpressure_since.value > backpressure_secs:
                 metrics.incr("spans.buffer.flusher.backpressure")
                 raise MessageRejected()
 
@@ -222,11 +219,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # we cannot allow the flusher to progress either, as it would write
         # partial/fragmented segments to buffered-segments topic. We have to
         # wait until the situation is improved manually.
-        if self.max_memory_percentage < 1.0:
+        max_memory_percentage = options.get("spans.buffer.max-memory-percentage")
+        if max_memory_percentage < 1.0:
             memory_infos = list(self.buffer.get_memory_info())
             used = sum(x.used for x in memory_infos)
             available = sum(x.available for x in memory_infos)
-            if available > 0 and used / available > self.max_memory_percentage:
+            if available > 0 and used / available > max_memory_percentage:
                 if not self.redis_was_full:
                     logger.fatal("Pausing consumer due to Redis being full")
                 metrics.incr("spans.buffer.flusher.hard_backpressure")
