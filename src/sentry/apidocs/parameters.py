@@ -443,6 +443,14 @@ Available fields are:
 Prefix with `-` to sort in descending order.
         """,
     )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+        many=True,
+    )
 
 
 class WorkflowParams:
@@ -479,6 +487,14 @@ Available fields are:
 
 Prefix with `-` to sort in descending order.
     """,
+    )
+    ID = OpenApiParameter(
+        name="id",
+        location="query",
+        required=False,
+        type=int,
+        description="The ID of the workflow you'd like to query.",
+        many=True,
     )
 
 
@@ -1007,4 +1023,21 @@ Available fields are:
 - `recentlyViewed`
 - `myqueries`
         """,
+    )
+
+
+class PreventParams:
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="path",
+        required=True,
+        type=str,
+        description="The owner of the repository.",
+    )
+    REPOSITORY = OpenApiParameter(
+        name="repository",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the repository.",
     )

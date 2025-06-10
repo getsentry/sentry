@@ -9,6 +9,24 @@ trace root
 "
 `;
 
+exports[`server side rendering eap traces reparents pageload transaction as parent of server handler 1`] = `
+"
+eap trace root
+  pageload - span.description (eap-transaction)
+    http.server - span.description (eap-transaction)
+"
+`;
+
+exports[`server side rendering eap traces reparents server handler under browser request span 1`] = `
+"
+eap trace root
+  pageload - span.description (eap-transaction)
+    tls.connect - span.description
+    browser.request - browser
+      http.server - span.description (eap-transaction)
+"
+`;
+
 exports[`server side rendering reparents pageload transaction as parent of server handler 1`] = `
 "
 trace root

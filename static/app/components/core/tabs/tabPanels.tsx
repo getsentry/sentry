@@ -1,4 +1,5 @@
 import {useContext, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabPanelProps} from '@react-aria/tabs';
 import {useTabPanel} from '@react-aria/tabs';
@@ -6,6 +7,8 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListState} from '@react-stately/tabs';
 import type {CollectionBase, Node, Orientation} from '@react-types/shared';
+
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {TabPanelItem} from './item';
 import {tabsShouldForwardProp} from './utils';
@@ -89,7 +92,16 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 }>`
   border-radius: ${p => p.theme.borderRadius};
 
-  ${p => (p.orientation === 'horizontal' ? `height: 100%;` : `width: 100%;`)};
+  ${p =>
+    p.orientation === 'horizontal'
+      ? css`
+          height: 100%;
+          padding-top: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
+        `
+      : css`
+          width: 100%;
+          padding-left: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
+        `};
 
   &:focus-visible {
     outline: none;

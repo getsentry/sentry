@@ -371,7 +371,7 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     Uses a small state machine internally.
     """
 
-    __slots__ = ("stored_problems", "state")
+    __slots__ = ("state",)
 
     type = DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES
@@ -379,7 +379,6 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
-        self.stored_problems = {}
         self.state: MNPlusOneState = SearchingForMNPlusOne(
             settings=self.settings,
             event=event,

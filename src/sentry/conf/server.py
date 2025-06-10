@@ -1307,8 +1307,8 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
     },
-    "demo_mode_sync_artifact_bundles": {
-        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+    "demo_mode_sync_debug_artifacts": {
+        "task": "sentry.demo_mode.tasks.sync_debug_artifacts",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
     },
@@ -3167,6 +3167,10 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-ingest-errors-dlq": "default",
     "taskworker-ingest-transactions": "default",
     "taskworker-ingest-transactions-dlq": "default",
+    "taskworker-ingest-attachments": "default",
+    "taskworker-ingest-attachments-dlq": "default",
+    "taskworker-ingest-profiling": "default",
+    "taskworker-ingest-profiling-dlq": "default",
     "taskworker-internal": "default",
     "taskworker-internal-dlq": "default",
     "taskworker-limited": "default",
@@ -3690,6 +3694,7 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Base URL for Codecov API. Override if developing against a local instance
 # of Codecov.
+# Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
