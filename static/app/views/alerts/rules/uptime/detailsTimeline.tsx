@@ -25,7 +25,7 @@ interface Props {
 export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
+  const {value: timelineWidth} = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
