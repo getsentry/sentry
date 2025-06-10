@@ -33,6 +33,7 @@ interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   isPending: boolean;
   plottables: Plottable[];
   series: DiscoverSeries[];
+  hideReleaseLines?: boolean;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
 }
@@ -41,6 +42,7 @@ export default function ChartWithIssues(props: Props) {
   const {
     description,
     error,
+    hideReleaseLines,
     interactiveTitle,
     isPending,
     legendSelection,
@@ -138,7 +140,7 @@ export default function ChartWithIssues(props: Props) {
                       <TimeSeriesWidgetVisualization
                         {...props}
                         id={id}
-                        releases={id === 'releaseNewIssuesChartWidget' ? [] : releases ?? []}
+                        releases={hideReleaseLines ? [] : releases ?? []}
                         plottables={plottables}
                         legendSelection={legendSelection}
                       />
