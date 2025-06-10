@@ -14,17 +14,19 @@ ARGS:
 
 ]]--
 
-local project_and_trace = KEYS[1]
+local partition = KEYS[1]
 
-local num_spans = ARGV[1]
-local parent_span_id = ARGV[2]
-local has_root_span = ARGV[3] == "true"
-local set_timeout = tonumber(ARGV[4])
+local project_and_trace = ARGV[1]
+local num_spans = ARGV[2]
+local parent_span_id = ARGV[3]
+local has_root_span = ARGV[4] == "true"
+local set_timeout = tonumber(ARGV[5])
+local LAST_ARG = 5  -- last index of ARGV that is not a span_id
 
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
-local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
+local main_redirect_key = string.format("span-buf:sr:{%s}:%s", partition, project_and_trace)
 
 for i = 0, 10000 do  -- theoretically this limit means that segment trees of depth 10k may not be joined together correctly.
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
@@ -36,10 +38,10 @@ for i = 0, 10000 do  -- theoretically this limit means that segment trees of dep
     set_span_id = new_set_span
 end
 
-local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_id)
-local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
+local set_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, set_span_id)
+local parent_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, parent_span_id)
 
-local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
+local has_root_span_key = string.format("span-buf:hrs:{%s}:%s", partition, set_key)
 has_root_span = has_root_span or redis.call("get", has_root_span_key) == "1"
 if has_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
@@ -52,7 +54,7 @@ if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
     table.insert(sunionstore_args, parent_key)
 end
 
-for i = 5, num_spans + 4 do
+for i = LAST_ARG + 1, num_spans + LAST_ARG do
     local span_id = ARGV[i]
     local is_root_span = span_id == parent_span_id
 
@@ -60,7 +62,7 @@ for i = 5, num_spans + 4 do
     table.insert(hset_args, set_span_id)
 
     if not is_root_span then
-        local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
+        local span_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, span_id)
         table.insert(sunionstore_args, span_key)
     end
 end
