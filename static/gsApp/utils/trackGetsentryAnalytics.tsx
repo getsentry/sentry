@@ -91,6 +91,7 @@ type GetsentryEventParameters = {
     SelectableProduct,
     {
       enabled: boolean;
+      previously_enabled: boolean;
     }
   > &
     HasSub;
