@@ -60,9 +60,35 @@ class ErrorBoundary extends Component<Props, State> {
     const {errorTag} = this.props;
 
     this.setState({error});
+
+    // Additional error context for better debugging
     Sentry.withScope(scope => {
       if (errorTag) {
         Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
+      }
+
+      // Add more context about the error
+      scope.setContext('errorBoundary', {
+        componentStack: errorInfo.componentStack,
+        location: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Check for common React error patterns
+      if (
+        error.message?.includes('Cannot read properties of undefined') ||
+        error.message?.includes('Cannot read property') ||
+        error.message?.includes('undefined is not an object')
+      ) {
+        scope.setTag('errorType', 'undefined-property-access');
+      }
+
+      if (
+        error.message?.includes('Cannot find variable') ||
+        error.message?.includes('ReferenceError')
+      ) {
+        scope.setTag('errorType', 'reference-error');
       }
 
       try {

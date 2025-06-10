@@ -182,8 +182,52 @@ export function initializeSdk(config: Config) {
 
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
-      lastEventId = event.event_id || hint.event_id;
 
+      // Enhanced error categorization for better debugging
+      if (event.exception?.values) {
+        const error = event.exception.values[0];
+        const errorMessage = error?.value || '';
+        const errorType = error?.type || '';
+
+        // Categorize common JavaScript errors
+        if (
+          errorMessage.includes('Cannot read propert') ||
+          errorMessage.includes('Cannot read propert') ||
+          errorMessage.includes('undefined is not an object')
+        ) {
+          event.tags = {...event.tags, errorCategory: 'undefined-property-access'};
+        }
+
+        if (
+          errorMessage.includes('Cannot find variable') ||
+          errorType === 'ReferenceError'
+        ) {
+          event.tags = {...event.tags, errorCategory: 'reference-error'};
+        }
+
+        if (errorMessage.includes('is not a function')) {
+          event.tags = {...event.tags, errorCategory: 'function-not-found'};
+        }
+
+        if (errorMessage.includes('JSON.parse') || errorMessage.includes('SyntaxError')) {
+          event.tags = {...event.tags, errorCategory: 'parsing-error'};
+        }
+
+        // Add browser and React context
+        event.tags = {
+          ...event.tags,
+          reactVersion: '19.1.0', // Current React version from package.json
+          browserEngine: navigator.userAgent.includes('Chrome')
+            ? 'chrome'
+            : navigator.userAgent.includes('Firefox')
+              ? 'firefox'
+              : navigator.userAgent.includes('Safari')
+                ? 'safari'
+                : 'other',
+        };
+      }
+
+      lastEventId = event.event_id || hint.event_id;
       return event;
     },
     _experiments: {

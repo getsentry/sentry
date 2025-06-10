@@ -1,8 +1,12 @@
+import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import {
   type FieldKey,
+  ISSUE_EVENT_FIELDS_THAT_CONFLICT_WITH_METRIC_ALERT_AGGREGATES,
   ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
 } from 'sentry/utils/fields';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -144,4 +148,75 @@ export function urlEncode(object: Record<string, any>): string {
   return Object.keys(object)
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
     .join('&');
+}
+
+/**
+ * Safe property access utility to prevent "Cannot read property" errors
+ * Usage: safeGet(obj, 'prop.nested.value', defaultValue)
+ */
+export function safeGet<T = any>(
+  obj: any,
+  path: string,
+  defaultValue: T | null = null
+): T | null {
+  try {
+    if (!obj || typeof obj !== 'object') {
+      return defaultValue;
+    }
+
+    const keys = path.split('.');
+    let result = obj;
+
+    for (const key of keys) {
+      if (result === null || result === undefined || typeof result !== 'object') {
+        return defaultValue;
+      }
+      result = result[key];
+    }
+
+    return result === undefined ? defaultValue : result;
+  } catch (error) {
+    // Log to Sentry for debugging but don't throw
+    Sentry.withScope((scope: Sentry.Scope) => {
+      scope.setExtra('path', path);
+      scope.setExtra('obj', obj);
+      scope.setTag('utilityFunction', 'safeGet');
+      Sentry.captureException(error);
+    });
+    return defaultValue;
+  }
+}
+
+/**
+ * Safe function call utility to prevent "is not a function" errors
+ */
+export function safeCall<T = any>(fn: any, ...args: any[]): T | null {
+  try {
+    if (typeof fn === 'function') {
+      return fn(...args);
+    }
+    return null;
+  } catch (error) {
+    Sentry.withScope((scope: Sentry.Scope) => {
+      scope.setExtra('functionName', fn?.name || 'anonymous');
+      scope.setExtra('args', args);
+      scope.setTag('utilityFunction', 'safeCall');
+      Sentry.captureException(error);
+    });
+    return null;
+  }
+}
+
+/**
+ * Safe array access to prevent index out of bounds issues
+ */
+export function safeArrayAccess<T>(
+  arr: T[] | null | undefined,
+  index: number,
+  defaultValue: T | null = null
+): T | null {
+  if (!Array.isArray(arr) || index < 0 || index >= arr.length) {
+    return defaultValue;
+  }
+  return arr[index] ?? defaultValue;
 }
