@@ -2006,7 +2006,7 @@ function buildRoutes() {
         {codecovPRRoutes}
       </Route>
       <Route path="tests/">
-        {/* Render tests onboarding with layout wrapper */}
+        {/* Render tests page with layout wrapper */}
         <Route component={make(() => import('sentry/views/codecov/tests/testsWrapper'))}>
           <IndexRoute
             component={make(() => import('sentry/views/codecov/tests/tests'))}
