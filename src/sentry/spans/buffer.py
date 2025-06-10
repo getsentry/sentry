@@ -110,7 +110,7 @@ def parse_segment_key(segment_key: SegmentKey) -> tuple[int | None, bytes, bytes
         trace_id = segment_key_parts[4]
         span_id = segment_key_parts[5]
     else:
-        raise ValueError("unsupported segment key format: %s" % segment_key)
+        raise ValueError("unsupported segment key format")
 
     return partition, project_id, trace_id, span_id
 
