@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -44,6 +45,9 @@ SQL_KEYWORDS = [
     "ANY",
     "SOME",
     "EXISTS",
+    "DESC",
+    "ASC",
+    "NULL",
 ]
 
 
@@ -88,7 +92,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 not isinstance(query_value, str)
                 or not isinstance(query_key, str)
                 or not query_value
-                or len(query_value) == 1
+                or len(query_value) < 3
             ):
                 continue
             if query_key == query_value:
@@ -111,7 +115,9 @@ class SQLInjectionDetector(PerformanceDetector):
         for parameter in self.request_parameters:
             value = parameter[1]
             key = parameter[0]
-            if key in description and value in description:
+            if re.search(f"\\b{re.escape(key)}\\b", description) and re.search(
+                f"\\b{re.escape(value)}\\b", description
+            ):
                 description = description.replace(value, "?")
                 vulnerable_parameters.append(key)
 
