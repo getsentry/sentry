@@ -1,0 +1,111 @@
+import uuid
+import zlib
+from collections import namedtuple
+
+from django.urls import reverse
+
+from sentry.replays.endpoints.project_replay_recording_segment_ai_analyze_index import (
+    PROMPT,
+    get_request_data,
+)
+from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
+from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.response import close_streaming_response
+from sentry.utils import json
+
+Message = namedtuple("Message", ["project_id", "replay_id"])
+
+
+# have to use TransactionTestCase because we're using threadpools
+class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
+    endpoint = "sentry-api-0-project-replay-recording-segment-ai-analyze-index"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.replay_id = uuid.uuid4().hex
+        self.url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, self.replay_id),
+        )
+
+    def save_recording_segment(
+        self, segment_id: int, data: bytes, compressed: bool = True, is_archived: bool = False
+    ) -> None:
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+            file_id=None,
+        )
+        FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
+
+    def test_index_download_basic_compressed(self):
+        for i in range(0, 3):
+            self.save_recording_segment(i, f'[{{"test":"hello {i}"}}]'.encode())
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert (
+            b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]'
+            == close_streaming_response(response)
+        )
+
+
+def test_get_request_data():
+    def x():
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "ui.click", "message": "div#id.class"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "navigation", "data": {"to": "/explore/traces"}},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "message"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "performanceSpan",
+                    "payload": {
+                        "op": "resource.fetch",
+                    },
+                },
+            },
+        ]
+
+        return json.dumps(data).encode()
+
+    request_data = get_request_data(x())
+    assert request_data == PROMPT + "hello\n" + ", world!\n"
