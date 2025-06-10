@@ -35,7 +35,7 @@ describe('DetectorNew', function () {
     await userEvent.click(await screen.findByText('prod-2'));
 
     // Set title
-    await userEvent.click(screen.getByText('New Monitor'));
+    await userEvent.click(screen.getAllByText('New Monitor')[1]!);
     await userEvent.type(await screen.findByRole('textbox', {name: ''}), 'test-title');
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
