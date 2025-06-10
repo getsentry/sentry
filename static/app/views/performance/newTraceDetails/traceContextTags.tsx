@@ -17,7 +17,6 @@ import {
   getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type Props = {
   rootEventResults: TraceRootEventQueryResults;
@@ -27,7 +26,6 @@ export function TraceContextTags({rootEventResults}: Props) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const hasTraceTabsUi = useHasTraceTabsUI();
 
   if (rootEventResults.isLoading) {
     return <LoadingIndicator />;
@@ -64,11 +62,7 @@ export function TraceContextTags({rootEventResults}: Props) {
     />
   );
 
-  if (hasTraceTabsUi) {
-    return <StyledPanel>{rendered}</StyledPanel>;
-  }
-
-  return rendered;
+  return <StyledPanel>{rendered}</StyledPanel>;
 }
 
 const StyledPanel = styled(Panel)`

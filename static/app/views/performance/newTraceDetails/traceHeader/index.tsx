@@ -20,7 +20,6 @@ import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDeta
 import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
-import ScrollToSectionLinks from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -108,11 +107,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             organization={props.organization}
           />
           <Flex>
-            <ScrollToSectionLinks
-              rootEventResults={props.rootEventResults}
-              tree={props.tree}
-              logs={props.logs}
-            />
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>

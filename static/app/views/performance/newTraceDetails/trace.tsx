@@ -33,9 +33,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
@@ -76,7 +74,6 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './traceGuards';
-import {TraceLevelOpsBreakdown} from './traceLevelOpsBreakdown';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -108,7 +105,6 @@ interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
   manager: VirtualizedViewManager;
-  metaQueryResults: TraceMetaQueryResults;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
@@ -131,7 +127,6 @@ export function Trace({
   onRowClick,
   manager,
   previouslyFocusedNodeRef,
-  metaQueryResults,
   onTraceSearch,
   rerender,
   scheduler,
@@ -146,7 +141,6 @@ export function Trace({
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
-  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -412,12 +406,6 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        {hasTraceTabsUi ? null : (
-          <TraceLevelOpsBreakdown
-            isTraceLoading={isLoading}
-            metaQueryResults={metaQueryResults}
-          />
-        )}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
