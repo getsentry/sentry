@@ -163,7 +163,7 @@ class DatabaseBackedAppService(AppService):
     def get_component_contexts(
         self, *, filter: SentryAppInstallationFilterArgs, component_type: str
     ) -> list[RpcSentryAppComponentContext]:
-        install_query = self._FQ.base_query().using_replica()
+        install_query = self._FQ.base_query()
         install_query = self._FQ.apply_filters(install_query, filter)
         install_query = install_query.select_related("sentry_app", "sentry_app__application")
         install_map: dict[int, list[SentryAppInstallation]] = defaultdict(list)
@@ -192,7 +192,7 @@ class DatabaseBackedAppService(AppService):
         component_type: str,
         include_contexts_without_component: bool = False,
     ) -> list[RpcSentryAppComponentContext]:
-        install_query = self._FQ.base_query().using_replica()
+        install_query = self._FQ.base_query()
         install_query = self._FQ.apply_filters(install_query, filter)
         app_ids = install_query.values_list("sentry_app_id", flat=True)
 
@@ -263,13 +263,9 @@ class DatabaseBackedAppService(AppService):
                 # Internal Integrations follow this pattern because they can have multiple tokens.
 
                 # Decompose this query instead of using a subquery for performance.
-                install_token_list = (
-                    SentryAppInstallationToken.objects.using_replica()
-                    .filter(
-                        api_token_id=filters["api_installation_token_id"],
-                    )
-                    .values_list("sentry_app_installation_id", flat=True)
-                )
+                install_token_list = SentryAppInstallationToken.objects.filter(
+                    api_token_id=filters["api_installation_token_id"],
+                ).values_list("sentry_app_installation_id", flat=True)
 
                 query = query.filter(
                     Q(api_token_id=filters["api_installation_token_id"])
@@ -301,15 +297,13 @@ class DatabaseBackedAppService(AppService):
         return serialize_sentry_app_installation(installation, sentry_app)
 
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
-        return SentryAppInstallationToken.objects.using_replica().get_token(
-            organization_id, provider
-        )
+        return SentryAppInstallationToken.objects.get_token(organization_id, provider)
 
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
         try:
-            install = SentryAppInstallation.objects.using_replica().get(uuid=install_uuid)
+            install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
             return RpcAlertRuleActionResult(
                 success=False,
