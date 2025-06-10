@@ -92,7 +92,9 @@ def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> I
     #
     # Seer expects the request_data to be signed so we can't stream the data as we download it. We
     # would need to collect the data, sign it, and then stream it. Which maybe there's some benefit
-    # to but the main benefit of streaming from GCS to Seer is long gone.
+    # to but the main benefit of streaming from GCS to Seer is long gone. I'm not making too much
+    # of a fuss about it right now because I think for this to work properly we'll probably have
+    # small segment ranges being requested anyway.
     #
     # Leaving it in the iterator form in the hopes one day we can stream it.
     request_data = "".join(_gen_request_data(segments))
