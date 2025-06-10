@@ -32,7 +32,7 @@ export default function useSuspectFlags({displayMode, environments, group}: Prop
         const uniqueOutlierValueCount = Object.keys(
           flag.distribution?.outliers ?? {}
         ).length;
-        const everyExampleIncludesFlag = group.userCount < flag.totalValues;
+        const everyExampleIncludesFlag = group.userCount <= flag.totalValues;
         return (
           uniqueOutlierValueCount === 1 &&
           uniqueBaselineValueCount > 1 &&
