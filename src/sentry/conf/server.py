@@ -1012,6 +1012,7 @@ CELERY_QUEUES_REGION = [
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
+    Queue("seer.seer_automation", routing_key="seer.seer_automation"),
 ]
 
 from celery.schedules import crontab
