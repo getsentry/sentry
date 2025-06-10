@@ -153,6 +153,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       tableWidths,
       setTableWidths,
       isPreview,
+      minTableColumnWidth,
     } = this.props;
     if (typeof tableResults === 'undefined' || loading) {
       // Align height to other charts.
@@ -187,6 +188,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             setWidgetSort={setWidgetSort}
             setWidths={(w: string[]) => setTableWidths?.(w)}
             usesLocationQuery={isPreview}
+            minColumnWidth={minTableColumnWidth}
           />
         </TableWrapper>
       );

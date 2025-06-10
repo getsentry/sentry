@@ -17,6 +17,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {getColumnSortFromString} from 'sentry/views/dashboards/widgetTable';
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
@@ -45,15 +46,11 @@ function WidgetPreview({
   const widget = convertBuilderStateToWidget(state);
 
   const updateWidgetSort = (newSort: string) => {
-    if (newSort.startsWith('-'))
+    const sortFields = getColumnSortFromString(newSort);
+    if (sortFields.length > 0 && sortFields[0])
       dispatch({
         type: BuilderStateAction.SET_SORT,
-        payload: [{field: newSort.substring(1), kind: 'desc'}],
-      });
-    else
-      dispatch({
-        type: BuilderStateAction.SET_SORT,
-        payload: [{field: newSort, kind: 'asc'}],
+        payload: [{field: sortFields[0].key, kind: sortFields[0].order}],
       });
   };
 

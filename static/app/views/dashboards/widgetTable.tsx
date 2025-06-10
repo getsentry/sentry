@@ -30,15 +30,14 @@ interface Props {
   widget: Widget;
   widths: string[];
   customHeaderClick?: () => void;
+  minColumnWidth?: string;
   setWidgetSort?: (ns: string) => void;
   setWidths?: (w: string[]) => void;
   stickyHeader?: boolean;
   usesLocationQuery?: boolean;
 }
 
-export const getColumnSortFromString = (
-  sort: string
-): Array<TableColumnSort<string | number>> => {
+export const getColumnSortFromString = (sort: string): Array<TableColumnSort<string>> => {
   if (sort.length < 1) return [];
   if (sort.startsWith('-'))
     return [
@@ -70,6 +69,7 @@ export function WidgetTable(props: Props) {
     widths,
     setWidgetSort,
     setWidths,
+    minColumnWidth,
   } = props;
   const theme = useTheme();
   const location = useLocation();
@@ -159,6 +159,7 @@ export function WidgetTable(props: Props) {
         }}
         bodyStyle={style}
         stickyHeader={stickyHeader}
+        minimumColWidth={minColumnWidth ? parseInt(minColumnWidth, 10) : undefined}
       />
     </Fragment>
   );
