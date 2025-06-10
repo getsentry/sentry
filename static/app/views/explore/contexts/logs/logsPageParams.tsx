@@ -56,6 +56,7 @@ interface LogsPageParams {
    * Instead, use a useState in the context, so that it's dropped if you navigate away or refresh.
    */
   readonly setSearchForFrozenPages: (val: MutableSearch) => void;
+
   /**
    * E.g., -timestamp
    */
@@ -307,6 +308,16 @@ export function useLogsAggregateFunction() {
 export function useLogsAggregateParam() {
   const {aggregateParam} = useLogsPageParams();
   return aggregateParam;
+}
+
+export function useLogsAggregate() {
+  const aggregateFn = useLogsAggregateFunction();
+  const aggregateParam = useLogsAggregateParam();
+  const effectiveParam =
+    aggregateFn === 'count' && !aggregateParam
+      ? OurLogKnownFieldKey.MESSAGE
+      : aggregateParam;
+  return `${aggregateFn}(${effectiveParam})`;
 }
 
 export function useLogsGroupBy() {
