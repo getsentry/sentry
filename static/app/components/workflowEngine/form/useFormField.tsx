@@ -13,12 +13,8 @@ export function useFormField<Value extends FieldValue = FieldValue>(
   const subscribe = useCallback(
     (callback: () => void) => {
       const form = context.form;
-      if (!form) {
-        return noop;
-      }
-
       // Check if the field exists
-      if (!form.fields.has(field)) {
+      if (!form?.fields.has(field)) {
         return noop;
       }
 
