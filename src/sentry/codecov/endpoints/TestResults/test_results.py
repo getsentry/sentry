@@ -91,13 +91,14 @@ class TestResultsEndpoint(CodecovEndpoint):
         first = int(first_param) if first_param else None
         last = int(last_param) if last_param else None
 
-        if not first and not last:
-            first = 20
         if first and last:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={"details": "Cannot specify both `first` and `last`"},
             )
+
+        if not first and not last:
+            first = 20
 
         variables = {
             "owner": owner,
