@@ -1,9 +1,11 @@
 import uuid
 import zlib
 from collections import namedtuple
+from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import PROMPT, get_request_data
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.testutils.cases import TransactionTestCase
 from sentry.utils import json
@@ -12,8 +14,8 @@ Message = namedtuple("Message", ["project_id", "replay_id"])
 
 
 # have to use TransactionTestCase because we're using threadpools
-class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
-    endpoint = "sentry-api-0-project-replay-recording-segment-ai-analyze-index"
+class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
+    endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
 
     def setUp(self):
         super().setUp()
@@ -36,14 +38,18 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
         )
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
-    def test_index_download_basic_compressed(self):
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get(self, make_seer_request):
+        return_value = json.dumps({"hello": "world"}).encode()
+        make_seer_request.return_value = return_value
+
         data = [
             {
                 "type": 5,
                 "timestamp": 0.0,
                 "data": {
                     "tag": "breadcrumb",
-                    "payload": {"category": "ui.click", "message": "div#id.class"},
+                    "payload": {"category": "console", "message": "hello"},
                 },
             },
             {
@@ -51,35 +57,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
                 "timestamp": 0.0,
                 "data": {
                     "tag": "breadcrumb",
-                    "payload": {"category": "navigation", "data": {"to": "/explore/traces"}},
-                },
-            },
-            {
-                "type": 5,
-                "timestamp": 0.0,
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "message"},
-                },
-            },
-            {
-                "type": 5,
-                "timestamp": 0.0,
-                "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
-            },
-            {
-                "type": 5,
-                "timestamp": 0.0,
-                "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
-            },
-            {
-                "type": 5,
-                "timestamp": 0.0,
-                "data": {
-                    "tag": "performanceSpan",
-                    "payload": {
-                        "op": "resource.fetch",
-                    },
+                    "payload": {"category": "console", "message": "world"},
                 },
             },
         ]
@@ -90,6 +68,33 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert response.content == (
-            b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]'
+        assert response.content == return_value
+
+
+def test_get_request_data():
+    def _faker():
+        yield 0, memoryview(
+            json.dumps(
+                [
+                    {
+                        "type": 5,
+                        "timestamp": 0.0,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {"category": "console", "message": "hello"},
+                        },
+                    },
+                    {
+                        "type": 5,
+                        "timestamp": 0.0,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {"category": "console", "message": "world"},
+                        },
+                    },
+                ]
+            ).encode()
         )
+
+    result = get_request_data(_faker())
+    assert result == PROMPT + "Logged: hello at 0.0\nLogged: world at 0.0\n"

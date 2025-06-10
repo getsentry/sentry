@@ -14,12 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
-from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
-from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.ingest.event_parser import as_log_message
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -28,35 +23,16 @@ from sentry.utils import json
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplayRecordingSegmentAiAnalysisIndexEndpoint(ProjectEndpoint):
+class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def __init__(self, **options) -> None:
         storage.initialize_client()
         super().__init__(**options)
 
-    @extend_schema(
-        operation_id="List Recording Segments",
-        parameters=[
-            CursorQueryParam,
-            GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
-            ReplayParams.REPLAY_ID,
-            VisibilityParams.PER_PAGE,
-        ],
-        responses={
-            200: inline_sentry_response_serializer(
-                "ListReplayRecordingSegments", list[ReplayRecordingSegment]
-            ),
-            400: RESPONSE_BAD_REQUEST,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=ReplayExamples.GET_REPLAY_SEGMENTS,
-    )
     def get(self, request: Request, project, replay_id: str) -> Response:
         """Return a collection of replay recording segments."""
         if not features.has(
@@ -66,7 +42,6 @@ class ProjectReplayRecordingSegmentAiAnalysisIndexEndpoint(ProjectEndpoint):
 
         return self.paginate(
             request=request,
-            response_kwargs={"content_type": "application/json"},
             paginator_cls=GenericOffsetPaginator,
             data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
             on_results=analyze_recording_segments,
@@ -97,11 +72,13 @@ def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> b
     # Leaving it in the iterator form in the hopes one day we can stream it.
     request_data = get_request_data(iter_segment_data(segments))
 
-    # Moving the Seer code to another function to make mocking easier :\
-    return make_seer_request(request_data)
+    # I have to deserialize this request so it can be automatically reserialized by the paginate
+    # method. This is less than ideal.
+    return json.loads(make_seer_request(request_data).decode("utf-8"))
 
 
 def make_seer_request(request_data: str) -> bytes:
+    # Moving the Seer code to another function to make mocking easier :\
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs",
         data=request_data,
@@ -115,14 +92,14 @@ def make_seer_request(request_data: str) -> bytes:
     return response.content
 
 
-def get_request_data(iterator: Iterator[tuple[int, bytes]]) -> str:
+def get_request_data(iterator: Iterator[tuple[int, memoryview]]) -> str:
     return "".join(gen_request_data(map(lambda r: r[1], iterator)))
 
 
-def gen_request_data(segments: Iterator[bytes]) -> Generator[str]:
+def gen_request_data(segments: Iterator[memoryview]) -> Generator[str]:
     yield PROMPT
     for segment in segments:
-        for event in json.loads(segment):
+        for event in json.loads(segment.tobytes().decode("utf-8")):
             message = as_log_message(event)
             if message:
                 yield message + "\n"

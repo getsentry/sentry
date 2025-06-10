@@ -312,14 +312,14 @@ from sentry.replays.endpoints.organization_replay_selector_index import (
 )
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
-from sentry.replays.endpoints.project_replay_recording_segment_ai_analysis_index import (
-    ProjectReplayRecordingSegmentAiAnalysisIndexEndpoint,
-)
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
     ProjectReplayRecordingSegmentDetailsEndpoint,
 )
 from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
+)
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
+    ProjectReplaySummarizeBreadcrumbsEndpoint,
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
@@ -2684,9 +2684,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-recording-segment-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/ai-analysis/$",
-        ProjectReplayRecordingSegmentAiAnalysisIndexEndpoint.as_view(),
-        name="sentry-api-0-project-replay-recording-segment-ai-analysis-index",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/summarize/breadcrumbs/$",
+        ProjectReplaySummarizeBreadcrumbsEndpoint.as_view(),
+        name="sentry-api-0-project-replay-summarize-breadcrumbs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
