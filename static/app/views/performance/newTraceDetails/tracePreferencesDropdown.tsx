@@ -124,7 +124,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
   );
 }
 
-export function getTraceProject(
+function getTraceProject(
   projects: Project[],
   rootEventResults: TraceRootEventQueryResults
 ): Project | undefined {
