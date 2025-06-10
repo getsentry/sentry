@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
 import type {TooltipProps} from 'sentry/components/core/tooltip';
@@ -10,7 +11,7 @@ import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUser} from 'sentry/utils/useUser';
 
 function getDateObj(date: RelaxedDateType): Date {
-  return typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+  return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
 }
 
 type RelaxedDateType = string | number | Date;
