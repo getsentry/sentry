@@ -711,6 +711,7 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
+from .endpoints.reporting_api_experiment import ReportingApiExperimentEndpoint
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
@@ -3482,6 +3483,12 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
+    ),
+    # Reporting API experiment
+    re_path(
+        r"^reporting-api-experiment/$",
+        ReportingApiExperimentEndpoint.as_view(),
+        name="sentry-api-0-reporting-api-experiment",
     ),
     # Catch all
     re_path(
