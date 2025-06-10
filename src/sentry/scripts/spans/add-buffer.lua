@@ -41,7 +41,7 @@ end
 local set_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, set_span_id)
 local parent_key = string.format("span-buf:s:{%s}:%s:%s", partition, project_and_trace, parent_span_id)
 
-local has_root_span_key = string.format("span-buf:hrs:{%s}:%s", partition, set_key)
+local has_root_span_key = string.format("span-buf:hrs:%s", set_key)
 has_root_span = has_root_span or redis.call("get", has_root_span_key) == "1"
 if has_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
