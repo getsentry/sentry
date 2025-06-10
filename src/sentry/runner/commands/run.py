@@ -266,8 +266,10 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
+        enabled_schedules = set(options.get("taskworker.scheduler.rollout", []))
         for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            runner.add(key, schedule_data)
+            if key in enabled_schedules:
+                runner.add(key, schedule_data)
 
         runner.log_startup()
         while True:
@@ -483,6 +485,15 @@ def cron(**options: Any) -> None:
         )
 
     from sentry.celery import app
+
+    old_schedule = app.conf.CELERYBEAT_SCHEDULE
+    new_schedule = {}
+    task_schedules = set(options.get("taskworker.scheduler.rollout", []))
+    for key, schedule_data in old_schedule.items():
+        if key not in task_schedules:
+            new_schedule[key] = schedule_data
+
+    app.conf.update(CELERYBEAT_SCHEDULE=new_schedule)
 
     with managed_bgtasks(role="cron"):
         app.Beat(
