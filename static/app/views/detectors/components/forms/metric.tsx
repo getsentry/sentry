@@ -1,4 +1,4 @@
-import {useContext, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -7,14 +7,9 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import Form from 'sentry/components/forms/form';
-import FormContext from 'sentry/components/forms/formContext';
-import type FormModel from 'sentry/components/forms/model';
-import Spinner from 'sentry/components/forms/spinner';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
@@ -32,50 +27,31 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metricFormData';
 
-type MetricDetectorKind = 'threshold' | 'change' | 'dynamic';
-
-export function MetricDetectorForm({model}: {model: FormModel}) {
+export function MetricDetectorForm() {
   return (
-    <Form hideFooter model={model}>
-      <ChartContainer>
-        <Spinner />
-      </ChartContainer>
-      <FormStack>
-        <DetectSection />
-        <PrioritizeSection />
-        <ResolveSection />
-        <AssignSection />
-        <AutomateSection />
-      </FormStack>
-    </Form>
+    <FormStack>
+      <DetectSection />
+      <PrioritizeSection />
+      <ResolveSection />
+      <AssignSection />
+      <AutomateSection />
+    </FormStack>
   );
 }
 
 function MonitorKind() {
-  const formContext = useContext(FormContext);
-
-  /**
-   * Reset other fields when kind changes
-   */
-  function handleChangeKind(kind: MetricDetectorKind) {
-    if (kind === 'threshold') {
-      formContext.form?.setValue('conditionGroup.conditions.0.type', 'above');
-    } else if (kind === 'change') {
-      formContext.form?.setValue('conditionGroup.conditions.0.type', 'higher');
-    } else if (kind === 'dynamic') {
-      formContext.form?.setValue('conditionGroup.conditions.0.type', 'above');
-    }
-  }
-
   return (
     <MonitorKindField
-      label={t('...and monitor for changes in the following way:')}
+      label={t('\u2026and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
-      name="kind"
+      name={METRIC_DETECTOR_FORM_FIELDS.kind}
       defaultValue="threshold"
-      onChange={handleChangeKind}
       choices={[
         [
           'threshold',
@@ -94,7 +70,7 @@ function MonitorKind() {
 }
 
 function ResolveSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
 
   return (
     <Container>
@@ -151,7 +127,7 @@ function AssignSection() {
 }
 
 function PrioritizeSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   return (
     <Container>
       <Section
@@ -169,7 +145,16 @@ function PrioritizeSection() {
 }
 
 function DetectSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const defaultAggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregate
+  );
+  const defaultVisualize = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.visualize
+  );
   const aggregateOptions: Array<[string, string]> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return [aggregate, aggregate];
@@ -185,19 +170,19 @@ function DetectSection() {
         <FirstRow>
           <DetectColumn>
             <VisualizeField
-              placeholder={t('Metric')}
               flexibleControlStateSize
               inline={false}
               label="Visualize"
-              name="visualize"
+              name={METRIC_DETECTOR_FORM_FIELDS.visualize}
               choices={[['span.duration', 'span.duration']]}
-              defaultValue="span.duration"
+              defaultValue={defaultVisualize}
             />
             <AggregateField
-              placeholder={t('aggregate')}
               flexibleControlStateSize
-              defaultValue={'p75'}
-              name="aggregate"
+              label={t('Aggregate')}
+              hideLabel
+              name={METRIC_DETECTOR_FORM_FIELDS.aggregate}
+              defaultValue={defaultAggregate}
               choices={aggregateOptions}
             />
           </DetectColumn>
@@ -212,22 +197,22 @@ function DetectSection() {
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <DirectionField
-                  name="conditionGroup.conditions.0.type"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
-                  defaultValue="above"
                   flexibleControlStateSize
                   choices={[
-                    ['above', t('Above')],
-                    ['below', t('Below')],
+                    ['gt', t('Above')],
+                    ['lte', t('Below')],
                   ]}
+                  defaultValue={conditionType}
                 />
                 <ThresholdField
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   flexibleControlStateSize
                   inline={false}
                   hideLabel
                   placeholder="0"
-                  name="conditionGroup.conditions.0.comparison"
                   suffix="s"
                 />
               </Flex>
@@ -238,29 +223,28 @@ function DetectSection() {
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
-                  name="conditionGroup.conditions.0.comparison"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   placeholder="0"
                   hideLabel
                   inline
                 />
                 <span>{t('percent')}</span>
                 <DirectionField
-                  name="conditionGroup.conditions.0.type"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
-                  defaultValue="higher"
                   flexibleControlStateSize
                   choices={[
-                    ['higher', t('higher')],
-                    ['lower', t('lower')],
+                    ['gt', t('Higher')],
+                    ['lte', t('Lower')],
                   ]}
+                  defaultValue={conditionType}
                 />
                 <span>{t('than the previous')}</span>
                 <StyledSelectField
-                  name="config.low_threshold.unit"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo}
                   hideLabel
                   inline
-                  defaultValue="1 hour"
                   flexibleControlStateSize
                   choices={[
                     ['5 minutes', '5 minutes'],
@@ -362,13 +346,6 @@ const VisualizeField = styled(SelectField)`
   padding-right: 0;
   margin-left: 0;
   border-bottom: none;
-`;
-
-const ChartContainer = styled('div')`
-  background: ${p => p.theme.background};
-  width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: 24px 32px 16px 32px;
 `;
 
 const AggregateField = styled(SelectField)`

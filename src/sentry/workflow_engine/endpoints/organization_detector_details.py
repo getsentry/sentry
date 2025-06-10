@@ -36,7 +36,13 @@ def get_detector_validator(
 ):
     detector_type = grouptype.registry.get_by_slug(detector_type_slug)
     if detector_type is None:
-        raise ValidationError({"detectorType": ["Unknown detector type"]})
+        raise ValidationError(
+            {
+                "detectorType": [
+                    "Unknown detector type. Choices are: " + ", ".join(grouptype.registry.all())
+                ]
+            }
+        )
 
     if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
         raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})

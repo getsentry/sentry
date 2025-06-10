@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -14,14 +13,14 @@ interface WorkflowEngineEditLayoutProps {
    * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
    */
   children: React.ReactNode;
+  title: string;
   onTitleChange?: (title: string) => void;
 }
 
 /**
  * Precomposed full-width layout for Automations / Monitors edit pages.
  */
-function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
-  const title = useDocumentTitle();
+function EditLayout({children, onTitleChange, title}: WorkflowEngineEditLayoutProps) {
   return (
     <Layout.Page>
       <Layout.Header unified>

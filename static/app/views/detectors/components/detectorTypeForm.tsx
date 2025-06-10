@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,81 +6,74 @@ import {Flex} from 'sentry/components/container/flex';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment} from 'sentry/types/project';
+import type {Environment, Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-const model = new FormModel({
-  initialData: {
-    name: t('New Monitor'),
-    project: undefined,
-    environment: 'all',
-    type: 'metric',
-  },
-});
+function getDefaultProject(projects: Project[]) {
+  return projects.find(p => p.isMember) ?? projects[0];
+}
 
 export function DetectorTypeForm() {
-  const {projects} = useProjects();
-  const title = useDocumentTitle();
-
-  useEffect(() => {
-    model.setValue('name', title);
-  }, [title]);
-  useEffect(() => {
-    const firstProject = projects.find(p => p.isMember);
-    model.setInitialData({
-      name: title,
-      project: firstProject?.id,
-      environment: 'all',
-      type: 'metric',
-    });
-    const prevHook = model.options.onFieldChange;
-    model.setFormOptions({
-      onFieldChange(id, value) {
-        if (id === 'project') {
-          model.setValue('environment', 'all');
-        }
-        prevHook?.(id, value);
-      },
-    });
-  }, [projects, title]);
-
   return (
-    <Form hideFooter model={model}>
-      <Flex column>
-        <Group column>
-          <Header column>
-            <h3>{t('Project and Environment')}</h3>
-          </Header>
-          <Flex>
-            <ProjectField />
-            <EnvironmentField />
-          </Flex>
-        </Group>
-        <Group column>
-          <Header column>
-            <h3>{t('Monitor type')}</h3>
-            <p>
-              {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-              <a href="#">{t('Learn more about monitor types.')}</a>
-            </p>
-          </Header>
-          <MonitorTypeField />
-        </Group>
-      </Flex>
-    </Form>
+    <Flex column>
+      <Group column>
+        <Header column>
+          <h3>{t('Project and Environment')}</h3>
+        </Header>
+        <Flex>
+          <ProjectField />
+          <EnvironmentField />
+        </Flex>
+      </Group>
+      <Group column>
+        <Header column>
+          <h3>{t('Monitor type')}</h3>
+          <p>
+            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+            <a href="#">{t('Learn more about monitor types.')}</a>
+          </p>
+        </Header>
+        <MonitorTypeField />
+      </Group>
+    </Flex>
   );
 }
 
 function ProjectField() {
-  const {projects} = useProjects();
+  const {projects, fetching} = useProjects();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const defaultProject = getDefaultProject(projects);
+  const projectId = (location.query.project as string | undefined) ?? defaultProject?.id;
+
+  const handleChangeProject = useCallback(
+    (value: string) => {
+      const project = projects.find(p => p.id === value);
+      if (!project) {
+        return;
+      }
+      navigate({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          project: projectId,
+        },
+      });
+    },
+    [navigate, location.pathname, location.query, projects, projectId]
+  );
+
+  if (fetching) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <StyledProjectField
@@ -95,17 +88,25 @@ function ProjectField() {
       ]}
       name="project"
       placeholder={t('Project')}
+      onChange={handleChangeProject}
+      value={projectId}
     />
   );
 }
 
 function EnvironmentField() {
-  const project = useFormField('project');
-  const {environments} = useProjectEnvironments({projectSlug: project?.toString()});
+  const {projects} = useProjects();
+  const location = useLocation();
+
+  const defaultProject = getDefaultProject(projects);
+  const projectId = (location.query.project as string | undefined) ?? defaultProject?.id;
+  const projectSlug = projects.find(p => p.id === projectId)?.slug;
+  const {environments} = useProjectEnvironments({projectSlug});
+
   return (
     <StyledEnvironmentField
       choices={[
-        ['all', t('All Environments')],
+        ['', t('All Environments')],
         ...(environments?.map(environment => [environment.id, environment.name]) ?? []),
       ]}
       inline={false}
@@ -113,6 +114,7 @@ function EnvironmentField() {
       stacked
       name="environment"
       placeholder={t('Environment')}
+      value={location.query.environment ?? ''}
     />
   );
 }
