@@ -28,7 +28,10 @@ export default function RawContent({
   const organization = useOrganization();
 
   const isNative =
-    platform === 'native' || platform === 'cocoa' || platform === 'nintendo-switch';
+    platform === 'native' ||
+    platform === 'cocoa' ||
+    platform === 'nintendo-switch' ||
+    platform === 'playstation';
 
   const hasCrashReport = isNative && defined(organization);
 

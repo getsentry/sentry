@@ -516,6 +516,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
   },
   {
+    id: 'playstation',
+    name: 'PlayStation',
+    type: 'framework',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/playstation/',
+  },
+  {
     id: 'powershell',
     name: 'PowerShell',
     type: 'language',

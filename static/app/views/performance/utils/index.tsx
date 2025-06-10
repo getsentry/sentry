@@ -101,7 +101,8 @@ const FRONTEND_PLATFORMS: string[] = frontend.filter(
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
 const BACKEND_PLATFORMS: string[] = backend.filter(
-  platform => platform !== 'native' && platform !== 'nintendo-switch'
+  platform =>
+    platform !== 'native' && platform !== 'nintendo-switch' && platform !== 'playstation'
 );
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
