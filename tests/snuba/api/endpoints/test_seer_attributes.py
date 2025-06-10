@@ -114,15 +114,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {
                     "field": "transaction",
                     "substring": "ba",
-                }
+                },
+                {
+                    "field": "transaction",
+                    "substring": "b",
+                },
             ],
         )
 
         assert result == {
             "values": {
-                "transaction": [
-                    "bar",
-                    "baz",
-                ],
+                "transaction": {"bar", "baz"},
             }
         }

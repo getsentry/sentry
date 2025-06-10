@@ -300,7 +300,13 @@ def get_attribute_values_with_substring(
     stats_period: str = "48h",
     limit: int = 100,
 ) -> dict:
-    values: dict[str, list[str]] = {}
+    """
+    Get attribute values with substring.
+    Note: The RPC is guaranteed to not return duplicate values for the same field.
+    ie: if span.description is requested with both null and "payment" substrings,
+    the RPC will return the set of values for span.description to avoid duplicates.
+    """
+    values: dict[str, set[str]] = {}
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -345,7 +351,12 @@ def get_attribute_values_with_substring(
             )
 
             values_response = snuba_rpc.attribute_values_rpc(req)
-            values[field] = [value for value in values_response.values if value]
+            if field in values:
+                values[field].update({value for value in values_response.values if value})
+            else:
+                values[field] = {value for value in values_response.values if value}
+
+    # values = {field: list(unique_values[field]) for field in unique_values}
 
     return {"values": values}
 
