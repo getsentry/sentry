@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {WidgetViewerQueryField} from 'sentry/components/modals/widgetViewerModal/utils';
 import {renderGridBodyCell} from 'sentry/components/modals/widgetViewerModal/widgetViewerTableCell';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -115,7 +114,7 @@ export function WidgetTable(props: Props) {
           pathname: location.pathname,
           query: {
             ...location.query,
-            [WidgetViewerQueryField.WIDTH]: newWidths,
+            width: newWidths,
           },
         },
         {replace: true}
@@ -160,7 +159,6 @@ export function WidgetTable(props: Props) {
         }}
         bodyStyle={style}
         stickyHeader={stickyHeader}
-        scrollable
       />
     </Fragment>
   );

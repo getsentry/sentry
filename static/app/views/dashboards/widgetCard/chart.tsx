@@ -1,5 +1,4 @@
 import type React from 'react';
-import type {Dispatch, SetStateAction} from 'react';
 import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
@@ -89,6 +88,7 @@ type WidgetCardChartProps = Pick<
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isPreview?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
@@ -100,7 +100,6 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
-  setCurrentWidget?: Dispatch<SetStateAction<Widget>>;
   setTableWidths?: (tableWidths: string[]) => void;
   setWidgetSort?: (ns: string) => void;
   shouldResize?: boolean;
@@ -146,43 +145,52 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {widget, selection, organization, setWidgetSort, tableWidths, setTableWidths} =
-      this.props;
-    if (typeof tableResults === 'undefined') {
+    const {
+      widget,
+      selection,
+      organization,
+      setWidgetSort,
+      tableWidths,
+      setTableWidths,
+      isPreview,
+    } = this.props;
+    if (typeof tableResults === 'undefined' || loading) {
       // Align height to other charts.
       return <LoadingPlaceholder />;
     }
-    const sort = widget.queries[0]?.orderby;
 
-    return (
-      <TableWrapper key={`table:${tableResults[0]?.title}`}>
-        <WidgetTable
-          style={{
-            borderRadius: 0,
-            marginBottom: 0,
-            borderLeft: 0,
-            borderRight: 0,
-            borderBottom: 0,
-          }}
-          loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-          tableResults={tableResults}
-          widget={widget}
-          selection={selection}
-          renderHeaderGridCell={
-            widget.widgetType === WidgetType.RELEASE
-              ? renderReleaseGridHeaderCell
-              : renderDiscoverGridHeaderCell
-          }
-          sort={sort || ''}
-          widths={tableWidths || []}
-          organization={organization}
-          stickyHeader
-          setWidgetSort={setWidgetSort}
-          setWidths={(w: string[]) => setTableWidths?.(w)}
-          usesLocationQuery={false}
-        />
-      </TableWrapper>
-    );
+    return tableResults.map((result, _) => {
+      const sort = widget.queries[0]?.orderby;
+      return (
+        <TableWrapper key={`table:${result.title}`}>
+          <WidgetTable
+            style={{
+              borderRadius: 0,
+              marginBottom: 0,
+              borderLeft: 0,
+              borderRight: 0,
+              borderBottom: 0,
+            }}
+            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
+            tableResults={tableResults}
+            widget={widget}
+            selection={selection}
+            renderHeaderGridCell={
+              widget.widgetType === WidgetType.RELEASE
+                ? renderReleaseGridHeaderCell
+                : renderDiscoverGridHeaderCell
+            }
+            sort={sort || ''}
+            widths={tableWidths || []}
+            organization={organization}
+            stickyHeader
+            setWidgetSort={setWidgetSort}
+            setWidths={(w: string[]) => setTableWidths?.(w)}
+            usesLocationQuery={isPreview}
+          />
+        </TableWrapper>
+      );
+    });
   }
 
   bigNumberComponent({loading, tableResults}: TableResultProps): React.ReactNode {

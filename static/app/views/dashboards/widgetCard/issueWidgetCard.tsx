@@ -20,6 +20,7 @@ type Props = {
   tableResults: TableDataWithTitle[] | undefined;
   widget: Widget;
   errorMessage?: string;
+  isPreview?: boolean;
   setTableWidths?: (tableWidths: string[]) => void;
   setWidgetSort?: (ns: string) => void;
   tableWidths?: string[];
@@ -35,6 +36,7 @@ export function IssueWidgetCard({
   organization,
   tableWidths,
   setTableWidths,
+  isPreview,
 }: Props) {
   if (errorMessage) {
     return (
@@ -72,7 +74,7 @@ export function IssueWidgetCard({
         stickyHeader
         setWidgetSort={setWidgetSort}
         setWidths={(w: string[]) => setTableWidths?.(w)}
-        usesLocationQuery={false}
+        usesLocationQuery={isPreview}
       />
     </TableWrapper>
   );

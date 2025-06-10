@@ -12,6 +12,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -39,9 +40,22 @@ function WidgetPreview({
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
 
-  const {state} = useWidgetBuilderContext();
+  const {state, dispatch} = useWidgetBuilderContext();
 
   const widget = convertBuilderStateToWidget(state);
+
+  const updateWidgetSort = (newSort: string) => {
+    if (newSort.startsWith('-'))
+      dispatch({
+        type: BuilderStateAction.SET_SORT,
+        payload: [{field: newSort.substring(1), kind: 'desc'}],
+      });
+    else
+      dispatch({
+        type: BuilderStateAction.SET_SORT,
+        payload: [{field: newSort, kind: 'asc'}],
+      });
+  };
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
@@ -117,6 +131,8 @@ function WidgetPreview({
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH}
       disableZoom
       showLoadingText
+      isPreview
+      handleWidgetSort={updateWidgetSort}
     />
   );
 }

@@ -40,6 +40,7 @@ type Props = {
   expandNumbers?: boolean;
   handleWidgetSort?: (ns: string) => void;
   isMobile?: boolean;
+  isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -91,6 +92,7 @@ export function WidgetCardChartContainer({
   disableZoom,
   showLoadingText,
   handleWidgetSort,
+  isPreview,
 }: Props) {
   const location = useLocation();
   // Used to maintain correct widths when sorting/column resizing the table widget
@@ -176,6 +178,7 @@ export function WidgetCardChartContainer({
                 organization={organization}
                 tableWidths={tableWidths}
                 setTableWidths={setTableWidths}
+                isPreview={isPreview}
               />
             </Fragment>
           );
@@ -222,6 +225,7 @@ export function WidgetCardChartContainer({
               setWidgetSort={handleWidgetSort}
               tableWidths={tableWidths}
               setTableWidths={setTableWidths}
+              isPreview={isPreview}
             />
           </Fragment>
         );

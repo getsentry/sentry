@@ -356,7 +356,6 @@ class Dashboard extends Component<Props, State> {
     const widget = dashboard.widgets[index]!;
     const widgetCopy = cloneDeep({
       ...widget,
-      id: undefined,
     });
     if (widgetCopy.queries[0]) widgetCopy.queries[0].orderby = newSort;
 
