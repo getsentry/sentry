@@ -20,25 +20,21 @@ function getDefaultProject(projects: Project[]) {
 export function DetectorTypeForm() {
   return (
     <Flex column>
-      <Group column>
-        <Header column>
-          <h3>{t('Project and Environment')}</h3>
-        </Header>
-        <Flex>
-          <ProjectField />
-          <EnvironmentField />
-        </Flex>
-      </Group>
-      <Group column>
-        <Header column>
-          <h3>{t('Monitor type')}</h3>
-          <p>
-            {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-            <a href="#">{t('Learn more about monitor types.')}</a>
-          </p>
-        </Header>
-        <MonitorTypeField />
-      </Group>
+      <Header>
+        <h3>{t('Project and Environment')}</h3>
+      </Header>
+      <Flex>
+        <ProjectField />
+        <EnvironmentField />
+      </Flex>
+      <Header>
+        <h3>{t('Monitor type')}</h3>
+        <p>
+          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
+          <a href="#">{t('Learn more about monitor types.')}</a>
+        </p>
+      </Header>
+      <MonitorTypeField />
     </Flex>
   );
 }
@@ -200,11 +196,9 @@ const StyledRadioField = styled(RadioField)`
   }
 `;
 
-const Group = styled(Flex)`
-  padding-inline: ${space(4)};
-`;
-
-const Header = styled(Flex)`
+const Header = styled('div')`
+  display: flex;
+  flex-direction: column;
   gap: ${space(0.5)};
   margin-top: ${space(3)};
   margin-bottom: ${space(1)};
