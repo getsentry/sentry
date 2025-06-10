@@ -73,6 +73,8 @@ interface SentryAppContext {
   name: string;
   status: number;
   settings?: Record<string, any>;
+  // title represents the action being performed by the SentryApp
+  // e.g. "Create an issue"
   title?: string;
 }
 
