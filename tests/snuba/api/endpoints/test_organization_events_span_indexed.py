@@ -5483,3 +5483,34 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "release": "test@1.2.3+122",
             },
         ]
+
+    def test_file_extension(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"file_extension": "css"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"file_extension": "js"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "file_extension",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["file_extension"] == "css"
+        assert data[1]["file_extension"] == "js"
+        assert meta["dataset"] == self.dataset
