@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -47,6 +48,11 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         :qparam string end: end date range (alternative to statsPeriod)
         :auth: required
         """
+
+        if not features.has(
+            "organizations:user-feedback-ai-summaries", organization, actor=request.user
+        ):
+            return Response(status=403)
 
         try:
             start, end = get_date_range_from_stats_period(

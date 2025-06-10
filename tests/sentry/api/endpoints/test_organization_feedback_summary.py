@@ -99,6 +99,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         )
         self.project1 = self.create_project(teams=[self.team])
         self.project2 = self.create_project(teams=[self.team])
+        self.features = {
+            "organizations:user-feedback-ai-summaries": True,
+        }
 
     @django_db_all
     @patch("sentry.llm.providers.openai.OpenAI")
@@ -111,7 +114,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
@@ -140,7 +144,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             "statsPeriod": "14d",
         }
 
-        response = self.get_success_response(self.org.slug, **params)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug, **params)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
@@ -167,7 +172,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             "project": [self.project1.id],
         }
 
-        response = self.get_success_response(self.org.slug, **params)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug, **params)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
@@ -184,7 +190,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is False
 
@@ -214,7 +221,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
