@@ -953,7 +953,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
 
     Eventually, we'll want to replace `process_rule` with this method.
     """
-    metrics.incr("workflow_engine.issue_platform.payload.processed")
+    metrics.incr("workflow_engine.issue_platform.payload.received")
 
     from sentry.workflow_engine.processors.workflow import process_workflows
 
