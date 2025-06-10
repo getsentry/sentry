@@ -1,11 +1,11 @@
 import {useEffect, useMemo} from 'react';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface UseTeamsById {
   ids: string[] | undefined;
@@ -53,18 +53,18 @@ function buildTeamsQueryKey(
  * ```
  */
 export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useOrganization({allowNull: true});
   const storeState = useLegacyStore(TeamStore);
 
   const teamQueryValues = useMemo<{
     property: 'id' | 'slug';
     values: Set<string> | undefined;
   } | null>(() => {
-    if ('ids' in options) {
+    if ('ids' in options && options.ids?.length) {
       return {property: 'id', values: new Set(options.ids)};
     }
 
-    if ('slugs' in options) {
+    if ('slugs' in options && options.slugs?.length) {
       return {property: 'slug', values: new Set(options.slugs)};
     }
 
@@ -90,6 +90,7 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
         missingValues ?? []
       )
     : ([`/organizations/${organization?.slug}/teams/`] as const);
+
   const {
     data: additionalTeams = [],
     isPending,
