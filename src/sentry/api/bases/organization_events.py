@@ -63,9 +63,12 @@ def get_query_columns(columns, rollup):
 
 
 def resolve_axis_column(
-    column: str, index: int = 0, transform_alias_to_input_format: bool = False
+    column: str,
+    index: int = 0,
+    transform_alias_to_input_format: bool = False,
+    use_rpc: bool = False,
 ) -> str:
-    if is_equation(column):
+    if is_equation(column) and not use_rpc:
         return f"equation[{index}]"
 
     # Function columns on input have names like `"p95(duration)"`. By default, we convert them to their aliases like `"p95_duration"`. Here, we want to preserve the original name, so we return the column as-is
@@ -546,6 +549,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                             transform_alias_to_input_format=transform_alias_to_input_format,
+                            use_rpc=use_rpc,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
@@ -553,7 +557,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             )
                     else:
                         column = resolve_axis_column(
-                            query_columns[0], 0, transform_alias_to_input_format
+                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
                         )
                         results[key] = serializer.serialize(
                             event_result,
@@ -586,6 +590,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -593,7 +598,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
-                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
+                column = resolve_axis_column(
+                    query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                )
                 serialized_result = serializer.serialize(
                     result,
                     column=column,
@@ -643,6 +650,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
@@ -658,7 +666,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, equations, transform_alias_to_input_format),
+                resolve_axis_column(
+                    query_column, equations, transform_alias_to_input_format, use_rpc
+                ),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=zerofill_results,
