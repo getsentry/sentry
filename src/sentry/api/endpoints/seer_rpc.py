@@ -70,22 +70,34 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     if not signature.startswith("rpc0:"):
         return False
 
-    # We aren't using the version bits currently.
-    body = orjson.dumps(orjson.loads(body))
-    _, signature_data = signature.split(":", 2)
-    # TODO: For backward compatibility with the current Seer implementation, allow all signatures
-    # while we deploy the fix to both services
+    if not body:
+        logger.error("Seer RPC signature validation failed: no body")
+        # TODO: For stability and backward compatibility, we are allowing all signatures
+        # while we deploy the fix to both services. But we are logging an error if it fails.
+        return True
+
+    try:
+        # We aren't using the version bits currently.
+        body = orjson.dumps(orjson.loads(body))
+        _, signature_data = signature.split(":", 2)
+
+        signature_input = body
+
+        for key in settings.SEER_RPC_SHARED_SECRET:
+            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+            is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
+            if is_valid:
+                logger.info("Seer RPC signature validated")
+                return True
+    except Exception:
+        logger.exception("Seer RPC signature validation failed")
+        return True
+
+    logger.error("Seer RPC signature validation failed")
+
+    # TODO: For stability and backward compatibility, we are allowing all signatures
+    # while we deploy the fix to both services. But we are logging an error if it fails.
     return True
-
-    # signature_input = body
-
-    # for key in settings.SEER_RPC_SHARED_SECRET:
-    #     computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
-    #     is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
-    #     if is_valid:
-    #         return True
-
-    # return False
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
