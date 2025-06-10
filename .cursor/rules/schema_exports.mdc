@@ -7,7 +7,7 @@ When working with schema definitions and their corresponding TypeScript types, f
 - **schemas.ts**: Contains only the schema definitions (e.g., Zod schemas, JSON schemas, validation schemas) - NO type exports
 - **types.ts**: Contains and exports ALL TypeScript type definitions, including those derived from schemas
 
-### ❌ Incorrect - Exporting types from schemas.ts
+### ❌ Incorrect - Mixed schemas and types in same file
 ```typescript
 // schemas.ts
 import { z } from 'zod';
@@ -27,7 +27,7 @@ export interface UpdateIssueResponse {
 
 ### ✅ Correct - Keep schemas separate from types
 ```typescript
-// schemas.ts - ONLY schema definitions
+// schemas.ts - ONLY schema definitions, NO type exports
 import { z } from 'zod';
 
 export const UpdateIssueRequestSchema = z.object({
