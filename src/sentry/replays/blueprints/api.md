@@ -583,3 +583,34 @@ A POST request is issued with no body. The URL and authorization context is used
     Cookie: \_ga=GA1.2.17576183...
 
 - Response 204
+
+## Replay Summarize Breadcrumb [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/summarize/breadcrumbs/]
+
+### Fetch Replay Summarize Breadcrumb [GET]
+
+| Column                   | Type            | Description                                          |
+| ------------------------ | --------------- | ---------------------------------------------------- |
+| title                    | str             | A short title describing the behavior of the replay. |
+| overall_issue            | str             | A summary of the replay's events.                    |
+| time_ranges              | list[TimeRange] | A list of TimeRange objects.                         |
+| time_ranges.period_start | number          | The start time of the analysis window.               |
+| time_ranges.period_end   | number          | The end time of the analysis window.                 |
+| time_ranges.period_title | str             | A short summary of the activity within the window.   |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "title": "Something Happened",
+      "overall_issue": "The application broke",
+      "time_ranges": [
+        {
+          "period_start": 1749584581.5356228,
+          "period_end": 1749584992.912,
+          "period_title": "Second Replay Load Failure"
+        }
+      ]
+    }
+  }
+  ```
