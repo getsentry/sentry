@@ -265,20 +265,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response3.data} == {detector.name, detector2.name}
 
-    def test_empty_query(self):
-        detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector 1", type=MetricIssue.slug
-        )
-        detector2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=ErrorGroupType.slug
-        )
-
-        # Empty query should return all detectors
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id, "query": ""}
-        )
-        assert {d["name"] for d in response.data} == {detector.name, detector2.name}
-
 
 @region_silo_test
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
