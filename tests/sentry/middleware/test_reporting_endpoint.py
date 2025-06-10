@@ -13,7 +13,7 @@ class ReportingEndpointMiddlewareTestCase(TestCase):
         self.factory = RequestFactory()
 
     def _no_header_set(self, result: HttpResponseBase) -> None:
-        assert "ReportingEndpoint" not in result
+        assert "Reporting-Endpoints" not in result
 
     def test_adds_header_for_staff_user(self) -> None:
         """Test that the ReportingEndpoint header is added when user is Sentry staff."""
@@ -27,9 +27,9 @@ class ReportingEndpointMiddlewareTestCase(TestCase):
         response = HttpResponse()
         result = self.middleware.process_response(request, response)
 
-        assert "ReportingEndpoint" in result
+        assert "Reporting-Endpoints" in result
         assert (
-            result["ReportingEndpoint"]
+            result["Reporting-Endpoints"]
             == "default=https://sentry.my.sentry.io/api/0/reporting-api-experiment/"
         )
 

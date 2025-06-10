@@ -24,7 +24,7 @@ class ReportingEndpointMiddleware:
         if staff and staff.is_active:
             # This will enable crashes, intervention and deprecation warnings
             # They always report to the default endpoint
-            response["ReportingEndpoint"] = (
+            response["Reporting-Endpoints"] = (
                 "default=https://sentry.my.sentry.io/api/0/reporting-api-experiment/"
             )
         return response
