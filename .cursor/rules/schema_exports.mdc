@@ -1,0 +1,61 @@
+# Schema Type Exports
+
+## Export schema types from types.ts, not schemas.ts
+
+When working with schema definitions and their corresponding TypeScript types, follow this pattern:
+
+- **schemas.ts**: Contains only the schema definitions (e.g., Zod schemas, JSON schemas, validation schemas)
+- **types.ts**: Contains and exports the TypeScript type definitions derived from or related to those schemas
+
+### ❌ Incorrect - Exporting types from schemas.ts
+```typescript
+// schemas.ts
+import { z } from 'zod';
+
+export const UpdateIssueRequestSchema = z.object({
+  status: z.enum(['resolved', 'unresolved', 'ignored']),
+  assignedTo: z.string().optional(),
+});
+
+// ❌ Don't export types from schemas.ts
+export type UpdateIssueRequest = z.infer<typeof UpdateIssueRequestSchema>;
+export interface UpdateIssueResponse {
+  success: boolean;
+  issue: Issue;
+}
+```
+
+### ✅ Correct - Exporting types from adjacent types.ts
+```typescript
+// schemas.ts
+import { z } from 'zod';
+
+export const UpdateIssueRequestSchema = z.object({
+  status: z.enum(['resolved', 'unresolved', 'ignored']),
+  assignedTo: z.string().optional(),
+});
+
+// types.ts
+import type { z } from 'zod';
+import type { UpdateIssueRequestSchema } from './schemas';
+
+// ✅ Export types from types.ts
+export type UpdateIssueRequest = z.infer<typeof UpdateIssueRequestSchema>;
+export interface UpdateIssueResponse {
+  success: boolean;
+  issue: Issue;
+}
+```
+
+## Rationale
+
+This separation:
+- Keeps runtime schema definitions separate from compile-time type definitions
+- Improves tree-shaking and bundle size
+- Maintains clear separation of concerns
+- Follows established patterns in the codebase
+- Reduces risk of casting types 'as any'
+
+## Note on Evaluations
+
+When adding evaluations (evals) for new tools or workflows, keep them minimal due to their long runtime. Focus only on core use cases rather than comprehensive coverage.

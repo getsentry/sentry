@@ -24,3 +24,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 ```
+
+## Schema Types
+
+When working with schemas and types in TypeScript files, follow the pattern documented in `schema_exports.mdc` - export types from `types.ts` files, not from `schemas.ts` files.
