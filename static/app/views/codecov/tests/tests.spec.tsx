@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import TestsPage from 'sentry/views/codecov/tests/tests';
@@ -22,7 +22,14 @@ const mockApiCall = () =>
   MockApiClient.addMockResponse({
     url: `/prevent/owner/some-org-name/repository/some-repository/test-results/`,
     method: 'GET',
-    body: {data: mockTestResultsData},
+    body: {
+      results: mockTestResultsData,
+      pageInfo: {
+        endCursor: 'sdfgadghsefhaasdfnkjasdf',
+        hasNextPage: true,
+      },
+      totalCount: 1,
+    },
   });
 
 describe('CoveragePageWrapper', () => {
@@ -47,8 +54,15 @@ describe('CoveragePageWrapper', () => {
         }
       );
 
-      const testsAnalytics = await screen.findByText('Test Analytics');
-      expect(testsAnalytics).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('page-filter-integrated-org-selector')
+        ).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('table')).toBeInTheDocument();
+      });
     });
   });
 });

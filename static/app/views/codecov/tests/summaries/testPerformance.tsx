@@ -32,7 +32,7 @@ function AverageFlakeTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>Impact:</ToolTipTitle>
-        The average flake rate on your <strong>main branch</strong>.
+        The average flake rate on your default branch.
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
@@ -48,7 +48,7 @@ function CumulativeFailuresTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>Impact:</ToolTipTitle>
-        The number of test failures on your main branch.
+        The number of test failures on your default branch.
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>

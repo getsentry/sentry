@@ -10,7 +10,14 @@ import {IconInfo, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-const CODECOV_PLACEHOLDER_REPOS = ['test repo 1', 'test-repo-2', 'Sample-two'];
+import {IconRepository} from './iconRepository';
+
+const CODECOV_PLACEHOLDER_REPOS = [
+  'test repo 1',
+  'test-repo-2',
+  'Sample-two',
+  'an-extra-long-repo-name-with-lots-of-words-in-it',
+];
 
 function SyncRepoButton() {
   return (
@@ -39,7 +46,7 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
       <IconInfo size="xs" />
       <span>
         {tct(
-          'Sentry only displays the repos that have given information to. Manage [repoAccessLink] in GitHub.',
+          "Sentry only displays repos you've authorized. Manage [repoAccessLink] in your GitHub settings.",
           {
             // TODO: adjust link when backend gives specific GH installation
             repoAccessLink: <Link to={repoAccessLink}>repo access</Link>,
@@ -106,7 +113,7 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
         trigger ??
         ((triggerProps, isOpen) => {
           const defaultLabel = options.some(item => item.value === repository)
-            ? repository?.toUpperCase()
+            ? repository
             : t('Select Repo');
 
           return (
@@ -116,7 +123,12 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
               {...triggerProps}
             >
               <TriggerLabelWrap>
-                <TriggerLabel>{defaultLabel}</TriggerLabel>
+                <FlexContainer>
+                  <IconContainer>
+                    <IconRepository />
+                  </IconContainer>
+                  <TriggerLabel>{defaultLabel}</TriggerLabel>
+                </FlexContainer>
               </TriggerLabelWrap>
             </DropdownButton>
           );
@@ -157,6 +169,7 @@ const FooterTip = styled('p')`
 const TriggerLabelWrap = styled('span')`
   position: relative;
   min-width: 0;
+  max-width: 200px;
 `;
 
 const TriggerLabel = styled('span')`
@@ -168,4 +181,15 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
+`;
+
+const FlexContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
+const IconContainer = styled('div')`
+  flex: 1 0 14px;
+  height: 14px;
 `;
