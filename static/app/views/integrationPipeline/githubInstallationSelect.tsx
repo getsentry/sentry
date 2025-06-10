@@ -169,7 +169,7 @@ export function GithubInstallationSelect({
   return (
     <Fragment>
       <StyledContainer>
-        <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
+        <StyledHeader>{t('Install on an Existing GitHub Organization')}</StyledHeader>
         <p>
           {t(
             'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
