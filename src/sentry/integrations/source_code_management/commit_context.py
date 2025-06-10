@@ -266,7 +266,7 @@ class CommitContextIntegration(ABC):
                 ),
                 extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
             )
-            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
 
