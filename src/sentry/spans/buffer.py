@@ -477,8 +477,7 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    hrs_key = b"span-buf:hrs:" + segment_key
-                    p.delete(hrs_key)
+                    p.delete(b"span-buf:hrs:" + segment_key)
                     p.unlink(segment_key)
                     p.zrem(flushed_segment.queue_key, segment_key)
 
