@@ -20,8 +20,8 @@ DEFAULT_OPTIONS = {
     "spans.buffer.redis-ttl": 3600,
     "spans.buffer.max-flush-segments": 500,
     "spans.buffer.max-memory-percentage": 1.0,
-    "spans.buffer.flusher.backpressure_seconds": 10,
-    "spans.buffer.flusher.max_unhealthy_seconds": 60,
+    "spans.buffer.flusher.backpressure-seconds": 10,
+    "spans.buffer.flusher.max-unhealthy-seconds": 60,
 }
 
 

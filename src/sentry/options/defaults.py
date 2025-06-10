@@ -2702,13 +2702,13 @@ register(
 )
 # Number of seconds the flusher needs to be saturated before we issue backpressure
 register(
-    "spans.buffer.flusher.backpressure_seconds",
+    "spans.buffer.flusher.backpressure-seconds",
     default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for flusher checkins before the process is killed and restarted
 register(
-    "spans.buffer.flusher.max_unhealthy_seconds",
+    "spans.buffer.flusher.max-unhealthy-seconds",
     default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
