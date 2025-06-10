@@ -52,5 +52,3 @@ const DeleteButton = styled(Button)`
   right: ${space(0.75)};
   opacity: 0;
 `;
-
-export const ICON_SIZE = 24;
