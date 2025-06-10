@@ -58,6 +58,10 @@ class TestResultsEndpoint(CodecovEndpoint):
         parameters=[
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
+            PreventParams.TEST_RESULTS_SORT_BY,
+            PreventParams.TEST_RESULTS_ORDER_BY,
+            PreventParams.INTERVAL,
+            PreventParams.BRANCH,
         ],
         request=None,
         responses={
@@ -70,24 +74,46 @@ class TestResultsEndpoint(CodecovEndpoint):
     def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
-        owner = "codecov"
-        repository = "gazebo"
-        branch = "main"
+        owner_var = owner if owner else "codecov"
+        repository_var = repository if repository else "gazebo"
+
+        order_by = (
+            request.query_params.get("orderBy")
+            if request.query_params.get("orderBy")
+            else OrderingParameter.COMMITS_WHERE_FAIL.value
+        )
+        if order_by.startswith("-"):
+            order_by = order_by[1:]
+            direction = OrderingDirection.DESC.value
+        else:
+            direction = OrderingDirection.ASC.value
 
         variables = {
-            "owner": owner,
-            "repo": repository,
+            "owner": owner_var,
+            "repo": repository_var,
             "filters": {
-                "branch": branch,
+                "branch": (
+                    request.query_params.get("branch")
+                    if request.query_params.get("branch")
+                    else "main"
+                ),
+                "parameter": (
+                    request.query_params.get("sortBy")
+                    if request.query_params.get("sortBy")
+                    else None
+                ),
+                "interval": (
+                    request.query_params.get("interval")
+                    if request.query_params.get("interval")
+                    else MeasurementInterval.INTERVAL_30_DAY.value
+                ),
                 "flags": None,
-                "interval": MeasurementInterval.INTERVAL_30_DAY.value,
-                "parameter": None,
                 "term": None,
                 "test_suites": None,
             },
             "ordering": {
-                "direction": OrderingDirection.DESC.value,
-                "parameter": OrderingParameter.COMMITS_WHERE_FAIL.value,
+                "direction": direction,
+                "parameter": order_by,
             },
             "first": 10,
         }
