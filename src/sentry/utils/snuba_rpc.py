@@ -59,7 +59,7 @@ class MultiRpcResponse:
     timeseries_response: list[TimeSeriesResponse]
 
 
-def log_snuba_info(content):
+def log_snuba_info(content: str) -> None:
     if SNUBA_INFO_FILE:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
