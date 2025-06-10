@@ -57,19 +57,11 @@ export default function AISummary({replayRecord}: Props) {
     }
 
     if (isError || error) {
-      return (
-        <Alert type="error">
-          {t('Failed to load AI summary')}
-        </Alert>
-      );
+      return <Alert type="error">{t('Failed to load AI summary')}</Alert>;
     }
 
     if (!summaryData) {
-      return (
-        <Alert type="info">
-          {t('No summary available for this replay.')}
-        </Alert>
-      );
+      return <Alert type="info">{t('No summary available for this replay.')}</Alert>;
     }
 
     return (

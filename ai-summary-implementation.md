@@ -1,28 +1,37 @@
 # AI Summary Tab Implementation for Replay Details
 
 ## Overview
+
 Added a new "AI Summary" tab to the Replay Details page that is visible only when the `organizations:replay-ai-summaries` feature flag is enabled. The tab is positioned before the Breadcrumbs tab and makes a POST request to `/organizations/{organization_slug}/replays/summary/` to fetch AI-generated summaries.
 
 ## Changes Made
 
 ### 1. Updated TabKey Enum
+
 **File:** `static/app/utils/replays/hooks/useActiveReplayTab.tsx`
+
 - Added `AI_SUMMARY = 'ai-summary'` to the TabKey enum
 - Added `TabKey.AI_SUMMARY` to the `supportedVideoTabs` array to ensure it works for mobile replays
 
 ### 2. Updated FocusTabs Component
+
 **File:** `static/app/views/replays/detail/layout/focusTabs.tsx`
+
 - Added feature flag check for `replay-ai-summaries` in the `getReplayTabs` function
 - The AI Summary tab appears before Breadcrumbs when the feature flag is enabled
 - Added proper TypeScript typing for the Organization parameter
 
 ### 3. Updated FocusArea Component
+
 **File:** `static/app/views/replays/detail/layout/focusArea.tsx`
+
 - Added case for `TabKey.AI_SUMMARY` to render the new `AISummary` component
 - Imported the new `AISummary` component
 
 ### 4. Created AISummary Component
+
 **File:** `static/app/views/replays/detail/aiSummary/index.tsx`
+
 - **Loading State:** Shows `<LoadingIndicator>` while the API request is in flight
 - **Error State:** Shows error alert if the request fails
 - **Success State:** Displays the summary text from the API response
@@ -35,6 +44,7 @@ Added a new "AI Summary" tab to the Replay Details page that is visible only whe
 ## API Integration Details
 
 ### Query Key Structure
+
 ```typescript
 function createAISummaryQueryKey(orgSlug: string, replayId: string): ApiQueryKey {
   return [
@@ -50,6 +60,7 @@ function createAISummaryQueryKey(orgSlug: string, replayId: string): ApiQueryKey
 ```
 
 ### useApiQuery Configuration
+
 ```typescript
 const {data, isLoading, isError} = useApiQuery<SummaryResponse>(
   createAISummaryQueryKey(organization.slug, replayRecord?.id ?? ''),
@@ -61,11 +72,13 @@ const {data, isLoading, isError} = useApiQuery<SummaryResponse>(
 ```
 
 ### Endpoint
+
 ```
 POST /organizations/{organization_slug}/replays/summary/
 ```
 
 ### Request Body
+
 ```json
 {
   "replayId": "replay-id-here"
@@ -73,6 +86,7 @@ POST /organizations/{organization_slug}/replays/summary/
 ```
 
 ### Expected Response
+
 ```json
 {
   "summary": "AI-generated summary text here"
@@ -102,6 +116,7 @@ POST /organizations/{organization_slug}/replays/summary/
 ## Testing
 
 The implementation includes:
+
 - Data test ID: `replay-details-ai-summary-tab` for automated testing
 - Proper error handling for API failures
 - Loading states for better UX

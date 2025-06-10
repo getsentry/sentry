@@ -19,7 +19,9 @@ function getReplayTabs({
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
-    [TabKey.AI_SUMMARY]: organization.features.includes('replay-ai-summaries') ? t('AI Summary') : null,
+    [TabKey.AI_SUMMARY]: organization.features.includes('replay-ai-summaries')
+      ? t('AI Summary')
+      : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
