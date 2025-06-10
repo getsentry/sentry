@@ -265,6 +265,20 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response3.data} == {detector.name, detector2.name}
 
+    def test_empty_query(self):
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector 1", type=MetricIssue.slug
+        )
+        detector2 = self.create_detector(
+            project_id=self.project.id, name="Test Detector 2", type=ErrorGroupType.slug
+        )
+
+        # Empty query should return all detectors
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": ""}
+        )
+        assert {d["name"] for d in response.data} == {detector.name, detector2.name}
+
 
 @region_silo_test
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
@@ -437,3 +451,20 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_empty_query_string(self):
+        data = {**self.valid_data}
+        data["dataSource"]["query"] = ""
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+
+        assert query_sub.snuba_query.query == ""
