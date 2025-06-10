@@ -94,6 +94,12 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
           };
         }
       );
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
       addSuccessMessage('On it.');
     },
     onError: () => {
