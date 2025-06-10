@@ -41,7 +41,6 @@ interface Result {
   attachments: unknown[];
   errors: ReplayError[];
   fetchError: undefined | RequestError;
-  // fetching: boolean;
   isError: boolean;
   isPending: boolean;
   onRetry: () => void;
