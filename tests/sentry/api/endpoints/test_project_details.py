@@ -1941,7 +1941,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         get_response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
-        assert "dynamicSamplingMinimumSampleRate" not in get_response.data
+        assert not get_response.data["dynamicSamplingMinimumSampleRate"]
 
     @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self):
