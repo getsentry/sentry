@@ -85,16 +85,18 @@ class TestResultsEndpoint(CodecovEndpoint):
             if request.query_params.get("orderBy")
             else OrderingParameter.COMMITS_WHERE_FAIL.value
         )
-        if order_by.startswith("-"):
+
+        if order_by and order_by.startswith("-"):
             order_by = order_by[1:]
             direction = OrderingDirection.DESC.value
         else:
             direction = OrderingDirection.ASC.value
 
-        first = (
-            int(request.query_params.get("first")) if request.query_params.get("first") else None
-        )
-        last = int(request.query_params.get("last")) if request.query_params.get("last") else None
+        first_param = request.query_params.get("first")
+        last_param = request.query_params.get("last")
+
+        first = int(first_param) if first_param else None
+        last = int(last_param) if last_param else None
 
         if not first and not last:
             first = 20
