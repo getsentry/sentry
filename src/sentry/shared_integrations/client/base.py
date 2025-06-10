@@ -99,17 +99,21 @@ class BaseApiClient:
             tags={self.integration_type: self.name, "status": code},
         )
 
-        if options.get("integrations.http-response.logs"):
-            log_params = {
-                **(extra or {}),
-                "status_string": str(code),
-                "error": str(error)[:256] if error else None,
-            }
-            if self.integration_type:
-                log_params[self.integration_type] = self.name
+        log_params = {
+            **(extra or {}),
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
+        }
+        if self.integration_type:
+            log_params[self.integration_type] = self.name
 
-            log_params.update(getattr(self, "logging_context", None) or {})
+        log_params.update(getattr(self, "logging_context", None) or {})
+        # If the option is enabled, log for all status codes
+        if options.get("integrations.http-response.logs"):
             self.logger.info("%s.http_response", self.integration_type, extra=log_params)
+        # Else only log for 400+ status codes
+        elif int(code) >= 400:
+            self.logger.warning("%s.http_response", self.integration_type, extra=log_params)
 
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"
