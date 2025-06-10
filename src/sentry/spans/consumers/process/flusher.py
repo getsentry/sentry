@@ -67,7 +67,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
             target = run_with_initialized_sentry(
-                "sentry.spans.consumers.process.flusher.main",
+                SpanFlusher.main,
                 # unpickling buffer will import sentry, so it needs to be
                 # pickled separately. at the same time, pickling
                 # synchronization primitives like multiprocessing.Value can
@@ -76,7 +76,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             )
             make_process = self.mp_context.Process
         else:
-            target = partial(main, self.buffer)
+            target = partial(SpanFlusher.main, self.buffer)
             make_process = threading.Thread
 
         self.process = make_process(
@@ -262,6 +262,3 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         if isinstance(self.process, multiprocessing.Process):
             self.process.terminate()
-
-
-main = SpanFlusher.main

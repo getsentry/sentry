@@ -195,20 +195,22 @@ def run_task_with_multiprocessing(
         return ArroyoRunTaskWithMultiprocessing(pool=pool.pool, function=function, **kwargs)
 
 
-def _import_and_run(initializer: Callable[[], None], import_path: str, args_pickle: bytes, *args):
+def _import_and_run(
+    initializer: Callable[[], None], main_fn_pickle: bytes, args_pickle: bytes, *additional_args
+):
     initializer()
 
     # explicitly use pickle so that we can be sure arguments get unpickled
     # after sentry gets initialized
-    pickle_args = pickle.loads(args_pickle)
+    main_fn = pickle.loads(main_fn_pickle)
+    args = pickle.loads(args_pickle)
 
-    from sentry.utils.imports import import_string
-
-    import_string(import_path)(*pickle_args, *args)
+    main_fn(*args, *additional_args)
 
 
-def run_with_initialized_sentry(import_path: str, *args):
+def run_with_initialized_sentry(main_fn: Callable[..., None], *args):
+    main_fn_pickle = pickle.dumps(main_fn)
     args_pickle = pickle.dumps(args)
     return partial(
-        _import_and_run, _get_arroyo_subprocess_initializer(None), import_path, args_pickle
+        _import_and_run, _get_arroyo_subprocess_initializer(None), main_fn_pickle, args_pickle
     )
