@@ -11,7 +11,7 @@ type Geo = Record<string, string>;
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
-export type ReplayRecord = {
+export type HydratedReplayRecord = {
   /**
    * Number that represents how much user activity happened in a replay.
    */
@@ -62,7 +62,7 @@ export type ReplayRecord = {
    * When deleted the rrweb data & attachments are removed from blob storage,
    * but the record of the replay is not removed.
    */
-  is_archived: boolean;
+  is_archived: false;
   os: {
     name: null | string;
     version: null | string;
@@ -98,6 +98,94 @@ export type ReplayRecord = {
    */
   count_rage_clicks?: number;
 };
+export type ArchivedReplayRecord = {
+  /**
+   * Number that represents how much user activity happened in a replay.
+   */
+  activity: null;
+  browser: {
+    name: null;
+    version: null;
+  };
+  /**
+   * The number of errors associated with the replay.
+   */
+  count_errors: null;
+  /**
+   * The number of segments that make up the replay.
+   */
+  count_segments: null;
+  /**
+   * The number of urls visited in the replay.
+   */
+  count_urls: null;
+  device: {
+    brand: null;
+    family: null;
+    model_id: null;
+    name: null;
+  };
+  dist: null;
+  /**
+   * Difference of `finished_at` and `started_at` in seconds.
+   */
+  duration: null;
+  environment: null;
+  error_ids: never[];
+  /**
+   * The **latest** timestamp received as determined by the SDK.
+   */
+  finished_at: null;
+  /**
+   * Whether the currently authenticated user has seen this replay or not.
+   */
+  has_viewed: null;
+  /**
+   * The ID of the Replay instance
+   */
+  id: string;
+  /**
+   * Whether the replay was deleted.
+   * When deleted the rrweb data & attachments are removed from blob storage,
+   * but the record of the replay is not removed.
+   */
+  is_archived: true;
+  os: {
+    name: null;
+    version: null;
+  };
+  platform: null;
+  project_id: null;
+  releases: never[];
+  sdk: {
+    name: null;
+    version: null;
+  };
+  /**
+   * The **earliest** timestamp received as determined by the SDK.
+   */
+  started_at: null;
+  tags: Record<string, string[]>;
+  trace_ids: never[];
+  urls: never[];
+  user: {
+    display_name: 'Archived User';
+    email: null;
+    id: 'Archived User';
+    ip: null;
+    username: null;
+    geo?: Geo;
+  };
+  /**
+   * The number of dead clicks associated with the replay.
+   */
+  count_dead_clicks?: null;
+  /**
+   * The number of rage clicks associated with the replay.
+   */
+  count_rage_clicks?: null;
+};
+export type ReplayRecord = HydratedReplayRecord | ArchivedReplayRecord;
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
 export type ReplayRecordNestedFieldName =
