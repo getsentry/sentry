@@ -49,7 +49,7 @@ export function useTraceRootEvent({
       : isTraceError(rep.event) || isEAPError(rep.event);
 
   const isEAPTraceEnabled = useIsEAPTraceEnabled();
-  const isEAPEnabled =
+  const isEAPQueryEnabled =
     !isRepEventError && // Errors are not supported in EAP yet
     (isEAPTraceEnabled || (!treeIsLoading && hasOnlyLogs));
 
@@ -65,7 +65,7 @@ export function useTraceRootEvent({
     {
       // 10 minutes
       staleTime: 1000 * 60 * 10,
-      enabled: enabledBase && !isEAPEnabled,
+      enabled: enabledBase && !isEAPQueryEnabled,
     }
   );
 
@@ -86,8 +86,8 @@ export function useTraceRootEvent({
     traceId,
     traceItemType: rep?.type === 'log' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS,
     referrer: 'api.explore.log-item-details',
-    enabled: enabledBase && isEAPEnabled,
+    enabled: enabledBase && isEAPQueryEnabled,
   });
 
-  return isEAPEnabled ? rootEvent : legacyRootEvent;
+  return isEAPQueryEnabled ? rootEvent : legacyRootEvent;
 }
