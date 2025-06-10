@@ -107,8 +107,8 @@ class DatabaseBackedAppService(AppService):
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
         installations = (
-            SentryAppInstallation.objects.using_replica()
-            .get_installed_for_organization(organization_id)
+            SentryAppInstallation.objects.get_installed_for_organization(organization_id)
+            .using_replica()
             .select_related("sentry_app", "api_token")
         )
         fq = self._AppServiceFilterQuery()
@@ -301,9 +301,9 @@ class DatabaseBackedAppService(AppService):
         return serialize_sentry_app_installation(installation, sentry_app)
 
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
-        return SentryAppInstallationToken.objects.using_replica().get_token(
+        return SentryAppInstallationToken.objects.get_token(
             organization_id, provider
-        )
+        ).using_replica()
 
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
