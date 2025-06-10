@@ -140,7 +140,7 @@ export default function ChartWithIssues(props: Props) {
                       <TimeSeriesWidgetVisualization
                         {...props}
                         id={id}
-                        releases={hideReleaseLines ? [] : releases ?? []}
+                        releases={hideReleaseLines ? [] : (releases ?? [])}
                         plottables={plottables}
                         legendSelection={legendSelection}
                       />
