@@ -120,7 +120,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             "last": last,
         }
 
-        client = CodecovApiClient(git_provider_org="codecov")
+        client = CodecovApiClient(git_provider_org=owner)
         graphql_response = client.query(query=query, variables=variables)
 
         test_results = TestResultSerializer().to_representation(graphql_response.json())
