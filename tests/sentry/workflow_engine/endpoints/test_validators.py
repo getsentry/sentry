@@ -131,7 +131,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             validator = self.validator_class()
             with pytest.raises(
                 ValidationError,
-                match="[ErrorDetail(string='Unknown detector type', code='invalid')]",
+                match="[ErrorDetail(string='Unknown detector type 'unknown_type'. Must be one of: error', code='invalid')]",
             ):
                 validator.validate_detector_type("unknown_type")
 
@@ -233,7 +233,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         validator = MockDetectorValidator(data={**self.valid_data, "detectorType": "unknown_type"})
         assert not validator.is_valid()
         assert validator.errors.get("detectorType") == [
-            ErrorDetail(string="Unknown detector type", code="invalid")
+            ErrorDetail(string="Unknown detector type 'unknown_type'", code="invalid")
         ], validator.errors
 
     def test_validate_detector_type_incompatible(self):
