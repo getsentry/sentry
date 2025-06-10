@@ -170,23 +170,16 @@ export function addWildcardToToken(
   isStartsWith: boolean,
   isEndsWith: boolean
 ) {
-  const addToFront = isContains || isEndsWith;
-  const addToBack = isContains || isStartsWith;
-
-  let newTokenText = token.text;
-  if (addToFront && token.quoted && !token.text.slice(1).startsWith('*')) {
-    newTokenText = `"*${newTokenText.slice(1)}`;
-  } else if (addToFront && !token.quoted && !token.text.startsWith('*')) {
-    newTokenText = `*${newTokenText}`;
+  let newTokenValue = token.value;
+  if ((isContains || isEndsWith) && !token.value.startsWith('*')) {
+    newTokenValue = `*${newTokenValue}`;
   }
 
-  if (addToBack && token.quoted && !token.text.slice(0, -1).endsWith('*')) {
-    newTokenText = `${newTokenText.slice(0, -1)}*"`;
-  } else if (addToBack && !token.quoted && !token.text.endsWith('*')) {
-    newTokenText = `${newTokenText}*`;
+  if ((isContains || isStartsWith) && !token.value.endsWith('*')) {
+    newTokenValue = `${newTokenValue}*`;
   }
 
-  return newTokenText;
+  return newTokenValue;
 }
 
 export function removeWildcardFromToken(
@@ -195,23 +188,16 @@ export function removeWildcardFromToken(
   isStartsWith: boolean,
   isEndsWith: boolean
 ) {
-  const removeFromFront = !isEndsWith && !isContains;
-  const removeFromBack = !isStartsWith && !isContains;
-
-  let newTokenText = token.text;
-  if (removeFromFront && token.quoted && token.text.slice(1).startsWith('*')) {
-    newTokenText = `"${newTokenText.slice(2)}`;
-  } else if (removeFromFront && !token.quoted && token.text.startsWith('*')) {
-    newTokenText = newTokenText.slice(1);
+  let newTokenValue = token.value;
+  if (!isEndsWith && !isContains && token.value.startsWith('*')) {
+    newTokenValue = newTokenValue.slice(1);
   }
 
-  if (removeFromBack && token.quoted && token.text.slice(0, -1).endsWith('*')) {
-    newTokenText = `${newTokenText.slice(0, -2)}"`;
-  } else if (removeFromBack && !token.quoted && token.text.endsWith('*')) {
-    newTokenText = newTokenText.slice(0, -1);
+  if (!isStartsWith && !isContains && token.value.endsWith('*')) {
+    newTokenValue = newTokenValue.slice(0, -1);
   }
 
-  return newTokenText;
+  return newTokenValue;
 }
 
 function modifyFilterOperatorQuery(
@@ -245,35 +231,33 @@ function modifyFilterOperatorQuery(
   const isEndsWith = newOperator === WildcardOperators.ENDS_WITH;
 
   if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT) {
-    newToken.value.text = addWildcardToToken(
+    newToken.value.value = addWildcardToToken(
       newToken.value,
       isContains,
       isStartsWith,
       isEndsWith
     );
-    newToken.value.text = removeWildcardFromToken(
+    newToken.value.value = removeWildcardFromToken(
       newToken.value,
       isContains,
       isStartsWith,
       isEndsWith
     );
-    newToken.value.value = newToken.value.text;
   } else if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT_LIST) {
     newToken.value.items.forEach(item => {
       if (!item.value) return;
-      item.value.text = addWildcardToToken(
+      item.value.value = addWildcardToToken(
         item.value,
         isContains,
         isStartsWith,
         isEndsWith
       );
-      item.value.text = removeWildcardFromToken(
+      item.value.value = removeWildcardFromToken(
         item.value,
         isContains,
         isStartsWith,
         isEndsWith
       );
-      item.value.value = item.value.text;
     });
   }
 
