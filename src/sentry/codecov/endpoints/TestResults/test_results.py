@@ -77,9 +77,6 @@ class TestResultsEndpoint(CodecovEndpoint):
     def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
-        owner_var = owner if owner else "codecov"
-        repository_var = repository if repository else "gazebo"
-
         order_by = request.query_params.get("orderBy", OrderingParameter.COMMITS_WHERE_FAIL.value)
 
         if order_by and order_by.startswith("-"):
@@ -103,8 +100,8 @@ class TestResultsEndpoint(CodecovEndpoint):
             )
 
         variables = {
-            "owner": owner_var,
-            "repo": repository_var,
+            "owner": owner,
+            "repo": repository,
             "filters": {
                 "branch": request.query_params.get("branch", "main"),
                 "parameter": request.query_params.get("sortBy"),
