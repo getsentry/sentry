@@ -90,10 +90,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         )
 
-    def get_equation_list(self, organization: Organization, request: Request) -> list[str]:
+    def get_equation_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         return [
-            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+            strip_equation(field)
+            for field in request.GET.getlist(param_name)[:]
+            if is_equation(field)
         ]
 
     def get_field_list(
