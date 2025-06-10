@@ -70,7 +70,7 @@ def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> b
     # small segment ranges being requested anyway.
     #
     # Leaving it in the iterator form in the hopes one day we can stream it.
-    request_data = get_request_data(iter_segment_data(segments))
+    request_data = {"data": get_request_data(iter_segment_data(segments))}
 
     # I have to deserialize this request so it can be automatically reserialized by the paginate
     # method. This is less than ideal.
@@ -83,7 +83,7 @@ def make_seer_request(request_data: str) -> bytes:
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs",
         data=request_data,
         headers={
-            "content-type": "text/plain;charset=utf-8",
+            "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(request_data.encode()),
         },
     )
