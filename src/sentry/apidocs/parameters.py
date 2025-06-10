@@ -1093,3 +1093,18 @@ Available fields are:
 - `SKIPPED_TESTS`
         """,
     )
+    FIRST = OpenApiParameter(
+        name="first",
+        location="query",
+        required=False,
+        type=int,
+        default=20,
+        description="""The number of results to return from the start of the list.""",
+    )
+    LAST = OpenApiParameter(
+        name="last",
+        location="query",
+        required=False,
+        type=int,
+        description="""The number of results to return from the end of the list.""",
+    )

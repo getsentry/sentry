@@ -62,6 +62,8 @@ class TestResultsEndpoint(CodecovEndpoint):
             PreventParams.TEST_RESULTS_ORDER_BY,
             PreventParams.INTERVAL,
             PreventParams.BRANCH,
+            PreventParams.FIRST,
+            PreventParams.LAST,
         ],
         request=None,
         responses={
@@ -87,6 +89,14 @@ class TestResultsEndpoint(CodecovEndpoint):
             direction = OrderingDirection.DESC.value
         else:
             direction = OrderingDirection.ASC.value
+
+        first = (
+            int(request.query_params.get("first")) if request.query_params.get("first") else None
+        )
+        last = int(request.query_params.get("last")) if request.query_params.get("last") else None
+
+        if not first and not last:
+            first = 20
 
         variables = {
             "owner": owner_var,
@@ -115,7 +125,8 @@ class TestResultsEndpoint(CodecovEndpoint):
                 "direction": direction,
                 "parameter": order_by,
             },
-            "first": 10,
+            "first": first,
+            "last": last,
         }
 
         client = CodecovApiClient(git_provider_org="codecov")

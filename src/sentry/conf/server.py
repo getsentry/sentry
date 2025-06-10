@@ -3701,7 +3701,7 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # Base URL for Codecov API. Override if developing against a local instance
 # of Codecov.
 # Stage: "https://stage-api.codecov.dev/"
-CODECOV_API_BASE_URL = "https://stage-api.codecov.dev/"
+CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
