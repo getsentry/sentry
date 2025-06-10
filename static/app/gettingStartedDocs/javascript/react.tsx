@@ -326,7 +326,7 @@ logger.fatal("Database connection pool exhausted", {
   activeConnections: 100,
 });
 \`\`\`
-      `,
+`,
     }),
   ],
   verify: () => [
