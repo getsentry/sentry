@@ -74,6 +74,7 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry import options
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.utils import metrics, redis
 
@@ -121,9 +122,8 @@ class Span(NamedTuple):
 
     def effective_parent_id(self):
         # Note: For the case where the span's parent is in another project, we
-        # will still flush the segment-without-root-span as one unit, just
-        # after span_buffer_timeout_secs rather than
-        # span_buffer_root_timeout_secs.
+        # will still flush the segment-without-root-span as one unit, just after
+        # `timeout` rather than `root-timeout` seconds.
         if self.is_segment_span:
             return self.span_id
         else:
@@ -140,25 +140,8 @@ class FlushedSegment(NamedTuple):
 
 
 class SpansBuffer:
-    def __init__(
-        self,
-        assigned_shards: list[int],
-        span_buffer_timeout_secs: int = 60,
-        span_buffer_root_timeout_secs: int = 10,
-        segment_page_size: int = 100,
-        max_segment_bytes: int = 10 * 1024 * 1024,  # 10 MiB
-        max_segment_spans: int = 1001,
-        max_flush_segments: int = 500,
-        redis_ttl: int = 3600,
-    ):
+    def __init__(self, assigned_shards: list[int]):
         self.assigned_shards = list(assigned_shards)
-        self.span_buffer_timeout_secs = span_buffer_timeout_secs
-        self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
-        self.segment_page_size = segment_page_size
-        self.max_segment_bytes = max_segment_bytes
-        self.max_segment_spans = max_segment_spans
-        self.max_flush_segments = max_flush_segments
-        self.redis_ttl = redis_ttl
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
 
@@ -168,19 +151,7 @@ class SpansBuffer:
 
     # make it pickleable
     def __reduce__(self):
-        return (
-            SpansBuffer,
-            (
-                self.assigned_shards,
-                self.span_buffer_timeout_secs,
-                self.span_buffer_root_timeout_secs,
-                self.segment_page_size,
-                self.max_segment_bytes,
-                self.max_segment_spans,
-                self.max_flush_segments,
-                self.redis_ttl,
-            ),
-        )
+        return (SpansBuffer, (self.assigned_shards,))
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
@@ -191,6 +162,10 @@ class SpansBuffer:
         :param now: The current time to be used for setting expiration/flush
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
+
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        timeout = options.get("spans.buffer.timeout")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
         result_meta = []
         is_root_span_count = 0
@@ -223,7 +198,7 @@ class SpansBuffer:
                         len(subsegment),
                         parent_span_id,
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
-                        self.redis_ttl,
+                        redis_ttl,
                         *[span.span_id for span in subsegment],
                     )
 
@@ -253,9 +228,9 @@ class SpansBuffer:
                 # already had a root span inside, use a different timeout than
                 # usual.
                 if has_root_span:
-                    offset = self.span_buffer_root_timeout_secs
+                    offset = root_timeout
                 else:
-                    offset = self.span_buffer_timeout_secs
+                    offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
@@ -271,7 +246,7 @@ class SpansBuffer:
                 for queue_key, adds in queue_adds.items():
                     if adds:
                         p.zadd(queue_key, adds)
-                        p.expire(queue_key, self.redis_ttl)
+                        p.expire(queue_key, redis_ttl)
 
                 for queue_key, deletes in queue_deletes.items():
                     if deletes:
@@ -352,7 +327,8 @@ class SpansBuffer:
 
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
-        max_segments_per_shard = math.ceil(self.max_flush_segments / shard_factor)
+        max_flush_segments = options.get("spans.buffer.max-flush-segments")
+        max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
@@ -435,6 +411,10 @@ class SpansBuffer:
         :return: Dictionary mapping segment keys to lists of span payloads.
         """
 
+        page_size = options.get("spans.buffer.segment-page-size")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_segment_spans = options.get("spans.buffer.max-segment-spans")
+
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
@@ -443,14 +423,14 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 current_keys = []
                 for key, cursor in cursors.items():
-                    p.sscan(key, cursor=cursor, count=self.segment_page_size)
+                    p.sscan(key, cursor=cursor, count=page_size)
                     current_keys.append(key)
 
                 results = p.execute()
 
             for key, (cursor, spans) in zip(current_keys, results):
                 sizes[key] += sum(len(span) for span in spans)
-                if sizes[key] > self.max_segment_bytes:
+                if sizes[key] > max_segment_bytes:
                     metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
                     logger.warning("Skipping too large segment, byte size %s", sizes[key])
 
@@ -459,7 +439,7 @@ class SpansBuffer:
                     continue
 
                 payloads[key].extend(spans)
-                if len(payloads[key]) > self.max_segment_spans:
+                if len(payloads[key]) > max_segment_spans:
                     metrics.incr("spans.buffer.flush_segments.segment_span_count_exceeded")
                     logger.warning("Skipping too large segment, span count %s", len(payloads[key]))
 
