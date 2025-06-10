@@ -5,7 +5,6 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -78,7 +77,6 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
 
     try:
         # We aren't using the version bits currently.
-        body = orjson.dumps(orjson.loads(body))
         _, signature_data = signature.split(":", 2)
 
         signature_input = body
