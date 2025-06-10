@@ -6,6 +6,14 @@ alwaysApply: false
 
 # Python tests
 
+## Available Rule Files
+
+This workspace has several rule files available to provide specific guidance:
+
+- **python_tests**: Guidelines for writing Python tests (this file)
+- **tsx_tests**: Rules and guidelines for running *.spec.tsx tests and writing React tests
+
+For information about adding new tools, prompts, or extending these guidelines, consult the team leads or refer to the workspace documentation.
 
 ## Use factories instead of directly calling `Model.objects.create`
 

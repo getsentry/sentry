@@ -4,6 +4,17 @@ globs: *.spec.tsx
 alwaysApply: false
 ---
 
+# TSX Tests and React Testing
+
+## Available Rule Files
+
+This workspace has several rule files available to provide specific guidance:
+
+- **python_tests**: Guidelines for writing Python tests
+- **tsx_tests**: Rules and guidelines for running *.spec.tsx tests and writing React tests (this file)
+
+For information about adding new tools, prompts, or extending these guidelines, consult the team leads or refer to the workspace documentation.
+
 # Running *.spec.tsx tests
 
 Please run tests with command: CI=true pnpm test
