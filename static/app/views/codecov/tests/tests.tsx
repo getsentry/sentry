@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
+import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
@@ -24,15 +26,17 @@ export default function TestsPage() {
 
   return (
     <LayoutGap>
-      <p>Test Analytics</p>
-      <PageFilterBar condensed>
-        <IntegratedOrgSelector />
-        <RepoPicker />
-        <DatePicker />
-      </PageFilterBar>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
-      <TestAnalyticsTable response={response} sort={sorts[0]} />
+      <CodecovQueryParamsProvider>
+        <PageFilterBar condensed>
+          <IntegratedOrgSelector />
+          <RepoPicker />
+          <BranchSelector />
+          <DatePicker />
+        </PageFilterBar>
+        {/* TODO: Conditionally show these if the branch we're in is the main branch */}
+        <Summaries />
+        <TestAnalyticsTable response={response} sort={sorts[0]} />
+      </CodecovQueryParamsProvider>
     </LayoutGap>
   );
 }

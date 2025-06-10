@@ -2012,12 +2012,15 @@ function buildRoutes() {
             component={make(() => import('sentry/views/codecov/tests/tests'))}
           />
         </Route>
-
-        {/* Render tests onboarding without any layout wrapping */}
+        {/* Render tests onboarding with layout wrapper */}
         <Route
           path="new/"
-          component={make(() => import('sentry/views/codecov/tests/onboarding'))}
-        />
+          component={make(() => import('sentry/views/codecov/tests/testsWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tests/onboarding'))}
+          />
+        </Route>
       </Route>
       <Route path="tokens/">
         <Route
