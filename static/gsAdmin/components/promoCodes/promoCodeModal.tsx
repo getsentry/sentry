@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect, useRef, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -21,6 +21,20 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
+// Define proper interface for form data
+interface PromoCodeFormData {
+  code: string;
+  duration: string;
+  isTrialPromo: boolean;
+  maxClaims: string;
+  newOnly: boolean;
+  setExpiration: boolean;
+  amount?: string;
+  campaign?: string;
+  dateExpires?: string;
+  trialDays?: string;
+}
+
 type Props = ModalRenderProps & {
   onSubmit?: (promoCode: PromoCode) => void;
   promoCode?: PromoCode;
@@ -42,32 +56,46 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
   const navigate = useNavigate();
   const [isDateToggleEnabled, setIsDateToggleEnabled] = useState(false);
   const [isTrialPromo, setIsTrialPromo] = useState(false);
-  const [initialFormData, setInitialFormData] = useState<any>(null);
-  const formRef = useRef<any>(null);
+  const [initialFormData, setInitialFormData] = useState<PromoCodeFormData | null>(null);
+  const [currentCode, setCurrentCode] = useState<string>('');
 
   // Generate a default code for new promo codes
   useEffect(() => {
     if (promoCode) {
-      setInitialFormData(promoCode);
+      const formData: PromoCodeFormData = {
+        code: promoCode.code,
+        campaign: promoCode.campaign || undefined,
+        duration: promoCode.duration || '1',
+        amount: promoCode.amount?.toString() || undefined,
+        trialDays: promoCode.trialDays?.toString() || undefined,
+        maxClaims: promoCode.maxClaims?.toString() || '',
+        isTrialPromo: Boolean(promoCode.trialDays),
+        newOnly: promoCode.newOnly || false,
+        setExpiration: Boolean(promoCode.dateExpires),
+        dateExpires: promoCode.dateExpires || undefined,
+      };
+      setInitialFormData(formData);
+      setCurrentCode(promoCode.code);
     } else {
       const defaultCode = generatePromoCode();
-      setInitialFormData({duration: '1', setExpiration: false, code: defaultCode});
+      const formData: PromoCodeFormData = {
+        code: defaultCode,
+        duration: '1',
+        maxClaims: '',
+        isTrialPromo: false,
+        newOnly: false,
+        setExpiration: false,
+      };
+      setInitialFormData(formData);
+      setCurrentCode(defaultCode);
     }
   }, [promoCode]);
 
   const handleGenerateCode = () => {
     const newCode = generatePromoCode();
-    setInitialFormData((prev: any) => ({...prev, code: newCode}));
-
-    // Update the form field if the form ref is available
-    if (formRef.current) {
-      const codeInput = formRef.current.querySelector('input[name="code"]');
-      if (codeInput) {
-        codeInput.value = newCode;
-        // Trigger a change event to update the form state
-        const event = new Event('input', {bubbles: true});
-        codeInput.dispatchEvent(event);
-      }
+    setCurrentCode(newCode);
+    if (initialFormData) {
+      setInitialFormData(prev => (prev ? {...prev, code: newCode} : null));
     }
   };
 
@@ -113,6 +141,8 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
               placeholder="e.g. mysecretcode79"
               help="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
               minLength={5}
+              value={currentCode}
+              onChange={setCurrentCode}
               required
             />
             {!promoCode && (
