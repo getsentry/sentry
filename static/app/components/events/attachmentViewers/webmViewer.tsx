@@ -6,14 +6,19 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 
 interface WebMViewerProps
-  extends Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'> {}
+  extends Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
+    Partial<Pick<HTMLVideoElement, 'controls'>> {
+  onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
+}
 
-export function WebMViewer(props: WebMViewerProps) {
+export function WebMViewer({controls = true, onCanPlay, ...props}: WebMViewerProps) {
   return (
     <PanelItem>
       <video
-        controls
+        onCanPlay={onCanPlay}
+        controls={controls}
         css={css`
+          width: 100%;
           max-width: 100%;
         `}
       >
