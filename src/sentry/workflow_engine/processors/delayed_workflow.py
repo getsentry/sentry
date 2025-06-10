@@ -574,7 +574,9 @@ def process_delayed_workflows(
         },
     )
 
-    condition_group_results = get_condition_group_results(condition_groups)
+    with metrics.timer("workflow_engine.delayed_workflow.get_condition_group_results"):
+        condition_group_results = get_condition_group_results(condition_groups)
+
     logger.info(
         "delayed_workflow.condition_group_results",
         extra={
