@@ -1769,6 +1769,9 @@ EAP_FUNCTIONS = [
     "max",
     "min",
     "sum",
+    "epm",
+    "failure_rate",
+    "eps",
 ]
 
 
