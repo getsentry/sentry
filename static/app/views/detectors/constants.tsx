@@ -1,6 +1,6 @@
 import {FieldValueType} from 'sentry/utils/fields';
 
-export const DETECTOR_LIST_PAGE_LIMIT = 25;
+export const DETECTOR_LIST_PAGE_LIMIT = 20;
 
 export const DETECTOR_FILTER_KEYS: Record<
   string,
