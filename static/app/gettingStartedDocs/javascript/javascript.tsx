@@ -14,7 +14,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getAIRulesForCursorOrWindsurfStep,
+  getAIRulesForCodeEditorStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
@@ -306,7 +306,7 @@ const getInstallConfig = () => [
   },
 ];
 
-const getVerifyConfig = (params: Params) => [
+const getVerifyConfig = () => [
   {
     type: StepType.VERIFY,
     description: t(
@@ -325,151 +325,142 @@ const getVerifyConfig = (params: Params) => [
       },
     ],
   },
-  getAIRulesForCursorOrWindsurfStep({
-    // ATTENTION: The rules defined here must match those in the documentation (see: https://github.com/getsentry/sentry-docs/blob/master/platform-includes/llm-rules-platform/_default.mdx)
-    // If you make any changes, please update the docs accordingly.
-    rules: [
-      '// These are the rules for AI on how to use Sentry for Javascript.',
-      '// These rules cover error tracking, performance tracing, and logging.',
-      '',
-      'These examples should be used as guidance when configuring Sentry functionality within a project.',
-      '',
-      '# Error / Exception Tracking',
-      '// Use `Sentry.captureException(error)` to capture and log exceptions in Sentry.',
-      'Use `Sentry.captureException(error)` to capture an exception and log the error in Sentry.',
-      '// Best practice: use in try-catch blocks or where exceptions are anticipated.',
-      'Use this in try catch blocks or areas where exceptions are expected',
-      '',
-      '# Tracing Examples',
-      '// Spans should be created for meaningful operations to trace performance.',
-      'Spans should be created for meaningful actions within an applications like button clicks, API calls, and function calls',
-      '// Use `Sentry.startSpan` to create spans.',
-      'Use the `Sentry.startSpan` function to create a span',
-      '// Spans can be nested.',
-      'Child spans can exist within a parent span',
-      '',
-      '## Custom Span instrumentation in component actions',
-      '// Provide meaningful names and operations for custom spans.',
-      'Name custom spans with meaningful names and operations.',
-      '// Attach relevant data as attributes to spans.',
-      'Attach attributes based on relevant information and metrics from the request',
-      '',
-      '```javascript',
-      'function TestComponent() {',
-      '  const handleTestButtonClick = () => {',
-      '    // Create a transaction/span to measure performance',
-      '    Sentry.startSpan(',
-      '      {',
-      '        op: "ui.click",',
-      '        name: "Test Button Click",',
-      '      },',
-      '      (span) => {',
-      '        const value = "some config";',
-      '        const metric = "some metric";',
-      '',
-      '        // Metrics can be added to the span',
-      '        span.setAttribute("config", value);',
-      '        span.setAttribute("metric", metric);',
-      '',
-      '        doSomething();',
-      '      },',
-      '    );',
-      '  };',
-      '',
-      '  return (',
-      '    <button type="button" onClick={handleTestButtonClick}>',
-      '      Test Sentry',
-      '    </button>',
-      '  );',
-      '}',
-      '```',
-      '',
-      '## Custom span instrumentation in API calls',
-      '// Name custom spans with meaningful names and operations.',
-      'Name custom spans with meaningful names and operations.',
-      '// Attach attributes based on relevant information and metrics from the request',
-      'Attach attributes based on relevant information and metrics from the request',
-      '',
-      '```javascript',
-      'async function fetchUserData(userId) {',
-      '  return Sentry.startSpan(',
-      '    {',
-      '      op: "http.client",',
-      '      name: `GET /api/users/${userId}`,',
-      '    },',
-      '    async () => {',
-      '      const response = await fetch(`/api/users/${userId}`);',
-      '      const data = await response.json();',
-      '      return data;',
-      '    },',
-      '  );',
-      '}',
-      '```',
-      '',
-      '# Logs',
-      '// To use logging, first import Sentry.',
-      'Where logs are used, ensure Sentry is imported using `import * as Sentry from "@sentry/browser"`',
-      '// Enable logging via the `enableLogs` experiment in `Sentry.init`.',
-      'Enable logging in Sentry using `Sentry.init({ _experiments: { enableLogs: true } })`',
-      '// Access the logger from the Sentry object.',
-      'Reference the logger using `const { logger } = Sentry`',
-      '// The `consoleLoggingIntegration` can automatically capture console messages as Sentry logs.',
-      'Sentry offers a `consoleLoggingIntegration` that can be used to log specific console error types automatically without instrumenting the individual logger calls',
-      '',
-      '## Configuration',
-      '',
-      '### Baseline',
-      '// Minimal configuration to enable Sentry logging.',
-      '```javascript',
-      'import * as Sentry from "@sentry/browser";',
-      '',
-      'Sentry.init({',
-      `  dsn: "${params.dsn.public}",`,
-      '',
-      '  _experiments: {',
-      '    enableLogs: true,',
-      '  },',
-      '});',
-      '```',
-      '',
-      '### Logger Integration',
-      '// Configuration for sending console messages to Sentry.',
-      '```javascript',
-      'Sentry.init({',
-      `  dsn: "${params.dsn.public}",`,
-      '  integrations: [',
-      '    // send console.log, console.error, and console.warn calls as logs to Sentry',
-      '    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),',
-      '  ],',
-      '});',
-      '```',
-      '',
-      '## Logger Examples',
-      '// Examples of using the Sentry logger with different log levels.',
-      '```javascript',
-      'import * as Sentry from "@sentry/browser";',
-      '',
-      'const { logger } = Sentry;',
-      '',
-      'logger.trace("Starting database connection", { database: "users" });',
-      'logger.debug("Cache miss for user", { userId: 123 });',
-      'logger.info("Updated profile", { profileId: 345 });',
-      'logger.warn("Rate limit reached for endpoint", {',
-      '  endpoint: "/api/results/",',
-      '  isEnterprise: false,',
-      '});',
-      'logger.error("Failed to process payment", {',
-      '  orderId: "order_123",',
-      '  amount: 99.99,',
-      '});',
-      'logger.fatal("Database connection pool exhausted", {',
-      '  database: "users",',
-      '  activeConnections: 100,',
-      '});',
-      '```',
-    ].join('\n'),
-  }),
 ];
+
+const getAiRulesConfig = (params: Params) =>
+  getAIRulesForCodeEditorStep({
+    rules: `
+These examples should be used as guidance when configuring Sentry functionality within a project.
+
+# Error / Exception Tracking
+
+Use \`Sentry.captureException(error)\` to capture an exception and log the error in Sentry.
+Use this in try catch blocks or areas where exceptions are expected
+
+# Tracing Examples
+
+Spans should be created for meaningful actions within an applications like button clicks, API calls, and function calls
+Use the \`Sentry.startSpan\` function to create a span
+Child spans can exist within a parent span
+
+## Custom Span instrumentation in component actions
+
+Name custom spans with meaningful names and operations.
+Attach attributes based on relevant information and metrics from the request
+
+\`\`\`javascript
+function TestComponent() {
+  const handleTestButtonClick = () => {
+    // Create a transaction/span to measure performance
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Test Button Click",
+      },
+      (span) => {
+        const value = "some config";
+        const metric = "some metric";
+
+        // Metrics can be added to the span
+        span.setAttribute("config", value);
+        span.setAttribute("metric", metric);
+
+        doSomething();
+      },
+    );
+  };
+
+  return (
+    <button type="button" onClick={handleTestButtonClick}>
+      Test Sentry
+    </button>
+  );
+}
+\`\`\`
+
+## Custom span instrumentation in API calls
+
+Name custom spans with meaningful names and operations.
+Attach attributes based on relevant information and metrics from the request
+
+\`\`\`javascript
+async function fetchUserData(userId) {
+  return Sentry.startSpan(
+    {
+      op: "http.client",
+      name: \`GET /api/users/\${userId}\`,
+    },
+    async () => {
+      const response = await fetch(\`/api/users/\${userId}\`);
+      const data = await response.json();
+      return data;
+    },
+  );
+}
+\`\`\`
+
+# Logs
+
+Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/browser"\`
+Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Reference the logger using \`const { logger } = Sentry\`
+Sentry offers a \`consoleLoggingIntegration\` that can be used to log specific console error types automatically without instrumenting the individual logger calls
+
+## Configuration
+
+### Baseline
+
+\`\`\`javascript
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+
+  _experiments: {
+    enableLogs: true,
+  },
+});
+\`\`\`
+
+### Logger Integration
+
+\`\`\`javascript
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // send console.log, console.error, and console.warn calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+  ],
+});
+\`\`\`
+
+## Logger Examples
+
+\`logger.fmt\` is a template literal function that should be used to bring variables into the structured logs.
+
+\`\`\`javascript
+import * as Sentry from "@sentry/browser";
+
+const { logger } = Sentry;
+
+logger.trace("Starting database connection", { database: "users" });
+logger.debug(logger.fmt\`Cache miss for user: \${userId}\`);
+logger.info("Updated profile", { profileId: 345 });
+logger.warn("Rate limit reached for endpoint", {
+  endpoint: "/api/results/",
+  isEnterprise: false,
+});
+logger.error("Failed to process payment", {
+  orderId: "order_123",
+  amount: 99.99,
+});
+logger.fatal("Database connection pool exhausted", {
+  database: "users",
+  activeConnections: 100,
+});
+\`\`\`
+`,
+  });
 
 const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
@@ -553,8 +544,9 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         }
       },
     },
+    getAiRulesConfig(params),
   ],
-  verify: params => getVerifyConfig(params),
+  verify: () => getVerifyConfig(),
   nextSteps: () => [
     {
       id: 'source-maps',
@@ -642,14 +634,148 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
         ...(params.isProfilingSelected
           ? [getProfilingDocumentHeaderConfigurationStep()]
           : []),
+        getAiRulesConfig(params),
       ],
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       ...params,
     }),
+    getAIRulesForCodeEditorStep({
+      rules: `
+These examples should be used as guidance when configuring Sentry functionality within a project.
+
+# Error / Exception Tracking
+
+Use \`Sentry.captureException(error)\` to capture an exception and log the error in Sentry.
+Use this in try catch blocks or areas where exceptions are expected
+
+# Tracing Examples
+
+Spans should be created for meaningful actions within an applications like button clicks, API calls, and function calls
+Use the \`Sentry.startSpan\` function to create a span
+Child spans can exist within a parent span
+
+## Custom Span instrumentation in component actions
+
+Name custom spans with meaningful names and operations.
+Attach attributes based on relevant information and metrics from the request
+
+\`\`\`javascript
+function TestComponent() {
+  const handleTestButtonClick = () => {
+    // Create a transaction/span to measure performance
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Test Button Click",
+      },
+      (span) => {
+        const value = "some config";
+        const metric = "some metric";
+
+        // Metrics can be added to the span
+        span.setAttribute("config", value);
+        span.setAttribute("metric", metric);
+
+        doSomething();
+      },
+    );
+  };
+
+  return (
+    <button type="button" onClick={handleTestButtonClick}>
+      Test Sentry
+    </button>
+  );
+}
+\`\`\`
+
+## Custom span instrumentation in API calls
+
+Name custom spans with meaningful names and operations.
+Attach attributes based on relevant information and metrics from the request
+
+\`\`\`javascript
+async function fetchUserData(userId) {
+  return Sentry.startSpan(
+    {
+      op: "http.client",
+      name: \`GET /api/users/\${userId}\`,
+    },
+    async () => {
+      const response = await fetch(\`/api/users/\${userId}\`);
+      const data = await response.json();
+      return data;
+    },
+  );
+}
+\`\`\`
+
+# Logs
+
+Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/browser"\`
+Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Reference the logger using \`const { logger } = Sentry\`
+Sentry offers a \`consoleLoggingIntegration\` that can be used to log specific console error types automatically without instrumenting the individual logger calls
+
+## Configuration
+
+### Baseline
+
+\`\`\`javascript
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: "https://examplePublicKey@o0.ingest.sentry.io/0",
+
+  _experiments: {
+    enableLogs: true,
+  },
+});
+\`\`\`
+
+### Logger Integration
+
+\`\`\`javascript
+Sentry.init({
+  dsn: "https://examplePublicKey@o0.ingest.sentry.io/0",
+  integrations: [
+    // send console.log, console.error, and console.warn calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
   ],
-  verify: params => getVerifyConfig(params),
+});
+\`\`\`
+
+## Logger Examples
+
+\`logger.fmt\` is a template literal function that should be used to bring variables into the structured logs.
+
+\`\`\`javascript
+import * as Sentry from "@sentry/browser";
+
+const { logger } = Sentry;
+
+logger.trace("Starting database connection", { database: "users" });
+logger.debug(logger.fmt\`Cache miss for user: \${userId}\`);
+logger.info("Updated profile", { profileId: 345 });
+logger.warn("Rate limit reached for endpoint", {
+  endpoint: "/api/results/",
+  isEnterprise: false,
+});
+logger.error("Failed to process payment", {
+  orderId: "order_123",
+  amount: 99.99,
+});
+logger.fatal("Database connection pool exhausted", {
+  database: "users",
+  activeConnections: 100,
+});
+\`\`\`
+`,
+    }),
+  ],
+  verify: () => getVerifyConfig(),
   nextSteps: () => [],
   onPageLoad: params => {
     return () => {
