@@ -37,6 +37,7 @@ def check_autofix_status(run_id: int):
 
 @instrumented_task(
     name="sentry.tasks.autofix.start_seer_automation",
+    queue="seer.seer_automation",
     max_retries=1,
     time_limit=30,
     soft_time_limit=25,
