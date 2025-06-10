@@ -103,7 +103,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
 
 
 def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
-    if not options.get("standalone-spans.process-segments-consumer.enable"):
+    if not options.get("spans.process-segments.consumer.enable"):
         return []
 
     try:

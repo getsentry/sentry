@@ -430,13 +430,13 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             click.Option(
                 ["--max-flush-segments", "max_flush_segments"],
                 type=int,
-                default=100,
-                help="The number of segments to download from redis at once. Defaults to 100.",
+                default=500,
+                help="DEPRECATED. Use option `spans.buffer.max-flush-segments` instead.",
             ),
             click.Option(
                 ["--max-memory-percentage", "max_memory_percentage"],
                 default=1.0,
-                help="Maximum memory usage of the Redis cluster in % (0.0-1.0) before the consumer backpressures.",
+                help="DEPRECATED. Use option `spans.buffer.max-memory-percentage` instead.",
             ),
             *multiprocessing_options(default_max_batch_size=100),
         ],

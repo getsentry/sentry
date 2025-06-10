@@ -35,19 +35,17 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        max_flush_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
-        max_memory_percentage: float = 1.0,
+        max_memory_percentage: float = -1,  # DEPRECATED
+        max_flush_segments: int = -1,  # DEPRECATED
     ):
         super().__init__()
 
         # config
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.max_flush_segments = max_flush_segments
-        self.max_memory_percentage = max_memory_percentage
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
@@ -65,19 +63,14 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         committer = CommitOffsets(commit)
 
-        buffer = SpansBuffer(
-            assigned_shards=[p.index for p in partitions],
-            max_flush_segments=self.max_flush_segments,
-        )
+        buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
 
         # patch onto self just for testing
         flusher: ProcessingStrategy[FilteredPayload | int]
-
         flusher = self._flusher = SpanFlusher(
             buffer,
-            max_memory_percentage=self.max_memory_percentage,
-            produce_to_pipe=self.produce_to_pipe,
             next_step=committer,
+            produce_to_pipe=self.produce_to_pipe,
         )
 
         if self.num_processes != 1:
@@ -143,7 +136,7 @@ def process_batch(
             partition_id = value.committable[next(iter(value.committable))]
 
         if killswitches.killswitch_matches_context(
-            "standalone-spans.drop-in-buffer",
+            "spans.drop-in-buffer",
             {
                 "org_id": val.get("organization_id"),
                 "project_id": val.get("project_id"),
