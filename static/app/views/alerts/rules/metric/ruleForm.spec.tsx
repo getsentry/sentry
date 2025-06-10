@@ -82,6 +82,10 @@ describe('Incident Rules Form', () => {
       body: {count: 5},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {},
     });
@@ -412,6 +416,57 @@ describe('Incident Rules Form', () => {
         })
       );
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('switches to failure rate with eap data with the right feature flag', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'visibility-explore-view',
+        'performance-transaction-deprecation-alerts',
+      ];
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: [],
+          aggregate: 'count(span.duration)',
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        },
+      });
+
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Failure Rate'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'failure_rate()',
+            alertType: 'trace_item_failure_rate',
+            comparisonDelta: null,
+            dataset: 'events_analytics_platform',
+            detectionType: 'static',
+            environment: null,
+            eventTypes: ['trace_item_span'],
+            id: undefined,
+            name: 'My Incident Rule',
+            owner: undefined,
+            projectId: '2',
+            projects: ['project-slug'],
+            query: '',
+            queryType: 1,
+            resolveThreshold: 36,
+            status: 0,
+            thresholdPeriod: 1,
+            thresholdType: 0,
+            timeWindow: 60,
+          }),
+        })
+      );
     });
   });
 

@@ -70,6 +70,7 @@ import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -200,7 +201,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -224,6 +225,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
       : (rule.query ?? '');
+
+    const alertType = getAlertTypeFromAggregateDataset({
+      aggregate,
+      dataset,
+      organization,
+    });
 
     return {
       ...super.getDefaultState(),
@@ -255,7 +262,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      alertType,
     };
   }
 
@@ -547,7 +554,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {projects} = this.props;
+    const {projects, organization} = this.props;
     const {timeWindow, chartError} = this.state;
     if (chartError) {
       this.setState({chartError: false, chartErrorMessage: undefined});
@@ -600,9 +607,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           this.state.query
         );
 
+        if (deprecateTransactionAlerts(organization)) {
+          const newAlertType = getAlertTypeFromAggregateDataset({
+            aggregate: name === 'aggregate' ? (value as string) : aggregate,
+            dataset,
+            organization,
+          });
+
+          return {
+            [name]: value,
+            alertType: newAlertType,
+            dataset,
+          };
+        }
+
         const newAlertType = getAlertTypeFromAggregateDataset({
           aggregate,
           dataset,
+          organization,
         });
 
         return {
