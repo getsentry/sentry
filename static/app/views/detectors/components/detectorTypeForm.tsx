@@ -9,7 +9,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment} from 'sentry/types/project';
