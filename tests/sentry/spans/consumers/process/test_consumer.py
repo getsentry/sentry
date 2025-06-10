@@ -20,7 +20,6 @@ def test_basic(monkeypatch):
         max_batch_size=10,
         max_batch_time=10,
         num_processes=1,
-        max_flush_segments=10,
         input_block_size=None,
         output_block_size=None,
         produce_to_pipe=messages.append,

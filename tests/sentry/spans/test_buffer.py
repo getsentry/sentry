@@ -9,6 +9,20 @@ import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
 from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
+from sentry.testutils.helpers.options import override_options
+
+DEFAULT_OPTIONS = {
+    "spans.buffer.timeout": 60,
+    "spans.buffer.root-timeout": 10,
+    "spans.buffer.segment-page-size": 100,
+    "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
+    "spans.buffer.max-segment-spans": 1001,
+    "spans.buffer.redis-ttl": 3600,
+    "spans.buffer.max-flush-segments": 500,
+    "spans.buffer.max-memory-percentage": 1.0,
+    "spans.buffer.flusher.backpressure-seconds": 10,
+    "spans.buffer.flusher.max-unhealthy-seconds": 60,
+}
 
 
 def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
@@ -20,7 +34,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
-    return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+    return f"span-buf:s:{{0}}:{project_id}:{trace_id}:{span_id}".encode("ascii")
 
 
 def _payload(span_id: bytes) -> bytes:
@@ -47,17 +61,18 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
 
 @pytest.fixture(params=["cluster", "single"])
 def buffer(request):
-    if request.param == "cluster":
-        from sentry.testutils.helpers.redis import use_redis_cluster
+    with override_options(DEFAULT_OPTIONS):
+        if request.param == "cluster":
+            from sentry.testutils.helpers.redis import use_redis_cluster
 
-        with use_redis_cluster("default"):
-            buf = SpansBuffer(assigned_shards=list(range(32)))
-            # since we patch the default redis cluster only temporarily, we
-            # need to clean it up ourselves.
-            buf.client.flushall()
-            yield buf
-    else:
-        yield SpansBuffer(assigned_shards=list(range(32)))
+            with use_redis_cluster("default"):
+                buf = SpansBuffer(assigned_shards=list(range(32)))
+                # since we patch the default redis cluster only temporarily, we
+                # need to clean it up ourselves.
+                buf.client.flushall()
+                yield buf
+        else:
+            yield SpansBuffer(assigned_shards=list(range(32)))
 
 
 def assert_ttls(client: StrictRedis[bytes]):
@@ -118,6 +133,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
@@ -125,6 +141,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -132,6 +149,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -139,6 +157,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -183,6 +202,7 @@ def test_basic(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -191,6 +211,7 @@ def test_basic(buffer: SpansBuffer, spans):
                 ),
                 _SplitBatch(),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -198,6 +219,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
@@ -206,6 +228,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -249,6 +272,7 @@ def test_deep(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
@@ -256,6 +280,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -263,6 +288,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -270,6 +296,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -277,6 +304,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"a" * 16),
                     trace_id="a" * 32,
                     span_id="a" * 16,
@@ -322,6 +350,7 @@ def test_deep2(buffer: SpansBuffer, spans):
         itertools.permutations(
             [
                 Span(
+                    partition=0,
                     payload=_payload(b"c" * 16),
                     trace_id="a" * 32,
                     span_id="c" * 16,
@@ -329,6 +358,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
                     span_id="d" * 16,
@@ -336,6 +366,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"e" * 16),
                     trace_id="a" * 32,
                     span_id="e" * 16,
@@ -343,6 +374,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     project_id=1,
                 ),
                 Span(
+                    partition=0,
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
                     span_id="b" * 16,
@@ -394,6 +426,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
     shallow_permutations(
         [
             Span(
+                partition=0,
                 payload=_payload(b"c" * 16),
                 trace_id="a" * 32,
                 span_id="c" * 16,
@@ -402,6 +435,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 is_segment_span=True,
             ),
             Span(
+                partition=0,
                 payload=_payload(b"d" * 16),
                 trace_id="a" * 32,
                 span_id="d" * 16,
@@ -409,6 +443,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 project_id=1,
             ),
             Span(
+                partition=0,
                 payload=_payload(b"e" * 16),
                 trace_id="a" * 32,
                 span_id="e" * 16,
@@ -416,6 +451,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
                 project_id=1,
             ),
             Span(
+                partition=0,
                 payload=_payload(b"b" * 16),
                 trace_id="a" * 32,
                 span_id="b" * 16,
@@ -470,6 +506,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
 def test_flush_rebalance(buffer: SpansBuffer):
     spans = [
         Span(
+            partition=0,
             payload=_payload(b"a" * 16),
             trace_id="a" * 32,
             span_id="a" * 16,

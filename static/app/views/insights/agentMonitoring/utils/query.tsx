@@ -26,10 +26,15 @@ const AI_GENERATION_DESCRIPTIONS = [
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool', 'ai.toolCall'];
+const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
+const AI_TOOL_CALL_DESCRIPTIONS = ['ai.toolCall'];
 
 const AI_OPS = [...AI_RUN_OPS, ...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS];
-const AI_DESCRIPTIONS = [...AI_RUN_DESCRIPTIONS, ...AI_GENERATION_DESCRIPTIONS];
+const AI_DESCRIPTIONS = [
+  ...AI_RUN_DESCRIPTIONS,
+  ...AI_GENERATION_DESCRIPTIONS,
+  ...AI_TOOL_CALL_DESCRIPTIONS,
+];
 
 export const AI_MODEL_ID_ATTRIBUTE = 'ai.model.id' as EAPSpanProperty;
 export const AI_TOOL_NAME_ATTRIBUTE = 'ai.toolCall.name' as EAPSpanProperty;
@@ -63,15 +68,15 @@ export function getIsAiSpan({
 }
 
 export const getAgentRunsFilter = () => {
-  return `span.op:[${AI_RUN_OPS.join(',')}] or span.description:[${AI_RUN_DESCRIPTIONS.join(',')}]`;
+  return `(span.op:[${AI_RUN_OPS.join(',')}] or span.description:[${AI_RUN_DESCRIPTIONS.join(',')}])`;
 };
 
 export const getAIGenerationsFilter = () => {
-  return `span.op:[${AI_GENERATION_OPS.join(',')}] or span.description:[${AI_GENERATION_DESCRIPTIONS.join(',')}]`;
+  return `(span.op:[${AI_GENERATION_OPS.join(',')}] or span.description:[${AI_GENERATION_DESCRIPTIONS.join(',')}])`;
 };
 
 export const getAIToolCallsFilter = () => {
-  return `span.description:[${AI_TOOL_CALL_OPS.join(',')}]`;
+  return `(span.op:[${AI_TOOL_CALL_OPS.join(',')}] or span.description:[${AI_TOOL_CALL_DESCRIPTIONS.join(',')}])`;
 };
 
 export const getAITracesFilter = () => {

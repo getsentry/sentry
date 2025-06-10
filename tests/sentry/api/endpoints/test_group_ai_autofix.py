@@ -50,7 +50,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "profile" not in response.data["autofix"]["request"]
         assert "issue_summary" not in response.data["autofix"]["request"]
 
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id, check_repo_access=True, is_user_fetching=False
+        )
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_without_autofix(
@@ -65,7 +67,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["autofix"] is None
 
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id, check_repo_access=True, is_user_fetching=False
+        )
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
@@ -650,7 +654,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify cache behavior - cache miss should trigger repo access check
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=self.group.id, check_repo_access=True
+            group_id=self.group.id, check_repo_access=True, is_user_fetching=False
         )
 
         # Verify the cache was set with a 60-second timeout
@@ -681,7 +685,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify cache behavior - cache hit should skip repo access check
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=self.group.id, check_repo_access=False
+            group_id=self.group.id, check_repo_access=False, is_user_fetching=False
         )
 
         # Verify the cache was not set again
@@ -713,7 +717,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Verify first request behavior
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id, check_repo_access=True, is_user_fetching=False
+        )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
 
         # Reset mocks for second request
@@ -728,7 +734,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Verify second request behavior
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=False)
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id, check_repo_access=False, is_user_fetching=False
+        )
         mock_cache.set.assert_not_called()
 
         # Reset mocks for third request
@@ -743,5 +751,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Verify third request behavior - should be like the first request
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
-        mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id, check_repo_access=True, is_user_fetching=False
+        )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)

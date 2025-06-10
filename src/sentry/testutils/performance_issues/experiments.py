@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
+from sentry.performance_issues.performance_detection import DETECTOR_CLASSES
 from sentry.testutils.cases import TestCase
-from sentry.utils.performance_issues.performance_detection import DETECTOR_CLASSES
 
 
 def exclude_experimental_detectors(cls: type[TestCase]):
@@ -20,7 +20,7 @@ def exclude_experimental_detectors(cls: type[TestCase]):
 
     def exclude_experimental_detectors_setUp(self, *args, **kwargs):
         self.patch_detector_classes = patch(
-            "sentry.utils.performance_issues.performance_detection.DETECTOR_CLASSES",
+            "sentry.performance_issues.performance_detection.DETECTOR_CLASSES",
             [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],
         )
         self.patch_detector_classes.start()
