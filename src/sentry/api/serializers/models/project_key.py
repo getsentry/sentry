@@ -27,6 +27,7 @@ class DSN(TypedDict):
     unreal: str
     crons: str
     cdn: str
+    playstation: str
 
 
 class BrowserSDK(TypedDict):
@@ -94,6 +95,7 @@ class ProjectKeySerializer(Serializer):
                 "unreal": obj.unreal_endpoint,
                 "crons": obj.crons_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
+                "playstation": obj.playstation_endpoint,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},

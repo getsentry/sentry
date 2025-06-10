@@ -25,6 +25,21 @@ class ListProjectKeysTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["public"] == key.public_key
 
+    def test_playstation_dsn(self):
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data[0]["dsn"]["playstation"] == key.playstation_endpoint
+
     def test_use_case(self):
         """Regular user can access user DSNs but not internal DSNs"""
         project = self.create_project()
