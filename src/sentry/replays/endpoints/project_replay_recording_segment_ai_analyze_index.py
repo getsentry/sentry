@@ -28,7 +28,7 @@ from sentry.utils import json
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
+class ProjectReplayRecordingSegmentAiAnalysisIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
