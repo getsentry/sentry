@@ -243,10 +243,14 @@ class CommitContextIntegration(ABC):
             organization=project.organization,
             project=project,
             commit=commit,
-            group_id=group_id,
         ).capture() as lifecycle:
             repo: Repository = repo_query.get()
-            lifecycle.add_extra("repository_id", repo.id)
+            lifecycle.add_extras(
+                {
+                    "repository_id": repo.id,
+                    "group_id": group_id,
+                }
+            )
 
             logger.info(
                 _pr_comment_log(
