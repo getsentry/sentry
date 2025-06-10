@@ -1,6 +1,5 @@
 import uuid
 import zlib
-from collections import namedtuple
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -9,8 +8,6 @@ from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import PROMPT
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.testutils.cases import TransactionTestCase
 from sentry.utils import json
-
-Message = namedtuple("Message", ["project_id", "replay_id"])
 
 
 # have to use TransactionTestCase because we're using threadpools
