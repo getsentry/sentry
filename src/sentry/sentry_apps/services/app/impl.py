@@ -301,15 +301,15 @@ class DatabaseBackedAppService(AppService):
         return serialize_sentry_app_installation(installation, sentry_app)
 
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
-        return SentryAppInstallationToken.objects.get_token(
+        return SentryAppInstallationToken.objects.using_replica().get_token(
             organization_id, provider
-        ).using_replica()
+        )
 
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
         try:
-            install = SentryAppInstallation.objects.get(uuid=install_uuid)
+            install = SentryAppInstallation.objects.using_replica().get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
             return RpcAlertRuleActionResult(
                 success=False,
