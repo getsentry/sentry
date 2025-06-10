@@ -13,7 +13,6 @@ from django.utils import autoreload
 
 import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
-from sentry.conf.server import TASKWORKER_SCHEDULES
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 
@@ -267,8 +266,10 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
+        enabled_schedules = set(options.get("taskworker.scheduler.rollout", []))
         for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            runner.add(key, schedule_data)
+            if key in enabled_schedules:
+                runner.add(key, schedule_data)
 
         runner.log_startup()
         while True:
@@ -487,7 +488,7 @@ def cron(**options: Any) -> None:
 
     old_schedule = app.conf.CELERYBEAT_SCHEDULE
     new_schedule = {}
-    task_schedules = set(TASKWORKER_SCHEDULES.keys())
+    task_schedules = set(options.get("taskworker.scheduler.rollout", []))
     for key, schedule_data in old_schedule.items():
         if key not in task_schedules:
             new_schedule[key] = schedule_data
