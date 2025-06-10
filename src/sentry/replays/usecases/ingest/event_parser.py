@@ -325,7 +325,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
         case EventType.DEAD_CLICK:
             return f"User clicked on {event["data"]["payload"]['message']} but the triggered action was slow to complete at {timestamp}"
         case EventType.RAGE_CLICK:
-            return f"User rage clicked on {event["data"]["payload"]['message']} but no action occurred at {timestamp}"
+            return f"User rage clicked on {event["data"]["payload"]['message']} but the triggered action was slow to complete at {timestamp}"
         case EventType.NAVIGATION:
             return f'User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}'
         case EventType.CONSOLE:

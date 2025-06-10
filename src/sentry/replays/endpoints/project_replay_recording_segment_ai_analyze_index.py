@@ -97,6 +97,11 @@ def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> b
     # Leaving it in the iterator form in the hopes one day we can stream it.
     request_data = get_request_data(iter_segment_data(segments))
 
+    # Moving the Seer code to another function to make mocking easier :\
+    return make_seer_request(request_data)
+
+
+def make_seer_request(request_data: str) -> bytes:
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs",
         data=request_data,

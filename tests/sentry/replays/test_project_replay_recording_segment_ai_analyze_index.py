@@ -4,13 +4,8 @@ from collections import namedtuple
 
 from django.urls import reverse
 
-from sentry.replays.endpoints.project_replay_recording_segment_ai_analyze_index import (
-    PROMPT,
-    get_request_data,
-)
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils import json
 
 Message = namedtuple("Message", ["project_id", "replay_id"])
@@ -42,22 +37,6 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
     def test_index_download_basic_compressed(self):
-        for i in range(0, 3):
-            self.save_recording_segment(i, f'[{{"test":"hello {i}"}}]'.encode())
-
-        with self.feature("organizations:session-replay"):
-            response = self.client.get(self.url + "?download=true")
-
-        assert response.status_code == 200
-        assert response.get("Content-Type") == "application/json"
-        assert (
-            b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]'
-            == close_streaming_response(response)
-        )
-
-
-def test_get_request_data():
-    def x():
         data = [
             {
                 "type": 5,
@@ -104,8 +83,13 @@ def test_get_request_data():
                 },
             },
         ]
+        self.save_recording_segment(0, json.dumps(data).encode())
 
-        return json.dumps(data).encode()
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url)
 
-    request_data = get_request_data(x())
-    assert request_data == PROMPT + "hello\n" + ", world!\n"
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.content == (
+            b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]'
+        )
