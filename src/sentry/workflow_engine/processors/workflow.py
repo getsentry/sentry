@@ -290,23 +290,30 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     """
     try:
         detector = get_detector_by_event(event_data)
+        organization = detector.project.organization
+        # set the detector / org information asap, this is used in `get_environment_by_event` as well.
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=detector,
+                organization=organization,
+            )
+        )
     except Detector.DoesNotExist:
         return set()
 
     try:
         environment = get_environment_by_event(event_data)
+
+        # Set the full context now that we've gotten everything.
+        WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=detector,
+                environment=environment,
+                organization=organization,
+            )
+        )
     except Environment.DoesNotExist:
         return set()
-
-    organization = detector.project.organization
-
-    WorkflowEventContext.set(
-        WorkflowEventContextData(
-            detector=detector,
-            environment=environment,
-            organization=organization,
-        )
-    )
 
     workflows = _get_associated_workflows(detector, environment, event_data)
     if not workflows:
