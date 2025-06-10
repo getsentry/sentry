@@ -97,10 +97,12 @@ describe('useReplayData', () => {
         attachments: expect.any(Array),
         errors: expect.any(Array),
         fetchError: undefined,
-        fetching: false,
+        isError: false,
+        isPending: false,
         onRetry: expect.any(Function),
         projectSlug: project.slug,
         replayRecord: expectedReplay,
+        status: 'success',
       })
     );
   });
@@ -454,10 +456,12 @@ describe('useReplayData', () => {
       attachments: [],
       errors: [],
       fetchError: undefined,
-      fetching: true,
+      isError: true,
+      isPending: true,
       onRetry: expect.any(Function),
       projectSlug: null,
       replayRecord: undefined,
+      status: 'error',
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made
