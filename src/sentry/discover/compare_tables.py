@@ -107,6 +107,12 @@ def compare_tables_for_dashboard_widget_queries(
     )
 
     if len(list(projects)) == 0:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.NO_PROJECT.value)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.NO_PROJECT,
@@ -118,6 +124,13 @@ def compare_tables_for_dashboard_widget_queries(
 
     fields = widget_query.fields
     if len(fields) == 0:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("passed", False)
+            scope.set_tag("failed_reason", CompareTableResult.NO_FIELDS.value)
+            scope.set_tag("widget_fields", fields)
+            sentry_sdk.capture_message(
+                "dashboard_widget_comparison_done", level="info", scope=scope
+            )
         return {
             "passed": False,
             "reason": CompareTableResult.NO_FIELDS,
