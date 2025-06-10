@@ -72,7 +72,9 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
 
   return (
     <EnvWithStatus>
-      <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
+      <Tooltip skipWrapper showOnlyOnOverflow title={name}>
+        <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
+      </Tooltip>
       <Tooltip disabled={!label} title={label} skipWrapper>
         {icon}
       </Tooltip>
