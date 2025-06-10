@@ -186,7 +186,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.uuid_patcher.stop()
         self.sm_comp_patcher.stop()
 
-    def create_detector_and_condition(self, type: str | None = None):
+    def create_detector_and_conditions(self, type: str | None = None):
         if type is None:
             type = "handler_with_state"
         self.project = self.create_project()
@@ -195,19 +195,19 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             workflow_condition_group=self.create_data_condition_group(),
             type=type,
         )
-        data_condition = self.create_data_condition(
+        self.create_data_condition(
             type=Condition.GREATER,
             comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,
         )
-        return detector, data_condition
+        return detector
 
     def build_handler(
         self, detector: Detector | None = None, detector_type=None
     ) -> MockDetectorStateHandler:
         if detector is None:
-            detector, _ = self.create_detector_and_condition(detector_type)
+            detector = self.create_detector_and_conditions(detector_type)
         return MockDetectorStateHandler(detector)
 
     def assert_updates(
