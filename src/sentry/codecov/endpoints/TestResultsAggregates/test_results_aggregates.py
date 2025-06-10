@@ -1,5 +1,3 @@
-from enum import Enum
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,12 +13,7 @@ from sentry.codecov.endpoints.TestResultsAggregates.query import query
 from sentry.codecov.endpoints.TestResultsAggregates.serializers import (
     TestResultAggregatesSerializer,
 )
-
-
-class MeasurementInterval(Enum):
-    INTERVAL_30_DAY = "INTERVAL_30_DAY"
-    INTERVAL_7_DAY = "INTERVAL_7_DAY"
-    INTERVAL_1_DAY = "INTERVAL_1_DAY"
+from sentry.codecov.enums import MeasurementInterval
 
 
 @extend_schema(tags=["Prevent"])
@@ -31,12 +24,8 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    # Disable pagination requirement for this endpoint
-    def has_pagination(self, response):
-        return False
-
     @extend_schema(
-        operation_id="Retrieve test results aggregates for a given repository and owner",
+        operation_id="Retrieves aggregated test result metrics for a given repository and owner",
         parameters=[
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
@@ -50,7 +39,10 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
         },
     )
     def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
-        """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
+        """
+        Retrieves aggregated test result metrics for a given repository and owner.
+        Also accepts a query parameter to specify the time period for the metrics.
+        """
 
         owner = "codecov"
         repository = "gazebo"
