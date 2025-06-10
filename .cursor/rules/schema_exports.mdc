@@ -1,11 +1,11 @@
 # Schema Type Exports
 
-## Export schema types from types.ts, not schemas.ts
+## Export TypeScript types from types.ts, not schemas.ts
 
-When working with schema definitions and their corresponding TypeScript types, follow this pattern:
+When working with schema definitions and their corresponding TypeScript types, follow this separation pattern:
 
-- **schemas.ts**: Contains only the schema definitions (e.g., Zod schemas, JSON schemas, validation schemas)
-- **types.ts**: Contains and exports the TypeScript type definitions derived from or related to those schemas
+- **schemas.ts**: Contains only the schema definitions (e.g., Zod schemas, JSON schemas, validation schemas) - NO type exports
+- **types.ts**: Contains and exports ALL TypeScript type definitions, including those derived from schemas
 
 ### ❌ Incorrect - Exporting types from schemas.ts
 ```typescript
@@ -25,9 +25,9 @@ export interface UpdateIssueResponse {
 }
 ```
 
-### ✅ Correct - Exporting types from adjacent types.ts
+### ✅ Correct - Keep schemas separate from types
 ```typescript
-// schemas.ts
+// schemas.ts - ONLY schema definitions
 import { z } from 'zod';
 
 export const UpdateIssueRequestSchema = z.object({
@@ -35,11 +35,10 @@ export const UpdateIssueRequestSchema = z.object({
   assignedTo: z.string().optional(),
 });
 
-// types.ts
+// types.ts - ALL type definitions
 import type { z } from 'zod';
 import type { UpdateIssueRequestSchema } from './schemas';
 
-// ✅ Export types from types.ts
 export type UpdateIssueRequest = z.infer<typeof UpdateIssueRequestSchema>;
 export interface UpdateIssueResponse {
   success: boolean;
@@ -47,15 +46,13 @@ export interface UpdateIssueResponse {
 }
 ```
 
-## Rationale
+## Key Principles
 
-This separation:
-- Keeps runtime schema definitions separate from compile-time type definitions
-- Improves tree-shaking and bundle size
-- Maintains clear separation of concerns
-- Follows established patterns in the codebase
-- Reduces risk of casting types 'as any'
+1. **schemas.ts files export ONLY schemas** - no `export type` or `export interface`
+2. **types.ts files export ALL types** - including schema-derived types
+3. **Avoid 'as any' casts** - proper type separation reduces the need for unsafe casting
+4. **Import types with `import type`** when importing from schemas for type derivation
 
-## Note on Evaluations
+## Evaluations (Evals)
 
-When adding evaluations (evals) for new tools or workflows, keep them minimal due to their long runtime. Focus only on core use cases rather than comprehensive coverage.
+Keep evaluations minimal due to their long runtime. Focus only on core use cases rather than comprehensive coverage.
