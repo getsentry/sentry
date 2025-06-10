@@ -9,4 +9,5 @@ export interface FlagDrawerItem extends GroupTag {
     baselinePercent: undefined | number;
     score: undefined | number;
   };
+  changes?: unknown[];
 }
