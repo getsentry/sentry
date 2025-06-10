@@ -260,10 +260,10 @@ const AttachmentComponentWrapper = styled('div')`
   :hover {
     cursor: pointer;
   }
-  && > * {
+  & > * {
     width: 100%;
     z-index: 1;
     border: 0;
-    padding: 0;
+    padding: 0 !important;
   }
 `;
