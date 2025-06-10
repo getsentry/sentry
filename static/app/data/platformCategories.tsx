@@ -521,6 +521,7 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
   'react-native',
+  'flutter',
   ...replayFrontendPlatforms,
 ];
 
@@ -545,7 +546,6 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'flutter',
   'java',
   'java-log4j2',
   'java-logback',

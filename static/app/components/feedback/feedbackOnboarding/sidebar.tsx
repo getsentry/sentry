@@ -271,7 +271,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
-  const excludedPlatformOptions = ['react-native'];
+  const excludedPlatformOptions = ['react-native', 'flutter'];
 
   const radioButtons = (
     <Header>

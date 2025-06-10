@@ -90,6 +90,10 @@ export function FeedbackOnboardingLayout({
     projectKeyId,
   ]);
 
+  const hideFeedbackConfigTogglePlatforms = ['flutter'];
+  const hideFeedbackConfigToggle =
+    hideFeedbackConfigTogglePlatforms.includes(platformKey);
+
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
@@ -101,7 +105,7 @@ export function FeedbackOnboardingLayout({
                 key={step.title ?? step.type}
                 {...{
                   ...step,
-                  codeHeader: (
+                  codeHeader: !hideFeedbackConfigToggle && (
                     <FeedbackConfigToggle
                       emailToggle={email}
                       nameToggle={name}
