@@ -155,10 +155,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceContextTags rootEventResults={rootEventResults} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
-              <TraceProfiles
-                tree={tree}
-                onScrollToNode={traceWaterfallScroll.onScrollToNode}
-              />
+              <TraceProfiles tree={tree} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.LOGS ? (
               <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />

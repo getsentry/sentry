@@ -41,7 +41,6 @@ import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetail
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
-import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
@@ -64,7 +63,6 @@ import {
 } from './traceState/traceStateProvider';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
-import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics, type TraceWaterFallSource} from './traceAnalytics';
 import {
   isAutogroupedNode,
@@ -114,7 +112,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const [storedTraceFormat] = useSyncedLocalStorageState(
     TRACE_FORMAT_PREFERENCE_KEY,
@@ -733,11 +730,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           viewManager={viewManager}
           organization={props.organization}
         />
-        <TraceActionsMenu
-          traceSlug={props.traceSlug}
-          rootEventResults={props.rootEventResults}
-          traceEventView={props.traceEventView}
-        />
         <TracePreferencesDropdown
           rootEventResults={props.rootEventResults}
           autogroup={
@@ -749,11 +741,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </TraceToolbar>
-      <TraceGrid
-        layout={traceState.preferences.layout}
-        ref={setTraceGridRef}
-        hasTraceTabsUi={hasTraceTabsUi}
-      >
+      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <DemoTourElement
           id={DemoTourStep.PERFORMANCE_SPAN_TREE}
           title={t('Trace Waterfall')}
@@ -764,7 +752,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           )}
         >
           <Trace
-            metaQueryResults={props.meta}
             trace={props.tree}
             rerender={rerender}
             trace_id={props.traceSlug}
@@ -844,7 +831,6 @@ const TraceLinksNavigationContainer = styled('div')`
 
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
-  hasTraceTabsUi?: boolean;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -883,10 +869,7 @@ export const TraceGrid = styled('div')<{
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
 
-  ${p =>
-    p.hasTraceTabsUi
-      ? `border-radius: ${p.theme.borderRadius};`
-      : `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`}
+  ${p => `border-radius: ${p.theme.borderRadius};`}
 `;
 
 const FlexBox = styled('div')`
