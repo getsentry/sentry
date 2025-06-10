@@ -14,7 +14,7 @@ def top_n_slowest(durations: dict[str, float], n: int) -> dict[str, float]:
 
 
 # To keep logs reasonable, we only report up to this many individual iteration times.
-_MAX_ITERATIONS_LOGGED = 200
+_MAX_ITERATIONS_LOGGED = 20
 
 
 # NOTE: You should be using Sentry's built-in performance tracking instead of this.
