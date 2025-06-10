@@ -66,7 +66,7 @@ export function WizardProjectSelection({
 }) {
   const [search, setSearch] = useState('');
 
-  const {value: debouncedSearch} = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 300);
   const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() =>
     getInitialOrgId(organizations)

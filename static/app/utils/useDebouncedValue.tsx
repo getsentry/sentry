@@ -15,33 +15,24 @@ export function useDebouncedValue<T>(
   value: T,
   delay: number = DEFAULT_DEBOUNCE_DURATION,
   options?: DebounceSettings
-): {isDebouncing: boolean; value: T} {
+): T {
   const [internalValue, setInternalValue] = useState(value);
-  const [isDebouncing, setIsDebouncing] = useState(false);
+
   const debounceRef = useRef(
-    debounce(
-      (valueToSet: T) => {
-        setInternalValue(valueToSet);
-        setIsDebouncing(false);
-      },
-      delay,
-      options
-    )
+    debounce((valueToSet: T) => setInternalValue(valueToSet), delay, options)
   );
 
   const debounceFn = debounceRef.current;
 
   useEffectAfterFirstRender(() => {
-    setIsDebouncing(true);
     debounceRef.current(value);
   }, [value]);
 
   useEffect(() => {
     return () => {
       debounceFn.cancel();
-      setIsDebouncing(false);
     };
   }, [debounceFn]);
 
-  return {isDebouncing, value: internalValue};
+  return internalValue;
 }

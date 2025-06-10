@@ -24,7 +24,7 @@ interface Props {
 export function OverviewTimeline({uptimeRules}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const {value: timelineWidth} = useDebouncedValue(containerWidth, 500);
+  const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();

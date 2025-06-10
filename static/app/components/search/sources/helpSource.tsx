@@ -36,7 +36,7 @@ function HelpSource({children, query, platforms}: Props) {
     () => new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop', 'blog'])
   );
 
-  const {value: debouncedQuery} = useDebouncedValue(query);
+  const debouncedQuery = useDebouncedValue(query);
 
   const handleSearch = useCallback(async () => {
     setLoading(true);

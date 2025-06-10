@@ -41,7 +41,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const {value: timelineWidth} = useDebouncedValue(containerWidth, 1000);
+  const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();

@@ -305,7 +305,7 @@ function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
 
-  const {value: debouncedQuery} = useDebouncedValue(query, debounceDuration);
+  const debouncedQuery = useDebouncedValue(query, debounceDuration);
 
   // Only search the first two letters (when it's not a direct query) since
   // otherwise we'll just end up constantly querying the backend and not get

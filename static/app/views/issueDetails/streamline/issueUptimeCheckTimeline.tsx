@@ -66,7 +66,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const uptimeAlertId = useUptimeIssueAlertId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const {value: timelineWidth} = useDebouncedValue(containerWidth, 500);
+  const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({

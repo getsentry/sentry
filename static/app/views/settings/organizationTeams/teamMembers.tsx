@@ -85,7 +85,7 @@ function AddMemberDropdown({
   teamMembers: TeamMember[];
 }) {
   const [memberQuery, setMemberQuery] = useState('');
-  const {value: debouncedMemberQuery} = useDebouncedValue(memberQuery, 50);
+  const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
   const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
     [
       `/organizations/${organization.slug}/members/`,

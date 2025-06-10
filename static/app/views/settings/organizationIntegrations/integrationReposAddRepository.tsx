@@ -39,7 +39,7 @@ export function IntegrationReposAddRepository({
   const organization = useOrganization();
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState<string>();
-  const {value: debouncedSearch} = useDebouncedValue(search, 200);
+  const debouncedSearch = useDebouncedValue(search, 200);
 
   const query = useQuery({
     queryKey: [

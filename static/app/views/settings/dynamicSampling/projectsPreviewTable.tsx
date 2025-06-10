@@ -30,7 +30,7 @@ interface Props {
 export function ProjectsPreviewTable({actions, isLoading, period, sampleCounts}: Props) {
   const sampleRateField = useFormField('targetSampleRate');
 
-  const {value: debouncedTargetSampleRate} = useDebouncedValue(
+  const debouncedTargetSampleRate = useDebouncedValue(
     sampleRateField.value,
     // For longer lists we debounce the input to avoid too many re-renders
     sampleCounts.length > 100 ? 200 : 0
