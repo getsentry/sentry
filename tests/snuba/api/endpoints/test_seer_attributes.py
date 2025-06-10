@@ -114,7 +114,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {
                     "field": "transaction",
                     "substring": "ba",
-                    "stats_period": "7d",
                 }
             ],
         )

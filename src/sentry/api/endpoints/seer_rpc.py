@@ -305,9 +305,8 @@ def get_attribute_values_with_substring(
     for field_with_substring in fields_with_substrings:
         field = field_with_substring["field"]
         substring = field_with_substring["substring"]
-        individual_stats_period = field_with_substring.get("stats_period", stats_period)
 
-        period = parse_stats_period(individual_stats_period)
+        period = parse_stats_period(stats_period)
         if period is None:
             period = datetime.timedelta(days=7)
 
