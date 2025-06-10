@@ -79,7 +79,7 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedRecordingMessage
 
 
 def commit_message(message: Message[ProcessedRecordingMessage]) -> None:
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+    isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
             name="replays.consumer.recording_buffered.commit_message",

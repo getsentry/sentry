@@ -381,7 +381,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
 
 def _set_data_on_scope(data_export):
-    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
     if data_export.user_id:
         user = dict(id=data_export.user_id)
         scope.set_user(user)
