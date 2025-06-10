@@ -4,6 +4,7 @@ import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -12,6 +13,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
@@ -23,14 +25,22 @@ export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
 
   const location = useLocation();
+  const navigate = useNavigate();
   const {selection} = usePageFilters();
 
   const query =
     typeof location.query.query === 'string' ? location.query.query : undefined;
   const sortBy =
     typeof location.query.sort === 'string' ? location.query.sort : undefined;
+  const cursor =
+    typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
 
-  const {data: detectors, isPending} = useDetectorsQuery({
+  const {
+    data: detectors,
+    isPending,
+    getResponseHeader,
+  } = useDetectorsQuery({
+    cursor,
     query,
     sortBy,
     projects: selection.projects,
@@ -42,7 +52,18 @@ export default function DetectorsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <DetectorListTable detectors={detectors ?? []} isPending={isPending} />
+            <div>
+              <DetectorListTable detectors={detectors ?? []} isPending={isPending} />
+              <Pagination
+                pageLinks={getResponseHeader?.('Link')}
+                onCursor={newCursor => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, cursor: newCursor},
+                  });
+                }}
+              />
+            </div>
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>
