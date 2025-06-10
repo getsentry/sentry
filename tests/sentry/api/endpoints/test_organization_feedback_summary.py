@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
+from django.urls import reverse
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
@@ -86,7 +87,6 @@ def mock_feedback_event(project_id: int, dt: datetime | None = None):
 
 
 @region_silo_test
-@pytest.mark.usefixtures("monkeypatch")
 class OrganizationFeedbackSummaryTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-summary"
 
@@ -94,9 +94,23 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org)
+        self.team = self.create_team(
+            organization=self.org, name="Sentaur Squad", members=[self.user]
+        )
         self.project1 = self.create_project(teams=[self.team])
         self.project2 = self.create_project(teams=[self.team])
+        self.features = {
+            "organizations:user-feedback-ai-summaries": True,
+        }
+        self.url = reverse(
+            self.endpoint,
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
+
+    @django_db_all
+    def test_get_feedback_summary_without_feature_flag(self):
+        response = self.get_error_response(self.org.slug)
+        assert response.status_code == 403
 
     @django_db_all
     @patch("sentry.llm.providers.openai.OpenAI")
@@ -109,7 +123,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
@@ -138,7 +153,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             "statsPeriod": "14d",
         }
 
-        response = self.get_success_response(self.org.slug, **params)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug, **params)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
@@ -165,11 +181,67 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             "project": [self.project1.id],
         }
 
-        response = self.get_success_response(self.org.slug, **params)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug, **params)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["num_feedbacks_used"] == 10
+
+    @django_db_all
+    @patch("sentry.llm.providers.openai.OpenAI")
+    def test_get_feedback_summary_with_many_project_filter_as_list(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
+
+        for _ in range(10):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        for _ in range(12):
+            event = mock_feedback_event(self.project2.id)
+            create_feedback_issue(
+                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        params = {
+            "project": [self.project1.id, self.project2.id],
+        }
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug, **params)
+
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["num_feedbacks_used"] == 22
+
+    @django_db_all
+    @patch("sentry.llm.providers.openai.OpenAI")
+    def test_get_feedback_summary_with_many_project_filter_separate(self, mock_openai):
+        mock_openai.return_value.chat.completions.create = create_dummy_response
+
+        for _ in range(10):
+            event = mock_feedback_event(self.project1.id)
+            create_feedback_issue(
+                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        for _ in range(12):
+            event = mock_feedback_event(self.project2.id)
+            create_feedback_issue(
+                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                f"{self.url}?project={self.project1.id}&project={self.project2.id}"
+            )
+
+        assert response.status_code == 200
+        assert response.data["success"] is True
+        assert response.data["summary"] == "Test summary of feedback"
+        assert response.data["num_feedbacks_used"] == 22
 
     @django_db_all
     @patch("sentry.llm.providers.openai.OpenAI")
@@ -182,7 +254,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is False
 
@@ -212,7 +285,8 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
 
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
