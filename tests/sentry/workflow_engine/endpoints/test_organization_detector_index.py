@@ -286,15 +286,12 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                 "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
             },
             "conditionGroup": {
-                "id": self.data_condition_group.id,
-                "organizationId": self.organization.id,
                 "logicType": self.data_condition_group.logic_type,
                 "conditions": [
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
                         "conditionResult": DetectorPriorityLevel.HIGH,
-                        "conditionGroupId": self.data_condition_group.id,
                     }
                 ],
             },
@@ -437,3 +434,96 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {"name": ["This field is required."]}
+
+    def test_empty_query_string(self):
+        data = {**self.valid_data}
+        data["dataSource"]["query"] = ""
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        # Verify the detector was created successfully with empty query
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.snuba_query.query == ""
+
+    def test_all_environments_null(self):
+        data = {**self.valid_data}
+        data["dataSource"]["environment"] = None
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+
+        # Verify that null environment means "all environments"
+        assert query_sub.snuba_query.environment is None
+
+    def test_monitor_body_structure(self):
+        # Based on the user's provided JSON structure
+        monitor_data = {
+            "name": "New Monitor",
+            "detectorType": "metric_issue",
+            "projectId": self.project.id,
+            "conditionGroup": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": "gt",
+                        "comparison": 12,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    }
+                ],
+            },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.STATIC.value,
+            },
+            "dataSource": {
+                "queryType": SnubaQuery.Type.ERROR.value,
+                "dataset": Dataset.Events.name.lower(),
+                "query": "",  # Empty query string - should now be allowed
+                "aggregate": "count()",
+                "timeWindow": 60,
+                "environment": None,  # All environments (null)
+                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+            },
+        }
+
+        # This should now succeed with empty query string
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **monitor_data,
+                status_code=201,
+            )
+
+        # Verify the detector was created successfully
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "New Monitor"
+        assert detector.type == "metric_issue"
+
+        # Verify data source configuration
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.snuba_query.environment is None  # All environments
+        assert query_sub.snuba_query.query == ""  # Empty query should be preserved
+        assert query_sub.snuba_query.aggregate == "count()"
+
+        # Verify conditions were created
+        condition_group = detector.workflow_condition_group
+        conditions = list(condition_group.conditions.all())
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 12
+        assert condition.condition_result == DetectorPriorityLevel.HIGH

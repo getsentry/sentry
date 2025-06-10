@@ -8,59 +8,58 @@ import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import FormContext from 'sentry/components/forms/formContext';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metricFormData';
 
 function ThresholdPriority() {
-  const lowThresholdDirection = useFormField<string>('conditionGroup.conditions.0.type')!;
-  const lowThreshold = useFormField<string>('conditionGroup.conditions.0.comparison')!;
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  );
   return (
     <div>
-      {lowThresholdDirection === ''
-        ? t('Above')
-        : lowThresholdDirection === 'above'
-          ? t('Above')
-          : t('Below')}{' '}
-      {lowThreshold === '' ? '0s' : lowThreshold + 's'}
+      {conditionType === 'gt' ? t('Above') : t('Below')}{' '}
+      {conditionValue === '' ? '0s' : conditionValue + 's'}
     </div>
   );
 }
 
 function ChangePriority() {
-  const lowThresholdDirection = useFormField<string>('conditionGroup.conditions.0.type')!;
-  const lowThreshold = useFormField<string>('conditionGroup.conditions.0.comparison')!;
+  const conditionType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionType
+  );
+  const conditionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  );
+
   return (
     <div>
-      {lowThreshold === '' ? '0' : lowThreshold}%{' '}
-      {lowThresholdDirection === ''
-        ? t('higher')
-        : lowThresholdDirection === 'higher'
-          ? t('higher')
-          : t('lower')}
+      {conditionValue === '' ? '0' : conditionValue}%{' '}
+      {conditionType === 'gt' ? t('higher') : t('lower')}
     </div>
   );
 }
 
 export default function PriorityControl() {
-  // TODO: kind type not yet available from detector types
-  const detectorKind = useFormField<string>('kind')!;
-  const conditionResult =
-    useFormField<PriorityLevel>('conditionGroup.conditions.0.conditionResult') ||
-    PriorityLevel.LOW;
+  const detectorKind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
+  const conditionResult = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.initialLevel
+  );
 
   return (
     <Grid>
       <PrioritizeRow
         left={
           <Flex align="center" column>
-            {!detectorKind || detectorKind === 'threshold' ? (
-              <ThresholdPriority />
-            ) : (
-              <ChangePriority />
-            )}
+            {detectorKind === 'threshold' ? <ThresholdPriority /> : <ChangePriority />}
             <SecondaryLabel>({t('issue created')})</SecondaryLabel>
           </Flex>
         }
@@ -77,7 +76,7 @@ export default function PriorityControl() {
               size="sm"
               suffix="s"
               placeholder="0"
-              name={`conditionGroup.conditions.1.comparison`}
+              name={METRIC_DETECTOR_FORM_FIELDS.mediumValue}
               data-test-id="priority-control-medium"
             />
           }
@@ -95,7 +94,7 @@ export default function PriorityControl() {
               size="sm"
               suffix="s"
               placeholder="0"
-              name={`conditionGroup.conditions.2.comparison`}
+              name={METRIC_DETECTOR_FORM_FIELDS.highValue}
               data-test-id="priority-control-high"
             />
           }
@@ -139,9 +138,9 @@ const priorities = [PriorityLevel.LOW, PriorityLevel.MEDIUM, PriorityLevel.HIGH]
 
 function PrioritySelect() {
   const formContext = useContext(FormContext);
-  const conditionResult =
-    useFormField<PriorityLevel>('conditionGroup.conditions.0.conditionResult') ||
-    PriorityLevel.LOW;
+  const initialLevel = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.initialLevel
+  );
 
   return (
     <CompactSelect
@@ -149,7 +148,7 @@ function PrioritySelect() {
       trigger={(props, isOpen) => {
         return (
           <EmptyButton {...props}>
-            <GroupPriorityBadge showLabel priority={conditionResult}>
+            <GroupPriorityBadge showLabel priority={initialLevel}>
               <InteractionStateLayer isPressed={isOpen} />
               <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
             </GroupPriorityBadge>
@@ -161,9 +160,9 @@ function PrioritySelect() {
         value: priority,
         textValue: priority,
       }))}
-      value={conditionResult}
+      defaultValue={initialLevel}
       onChange={({value}) => {
-        formContext.form?.setValue('conditionGroup.conditions.0.conditionResult', value);
+        formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.initialLevel, value);
       }}
     />
   );

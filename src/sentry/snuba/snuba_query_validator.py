@@ -72,7 +72,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
 class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
     environment = EnvironmentField(required=True, allow_null=True)
@@ -113,6 +113,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def validate_query(self, query: str):
+        # Allow empty queries
+        if not query:
+            return query
+
         query_terms = query.split()
         for query_term in query_terms:
             if query_term in UNSUPPORTED_QUERIES:
