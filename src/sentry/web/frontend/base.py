@@ -514,7 +514,7 @@ class BaseView(View, OrganizationMixin):
             parsed_host = urlparse(referrer_host)
             allowed_hostnames = options.get("devtoolbar.csp_iframe_src.allowed_origins")
             if parsed_host.hostname in allowed_hostnames:
-                response._csp_update = {"frame-src": [parsed_host.hostname]}
+                response._csp_update = {"frame-src": [parsed_host.hostname]}  # type: ignore[attr-defined]
 
 
 class AbstractOrganizationView(BaseView, abc.ABC):
