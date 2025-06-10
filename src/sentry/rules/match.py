@@ -92,11 +92,11 @@ def match_values(group_values: Iterable[Any], match_value: str, match_type: str)
         return not any(match_value in g_value for g_value in group_values_set)
 
     elif match_type == MatchType.IS_IN:
-        values_set = set(match_value.replace(" ", "").split(","))
+        values_set = {value.strip() for value in match_value.split(",")}
         return any(g_value in values_set for g_value in group_values)
 
     elif match_type == MatchType.NOT_IN:
-        values_set = set(match_value.replace(" ", "").split(","))
+        values_set = {value.strip() for value in match_value.split(",")}
         return not any(g_value in values_set for g_value in group_values)
 
     raise RuntimeError("Invalid Match")
