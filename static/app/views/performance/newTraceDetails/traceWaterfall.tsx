@@ -874,6 +874,7 @@ export const TraceGrid = styled('div')<{
 
 const FlexBox = styled('div')`
   display: flex;
+  flex-grow: 1;
   flex-direction: column;
   height: 100%;
 `;
