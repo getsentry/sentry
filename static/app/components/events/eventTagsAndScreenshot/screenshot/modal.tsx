@@ -10,6 +10,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
+import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,7 +21,6 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
 
 interface ScreenshotModalProps extends ModalRenderProps {
@@ -58,9 +58,7 @@ export default function ScreenshotModal({
 }: ScreenshotModalProps) {
   const organization = useOrganization();
 
-  const screenshots = attachments.filter(
-    ({name, mimetype}) => name.includes('screenshot') && mimetype.startsWith('image')
-  );
+  const screenshots = attachments.filter(({name}) => name.includes('screenshot'));
 
   const [currentEventAttachment, setCurrentAttachment] =
     useState<EventAttachment>(eventAttachment);
@@ -108,6 +106,8 @@ export default function ScreenshotModal({
     };
   }
 
+  const AttachmentComponent = getInlineAttachmentRenderer(currentEventAttachment)!;
+
   return (
     <Fragment>
       <Header closeButton>
@@ -116,12 +116,14 @@ export default function ScreenshotModal({
       <Body>
         <Flex column gap={space(1.5)}>
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
-          <StyledImageVisualization
-            attachment={currentEventAttachment}
-            orgSlug={organization.slug}
-            projectSlug={projectSlug}
-            eventId={currentEventAttachment.event_id}
-          />
+          <AttachmentComponentWrapper>
+            <AttachmentComponent
+              attachment={currentEventAttachment}
+              orgSlug={organization.slug}
+              projectSlug={projectSlug}
+              eventId={currentEventAttachment.event_id}
+            />
+          </AttachmentComponentWrapper>
           <KeyValueData.Card
             title={currentEventAttachment.name}
             contentItems={[
@@ -179,10 +181,12 @@ export default function ScreenshotModal({
   );
 }
 
-const StyledImageVisualization = styled(ImageVisualization)`
-  border-bottom: 0;
-  img {
+const AttachmentComponentWrapper = styled('div')`
+  & > * {
+    padding: 0;
+    border: none;
     max-height: calc(100vh - 300px);
+    box-sizing: border-box;
   }
 `;
 

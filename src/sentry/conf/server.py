@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
+    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -1512,6 +1513,11 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
         "task": "options:sentry.tasks.options.sync_options",
     },
 }
+
+TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {}
+
+if SILO_MODE == "CONTROL":
+    TASKWORKER_SCHEDULES = TASKWORKER_CONTROL_SCHEDULES
 
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 from django.http.request import HttpRequest
@@ -8,6 +9,8 @@ from django.http.response import HttpResponseBase
 from sentry import options
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.organizations.services.organization import organization_service
+
+logger = logging.getLogger(__name__)
 
 
 def _get_org(slug):
@@ -27,15 +30,24 @@ class DemoModeGuardMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
-        # only in "sentry.io/"
-        if (
-            not request.subdomain  # TODO: what about region subdomains?
-            and request.path in ("", "/")
-            and is_demo_mode_enabled()
-            and options.get("demo-mode.disable-sandbox-redirect")
-        ):
-            session = getattr(request, "session", None)
-            if session and is_demo_org(_get_org(session.get("activeorg"))):
-                del session["activeorg"]
+        if not request.subdomain and request.path in ("", "/"):
+            if is_demo_mode_enabled() and options.get("demo-mode.disable-sandbox-redirect"):
+                logger.debug(
+                    "Maybe blocking redirect on subdomain: %s path: %s",
+                    request.subdomain,
+                    request.path,
+                )
+                # only in "sentry.io/"
+                session = getattr(request, "session", None)
+                if session:
+                    logger.debug(
+                        "Maybe blocking redirect for org: %s", session and session.get("activeorg")
+                    )
+                    if is_demo_org(_get_org(session.get("activeorg"))):
+                        logger.debug(
+                            "Found org, deleting activeog session variable for %s",
+                            session.get("activeorg"),
+                        )
+                        del session["activeorg"]
 
         return self.get_response(request)
