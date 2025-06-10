@@ -384,9 +384,15 @@ function recordAnalytics(
   };
 
   // TODO(data categories): in future, we should just be able to pass data.selectedProducts
-  const currentSelectableProductData = {
+  const selectableProductData = {
     [SelectableProduct.SEER]: {
       enabled: data.seer ?? false,
+      previously_enabled:
+        subscription.reservedBudgets?.some(
+          budget =>
+            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+            budget.reservedBudget > 0
+        ) ?? false,
     },
   };
 
@@ -420,7 +426,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
-    ...currentSelectableProductData,
+    ...selectableProductData,
   });
 
   let {onDemandBudget} = data;
