@@ -30,12 +30,14 @@ class DemoModeGuardMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
-        if is_demo_mode_enabled() and options.get("demo-mode.disable-sandbox-redirect"):
-            logger.debug(
-                "Maybe blocking redirect on subdomain: %s path: %s", request.subdomain, request.path
-            )
-            # only in "sentry.io/"
-            if not request.subdomain and request.path in ("", "/"):
+        if not request.subdomain and request.path in ("", "/"):
+            if is_demo_mode_enabled() and options.get("demo-mode.disable-sandbox-redirect"):
+                logger.debug(
+                    "Maybe blocking redirect on subdomain: %s path: %s",
+                    request.subdomain,
+                    request.path,
+                )
+                # only in "sentry.io/"
                 session = getattr(request, "session", None)
                 if session:
                     logger.debug(
@@ -43,7 +45,7 @@ class DemoModeGuardMiddleware:
                     )
                     if is_demo_org(_get_org(session.get("activeorg"))):
                         logger.debug(
-                            "Found or, deleting activeog session variable for %s",
+                            "Found org, deleting activeog session variable for %s",
                             session.get("activeorg"),
                         )
                         del session["activeorg"]
