@@ -362,12 +362,20 @@ function useFilterSuggestions({
     [filterValue, key, keyName]
   );
 
+  const {value: queryKey, isDebouncing} = useDebouncedValue(
+    useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
+  );
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: useDebouncedValue(
-      useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
-    ),
-    queryFn: () => getTagValues(...queryParams),
+    // disable exhaustive deps because we want to debounce the query key above
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey,
+    queryFn: async () => {
+      const delay = new Promise(resolve => setTimeout(() => resolve(true), 400));
+      const response = await getTagValues(...queryParams);
+      await delay;
+      return response;
+    },
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
@@ -470,6 +478,7 @@ function useFilterSuggestions({
     items,
     suggestionSectionItems,
     isFetching,
+    isDebouncing,
   };
 }
 
@@ -604,7 +613,7 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
-  const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
+  const {items, suggestionSectionItems, isFetching, isDebouncing} = useFilterSuggestions({
     token,
     filterValue,
     selectedValues: selectedValuesUnescaped,
@@ -842,6 +851,7 @@ export function SearchQueryBuilderValueCombobox({
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
+              isDebouncing={isDebouncing}
               canUseWildcard={canUseWildcard}
             />
           );
@@ -884,6 +894,7 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       items,
       isFetching,
+      isDebouncing,
       canUseWildcard,
       inputValue,
       token,
