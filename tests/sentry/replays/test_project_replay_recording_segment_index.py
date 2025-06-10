@@ -175,6 +175,36 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         assert response.get("Content-Type") == "application/json"
         assert close_streaming_response(response) == b"[]"
 
+    def test_delayed_ingestion_returns_empty_lists(self):
+        """Assert archived segment metadata returns no results."""
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                self.replay_id,
+                segment_id=0,
+                retention_days=30,
+                is_archived=False,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                self.replay_id,
+                segment_id=1,
+                retention_days=30,
+                is_archived=False,
+            )
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert close_streaming_response(response) == b"[[],[]]"
+
     def test_blob_does_not_exist(self):
         """Assert missing blobs return default value."""
         self.store_replays(
