@@ -19,7 +19,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
