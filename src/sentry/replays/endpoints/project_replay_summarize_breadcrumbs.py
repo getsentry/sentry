@@ -70,7 +70,7 @@ def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> b
     # small segment ranges being requested anyway.
     #
     # Leaving it in the iterator form in the hopes one day we can stream it.
-    request_data = {"data": get_request_data(iter_segment_data(segments))}
+    request_data = json.dumps({"data": get_request_data(iter_segment_data(segments))})
 
     # I have to deserialize this request so it can be automatically reserialized by the paginate
     # method. This is less than ideal.
