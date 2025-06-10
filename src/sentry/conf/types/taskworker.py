@@ -23,9 +23,7 @@ class crontab:
     month_of_year: str = "*"
 
     def __str__(self) -> str:
-        return (
-            f"{self.minute} {self.hour} {self.day_of_month} {self.month_of_year} {self.day_of_week}"
-        )
+        return f"crontab({self.minute}, {self.hour}, {self.day_of_month}, {self.month_of_year}, {self.day_of_week})"
 
 
 class ScheduleConfig(TypedDict):

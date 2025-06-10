@@ -1014,7 +1014,7 @@ CELERY_QUEUES_REGION = [
     Queue("release_registry", routing_key="release_registry"),
 ]
 
-from celery.schedules import crontab
+from celery.schedules import crontab as celery_crontab
 
 # Only tasks that work with users/integrations and shared subsystems
 # are run in control silo.
@@ -1022,7 +1022,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth.control"},
     },
     "sync-options-control": {
@@ -1040,25 +1040,25 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     "schedule-deletions-control": {
         "task": "sentry.deletions.tasks.run_scheduled_deletions_control",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": celery_crontab(minute="*/15"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "reattempt-deletions-control": {
         "task": "sentry.deletions.tasks.reattempt_deletions_control",
         # Every other hour
-        "schedule": crontab(hour="*/2", minute="0"),
+        "schedule": celery_crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
         "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": celery_crontab(minute="*/15"),
         "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
-        "schedule": crontab(hour="*/6", minute="0"),
+        "schedule": celery_crontab(hour="*/6", minute="0"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "deliver-webhooks-control": {
@@ -1069,12 +1069,12 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "relocation-find-transfer-control": {
         "task": "sentry.relocation.transfer.find_relocation_transfer_control",
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
     },
     "fetch-release-registry-data-control": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
         # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
         "options": {"expires": 3600, "queue": "release_registry.control"},
     },
 }
@@ -1084,13 +1084,13 @@ CELERYBEAT_SCHEDULE_REGION = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
         # Run every 1 hour
-        "schedule": crontab(minute="0", hour="*/1"),
+        "schedule": celery_crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
     "send-ping": {
         "task": "sentry.tasks.send_ping",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "flush-buffers": {
@@ -1102,7 +1102,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "flush-buffers-batch": {
         "task": "sentry.tasks.process_buffer.process_pending_batch",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 10, "queue": "buffers.process_pending_batch"},
     },
     "sync-options": {
@@ -1120,202 +1120,202 @@ CELERYBEAT_SCHEDULE_REGION = {
     "monitors-clock-pulse": {
         "task": "sentry.monitors.tasks.clock_pulse",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
         # 8:00 PDT, 11:00 EDT, 15:00 UTC
-        "schedule": crontab(minute="0", hour="15", day_of_week="mon-fri"),
+        "schedule": celery_crontab(minute="0", hour="15", day_of_week="mon-fri"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
         # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
         "options": {"expires": 300},
     },
     "clear-expired-rulesnoozes": {
         "task": "sentry.tasks.clear_expired_rulesnoozes",
         # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
         "options": {"expires": 300},
     },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
         # 19:00 PDT, 22:00 EDT, 3:00 UTC
-        "schedule": crontab(hour="3", minute="0"),
+        "schedule": celery_crontab(hour="3", minute="0"),
         "options": {"expires": 3600 * 24},
     },
     "deliver-from-outbox": {
         "task": "sentry.tasks.enqueue_outbox_jobs",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 30},
     },
     "update-user-reports": {
         "task": "sentry.tasks.update_user_reports",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": celery_crontab(minute="*/15"),
         "options": {"expires": 300},
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
         "options": {"expires": 60 * 25},
     },
     "auto-remove-inbox": {
         "task": "sentry.tasks.auto_remove_inbox",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": celery_crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
         "task": "sentry.deletions.tasks.run_scheduled_deletions",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": celery_crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
         "task": "sentry.deletions.tasks.reattempt_deletions",
         # Every other hour
-        "schedule": crontab(hour="*/2", minute="0"),
+        "schedule": celery_crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        "schedule": crontab(minute="0", hour="12", day_of_week="sat"),
+        "schedule": celery_crontab(minute="0", hour="12", day_of_week="sat"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": celery_crontab(minute="*/15"),
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
         # Run every 1 hour
-        "schedule": crontab(minute="0"),
+        "schedule": celery_crontab(minute="0"),
         "options": {"expires": 3600, "queue": "releasemonitor"},
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
         "options": {"expires": 3600, "queue": "release_registry"},
     },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
         # Run every 20 minutes
-        "schedule": crontab(minute="*/20"),
+        "schedule": celery_crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
     "uptime-subscription-checker": {
         "task": "sentry.uptime.tasks.subscription_checker",
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
     },
     "uptime-broken-monitor-checker": {
         "task": "sentry.uptime.tasks.broken_monitor_checker",
-        "schedule": crontab(minute="0", hour="*/1"),
+        "schedule": celery_crontab(minute="0", hour="*/1"),
         "options": {"expires": 10 * 60},
     },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
         # Run every minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         # Run every 1 hour at minute 17
-        "schedule": crontab(minute="17"),
+        "schedule": celery_crontab(minute="17"),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run every day at 00:30
-        "schedule": crontab(minute="30", hour="0"),
+        "schedule": celery_crontab(minute="30", hour="0"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
     },
     "dynamic-sampling-recalibrate-orgs": {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
         # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
         # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
     },
     "custom_rule_notifications": {
         "task": "sentry.dynamic_sampling.tasks.custom_rule_notifications",
         # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        "schedule": celery_crontab(minute="*/10"),
     },
     "clean_custom_rule_notifications": {
         "task": "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
         # Run every 7 minutes
-        "schedule": crontab(minute="*/7"),
+        "schedule": celery_crontab(minute="*/7"),
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # Run once a day at 00:00
-        "schedule": crontab(minute="0", hour="0"),
+        "schedule": celery_crontab(minute="0", hour="0"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
         # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
         "task": "sentry.integrations.github.tasks.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
-        "schedule": crontab(minute="0", hour="16"),
+        "schedule": celery_crontab(minute="0", hour="16"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         # Run every 1 hour
-        "schedule": crontab(minute="0", hour="*/1"),
+        "schedule": celery_crontab(minute="0", hour="*/1"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
     },
     "uptime-detection-scheduler": {
         "task": "sentry.uptime.detectors.tasks.schedule_detections",
         # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
+        "schedule": celery_crontab(minute="*/1"),
     },
     "demo_mode_sync_debug_artifacts": {
         "task": "sentry.demo_mode.tasks.sync_debug_artifacts",
         # Run every hour
-        "schedule": crontab(minute="0", hour="*/1"),
+        "schedule": celery_crontab(minute="0", hour="*/1"),
     },
     "relocation-find-transfer-region": {
         "task": "sentry.relocation.transfer.find_relocation_transfer_region",
-        "schedule": crontab(minute="*/5"),
+        "schedule": celery_crontab(minute="*/5"),
     },
 }
 
@@ -1506,18 +1506,233 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.taskworker.tasks.examples",
 )
 
+from sentry.conf.types.taskworker import crontab
+
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {
+TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
+    "send-beacon": {
+        "task": "sentry.tasks.send_beacon",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
+    "send-ping": {
+        "task": "sentry.tasks.send_ping",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "flush-buffers": {
+        "task": "sentry.tasks.process_buffer.process_pending",
+        "schedule": timedelta(seconds=10),
+    },
+    "flush-buffers-batch": {
+        "task": "sentry.tasks.process_buffer.process_pending_batch",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "sync-options": {
+        "task": "sentry.tasks.options.sync_options",
+        "schedule": timedelta(seconds=10),
+    },
+    "schedule-digests": {
+        "task": "sentry.tasks.digests.schedule_digests",
+        "schedule": timedelta(seconds=30),
+    },
+    "monitors-clock-pulse": {
+        "task": "sentry.monitors.tasks.clock_pulse",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "monitors-detect-broken-monitor-envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        "schedule": crontab("0", "15", "mon-fri", "*", "*"),
+    },
+    "clear-expired-snoozes": {
+        "task": "sentry.tasks.clear_expired_snoozes",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "clear-expired-rulesnoozes": {
+        "task": "sentry.tasks.clear_expired_rulesnoozes",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "collect-project-platforms": {
+        "task": "sentry.tasks.collect_project_platforms",
+        "schedule": crontab("0", "3", "*", "*", "*"),
+    },
+    "deliver-from-outbox": {
+        "task": "sentry.tasks.enqueue_outbox_jobs",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "update-user-reports": {
+        "task": "sentry.tasks.update_user_reports",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "schedule-auto-resolution": {
+        "task": "sentry.tasks.schedule_auto_resolution",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "auto-remove-inbox": {
+        "task": "sentry.tasks.auto_remove_inbox",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "schedule-deletions": {
+        "task": "sentry.deletions.tasks.run_scheduled_deletions",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "reattempt-deletions": {
+        "task": "sentry.deletions.tasks.reattempt_deletions",
+        "schedule": crontab("0", "*/2", "*", "*", "*"),
+    },
+    "schedule-weekly-organization-reports-new": {
+        "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
+        "schedule": crontab("0", "12", "sat", "*", "*"),
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "monitor-release-adoption": {
+        "task": "sentry.release_health.tasks.monitor_release_adoption",
+        "schedule": crontab("0", "*", "*", "*", "*"),
+    },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "snuba-subscription-checker": {
+        "task": "sentry.snuba.tasks.subscription_checker",
+        "schedule": crontab("*/20", "*", "*", "*", "*"),
+    },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "uptime-broken-monitor-checker": {
+        "task": "sentry.uptime.tasks.broken_monitor_checker",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
+    "poll_tempest": {
+        "task": "sentry.tempest.tasks.poll_tempest",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "transaction-name-clusterer": {
+        "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        "schedule": crontab("17", "*", "*", "*", "*"),
+    },
+    "auto-enable-codecov": {
+        "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
+        "schedule": crontab("30", "0", "*", "*", "*"),
+    },
+    "dynamic-sampling-boost-low-volume-projects": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "dynamic-sampling-boost-low-volume-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "dynamic-sampling-sliding-window-org": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
+    },
+    "clean_custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+        "schedule": crontab("*/7", "*", "*", "*", "*"),
+    },
+    "weekly-escalating-forecast": {
+        "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
+        "schedule": crontab("0", "0", "*", "*", "*"),
+    },
+    "schedule_auto_transition_to_ongoing": {
+        "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "github_comment_reactions": {
+        "task": "sentry.integrations.github.tasks.github_comment_reactions",
+        "schedule": crontab("0", "16", "*", "*", "*"),
+    },
+    "statistical-detectors-detect-regressions": {
+        "task": "sentry.tasks.statistical_detectors.run_detection",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
+    "refresh-artifact-bundles-in-use": {
+        "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "on-demand-metrics-schedule-on-demand-check": {
+        "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "uptime-detection-scheduler": {
+        "task": "sentry.uptime.detectors.tasks.schedule_detections",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "demo_mode_sync_debug_artifacts": {
+        "task": "sentry.demo_mode.tasks.sync_debug_artifacts",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
+    "relocation-find-transfer-region": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
     "sync_options_trial": {
         "schedule": timedelta(minutes=5),
         "task": "options:sentry.tasks.options.sync_options",
     },
 }
 
-TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
+    "check-auth": {
+        "task": "sentry.tasks.check_auth",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "sync-options-control": {
+        "task": "sentry.tasks.options.sync_options_control",
+        "schedule": timedelta(seconds=10),
+    },
+    "deliver-from-outbox-control": {
+        "task": "sentry.tasks.enqueue_outbox_jobs_control",
+        "schedule": timedelta(seconds=10),
+    },
+    "schedule-deletions-control": {
+        "task": "sentry.deletions.tasks.run_scheduled_deletions_control",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "reattempt-deletions-control": {
+        "task": "sentry.deletions.tasks.reattempt_deletions_control",
+        "schedule": crontab("0", "*/2", "*", "*", "*"),
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs-control": {
+        "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "schedule-vsts-integration-subscription-check": {
+        "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
+        "schedule": crontab("0", "*/6", "*", "*", "*"),
+    },
+    "deliver-webhooks-control": {
+        "task": "sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
+        "schedule": timedelta(seconds=10),
+    },
+    "relocation-find-transfer-control": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "fetch-release-registry-data-control": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+}
 
 if SILO_MODE == "CONTROL":
     TASKWORKER_SCHEDULES = TASKWORKER_CONTROL_SCHEDULES
+elif SILO_MODE == "REGION":
+    TASKWORKER_SCHEDULES = TASKWORKER_REGION_SCHEDULES
+else:
+    TASKWORKER_SCHEDULES = {**TASKWORKER_CONTROL_SCHEDULES, **TASKWORKER_REGION_SCHEDULES}
 
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
