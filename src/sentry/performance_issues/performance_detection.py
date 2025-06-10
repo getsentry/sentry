@@ -37,6 +37,7 @@ from .detectors.large_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
 from .detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
+from .detectors.query_injection_detector import QueryInjectionDetector
 from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.sql_injection_detector import SQLInjectionDetector
@@ -330,6 +331,9 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
         DetectorType.SQL_INJECTION: {
             "detection_enabled": settings["database_query_injection_detection_enabled"]
         },
+        DetectorType.QUERY_INJECTION: {
+            "detection_enabled": settings["database_query_injection_detection_enabled"]
+        },
     }
 
 
@@ -350,6 +354,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,
     SQLInjectionDetector,
+    QueryInjectionDetector,
 ]
 
 
