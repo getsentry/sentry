@@ -7,7 +7,7 @@ describe('addWildcardToToken', function () {
     // --- contains ---
     {
       input: {
-        token: {text: 'firefox', quoted: false},
+        token: {value: 'firefox'},
         isContains: true,
         isStartsWith: false,
         isEndsWith: false,
@@ -16,16 +16,7 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: '"firefox"', quoted: true},
-        isContains: true,
-        isStartsWith: false,
-        isEndsWith: false,
-      },
-      expected: '"*firefox*"',
-    },
-    {
-      input: {
-        token: {text: '*firefox', quoted: false},
+        token: {value: '*firefox'},
         isContains: true,
         isStartsWith: false,
         isEndsWith: false,
@@ -34,7 +25,7 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: 'firefox*', quoted: false},
+        token: {value: 'firefox*'},
         isContains: true,
         isStartsWith: false,
         isEndsWith: false,
@@ -43,17 +34,17 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: '"e m"', quoted: true},
+        token: {value: 'e m'},
         isContains: true,
         isStartsWith: false,
         isEndsWith: false,
       },
-      expected: '"*e m*"',
+      expected: '*e m*',
     },
     // --- starts with ---
     {
       input: {
-        token: {text: 'firefox', quoted: false},
+        token: {value: 'firefox'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
@@ -62,16 +53,7 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: '"firefox"', quoted: true},
-        isContains: false,
-        isStartsWith: true,
-        isEndsWith: false,
-      },
-      expected: '"firefox*"',
-    },
-    {
-      input: {
-        token: {text: '*firefox', quoted: false},
+        token: {value: '*firefox'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
@@ -80,7 +62,7 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: 'firefox*', quoted: false},
+        token: {value: 'firefox*'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
@@ -89,17 +71,17 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: '"e m"', quoted: true},
+        token: {value: 'e m'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
       },
-      expected: '"e m*"',
+      expected: 'e m*',
     },
     // --- ends with ---
     {
       input: {
-        token: {text: 'firefox', quoted: false},
+        token: {value: 'firefox'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
@@ -108,16 +90,7 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: '"firefox"', quoted: true},
-        isContains: false,
-        isStartsWith: false,
-        isEndsWith: true,
-      },
-      expected: '"*firefox"',
-    },
-    {
-      input: {
-        token: {text: '*firefox', quoted: false},
+        token: {value: '*firefox'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
@@ -126,7 +99,7 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: 'firefox*', quoted: false},
+        token: {value: 'firefox*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
@@ -135,12 +108,12 @@ describe('addWildcardToToken', function () {
     },
     {
       input: {
-        token: {text: '"e m"', quoted: true},
+        token: {value: 'e m'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
       },
-      expected: '"*e m"',
+      expected: '*e m',
     },
   ];
 
@@ -160,7 +133,7 @@ describe('removeWildcardFromToken', function () {
     // --- contains ---
     {
       input: {
-        token: {text: '*firefox*', quoted: false},
+        token: {value: '*firefox*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: false,
@@ -169,16 +142,7 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '"*firefox*"', quoted: true},
-        isContains: false,
-        isStartsWith: false,
-        isEndsWith: false,
-      },
-      expected: '"firefox"',
-    },
-    {
-      input: {
-        token: {text: '*firefox', quoted: false},
+        token: {value: '*firefox'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: false,
@@ -187,7 +151,7 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: 'firefox*', quoted: false},
+        token: {value: 'firefox*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: false,
@@ -196,17 +160,17 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '"*e m*"', quoted: true},
+        token: {value: '*e m*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: false,
       },
-      expected: '"e m"',
+      expected: 'e m',
     },
     // --- starts with ---
     {
       input: {
-        token: {text: '*firefox*', quoted: false},
+        token: {value: '*firefox*'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
@@ -215,16 +179,7 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '"*firefox*"', quoted: true},
-        isContains: false,
-        isStartsWith: true,
-        isEndsWith: false,
-      },
-      expected: '"firefox*"',
-    },
-    {
-      input: {
-        token: {text: '*firefox', quoted: false},
+        token: {value: '*firefox'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
@@ -233,7 +188,7 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: 'firefox*', quoted: false},
+        token: {value: 'firefox*'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
@@ -242,17 +197,17 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '"*e m*"', quoted: true},
+        token: {value: '*e m*'},
         isContains: false,
         isStartsWith: true,
         isEndsWith: false,
       },
-      expected: '"e m*"',
+      expected: 'e m*',
     },
     // --- ends with ---
     {
       input: {
-        token: {text: '*firefox*', quoted: false},
+        token: {value: '*firefox*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
@@ -261,16 +216,7 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '"*firefox*"', quoted: true},
-        isContains: false,
-        isStartsWith: false,
-        isEndsWith: true,
-      },
-      expected: '"*firefox"',
-    },
-    {
-      input: {
-        token: {text: '*firefox*', quoted: false},
+        token: {value: '*firefox*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
@@ -279,7 +225,7 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '*firefox*', quoted: false},
+        token: {value: '*firefox*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
@@ -288,12 +234,12 @@ describe('removeWildcardFromToken', function () {
     },
     {
       input: {
-        token: {text: '"*e m*"', quoted: true},
+        token: {value: '*e m*'},
         isContains: false,
         isStartsWith: false,
         isEndsWith: true,
       },
-      expected: '"*e m"',
+      expected: '*e m',
     },
   ];
 
