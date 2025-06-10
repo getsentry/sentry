@@ -74,4 +74,19 @@ describe('useFormField', function () {
 
     expect(result.current).toBe('updated value');
   });
+
+  it('handles fields that are removed after subscription', function () {
+    model.setInitialData({targetField: 'initial'});
+
+    const {result} = renderHook(() => useFormField('targetField'), {
+      wrapper: withFormContext,
+    });
+
+    expect(result.current).toBe('initial');
+
+    act(() => {
+      model.removeField('targetField');
+    });
+    expect(result.current).toBe('');
+  });
 });
