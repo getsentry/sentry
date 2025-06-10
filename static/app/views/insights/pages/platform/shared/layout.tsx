@@ -12,7 +12,6 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -49,7 +48,6 @@ export function PlatformLandingPageLayout({
   const location = useLocation();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const datePageFilterProps = limitMaxPickableDays(organization);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -89,7 +87,7 @@ export function PlatformLandingPageLayout({
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={['starred']} />
                   <EnvironmentPageFilter />
-                  <DatePageFilter {...datePageFilterProps} />
+                  <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar

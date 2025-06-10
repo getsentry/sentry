@@ -24,7 +24,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -279,14 +278,11 @@ function EAPOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
-  const organization = useOrganization();
   const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
 
-  const {maxPickableDays} = limitMaxPickableDays(organization);
-
   return (
-    <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
+    <DomainOverviewPageProviders>
       {isNextJsPageEnabled ? (
         <NextJsOverviewPage performanceType="frontend" />
       ) : useEap ? (
