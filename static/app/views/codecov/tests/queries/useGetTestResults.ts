@@ -29,6 +29,7 @@ interface TestResults {
     hasNextPage: boolean;
   };
   results: TestResultItem[];
+  totalCount: number;
 }
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
@@ -42,6 +43,7 @@ export function useInfiniteTestResults() {
     InfiniteData<ApiResult<TestResults>>,
     QueryKey
   >({
+    // TODO: this query key should have branch and codecovPeriod so the request updates when these change
     queryKey: [
       `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
       {},
@@ -52,6 +54,7 @@ export function useInfiniteTestResults() {
       signal,
       meta,
     }): Promise<ApiResult<TestResults>> => {
+      // console.log('asdfasdf', client, signal, meta);
       const result = await fetchDataQuery({
         queryKey: [
           url,
