@@ -1,7 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
@@ -133,11 +132,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
     return <span>{node?.label}</span>;
   }
 
-  return (
-    <Flex wrap="wrap" gap={space(1)} flex={1}>
-      <Component action={action} handler={handler} />
-    </Flex>
-  );
+  return <Component action={action} handler={handler} />;
 }
 
 const Panel = styled('div')`
