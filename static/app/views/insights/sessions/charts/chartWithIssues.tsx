@@ -57,7 +57,9 @@ export default function ChartWithIssues(props: Props) {
   });
   const pageFilters = usePageFilters();
 
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection, {
+    enabled: !hideReleaseLines,
+  });
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -140,7 +142,7 @@ export default function ChartWithIssues(props: Props) {
                       <TimeSeriesWidgetVisualization
                         {...props}
                         id={id}
-                        releases={hideReleaseLines ? [] : (releases ?? [])}
+                        releases={releases}
                         plottables={plottables}
                         legendSelection={legendSelection}
                       />
