@@ -94,7 +94,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org)
+        self.team = self.create_team(
+            organization=self.org, name="Sentaur Squad", members=[self.user]
+        )
         self.project1 = self.create_project(teams=[self.team])
         self.project2 = self.create_project(teams=[self.team])
 

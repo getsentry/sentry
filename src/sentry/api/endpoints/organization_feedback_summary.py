@@ -35,14 +35,13 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Get the summary of the user feedbacks of an organization
-        ``````````````````````````````````````````````````
 
         Returns the summary of the user feedbacks. The user feedbacks can be filtered by:
         - A list of projects
-        - The date range that they were first seen in (defaults to 7 days)
+        - The date range that they were first seen in (defaults to the last 7 days)
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
-        :qparam list[int] project: list of project IDs to filter by
+        :qparam int project: project IDs to filter by
         :qparam string statsPeriod: filter feedbacks by date range (e.g. "14d")
         :qparam string start: start date range (alternative to statsPeriod)
         :qparam string end: end date range (alternative to statsPeriod)
@@ -55,20 +54,16 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 optional=False,
                 default_stats_period=timedelta(days=7),
             )
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        except InvalidParams:
+            raise ParseError(detail="Invalid or missing date range")
 
         filters = {
             "type": FeedbackGroup.type_id,
             "first_seen__gte": start,
             "first_seen__lte": end,
             "status": GroupStatus.UNRESOLVED,
+            "project__in": self.get_projects(request, organization),
         }
-
-        # If no project is specified, use all projects
-        if request.GET.get("project"):
-            projects = self.get_projects(request, organization)
-            filters["project__in"] = projects
 
         groups = Group.objects.filter(**filters).order_by("-first_seen")[
             :MAX_FEEDBACKS_TO_SUMMARIZE
