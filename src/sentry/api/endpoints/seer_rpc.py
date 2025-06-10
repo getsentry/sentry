@@ -90,7 +90,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
                 logger.info("Seer RPC signature validated")
                 return True
     except Exception:
-        logger.exception("Seer RPC signature validation failed: %s")
+        logger.exception("Seer RPC signature validation failed")
         return True
 
     logger.error("Seer RPC signature validation failed")
