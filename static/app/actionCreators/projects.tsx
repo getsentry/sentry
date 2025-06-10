@@ -177,16 +177,7 @@ export function transferProject(
 }
 
 /**
- * Associate a team with a project
- */
-
-/**
  *  Adds a team to a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param team Team data object
  */
 export function addTeamToProject(
   api: Client,
@@ -227,11 +218,6 @@ export function addTeamToProject(
 
 /**
  * Removes a team from a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param teamSlug Team Slug
  */
 function removeTeamFromProject(
   api: Client,
@@ -272,9 +258,6 @@ function removeTeamFromProject(
 
 /**
  * Change a project's slug
- *
- * @param prev Previous slug
- * @param next New slug
  */
 export function changeProjectSlug(prev: string, next: string) {
   ProjectsStore.onChangeSlug(prev, next);
@@ -282,12 +265,8 @@ export function changeProjectSlug(prev: string, next: string) {
 
 /**
  * Deletes a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
  */
-export function removeProject({
+export async function removeProject({
   api,
   orgSlug,
   projectSlug,
@@ -298,21 +277,17 @@ export function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  return api
-    .requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-      method: 'DELETE',
-      data: {origin},
-    })
-    .then(() => {
-      ProjectsStore.onDeleteProject(projectSlug);
-    });
+  const response = await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+    method: 'DELETE',
+    data: {origin},
+  });
+  ProjectsStore.onDeleteProject(projectSlug);
+
+  return response;
 }
 
 /**
  * Load the counts of my projects and all projects for the current user
- *
- * @param api API Client
- * @param orgSlug Organization Slug
  */
 export function fetchProjectsCount(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);

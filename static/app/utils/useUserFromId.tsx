@@ -8,7 +8,11 @@ export default function useUserFromId({id}: {id: number}) {
 
   const {isPending, isError, data} = useApiQuery<User>(
     [`/organizations/${organization.slug}/users/${id}/`],
-    {staleTime: 0, enabled: typeof id === 'number'}
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled: typeof id === 'number',
+    }
   );
 
   if (isError) {

@@ -324,6 +324,7 @@ class OrganizationExamples:
                 "gitlabOpenPRBot": True,
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": "off",
+                "defaultSeerScannerAutomation": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],

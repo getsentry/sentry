@@ -29,12 +29,13 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   });
 
   const {search} = useTransactionDurationSearch({transaction});
+  const referrer = Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART;
 
   const {data, isPending, error} = useTransactionDurationSeries({search});
 
   return (
     <InsightsLineChartWidget
-      search={search}
+      queryInfo={{search, referrer}}
       showLegend="never"
       title={t('Average Transaction Duration')}
       isLoading={isPending}

@@ -16,7 +16,7 @@ type Params = DocsParams;
 
 const getCurlSnippet = (params: Params) => `
 curl -X POST \
-'${params.dsn.public}' \
+'${params.dsn.minidump}' \
 -F upload_file_minidump=@mini.dmp`;
 
 const onboarding: OnboardingConfig = {
