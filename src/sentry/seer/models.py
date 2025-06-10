@@ -41,3 +41,8 @@ class SummarizeTraceResponse(BaseModel):
     key_observations: str
     performance_characteristics: str
     suggested_investigations: list[SpanInsight]
+
+
+class SummarizeReplayResponse(BaseModel):
+    replay_id: str
+    summary: str
