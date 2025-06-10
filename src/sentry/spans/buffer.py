@@ -282,7 +282,7 @@ class SpansBuffer:
         :return: Dictionary of grouped spans. The key is a tuple of
             the `project_and_trace`, and the `parent_span_id`.
         """
-        trees: dict[tuple[str, str], list[Span]] = {}
+        trees: dict[tuple[int, str, str], list[Span]] = {}
         redirects: dict[str, dict[str, str]] = {}
 
         for span in spans:
