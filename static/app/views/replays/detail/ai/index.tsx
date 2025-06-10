@@ -31,7 +31,7 @@ function createAISummaryQueryKey(orgSlug: string, replayId: string): ApiQueryKey
   ];
 }
 
-export default function AISummary({replayRecord}: Props) {
+export default function Ai({replayRecord}: Props) {
   const organization = useOrganization();
 
   const {

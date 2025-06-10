@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,9 +18,7 @@ function getReplayTabs({
 }): Record<TabKey, ReactNode> {
   // For video replays, we hide the memory tab (not applicable for mobile)
   return {
-    [TabKey.AI_SUMMARY]: organization.features.includes('replay-ai-summaries')
-      ? t('AI Summary')
-      : null,
+    [TabKey.AI]: organization.features.includes('replay-ai-summaries') ? t('AI') : null,
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
