@@ -73,6 +73,7 @@ class TestResultSerializer(serializers.Serializer):
                 "Error parsing GraphQL response",
                 extra={
                     "error": str(e),
+                    "endpoint": "test-results",
                     "response_keys": (
                         list(graphql_response.keys())
                         if isinstance(graphql_response, dict)
