@@ -321,7 +321,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert response.data == {"detectorType": ["Unknown detector type"]}
+        assert response.data == {
+            "detectorType": ["Unknown detector type 'invalid_type'. Must be one of: error"]
+        }
 
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
