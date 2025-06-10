@@ -10,8 +10,11 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {
+  cursor?: string;
+  limit?: number;
   projects?: number[];
   query?: string;
   sortBy?: string;
@@ -22,25 +25,31 @@ const makeDetectorListQueryKey = ({
   query,
   sortBy,
   projects,
+  limit,
+  cursor,
 }: {
   orgSlug: string;
+  cursor?: string;
+  limit?: number;
   projects?: number[];
   query?: string;
   sortBy?: string;
 }): ApiQueryKey => [
   `/organizations/${orgSlug}/detectors/`,
-  {query: {query, sortBy, project: projects}},
+  {query: {query, sortBy, project: projects, per_page: limit, cursor}},
 ];
 
 export function useDetectorsQuery({
   query,
   sortBy,
   projects,
+  limit = DETECTOR_LIST_PAGE_LIMIT,
+  cursor,
 }: UseDetectorsQueryKeyOptions = {}) {
   const org = useOrganization();
 
   return useApiQuery<Detector[]>(
-    makeDetectorListQueryKey({orgSlug: org.slug, query, sortBy, projects}),
+    makeDetectorListQueryKey({orgSlug: org.slug, query, sortBy, projects, limit, cursor}),
     {
       staleTime: 0,
       retry: false,
