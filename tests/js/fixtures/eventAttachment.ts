@@ -1,6 +1,8 @@
 import type {EventAttachment} from 'sentry/types/group';
 
-export function EventAttachmentFixture(params = {}): EventAttachment {
+export function EventAttachmentFixture(
+  params: Partial<EventAttachment> = {}
+): EventAttachment {
   return {
     id: '1',
     name: 'screenshot.png',
