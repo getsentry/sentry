@@ -185,7 +185,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             # A user can only have one starred dashboard in a specific position
             UniqueConstraint(
                 fields=["user_id", "organization_id", "position"],
-                name="sentry_dashboardfavoriteuser_user_id_organization_id_position_uniq_deferred",
+                name="sentry_dashboardfavoriteuser_user_org_position_uniq_deferred",
                 deferrable=models.Deferrable.DEFERRED,
             ),
         ]
