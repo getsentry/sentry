@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.db.models import Prefetch
 from snuba_sdk import (
@@ -39,6 +40,7 @@ from sentry.utils.snuba import raw_snql_query
 # METADATA QUERY BEHAVIOR.
 
 
+@sentry_sdk.trace
 def fetch_segments_metadata(
     project_id: int,
     replay_id: str,
@@ -72,6 +74,7 @@ def fetch_segment_metadata(
     return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
 
 
+@sentry_sdk.trace
 def fetch_filestore_segments_meta(
     project_id: int,
     replay_id: str,
@@ -134,6 +137,7 @@ def fetch_filestore_segment_meta(
     )
 
 
+@sentry_sdk.trace
 def fetch_direct_storage_segments_meta(
     project_id: int,
     replay_id: str,
@@ -168,6 +172,7 @@ def fetch_direct_storage_segment_meta(
         return results[0]
 
 
+@sentry_sdk.trace
 def has_archived_segment(project_id: int, replay_id: str) -> bool:
     """Return true if an archive row exists for this replay."""
     snuba_request = Request(
@@ -250,6 +255,7 @@ def segment_row_to_storage_meta(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
+@sentry_sdk.trace
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
     yield b"["
@@ -298,6 +304,7 @@ def _download_segment(segment: RecordingSegmentStorageMeta) -> tuple[bytes | Non
     return unpack(decompressed)
 
 
+@sentry_sdk.trace
 def decompress(buffer: bytes) -> bytes:
     """Return decompressed output."""
     # If the file starts with a valid JSON character we assume its uncompressed.
