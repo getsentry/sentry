@@ -5,7 +5,7 @@ import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplay
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import ReplaysLayout from 'sentry/views/replays/detail/layout';
+import ReplaysLayout from 'sentry/views/replays/detail/layout/replayLayout';
 import ReplayDetailsError from 'sentry/views/replays/detail/replayDetailsError';
 
 type Props = {
