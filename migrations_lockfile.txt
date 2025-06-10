@@ -31,4 +31,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0068_migrate_anomaly_detection_alerts
+workflow_engine: 0069_rename_error_detectors
