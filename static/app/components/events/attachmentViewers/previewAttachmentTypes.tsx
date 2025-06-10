@@ -7,7 +7,12 @@ import type {IssueAttachment} from 'sentry/types/group';
 
 export const getInlineAttachmentRenderer = (
   attachment: IssueAttachment
-): typeof ImageViewer | typeof LogFileViewer | typeof RRWebJsonViewer | undefined => {
+):
+  | typeof ImageViewer
+  | typeof LogFileViewer
+  | typeof RRWebJsonViewer
+  | typeof WebMViewer
+  | undefined => {
   switch (attachment.mimetype) {
     case 'text/css':
     case 'text/csv':

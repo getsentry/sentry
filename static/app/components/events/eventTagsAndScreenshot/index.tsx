@@ -22,11 +22,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
     },
     {enabled: !isShare}
   );
-  const screenshots =
-    attachments?.filter(
-      ({name}) =>
-        name.includes('screenshot') && (name.endsWith('.jpg') || name.endsWith('.png'))
-    ) ?? [];
+
+  const screenshots = attachments?.filter(({name}) => name.includes('screenshot')) ?? [];
 
   if (!tags.length && (isShare || !screenshots.length)) {
     return null;
