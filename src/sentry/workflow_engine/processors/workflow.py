@@ -7,7 +7,6 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import buffer, features
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.utils import json, metrics
@@ -108,7 +107,7 @@ def evaluate_workflow_triggers(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
-) -> BaseQuerySet[Action]:
+) -> set[DataConditionGroup]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
     action_conditions = (
@@ -167,7 +166,7 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    return filter_recently_fired_actions(filtered_action_groups, event_data)
+    return filtered_action_groups
 
 
 def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
@@ -261,7 +260,9 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
-        actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
+        actions = filter_recently_fired_actions(
+            evaluate_workflows_action_filters(triggered_workflows, event_data), event_data
+        )
         metrics.incr(
             "workflow_engine.process_workflows.actions",
             amount=len(actions),
