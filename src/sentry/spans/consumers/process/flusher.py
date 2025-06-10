@@ -167,7 +167,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step.poll()
 
     def _ensure_process_alive(self) -> None:
-        max_unhealthy_seconds = options.get("standalone-spans.buffer.flusher.max_unhealthy_seconds")
+        max_unhealthy_seconds = options.get("spans.buffer.flusher.max_unhealthy_seconds")
         if not self.process.is_alive():
             cause = "no_process"
         elif int(time.time()) - self.healthy_since.value > max_unhealthy_seconds:
@@ -203,7 +203,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
         if self.backpressure_since.value > 0:
-            backpressure_secs = options.get("standalone-spans.buffer.flusher.backpressure_seconds")
+            backpressure_secs = options.get("spans.buffer.flusher.backpressure_seconds")
             if int(time.time()) - self.backpressure_since.value > backpressure_secs:
                 metrics.incr("spans.buffer.flusher.backpressure")
                 raise MessageRejected()
@@ -219,7 +219,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # we cannot allow the flusher to progress either, as it would write
         # partial/fragmented segments to buffered-segments topic. We have to
         # wait until the situation is improved manually.
-        max_memory_percentage = options.get("standalone-spans.buffer.max-memory-percentage")
+        max_memory_percentage = options.get("spans.buffer.max-memory-percentage")
         if max_memory_percentage < 1.0:
             memory_infos = list(self.buffer.get_memory_info())
             used = sum(x.used for x in memory_infos)

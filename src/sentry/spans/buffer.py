@@ -163,9 +163,9 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
-        redis_ttl = options.get("standalone-spans.buffer.redis-ttl")
-        timeout = options.get("standalone-spans.buffer.timeout")
-        root_timeout = options.get("standalone-spans.buffer.root-timeout")
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        timeout = options.get("spans.buffer.timeout")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
         result_meta = []
         is_root_span_count = 0
@@ -327,7 +327,7 @@ class SpansBuffer:
 
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
-        max_flush_segments = options.get("standalone-spans.buffer.max-flush-segments")
+        max_flush_segments = options.get("spans.buffer.max-flush-segments")
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
@@ -411,9 +411,9 @@ class SpansBuffer:
         :return: Dictionary mapping segment keys to lists of span payloads.
         """
 
-        page_size = options.get("standalone-spans.buffer.segment-page-size")
-        max_segment_bytes = options.get("standalone-spans.buffer.max-segment-bytes")
-        max_segment_spans = options.get("standalone-spans.buffer.max-segment-spans")
+        page_size = options.get("spans.buffer.segment-page-size")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_segment_spans = options.get("spans.buffer.max-segment-spans")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}

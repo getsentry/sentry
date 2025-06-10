@@ -136,7 +136,7 @@ def process_batch(
             partition_id = value.committable[next(iter(value.committable))]
 
         if killswitches.killswitch_matches_context(
-            "standalone-spans.drop-in-buffer",
+            "spans.drop-in-buffer",
             {
                 "org_id": val.get("organization_id"),
                 "project_id": val.get("project_id"),

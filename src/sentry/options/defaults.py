@@ -2630,102 +2630,97 @@ register(
 )
 
 # SPAN BUFFER
+# Span buffer killswitch
+register(
+    "spans.drop-in-buffer",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enables profiling of the process-spans consumer
 register(
-    "standalone-spans.profile-process-messages.rate",
+    "spans.process-spans.profiling.rate",
     type=Float,
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for stale segments without a root span to be flushed.
 register(
-    "standalone-spans.buffer.timeout",
+    "spans.buffer.timeout",
     type=Int,
     default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for completed segments with root span to be flushed.
 register(
-    "standalone-spans.buffer.root-timeout",
+    "spans.buffer.root-timeout",
     type=Int,
     default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Number of spans to fetch at once from the buffer during flush (SCAN count).
 register(
-    "standalone-spans.buffer.segment-page-size",
+    "spans.buffer.segment-page-size",
     type=Int,
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Maximum size of a segment in bytes. Larger segments drop the oldest spans.
 register(
-    "standalone-spans.buffer.max-segment-bytes",
+    "spans.buffer.max-segment-bytes",
     type=Int,
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Maximum number of spans in a segment. Larger segments drop the oldest spans.
 register(
-    "standalone-spans.buffer.max-segment-spans",
+    "spans.buffer.max-segment-spans",
     type=Int,
     default=1001,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
-    "standalone-spans.buffer.redis-ttl",
+    "spans.buffer.redis-ttl",
     type=Int,
     default=3600,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Maximum number of segments to fetch and flush per cycle.
 register(
-    "standalone-spans.buffer.max-flush-segments",
+    "spans.buffer.max-flush-segments",
     type=Int,
     default=500,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Maximum memory percentage for the span buffer in Redis before rejecting messages.
 register(
-    "standalone-spans.buffer.max-memory-percentage",
+    "spans.buffer.max-memory-percentage",
     type=Float,
     default=1.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Number of seconds the flusher needs to be saturated before we issue backpressure
 register(
-    "standalone-spans.buffer.flusher.backpressure_seconds",
+    "spans.buffer.flusher.backpressure_seconds",
     default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for flusher checkins before the process is killed and restarted
 register(
-    "standalone-spans.buffer.flusher.max_unhealthy_seconds",
+    "spans.buffer.flusher.max_unhealthy_seconds",
     default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Span buffer killswitch
-register(
-    "standalone-spans.drop-in-buffer",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
 register(
-    "standalone-spans.process-segments-consumer.enable",
+    "spans.process-segments.consumer.enable",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.send-occurrence-to-platform.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "standalone-spans.detect-performance-problems.enable",
+    "spans.process-segments.detect-performance-problems.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
