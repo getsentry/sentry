@@ -5,6 +5,7 @@ import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -414,7 +415,9 @@ class BaseView(View, OrganizationMixin):
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
-        return self.handle(request, *args, **kwargs)
+        response = self.handle(request, *args, **kwargs)
+        self.update_csp_frame_src(request, response)
+        return response
 
     def test_csrf(self, request: HttpRequest) -> HttpResponseBase | None:
         middleware = CsrfViewMiddleware(placeholder_get_response)
@@ -504,6 +507,14 @@ class BaseView(View, OrganizationMixin):
     def handle_disabled_member(self, organization: Organization) -> HttpResponse:
         redirect_uri = reverse("sentry-organization-disabled-member", args=[organization.slug])
         return self.redirect(redirect_uri)
+
+    def update_csp_frame_src(self, request: HttpRequest, response: HttpResponseBase) -> None:
+        referrer_host = request.get_host() or ""
+        if referrer_host:
+            parsed_host = urlparse(referrer_host)
+            allowed_hostnames = options.get("devtoolbar.csp_iframe_src.allowed_origins")
+            if parsed_host.hostname in allowed_hostnames:
+                response._csp_update = {"frame-src": [parsed_host.hostname]}
 
 
 class AbstractOrganizationView(BaseView, abc.ABC):

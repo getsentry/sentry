@@ -2752,6 +2752,13 @@ register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
 # }
 
 register(
+    "devtoolbar.csp_iframe_src.allowed_origins",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "feedback.filter_garbage_messages",
     type=Bool,
     default=False,
