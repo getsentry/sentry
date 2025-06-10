@@ -80,7 +80,7 @@ from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
 # directly used as raw redis key. the format is
-# "span-buf:s:{partition}:project_id:trace_id:span_id", and the type is bytes because our
+# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
 # redis client is bytes.
 #
 # The segment ID in the Kafka protocol is only the span ID.
@@ -92,17 +92,16 @@ logger = logging.getLogger(__name__)
 
 
 def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
-    return parse_segment_key(segment_key)[3]
+    return parse_segment_key(segment_key)[2]
 
 
-def parse_segment_key(segment_key: SegmentKey) -> tuple[int, bytes, bytes, bytes]:
+def parse_segment_key(segment_key: SegmentKey) -> tuple[bytes, bytes, bytes]:
     segment_key_parts = segment_key.split(b":")
-    partition = int(segment_key_parts[2][1:-1])
-    project_id = segment_key_parts[3]
-    trace_id = segment_key_parts[4]
-    span_id = segment_key_parts[5]
+    project_id = segment_key_parts[2][1:]
+    trace_id = segment_key_parts[3][:-1]
+    span_id = segment_key_parts[4]
 
-    return partition, project_id, trace_id, span_id
+    return project_id, trace_id, span_id
 
 
 def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -114,7 +113,6 @@ add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 # NamedTuples are faster to construct than dataclasses
 class Span(NamedTuple):
-    partition: int
     trace_id: str
     span_id: str
     parent_span_id: str | None
@@ -155,8 +153,8 @@ class SpansBuffer:
     def __reduce__(self):
         return (SpansBuffer, (self.assigned_shards,))
 
-    def _get_span_key(self, partition: int, project_and_trace: str, span_id: str) -> bytes:
-        return f"span-buf:s:{{{partition}}}:{project_and_trace}:{span_id}".encode("ascii")
+    def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -178,8 +176,8 @@ class SpansBuffer:
             trees = self._group_by_parent(spans)
 
             with self.client.pipeline(transaction=False) as p:
-                for (partition, project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = self._get_span_key(partition, project_and_trace, parent_span_id)
+                for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    set_key = self._get_span_key(project_and_trace, parent_span_id)
                     p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
@@ -191,12 +189,11 @@ class SpansBuffer:
             add_buffer_sha = self._ensure_script()
 
             with self.client.pipeline(transaction=False) as p:
-                for (partition, project_and_trace, parent_span_id), subsegment in trees.items():
+                for (project_and_trace, parent_span_id), subsegment in trees.items():
                     p.execute_command(
                         "EVALSHA",
                         add_buffer_sha,
                         1,
-                        partition,
                         project_and_trace,
                         len(subsegment),
                         parent_span_id,
@@ -206,7 +203,7 @@ class SpansBuffer:
                     )
 
                     is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    result_meta.append((partition, project_and_trace, parent_span_id))
+                    result_meta.append((project_and_trace, parent_span_id))
 
                 results = p.execute()
 
@@ -216,10 +213,14 @@ class SpansBuffer:
 
             assert len(result_meta) == len(results)
 
-            for (partition, project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
                 redirect_depth, set_key, has_root_span = result
 
-                queue_key = self._get_queue_key(partition)
+                shard = self.assigned_shards[
+                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
+                ]
+                queue_key = self._get_queue_key(shard)
+
                 min_redirect_depth = min(min_redirect_depth, redirect_depth)
                 max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
@@ -234,11 +235,10 @@ class SpansBuffer:
                 zadd_items = queue_adds.setdefault(queue_key, {})
                 zadd_items[set_key] = now + offset
 
-                subsegment_spans = trees[partition, project_and_trace, parent_span_id]
+                subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.update(
-                    self._get_span_key(partition, project_and_trace, span.span_id)
-                    for span in subsegment_spans
+                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
                 )
                 delete_set.discard(set_key)
 
@@ -271,7 +271,7 @@ class SpansBuffer:
     def _get_queue_key(self, shard: int) -> bytes:
         return f"span-buf:q:{shard}".encode("ascii")
 
-    def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[int, str, str], list[Span]]:
+    def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
         Groups partial trees of spans by their top-most parent span ID in the
         provided list. The result is a dictionary where the keys identify a
@@ -282,7 +282,7 @@ class SpansBuffer:
         :return: Dictionary of grouped spans. The key is a tuple of
             the `project_and_trace`, and the `parent_span_id`.
         """
-        trees: dict[tuple[int, str, str], list[Span]] = {}
+        trees: dict[tuple[str, str], list[Span]] = {}
         redirects: dict[str, dict[str, str]] = {}
 
         for span in spans:
@@ -293,9 +293,9 @@ class SpansBuffer:
             while redirect := trace_redirects.get(parent):
                 parent = redirect
 
-            subsegment = trees.setdefault((span.partition, project_and_trace, parent), [])
+            subsegment = trees.setdefault((project_and_trace, parent), [])
             if parent != span.span_id:
-                subsegment.extend(trees.pop((span.partition, project_and_trace, span.span_id), []))
+                subsegment.extend(trees.pop((project_and_trace, span.span_id), []))
                 trace_redirects[span.span_id] = parent
             subsegment.append(span)
 
@@ -471,12 +471,8 @@ class SpansBuffer:
                     p.delete(hrs_key)
                     p.unlink(segment_key)
 
-                    partition, project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%d}:%s:%s" % (
-                        partition,
-                        project_id,
-                        trace_id,
-                    )
+                    project_id, trace_id, _ = parse_segment_key(segment_key)
+                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     p.zrem(flushed_segment.queue_key, segment_key)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):

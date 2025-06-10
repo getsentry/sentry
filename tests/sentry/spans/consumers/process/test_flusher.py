@@ -39,7 +39,6 @@ def test_backpressure(monkeypatch):
 
         spans = [
             Span(
-                partition=0,
                 payload=_payload(b"a" * 16),
                 trace_id=trace_id,
                 span_id="a" * 16,
@@ -47,7 +46,6 @@ def test_backpressure(monkeypatch):
                 project_id=1,
             ),
             Span(
-                partition=0,
                 payload=_payload(b"d" * 16),
                 trace_id=trace_id,
                 span_id="d" * 16,
@@ -55,7 +53,6 @@ def test_backpressure(monkeypatch):
                 project_id=1,
             ),
             Span(
-                partition=0,
                 payload=_payload(b"c" * 16),
                 trace_id=trace_id,
                 span_id="c" * 16,
@@ -63,7 +60,6 @@ def test_backpressure(monkeypatch):
                 project_id=1,
             ),
             Span(
-                partition=0,
                 payload=_payload(b"b" * 16),
                 trace_id=trace_id,
                 span_id="b" * 16,
