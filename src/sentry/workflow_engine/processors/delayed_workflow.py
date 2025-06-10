@@ -574,7 +574,11 @@ def process_delayed_workflows(
         },
     )
 
-    with metrics.timer("workflow_engine.delayed_workflow.get_condition_group_results"):
+    with metrics.timer(
+        "workflow_engine.delayed_workflow.get_condition_group_results",
+        # We want this to be accurate enough for alerting, so sample 100%
+        sample_rate=1.0,
+    ):
         condition_group_results = get_condition_group_results(condition_groups)
 
     logger.info(
