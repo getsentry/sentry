@@ -312,7 +312,7 @@ from sentry.replays.endpoints.organization_replay_selector_index import (
 )
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
-from sentry.replays.endpoints.project_replay_recording_segment_ai_analyze_index import (
+from sentry.replays.endpoints.project_replay_recording_segment_ai_analysis_index import (
     ProjectReplayRecordingSegmentAiAnalysisIndexEndpoint,
 )
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
