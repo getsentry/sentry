@@ -525,8 +525,8 @@ class StatefulDetectorHandler(
                 if condition_result.result is not None
                 and isinstance(condition_result.result, DetectorPriorityLevel)
             ]
-            if validated_condition_results:
-                new_priority = max(new_priority, *validated_condition_results)
+
+            new_priority = max(new_priority, *validated_condition_results)
 
         return condition_evaluation, new_priority
 
