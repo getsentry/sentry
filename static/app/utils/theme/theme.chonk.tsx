@@ -1235,8 +1235,8 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     background: darkColors.surface400,
     header: darkColors.white,
     text: darkAliases.subText,
-    next: '',
-    previous: '',
+    next: lightAliases.textColor,
+    previous: darkColors.white,
     close: lightColors.white,
   },
 
@@ -1312,8 +1312,8 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     background: darkColors.blue400,
     header: darkColors.white,
     text: darkColors.white,
-    next: '',
-    previous: '',
+    next: lightAliases.textColor,
+    previous: darkColors.white,
     close: lightColors.white,
   },
 

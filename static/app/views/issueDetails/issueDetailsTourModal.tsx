@@ -25,14 +25,14 @@ export function IssueDetailsTourModal({
   return (
     <TourContainer>
       <ImageContainer
-        alt={t('Preview of the new issue details components')}
+        alt={t('Preview of the issue details experience')}
         src={prefersDarkMode ? issueDetailsPreviewLight : issueDetailsPreviewDark}
       />
       <TextContainer>
-        <Header>{t('Welcome to the new Issue Details')}</Header>
+        <Header>{t('Welcome to Issue Details')}</Header>
         <Description>
           {t(
-            "Have 30 seconds? Tour the redesigned experience - we promise you'll be less confused."
+            "New around here? Tour the issue experience - we promise you'll be less confused."
           )}
         </Description>
         <Footer>
