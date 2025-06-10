@@ -4,7 +4,6 @@ import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -16,6 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
@@ -55,7 +55,7 @@ function TableHeader() {
     <Flex gap={space(2)}>
       <ProjectPageFilter />
       <div style={{flexGrow: 1}}>
-        <SearchBar placeholder={t('Search for events, users, tags, and more')} />
+        <DetectorSearch />
       </div>
     </Flex>
   );
