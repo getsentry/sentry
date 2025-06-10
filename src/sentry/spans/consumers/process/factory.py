@@ -130,7 +130,7 @@ def process_batch(
 
         val = rapidjson.loads(payload.value)
 
-        partition_id = None
+        partition_id: int | None = None
 
         if len(value.committable) == 1:
             partition_id = value.committable[next(iter(value.committable))]
@@ -147,6 +147,7 @@ def process_batch(
             continue
 
         span = Span(
+            partition=partition_id if partition_id is not None else -1,  # TODO: Fallback OK?
             trace_id=val["trace_id"],
             span_id=val["span_id"],
             parent_span_id=val.get("parent_span_id"),
