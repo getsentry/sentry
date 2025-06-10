@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.utils import metrics
-from sentry.workflow_engine.utils.workflow_context import WorkflowContext
+from sentry.workflow_engine.processors.contexts.workflow_event_context import WorkflowEventContext
 
 METRIC_PREFIX = "workflow_engine"
 MetricTags = dict[str, Any]
@@ -32,7 +32,7 @@ def metrics_incr(
     value (int): The number to increment by
     tags: MetricTags | None: Optional tags to add to the metric.
     """
-    ctx = WorkflowContext.get()
+    ctx = WorkflowEventContext.get()
     ctx_tags = {}
 
     full_metric_name = _add_namespace_to_metric(metric_name)

@@ -1,16 +1,17 @@
 from unittest import mock
 
-from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+    WorkflowEventContext,
+    WorkflowEventContextData,
+)
 from sentry.workflow_engine.utils.metrics import metrics_incr
-from sentry.workflow_engine.utils.workflow_context import WorkflowContext, WorkflowContextData
+from tests.sentry.workflow_engine.processors.contexts.test_workflow_event_context import (
+    WorkflowEventContextTestCase,
+)
 
 
 @mock.patch("sentry.utils.metrics.incr")
-class TestWorkflowEngineMetrics(TestCase):
-    def setUp(self):
-        super().setUp()
-        WorkflowContext.reset()
-
+class TestWorkflowEngineMetrics(WorkflowEventContextTestCase):
     def test(self, mock_incr):
         metrics_incr("example.metric")
         mock_incr.assert_called_once_with("workflow_engine.example.metric", 1)
@@ -21,7 +22,7 @@ class TestWorkflowEngineMetrics(TestCase):
 
     def test_with_context(self, mock_incr):
         detector = self.create_detector()
-        WorkflowContext.set(WorkflowContextData(detector=detector))
+        self.ctx_token = WorkflowEventContext.set(WorkflowEventContextData(detector=detector))
 
         metrics_incr("example.metric")
         mock_incr.assert_called_with(

@@ -1,67 +1,63 @@
-from uuid import UUID
-
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.utils.workflow_context import WorkflowContext, WorkflowContextData
+from sentry.workflow_engine.processors.contexts.workflow_event_context import (
+    WorkflowEventContext,
+    WorkflowEventContextData,
+)
+
+
+class WorkflowEventContextTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.ctx_token = None
+
+    def tearDown(self):
+        if self.ctx_token:
+            WorkflowEventContext.reset(self.ctx_token)
 
 
 class MockContextualClass:
     def run(self):
-        return WorkflowContext.get().detector
+        return WorkflowEventContext.get().detector
 
 
-class TestWorkflowContextUsage(TestCase):
-    def tearDown(self):
-        WorkflowContext.reset()
-
+class TestWorkflowEventContextUsage(WorkflowEventContextTestCase):
     def test_usage_in_contextual_class(self):
         detector = self.create_detector()
-        ctx_data = WorkflowContextData(
+        ctx_data = WorkflowEventContextData(
             detector=detector,
         )
-        WorkflowContext.set(ctx_data)
+        self.ctx_token = WorkflowEventContext.set(ctx_data)
 
         mock_cls = MockContextualClass()
         result = mock_cls.run()
         assert result == detector
 
 
-class TestWorkflowContext(TestCase):
-    def tearDown(self):
-        WorkflowContext.reset()
-
-    def test_id(self):
-        ctx = WorkflowContext.get()
-        assert isinstance(ctx.id, UUID)
-
-    def test_id__maintained_after_reset(self):
-        stored_id = WorkflowContext.get().id
-        WorkflowContext.reset()
-        assert stored_id == WorkflowContext.get().id
-
+class TestWorkflowEventContext(WorkflowEventContextTestCase):
     def test_set_and_get(self):
         detector = self.create_detector()
         organization = self.organization
         environment = self.create_environment()
 
-        ctx_data = WorkflowContextData(
+        ctx_data = WorkflowEventContextData(
             detector=detector,
             organization=organization,
             environment=environment,
         )
-        WorkflowContext.set(ctx_data)
+        WorkflowEventContext.set(ctx_data)
 
-        ctx = WorkflowContext.get()
+        ctx = WorkflowEventContext.get()
 
         assert ctx.detector == detector
         assert ctx.organization == organization
         assert ctx.environment == environment
 
     def test_partial_set(self):
-        ctx_data = WorkflowContextData(
+        ctx_data = WorkflowEventContextData(
             organization=self.organization,
         )
-        WorkflowContext.set(ctx_data)
-        ctx = WorkflowContext.get()
+        WorkflowEventContext.set(ctx_data)
+        ctx = WorkflowEventContext.get()
 
         assert ctx.detector is None
         assert ctx.environment is None
@@ -72,17 +68,17 @@ class TestWorkflowContext(TestCase):
         organization = self.organization
         environment = self.create_environment()
 
-        ctx_data = WorkflowContextData(
+        ctx_data = WorkflowEventContextData(
             detector=detector,
             organization=organization,
             environment=environment,
         )
-        WorkflowContext.set(ctx_data)
+        self.ctx_token = WorkflowEventContext.set(ctx_data)
 
         # Reset context
-        WorkflowContext.reset()
+        WorkflowEventContext.reset(self.ctx_token)
 
-        ctx = WorkflowContext.get()
+        ctx = WorkflowEventContext.get()
 
         assert ctx.detector is None
         assert ctx.organization is None
