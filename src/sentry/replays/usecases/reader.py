@@ -268,13 +268,15 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
     yield b"]"
 
 
-def iter_segment_data(segments: list[RecordingSegmentStorageMeta]) -> Iterator[tuple[int, bytes]]:
+def iter_segment_data(
+    segments: list[RecordingSegmentStorageMeta],
+) -> Iterator[tuple[int, memoryview]]:
     with ThreadPoolExecutor(max_workers=10) as pool:
         segment_data = pool.map(_download_segment, segments)
 
     for i, result in enumerate(segment_data):
         if result is None:
-            yield i, b"[]"
+            yield i, memoryview(b"[]")
         else:
             yield i, result[1]
 
@@ -299,7 +301,9 @@ def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
         return video
 
 
-def _download_segment(segment: RecordingSegmentStorageMeta) -> tuple[bytes | None, bytes] | None:
+def _download_segment(
+    segment: RecordingSegmentStorageMeta,
+) -> tuple[memoryview | None, memoryview] | None:
     driver = filestore if segment.file_id else storage
 
     result = driver.get(segment)

@@ -84,7 +84,7 @@ def make_seer_request(request_data: str) -> bytes:
         data=request_data,
         headers={
             "content-type": "text/plain;charset=utf-8",
-            **sign_with_seer_secret(request_data),
+            **sign_with_seer_secret(request_data.encode()),
         },
     )
 
