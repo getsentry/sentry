@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import typing
 from base64 import b64encode
 from collections.abc import Callable
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from datetime import datetime as dt
-from typing import Any, ClassVar, overload
+from typing import Any, ClassVar, Self, dataclass_transform, overload
 from uuid import UUID, uuid1
 
 from django.utils import timezone
 from pydantic import Field
 from pydantic.dataclasses import dataclass
+from typing_extensions import deprecated
 
 
 # for using it with parenthesis, first parameter is optional
@@ -23,7 +23,7 @@ def eventclass(event_name_or_class: str | None = None) -> Callable[[type[Event]]
 def eventclass(event_name_or_class: type[Event]) -> type[Event]: ...
 
 
-@typing.dataclass_transform()
+@dataclass_transform()
 def eventclass(
     event_name_or_class: str | type[Event] | None = None,
 ) -> Callable[[type[Event]], type[Event]] | type[Event]:
@@ -78,6 +78,17 @@ class Event:
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event(self)
+
+    @classmethod
+    @deprecated("This constructor function is discuraged, as it is not type-safe.")
+    def from_instance(cls, instance: Any, **kwargs: Any) -> Self:
+        return cls(
+            **{
+                f.name: kwargs.get(f.name, getattr(instance, f.name, None))
+                for f in fields(cls)
+                if f.name not in ("type", "uuid", "datetime")
+            }
+        )
 
 
 def serialize_event(event: Event) -> dict[str, Any]:
