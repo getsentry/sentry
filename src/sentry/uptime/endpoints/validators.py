@@ -11,11 +11,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
-    UptimeSubscription,
-)
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
@@ -25,6 +21,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
     update_project_uptime_subscription,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.audit import create_audit_entry
 
 """

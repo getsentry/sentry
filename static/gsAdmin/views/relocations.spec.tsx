@@ -135,8 +135,8 @@ describe('Relocations', function () {
   });
 
   it('renders', async function () {
-    const {router, routerProps} = initializeOrg();
-    render(<Relocations {...routerProps} />, {router});
+    const {routerProps} = initializeOrg();
+    render(<Relocations {...routerProps} />);
 
     expect(await screen.findByRole('heading', {name: 'Relocations'})).toBeInTheDocument();
 

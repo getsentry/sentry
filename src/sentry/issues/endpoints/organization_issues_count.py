@@ -13,6 +13,8 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -65,7 +67,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             result = search.backend.query(**query_kwargs)
             return result.hits
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_params(request.GET)

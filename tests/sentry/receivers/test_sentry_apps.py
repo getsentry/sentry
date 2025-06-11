@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -15,7 +15,6 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
@@ -46,7 +45,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         data.update(_data or {})
         self.client.put(self.url, data=data, format="json")
 
-    @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_regress(self, delay):
         # First we need to resolve the issue
         self.update_issue({})
@@ -69,7 +67,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_bulk_ongoing(self, delay):
         # First we need to have an ignored issue
         self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
@@ -87,7 +84,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_escalating(self, delay):
         # First we need to have an ignored issue
         self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
@@ -323,7 +319,7 @@ class TestComments(APITestCase):
         )
         comment_data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
@@ -342,7 +338,7 @@ class TestComments(APITestCase):
         self.client.put(url, data=data, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "goodbye cruel world",
             "project_slug": self.project.slug,
         }
@@ -360,7 +356,7 @@ class TestComments(APITestCase):
         self.client.delete(url, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }

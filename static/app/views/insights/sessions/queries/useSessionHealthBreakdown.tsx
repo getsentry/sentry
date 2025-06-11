@@ -1,27 +1,21 @@
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getSessionsInterval} from 'sentry/utils/sessions';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate'}) {
-  const location = useLocation();
+export default function useSessionHealthBreakdown({
+  type,
+  pageFilters,
+}: {
+  type: 'count' | 'rate';
+  pageFilters?: PageFilters;
+}) {
   const organization = useOrganization();
-  const {
-    selection: {datetime},
-  } = usePageFilters();
-
-  const locationQuery = {
-    ...location,
-    query: {
-      ...location.query,
-      query: undefined,
-      width: undefined,
-      cursor: undefined,
-    },
-  };
+  const {selection: defaultPageFilters} = usePageFilters();
 
   const {
     data: sessionData,
@@ -32,8 +26,10 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationQuery.query,
-          interval: getSessionsInterval(datetime),
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          interval: getSessionsInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime
+          ),
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },

@@ -1,6 +1,5 @@
 from typing import Any
 
-from sentry import features
 from sentry.models.organization import Organization
 
 from ..constants import PLATFORMS_CONFIG
@@ -39,11 +38,7 @@ class PlatformConfig:
         return self.config is not None
 
     def is_dry_run_platform(self, org: Organization) -> bool:
-        return (
-            not features.has("organizations:auto-source-code-config-java-enabled", org, actor=None)
-            if self.platform == "java"
-            else self.config.get("dry_run", False)
-        )
+        return self.config.get("dry_run", False)
 
     def extracts_filename_from_module(self) -> bool:
         return self.config.get("extract_filename_from_module", False)

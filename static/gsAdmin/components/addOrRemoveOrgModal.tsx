@@ -5,7 +5,6 @@ import {Alert} from 'sentry/components/core/alert';
 import TextField from 'sentry/components/forms/fields/inputField';
 import SentryOrganizationRoleSelectorField from 'sentry/components/forms/fields/sentryOrganizationRoleSelectorField';
 import Form from 'sentry/components/forms/form';
-import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 
 interface AddOrRemoveOrgModalProps extends ModalRenderProps {
@@ -38,7 +37,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Add Member to an Organization')}</h4>
+        <h4>Add Member to an Organization</h4>
       </Header>
       <Body>
         <Form onSubmit={onSubmit} submitLabel="Submit" cancelLabel="Cancel">
@@ -92,7 +91,7 @@ function RemoveFromOrgModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Remove Member from an Organization')}</h4>
+        <h4>Remove Member from an Organization</h4>
       </Header>
       <Body>
         <Form onSubmit={onSubmit} submitLabel="Submit" cancelLabel="Cancel">

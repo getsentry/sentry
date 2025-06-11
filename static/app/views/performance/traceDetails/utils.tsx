@@ -32,7 +32,7 @@ function getBaseTraceUrl(
   source?: TraceViewSources,
   view?: DomainView
 ) {
-  const routesMap = prefersStackedNav()
+  const routesMap = prefersStackedNav(organization)
     ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
     : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
 
@@ -106,6 +106,7 @@ export function getTraceDetailsUrl({
       const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
       queryParams.node = path;
     }
+
     return {
       pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: {

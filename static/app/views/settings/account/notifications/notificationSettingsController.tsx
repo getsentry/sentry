@@ -10,7 +10,7 @@ interface NotificationSettingsControllerProps extends RouteComponentProps {
   organizationsLoading?: boolean;
 }
 
-export function NotificationSettingsController({
+function NotificationSettingsController({
   organizationsLoading,
 }: NotificationSettingsControllerProps) {
   if (organizationsLoading) {

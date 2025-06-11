@@ -13,6 +13,8 @@ from sentry.db.models.manager.base import BaseManager
 if TYPE_CHECKING:
     from sentry.models.team import Team
 
+__all__ = ("ProjectTeam",)
+
 
 class ProjectTeamManager(BaseManager["ProjectTeam"]):
     def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> QuerySet["ProjectTeam"]:

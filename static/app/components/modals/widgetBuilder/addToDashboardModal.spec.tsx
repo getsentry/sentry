@@ -44,6 +44,7 @@ describe('add to dashboard modal', () => {
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgetDisplay: [DisplayType.AREA],
     widgetPreview: [],
+    projects: [],
   };
   const testDashboard: DashboardDetails = {
     id: '1',
@@ -315,8 +316,8 @@ describe('add to dashboard modal', () => {
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
-      query: mockWidgetAsQueryParams,
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+      query: {...mockWidgetAsQueryParams, title: 'Test title'},
     });
   });
 
@@ -344,7 +345,7 @@ describe('add to dashboard modal', () => {
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
       query: expect.objectContaining({
         defaultTableColumns: ['field1', 'field2'],
         defaultTitle: 'Default title',

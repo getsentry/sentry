@@ -951,3 +951,53 @@ class DiscoverQueryBuilderTest(TestCase):
                 )
             ],
         )
+
+    def test_symbolicated_in_app_parameter(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="symbolicated_in_app:True",
+            selected_columns=["symbolicated_in_app"],
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("symbolicated_in_app"), Op.EQ, 1),
+                *self.default_conditions,
+            ],
+        )
+        query.get_snql_query().validate()
+
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="symbolicated_in_app:False",
+            selected_columns=["symbolicated_in_app"],
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("symbolicated_in_app"), Op.EQ, 0),
+                *self.default_conditions,
+            ],
+        )
+        query.get_snql_query().validate()
+
+        # Test !has: filter for checking NULL values
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="!has:symbolicated_in_app",
+            selected_columns=["symbolicated_in_app"],
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Function("isNull", [Column("symbolicated_in_app")]), Op.EQ, 1),
+                *self.default_conditions,
+            ],
+        )
+        query.get_snql_query().validate()

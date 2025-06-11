@@ -19,6 +19,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   defaultOptions: {
     queries: {
+      refetchOnReconnect: false,
       refetchOnWindowFocus: false,
     },
   },
@@ -41,6 +42,17 @@ export type QueryKeyEndpointOptions<
 export type ApiQueryKey =
   | readonly [url: string]
   | readonly [
+      url: string,
+      options: QueryKeyEndpointOptions<
+        Record<string, string>,
+        Record<string, any>,
+        Record<string, any>
+      >,
+    ];
+export type InfiniteApiQueryKey =
+  | readonly ['infinite', url: string]
+  | readonly [
+      'infinite',
       url: string,
       options: QueryKeyEndpointOptions<
         Record<string, string>,
@@ -95,7 +107,7 @@ export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
  * Query keys should be an array which include an endpoint URL and options such as query params.
  * This wrapper will execute the request using the query key URL.
  *
- * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
+ * See https://tanstack.com/query/v5/docs/framework/react/overview for docs on React Query.
  *
  * Example usage:
  *
@@ -241,22 +253,15 @@ export function useInfiniteApiQuery<TResponseData>({
   enabled,
   staleTime,
 }: {
-  queryKey: ApiQueryKey;
+  queryKey: InfiniteApiQueryKey;
   enabled?: boolean;
   staleTime?: number;
 }) {
   return useInfiniteQuery({
-    // We append an additional string to the queryKey here to prevent a hard
-    // crash due to a cache conflict between normal queries and "infinite"
-    // queries. Read more
-    // here: https://tkdodo.eu/blog/effective-react-query-keys#caching-data
-    queryKey:
-      queryKey.length === 1
-        ? ([...queryKey, {}, 'infinite'] as const)
-        : ([...queryKey, 'infinite'] as const),
+    queryKey,
     queryFn: ({
       pageParam,
-      queryKey: [url, endpointOptions],
+      queryKey: [, url, endpointOptions],
     }): Promise<ApiResult<TResponseData>> => {
       return QUERY_API_CLIENT.requestPromise(url, {
         includeAllArgs: true,

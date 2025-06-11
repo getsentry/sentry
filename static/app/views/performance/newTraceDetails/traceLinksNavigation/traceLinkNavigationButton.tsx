@@ -1,15 +1,16 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   SpanLink,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -104,39 +105,75 @@ export function TraceLinkNavigationButton({
 
   if (previousTraceLink && isLinkedTraceAvailable) {
     return (
-      <TraceLink
-        color="gray500"
-        to={getTraceDetailsUrl({
-          traceSlug: previousTraceLink.trace_id,
-          spanId: previousTraceLink.span_id,
-          dateSelection,
-          timestamp: linkedTraceTimestamp,
-          location,
-          organization,
-        })}
+      <StyledTooltip
+        position="right"
+        delay={400}
+        isHoverable
+        title={tct(
+          `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
+          {
+            link: (
+              <ExternalLink
+                href={
+                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
+                }
+              />
+            ),
+          }
+        )}
       >
-        <IconChevron direction="left" />
-        <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
-      </TraceLink>
+        <TraceLink
+          color="gray500"
+          to={getTraceDetailsUrl({
+            traceSlug: previousTraceLink.trace_id,
+            spanId: previousTraceLink.span_id,
+            dateSelection,
+            timestamp: linkedTraceTimestamp,
+            location,
+            organization,
+          })}
+        >
+          <IconChevron direction="left" />
+          <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
+        </TraceLink>
+      </StyledTooltip>
     );
   }
 
   if (nextTraceData?.trace_id && nextTraceData.span_id && isLinkedTraceAvailable) {
     return (
-      <TraceLink
-        color="gray500"
-        to={getTraceDetailsUrl({
-          traceSlug: nextTraceData.trace_id,
-          spanId: nextTraceData.span_id,
-          dateSelection,
-          timestamp: linkedTraceTimestamp,
-          location,
-          organization,
-        })}
+      <StyledTooltip
+        position="left"
+        delay={400}
+        isHoverable
+        title={tct(
+          `This links to the next trace within the same session. To learn more, [link:read the docs].`,
+          {
+            link: (
+              <ExternalLink
+                href={
+                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
+                }
+              />
+            ),
+          }
+        )}
       >
-        <TraceLinkText>{t('Go to Next Trace')}</TraceLinkText>
-        <IconChevron direction="right" />
-      </TraceLink>
+        <TraceLink
+          color="gray500"
+          to={getTraceDetailsUrl({
+            traceSlug: nextTraceData.trace_id,
+            spanId: nextTraceData.span_id,
+            dateSelection,
+            timestamp: linkedTraceTimestamp,
+            location,
+            organization,
+          })}
+        >
+          <TraceLinkText>{t('Go to Next Trace')}</TraceLinkText>
+          <IconChevron direction="right" />
+        </TraceLink>
+      </StyledTooltip>
     );
   }
 
@@ -165,10 +202,14 @@ const StyledTooltip = styled(Tooltip)`
 
 const TraceLink = styled(Link)`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
   padding: ${space(0.25)} ${space(0.5)};
   display: flex;
   align-items: center;
+
+  color: ${p => p.theme.subText};
+  :hover {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const TraceLinkText = styled('span')`

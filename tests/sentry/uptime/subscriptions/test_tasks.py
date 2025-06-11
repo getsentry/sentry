@@ -22,10 +22,10 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
 from sentry.uptime.models import (
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_detector,
 )
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
@@ -38,6 +38,7 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import redis
 
 pytestmark = [requires_kafka]
@@ -522,4 +523,11 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
         proj_sub.refresh_from_db()
         assert proj_sub.status == expected_status
-        assert proj_sub.uptime_status == expected_uptime_status
+        assert proj_sub.uptime_subscription.uptime_status == expected_uptime_status
+
+        detector = get_detector(proj_sub.uptime_subscription)
+        assert detector
+        if expected_status == ObjectStatus.ACTIVE:
+            assert detector.enabled
+        else:
+            assert not detector.enabled

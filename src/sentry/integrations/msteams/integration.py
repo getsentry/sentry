@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Never
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -18,6 +18,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 
@@ -79,14 +80,14 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
-    key = "msteams"
+    key = IntegrationProviderSlug.MSTEAMS.value
     name = "Microsoft Teams"
     can_add = False
     metadata = metadata
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
         return [MsTeamsPipelineView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -136,6 +137,6 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         client.send_card(conversation_id, card)
 
 
-class MsTeamsPipelineView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class MsTeamsPipelineView(PipelineView[Never]):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         return pipeline.next_step()

@@ -83,7 +83,7 @@ describe('useTraceItemAttributeKeys', () => {
         (_url: string, options: {query?: Record<string, any>}) => {
           const query = options?.query || {};
           return (
-            query.item_type === TraceItemDataset.LOGS && query.attribute_type === 'string'
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'string'
           );
         },
       ],
@@ -146,7 +146,7 @@ describe('useTraceItemAttributeKeys', () => {
         (_url: string, options: {query?: Record<string, any>}) => {
           const query = options?.query || {};
           return (
-            query.item_type === TraceItemDataset.LOGS && query.attribute_type === 'number'
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'number'
           );
         },
       ],
@@ -189,13 +189,18 @@ describe('useTraceItemAttributeKeys', () => {
         kind: FieldKind.TAG,
       },
       {
-        key: 'invalid-attribute',
-        name: 'Invalid Attribute',
+        key: 'valid-attribute-with-dash',
+        name: 'Valid Attribute With Dash',
         kind: FieldKind.TAG,
       },
       {
         key: 'another_valid.attribute',
         name: 'Another Valid Attribute',
+        kind: FieldKind.TAG,
+      },
+      {
+        key: 'invalid attribute',
+        name: 'Invalid Attribute',
         kind: FieldKind.TAG,
       },
     ];
@@ -223,6 +228,11 @@ describe('useTraceItemAttributeKeys', () => {
       'valid.attribute': {
         key: 'valid.attribute',
         name: 'Valid Attribute',
+        kind: FieldKind.TAG,
+      },
+      'valid-attribute-with-dash': {
+        key: 'valid-attribute-with-dash',
+        name: 'Valid Attribute With Dash',
         kind: FieldKind.TAG,
       },
       'another_valid.attribute': {

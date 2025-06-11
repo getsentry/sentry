@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +11,7 @@ from sentry.new_migrations.monkey.executor import (
     SentryMigrationExecutor,
     _check_bitfield_flags,
 )
-from sentry.testutils.cases import TestCase
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class DummyGetsentryAppConfig(AppConfig):
@@ -22,27 +21,18 @@ class DummyGetsentryAppConfig(AppConfig):
     path = "/tmp/dummy_getsentry"
 
 
-@contextmanager
-def mock_getsentry_if_not_registered():
-    if "getsentry" in settings.INSTALLED_APPS:
-        yield
-        return
+class TestSentryMigrationExecutor:
+    @pytest.fixture(autouse=True)
+    def _mock_getsentry_if_not_registered(self):
+        if "getsentry" in settings.INSTALLED_APPS:
+            yield
+            return
 
-    with (
-        patch.dict(apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", None)}),
-        patch.object(settings, "INSTALLED_APPS", new=settings.INSTALLED_APPS + ("getsentry",)),
-    ):
-        yield
-
-
-class SentryMigrationExecutorTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.mock_getsentry_if_not_registered = mock_getsentry_if_not_registered()
-        self.mock_getsentry_if_not_registered.__enter__()
-
-    def tearDown(self):
-        self.mock_getsentry_if_not_registered.__exit__(None, None, None)
+        with (
+            patch.dict(apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", None)}),
+            patch.object(settings, "INSTALLED_APPS", new=settings.INSTALLED_APPS + ("getsentry",)),
+        ):
+            yield
 
     def test_check_db_routing_pass(self):
         class TestMigration(migrations.Migration):
@@ -73,7 +63,7 @@ class SentryMigrationExecutorTest(TestCase):
                     name="projects",
                     field=models.ManyToManyField(related_name="releases", to="sentry.Project"),
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     "TEST SQL",
                     hints={"tables": ["sentry_savedsearch"]},
                 ),
@@ -121,7 +111,7 @@ class SentryMigrationExecutorTest(TestCase):
                                 related_name="releases", to="sentry.Project"
                             ),
                         ),
-                        migrations.RunSQL(
+                        SafeRunSQL(
                             "TEST SQL",
                             hints={"tables": ["sentry_savedsearch"]},
                         ),
@@ -153,7 +143,7 @@ class SentryMigrationExecutorTest(TestCase):
                                 related_name="releases", to="sentry.Project"
                             ),
                         ),
-                        migrations.RunSQL("TEST SQL"),
+                        SafeRunSQL("TEST SQL"),
                         migrations.RunPython(
                             migrations.RunPython.noop,
                             migrations.RunPython.noop,
@@ -175,7 +165,7 @@ class SentryMigrationExecutorTest(TestCase):
     def test_check_db_routing_missing_hints_2(self):
         class TestMigration(migrations.Migration):
             operations = [
-                migrations.RunSQL("TEST SQL"),
+                SafeRunSQL("TEST SQL"),
             ]
 
         with pytest.raises(MissingDatabaseRoutingInfo):
@@ -209,7 +199,7 @@ class SentryMigrationExecutorTest(TestCase):
     def test_check_db_routing_dont_run_for_3rd_party(self):
         class TestMigration(migrations.Migration):
             operations = [
-                migrations.RunSQL("TEST SQL"),
+                SafeRunSQL("TEST SQL"),
             ]
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="auth"))

@@ -52,7 +52,7 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         "trace.span",
         "trace.parent_span",
     }
-    duration_fields = {"transaction.duration"}
+    duration_fields = {"transaction.duration", "span.duration"}
 
     def load_config(
         self,

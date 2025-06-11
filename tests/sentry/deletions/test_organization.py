@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
@@ -18,6 +19,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -30,9 +32,11 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
+class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
     def test_simple(self):
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
@@ -363,3 +367,30 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             .exclude(environment=None)
             .exists()
         )
+
+    def test_workflow_engine_cleanup(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+
+        dcg = self.create_data_condition_group(organization=org)
+        dc = self.create_data_condition(condition_group=dcg)
+
+        detector = self.create_detector(
+            project_id=project.id,
+            name="Test Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=dcg,
+        )
+        workflow = self.create_workflow(organization=org, name="Test Workflow")
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DataConditionGroup.objects.filter(id=dcg.id).exists()
+        assert not DataCondition.objects.filter(id=dc.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:54.465350+00:00'
+created: '2025-04-25T21:22:41.730155+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,46 +10,46 @@ app:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             function*
               "_main"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by the client)
             function*
               "std::rt::lang_start"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by the client)
             function*
               "std::rt::lang_start_internal"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "___rust_maybe_catch_panic"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by the client)
             function*
               "std::panicking::try::do_call"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by the client)
             function*
               "std::rt::lang_start::{{closure}}"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "log_demo::main"
-          frame*
+          frame* (marked in-app by the client)
             function*
               "log::__private_api_log"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "sentry::integrations::log::Logger::log"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "sentry::hub::Hub::with_active"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "sentry::hub::Hub::with"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "sentry::hub::Hub::with_active::{{closure}}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function (ignored unknown function)
               "<unknown>"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function (ignored unknown function)
               "<redacted>"
         type (ignored because exception is synthetic)

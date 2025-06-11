@@ -3,8 +3,8 @@ export interface SourceMapWizardBlueThunderAnalyticsParams {
   project_id: string;
   event_platform?: string;
   event_runtime?: string;
-  sdk_name?: string;
-  sdk_version?: string;
+  sdk_name?: string | null;
+  sdk_version?: string | null;
 }
 
 export type StackTraceEventParameters = {

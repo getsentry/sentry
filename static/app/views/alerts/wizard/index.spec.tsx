@@ -26,7 +26,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
@@ -65,7 +69,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -98,7 +106,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -126,9 +138,80 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
+  });
+
+  it('shows span aggregate alerts according to feature flag', async () => {
+    const {organization, project, routerProps, router} = initializeOrg({
+      organization: {
+        features: [
+          'alert-crash-free-metrics',
+          'incidents',
+          'performance-view',
+          'crash-rate-alerts',
+          'visibility-explore-view',
+          'performance-transaction-deprecation-alerts',
+        ],
+        access: ['org:write', 'alerts:write'],
+      },
+    });
+
+    render(
+      <AlertWizard
+        organization={organization}
+        projectId={project.slug}
+        {...routerProps}
+      />,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    await userEvent.click(screen.getByText('Throughput'));
+    expect(
+      screen.getByText(/Throughput is the total number of spans/)
+    ).toBeInTheDocument();
+  });
+
+  it('shows transaction aggregate alerts according to feature flag', async () => {
+    const {organization, project, routerProps, router} = initializeOrg({
+      organization: {
+        features: [
+          'alert-crash-free-metrics',
+          'incidents',
+          'performance-view',
+          'crash-rate-alerts',
+          'visibility-explore-view',
+        ],
+        access: ['org:write', 'alerts:write'],
+      },
+    });
+
+    render(
+      <AlertWizard
+        organization={organization}
+        projectId={project.slug}
+        {...routerProps}
+      />,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    await userEvent.click(screen.getByText('Throughput'));
+    expect(
+      screen.getByText(/Throughput is the total number of transactions/)
+    ).toBeInTheDocument();
   });
 });

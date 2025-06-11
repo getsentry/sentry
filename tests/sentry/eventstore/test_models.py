@@ -369,14 +369,14 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             },
         }
 
-        enhancement = Enhancements.from_config_string(
+        enhancements = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
             """,
         )
         grouping_config: GroupingConfig = {
-            "enhancements": enhancement.base64_string,
+            "enhancements": enhancements.base64_string,
             "id": DEFAULT_GROUPING_CONFIG,
         }
 
@@ -598,7 +598,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             group_event.occurrence
             assert fetch_mock.call_count == 1
             # Call count should increase if we do it a second time
-            group_event.occurrence = None
+            group_event._occurrence = None
             assert group_event.occurrence == occurrence
             assert fetch_mock.call_count == 2
 

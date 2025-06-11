@@ -3,8 +3,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';

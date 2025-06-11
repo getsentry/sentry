@@ -8,6 +8,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -421,3 +422,27 @@ def project_is_seer_eligible(project: Project) -> bool:
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_region_enabled
+
+
+def set_default_project_autofix_automation_tuning(
+    organization: Organization, project: Project
+) -> None:
+    org_default_autofix_automation_tuning = organization.get_option(
+        "sentry:default_autofix_automation_tuning"
+    )
+    if org_default_autofix_automation_tuning and org_default_autofix_automation_tuning != "off":
+        project.update_option(
+            "sentry:default_autofix_automation_tuning", org_default_autofix_automation_tuning
+        )
+
+
+def set_default_project_seer_scanner_automation(
+    organization: Organization, project: Project
+) -> None:
+    org_default_seer_scanner_automation = organization.get_option(
+        "sentry:default_seer_scanner_automation"
+    )
+    if org_default_seer_scanner_automation:
+        project.update_option(
+            "sentry:default_seer_scanner_automation", org_default_seer_scanner_automation
+        )

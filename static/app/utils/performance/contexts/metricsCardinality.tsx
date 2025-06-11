@@ -166,8 +166,6 @@ function Provider(
   return <_Provider {...props}>{props.children}</_Provider>;
 }
 
-export const MetricsCardinalityConsumer = _Context.Consumer;
-
 export const useMetricsCardinalityContext = _useContext;
 
 /**

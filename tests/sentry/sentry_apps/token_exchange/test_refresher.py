@@ -1,12 +1,12 @@
 from unittest.mock import PropertyMock, patch
 
 import pytest
+from django.db.utils import OperationalError
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
@@ -17,13 +17,11 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class TestRefresher(TestCase):
     def setUp(self):
-        self.orm_install = self.create_sentry_app_installation()
-        self.client_id = self.orm_install.sentry_app.application.client_id
-        self.user = self.orm_install.sentry_app.proxy_user
+        self.install = self.create_sentry_app_installation()
+        self.client_id = self.install.sentry_app.application.client_id
+        self.user = self.install.sentry_app.proxy_user
 
-        self.token = self.orm_install.api_token
-
-        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
+        self.token = self.install.api_token
 
         self.refresher = Refresher(
             install=self.install,
@@ -92,9 +90,10 @@ class TestRefresher(TestCase):
         }
         assert e.value.public_context == {}
 
+    @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
-    def test_api_application_must_exist(self, _):
-        with pytest.raises(SentryAppIntegratorError) as e:
+    def test_api_application_must_exist(self, _, mock_validate):
+        with pytest.raises(SentryAppSentryError) as e:
             self.refresher.run()
 
         assert e.value.message == "Could not find matching Application for given client_id"
@@ -113,7 +112,7 @@ class TestRefresher(TestCase):
 
         assert e.value.message == "Sentry App does not exist on attached Application"
         assert e.value.webhook_context == {
-            "application_id": self.orm_install.sentry_app.application.id,
+            "application_id": self.install.sentry_app.application.id,
             "installation_uuid": self.install.uuid,
             "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
         }
@@ -133,3 +132,12 @@ class TestRefresher(TestCase):
             sentry_app_installation_id=self.install.id,
             exchange_type="refresh",
         )
+
+    def test_returns_token_on_outbox_error(self):
+        # Mock the transaction to raise OperationalError after token creation
+        with patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced") as mock_process:
+            mock_process.side_effect = OperationalError("Outbox issue")
+
+            # The refresher should return the token even though there was an error
+            token = self.refresher.run()
+            assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token

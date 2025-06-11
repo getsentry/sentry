@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {generateQueryWithTag} from 'sentry/utils';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -30,7 +30,6 @@ import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -129,9 +128,8 @@ function EventTagsTreeRowDropdown({
   project,
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const location = useLocation();
-  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
   });
@@ -150,7 +148,14 @@ function EventTagsTreeRowDropdown({
     project?.highlightTags &&
     // Skip tags already highlighted
     highlightTagSet.has(originalTag.key);
-  const query = generateQueryWithTag({referrer}, originalTag);
+  const query = generateQueryWithTag(
+    {referrer},
+    {
+      ...originalTag,
+      key: escapeIssueTagKey(originalTag.key),
+    }
+  );
+
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
     project,
@@ -189,7 +194,7 @@ function EventTagsTreeRowDropdown({
     },
   ];
 
-  if (hasNewTraceUi && hasTraceDrawerAction) {
+  if (hasExploreEnabled) {
     items.push({
       key: 'view-traces',
       label: t('Find more samples with this value'),

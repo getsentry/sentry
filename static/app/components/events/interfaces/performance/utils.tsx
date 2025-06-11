@@ -7,11 +7,10 @@ import type {
 } from 'sentry/components/events/interfaces/spans/types';
 import type {EntrySpans, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {
-  getIssueTypeFromOccurrenceType,
-  IssueCategory,
-  IssueType,
-} from 'sentry/types/group';
+import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
+
+export const TRACE_WATERFALL_PREFERENCES_KEY =
+  'issue-details-trace-waterfall-preferences';
 
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
@@ -26,12 +25,7 @@ export function getSpanInfoFromTransactionEvent(
 ) {
   const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
   if (!perfEvidenceData) {
-    if (
-      event.issueCategory === IssueCategory.PERFORMANCE &&
-      event.endTimestamp > 1663560000 //  (Sep 19, 2022 onward), Some events could have been missing evidence before EA
-    ) {
-      Sentry.captureException(new Error('Span Evidence missing for performance issue.'));
-    }
+    Sentry.captureException(new Error('Span Evidence missing for performance issue.'));
     return null;
   }
 

@@ -1,3 +1,4 @@
+import * as qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -23,6 +24,14 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const group = GroupFixture();
 const tags = TagsFixture();
+
+const makeInitialRouterConfig = (tagKey: string) => ({
+  location: {
+    pathname: `/organizations/org-slug/issues/1/tags/${tagKey}/`,
+    query: {},
+  },
+  route: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+});
 
 function init(tagKey: string) {
   return initializeOrg({
@@ -63,7 +72,10 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -101,7 +113,10 @@ describe('TagDetailsDrawerContent', () => {
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -119,25 +134,25 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
     );
-    await userEvent.click(
-      await screen.findByRole('link', {name: 'View other events with this tag value'})
+    expect(
+      screen.getByRole('menuitemradio', {
+        name: 'View other events with this tag value',
+      })
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/events/?query=user.username%3Adavid'
     );
-
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/1/events/',
-      query: {query: 'user.username:david'},
-    });
   });
 
   it('navigates to discover with issue + tag query', async () => {
@@ -153,25 +168,32 @@ describe('TagDetailsDrawerContent', () => {
     render(<TagDetailsDrawerContent group={group} />, {
       router,
       organization: discoverOrganization,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
     );
-    await userEvent.click(await screen.findByRole('link', {name: 'Open in Discover'}));
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: {
-        dataset: 'errors',
-        field: ['title', 'release', 'environment', 'user.display', 'timestamp'],
-        interval: '1m',
-        name: 'RequestError: GET /issues/ 404',
-        project: '2',
-        query: 'issue:JAVASCRIPT-6QS user.username:david',
-        statsPeriod: '14d',
-        yAxis: ['count()', 'count_unique(user)'],
-      },
+    const discoverMenuItem = screen.getByRole('menuitemradio', {
+      name: 'Open in Discover',
+    });
+    expect(discoverMenuItem).toBeInTheDocument();
+
+    const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
+    expect(link.pathname).toBe('/organizations/org-slug/discover/results/');
+    const discoverQueryParams = qs.parse(link.search);
+
+    expect(discoverQueryParams).toEqual({
+      dataset: 'errors',
+      field: ['title', 'release', 'environment', 'user.display', 'timestamp'],
+      interval: '1m',
+      name: 'RequestError: GET /issues/ 404',
+      project: '2',
+      query: 'issue:JAVASCRIPT-6QS user.username:david',
+      queryDataset: 'error-events',
+      statsPeriod: '14d',
+      yAxis: ['count()', 'count_unique(user)'],
     });
   });
 
@@ -183,7 +205,10 @@ describe('TagDetailsDrawerContent', () => {
       statusCode: 500,
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('There was an error loading tag details')
@@ -203,7 +228,10 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([996, 4]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Value and percent columns
@@ -230,7 +258,10 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([992, 7]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Value and percent columns
@@ -257,7 +288,10 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([995, 5]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Percents will be overcounted in this edge case.

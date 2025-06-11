@@ -4,8 +4,10 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
@@ -21,7 +23,7 @@ def build_mock_message(data, topic=None):
     return message
 
 
-@override_options({"standalone-spans.process-segments-consumer.enable": True})
+@override_options({"spans.process-segments.consumer.enable": True})
 @mock.patch(
     "sentry.spans.consumers.process_segments.factory.process_segment", side_effect=lambda x: x
 )
@@ -84,7 +86,12 @@ def test_segment_deserialized_correctly(mock_process_segment):
         assert mock_process_segment.call_args.args[0] == segment_data["spans"]
 
         assert mock_producer.produce.call_count == 2
-        assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-spans")
+        assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-items")
 
-        value = mock_producer.produce.call_args.args[1].value
-        assert json.loads(value) == span_data
+        payload = mock_producer.produce.call_args.args[1]
+        span_item = TraceItem.FromString(payload.value)
+        assert span_item == convert_span_to_item(span_data)
+
+        headers = {k: v for k, v in payload.headers}
+        assert headers["item_type"] == b"1"
+        assert headers["project_id"] == b"1"

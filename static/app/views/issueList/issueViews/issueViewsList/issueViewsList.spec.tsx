@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -10,10 +11,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
 import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
 
 const organization = OrganizationFixture({
-  features: ['issue-view-sharing'],
+  features: ['enforce-stacked-navigation', 'issue-views'],
 });
 
 describe('IssueViewsList', function () {
@@ -56,8 +58,21 @@ describe('IssueViewsList', function () {
             utc: null,
           },
           starred: false,
+          stars: 7,
         }),
       ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+    });
+
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user').options,
+        prefersStackedNavigation: true,
+      },
     });
   });
 
@@ -71,6 +86,7 @@ describe('IssueViewsList', function () {
     );
     expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
     expect(screen.getByText('env1')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
 
     expect(await screen.findByText('Bar')).toBeInTheDocument();
     expect(screen.getByText('Bar')).toHaveAttribute(
@@ -80,6 +96,57 @@ describe('IssueViewsList', function () {
     expect(screen.getByText(textWithMarkupMatcher('bar is baz'))).toBeInTheDocument();
     expect(screen.getByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
+    expect(screen.getByText('7')).toBeInTheDocument();
+  });
+
+  it('can sort views', async function () {
+    const mockViewsEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      match: [MockApiClient.matchQuery({createdBy: 'me'})],
+      body: [
+        GroupSearchViewFixture({
+          id: '1',
+          name: 'Foo',
+          projects: [1],
+          environments: ['env1'],
+          query: 'foo:bar',
+          timeFilters: {
+            period: '7d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+          starred: true,
+        }),
+      ],
+    });
+
+    render(<IssueViewsList />, {organization, deprecatedRouterMocks: false});
+
+    // By default, sorts by popularity (desc) then visited (desc) then created (desc)
+    await waitFor(() => {
+      expect(mockViewsEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-popularity', '-visited', '-created']}),
+        })
+      );
+    });
+
+    // Can sort by last visited
+    await userEvent.click(screen.getByRole('button', {name: 'Most Starred'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Recently Viewed'}));
+
+    await waitFor(() => {
+      expect(mockViewsEndpoint).toHaveBeenCalledTimes(2);
+    });
+
+    expect(mockViewsEndpoint).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({sort: ['-visited', '-popularity', '-created']}),
+      })
+    );
   });
 
   it('can unstar views', async function () {
@@ -167,5 +234,116 @@ describe('IssueViewsList', function () {
     expect(
       await within(othersView).findByRole('button', {name: 'Star'})
     ).toBeInTheDocument();
+  });
+
+  it('can delete views', async function () {
+    const mockDeleteEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/1/',
+      method: 'DELETE',
+    });
+
+    render(<IssueViewsList />, {organization});
+    renderGlobalModal();
+
+    expect(await screen.findByText('Foo')).toBeInTheDocument();
+
+    const tableMe = screen.getByTestId('table-me');
+    const myView = within(tableMe).getByTestId('table-me-row-0');
+    await userEvent.click(within(myView).getByRole('button', {name: 'More options'}));
+    await userEvent.click(
+      within(myView).getByRole('menuitemradio', {
+        name: 'Delete',
+      })
+    );
+
+    // Query will be invalidated, need to mock the response on refetch
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      match: [MockApiClient.matchQuery({createdBy: 'me'})],
+      body: [],
+    });
+
+    // Confirm the deletion
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Delete View',
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('Foo')).not.toBeInTheDocument();
+    });
+    expect(mockDeleteEndpoint).toHaveBeenCalled();
+  });
+
+  it('can rename views', async function () {
+    const mockRenameEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/1/',
+      method: 'PUT',
+      body: {
+        id: '1',
+        name: 'New Name',
+      },
+    });
+
+    render(<IssueViewsList />, {organization});
+    renderGlobalModal();
+
+    await screen.findByText('Foo');
+
+    const tableMe = screen.getByTestId('table-me');
+    const myView = within(tableMe).getByTestId('table-me-row-0');
+    await userEvent.click(within(myView).getByRole('button', {name: 'More options'}));
+    await userEvent.click(within(myView).getByRole('menuitemradio', {name: 'Rename'}));
+
+    const modal = await screen.findByRole('dialog');
+    expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue('Foo');
+    await userEvent.clear(within(modal).getByRole('textbox', {name: 'Name'}));
+    await userEvent.type(within(modal).getByRole('textbox', {name: 'Name'}), 'New Name');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Save Changes'}));
+
+    await within(myView).findByText('New Name');
+
+    expect(mockRenameEndpoint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({name: 'New Name'}),
+      })
+    );
+  });
+
+  it('can duplicate views', async function () {
+    const mockCreateEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      method: 'POST',
+      body: GroupSearchViewFixture({
+        id: '222',
+        name: 'New Name',
+        starred: true,
+      }),
+    });
+
+    render(<IssueViewsList />, {organization});
+    renderGlobalModal();
+    await screen.findByText('Foo');
+
+    const tableMe = screen.getByTestId('table-me');
+    const myView = within(tableMe).getByTestId('table-me-row-0');
+    await userEvent.click(within(myView).getByRole('button', {name: 'More options'}));
+    await userEvent.click(within(myView).getByRole('menuitemradio', {name: 'Duplicate'}));
+
+    const modal = await screen.findByRole('dialog');
+    await userEvent.clear(within(modal).getByRole('textbox', {name: 'Name'}));
+    await userEvent.type(within(modal).getByRole('textbox', {name: 'Name'}), 'New Name');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Create View'}));
+
+    await waitFor(() => {
+      expect(mockCreateEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({name: 'New Name', starred: true}),
+        })
+      );
+    });
   });
 });

@@ -156,7 +156,7 @@ interface TraceBarProps {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   node_space: [number, number] | null;
-  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -212,19 +212,19 @@ export function TraceBar(props: TraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.occurences.size > 0 ? (
+        {props.occurrences.size > 0 ? (
           <TraceOccurenceIcons
             node_space={props.node_space}
-            occurences={props.occurences}
+            occurrences={props.occurrences}
             manager={props.manager}
           />
         ) : null}
-        {props.occurences.size > 0 ||
+        {props.occurrences.size > 0 ||
         props.errors.size > 0 ||
         props.profiles.length > 0 ? (
           <TraceBackgroundPatterns
             node_space={props.node_space}
-            occurences={props.occurences}
+            occurrences={props.occurrences}
             errors={props.errors}
             manager={props.manager}
           />
@@ -244,7 +244,7 @@ interface AutogroupedTraceBarProps {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   node_spaces: Array<[number, number]>;
-  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -284,7 +284,7 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         manager={props.manager}
         virtualized_index={props.virtualized_index}
         errors={props.errors}
-        occurences={props.occurences}
+        occurrences={props.occurrences}
         profiles={props.profiles}
       />
     );
@@ -324,10 +324,10 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.occurences.size > 0 ? (
+        {props.occurrences.size > 0 ? (
           <TraceOccurenceIcons
             node_space={props.entire_space}
-            occurences={props.occurences}
+            occurrences={props.occurrences}
             manager={props.manager}
           />
         ) : null}

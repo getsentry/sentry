@@ -1,10 +1,17 @@
+from enum import IntEnum
 from unittest import mock
 
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
+
+
+class MockDataConditionEnum(IntEnum):
+    FOO = 1
+    BAR = 2
 
 
 class GetConditionResultTest(TestCase):
@@ -37,13 +44,33 @@ class GetConditionResultTest(TestCase):
         assert dc.get_condition_result() is True
 
 
-class EvaluateValueTest(TestCase):
+class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
         assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
         assert dc.evaluate_value(1) is None
+
+    def test_dict_comparison_result(self):
+        def evaluate_value(
+            value: int, comparison: dict[str, DetectorPriorityLevel]
+        ) -> DetectorPriorityLevel:
+            return (
+                DetectorPriorityLevel.HIGH
+                if comparison["baz"].value > 1
+                else DetectorPriorityLevel.OK
+            )
+
+        dc = self.setup_condition_mocks(
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
+        )
+        dc.update(comparison={"baz": MockDataConditionEnum.BAR})
+        assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
+
+        dc.update(comparison={"baz": MockDataConditionEnum.FOO})
+        assert dc.evaluate_value(0) == DetectorPriorityLevel.OK
+        self.teardown_condition_mocks()
 
     def test_bad_condition(self):
         with pytest.raises(ValueError):
@@ -58,11 +85,42 @@ class EvaluateValueTest(TestCase):
         )
 
         # Raises a TypeError because str vs int comparison
-        with pytest.raises(TypeError):
+        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
             dc.evaluate_value(2)
+            assert mock_logger.exception.call_args[0][0] == "Invalid comparison for data condition"
 
     def test_condition_result_comparison_fails(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result="wrong"
         )
         assert dc.evaluate_value(2) is None
+
+    def test_condition_evaluation__data_condition_exception(self):
+        def evaluate_value(value: int, comparison: int) -> bool:
+            raise DataConditionEvaluationException("A known error occurred")
+
+        dc = self.setup_condition_mocks(
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
+        )
+
+        with mock.patch("sentry.workflow_engine.models.data_condition.logger.info") as mock_logger:
+            dc.evaluate_value(2)
+            assert (
+                mock_logger.call_args[0][0]
+                == "A known error occurred while evaluating a data condition"
+            )
+
+        self.teardown_condition_mocks()
+
+    def test_condition_evaluation___exception(self):
+        def evaluate_value(value: int, comparison: int) -> bool:
+            raise Exception("Something went wrong")
+
+        dc = self.setup_condition_mocks(
+            evaluate_value, ["sentry.workflow_engine.models.data_condition"]
+        )
+
+        with pytest.raises(Exception):
+            dc.evaluate_value(2)
+
+        self.teardown_condition_mocks()

@@ -1,7 +1,7 @@
 export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
-export type ProviderValue = 'always' | 'never';
+type ProviderValue = 'always' | 'never';
 
 type NotificationBaseObject = {
   id: string;

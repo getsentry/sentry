@@ -7,13 +7,14 @@ from rest_framework.response import Response
 
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import (
     NoProjects,
     OrganizationEventsEndpointBase,
     OrganizationEventsV2EndpointBase,
 )
 from sentry.api.event_search import parse_search_query
+from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
@@ -94,11 +95,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 # query_source=(
                 #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
                 # ),
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
             )
 
         return Response({"count": result["data"][0]["count"]})
@@ -108,7 +105,7 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 @region_silo_endpoint
-class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
+class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -162,9 +159,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             context = serialize(
                 results,
                 request.user,
-                GroupSerializer(
-                    environment_func=self._get_environment_func(request, organization.id)
-                ),
+                GroupSerializer(environment_func=get_environment_func(request, organization.id)),
             )
 
         return Response(context)
@@ -183,13 +178,16 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
-        use_rpc = request.GET.get("useRpc", "0") == "1"
+        use_eap = request.GET.get("dataset", None) == "spans"
         orderby = self.get_orderby(request) or ["timestamp"]
 
-        if use_rpc:
-            result = get_eap_span_samples(request, snuba_params, orderby)
-        else:
-            result = get_span_samples(request, snuba_params, orderby)
+        with handle_query_errors():
+            if use_eap:
+                result = get_eap_span_samples(request, snuba_params, orderby)
+                dataset = spans_rpc
+            else:
+                result = get_span_samples(request, snuba_params, orderby)
+                dataset = spans_indexed
 
         return Response(
             self.handle_results_with_meta(
@@ -198,7 +196,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params.project_ids,
                 {"data": result["data"], "meta": result["meta"]},
                 True,
-                spans_indexed,
+                dataset,
             )
         )
 
@@ -295,7 +293,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
 
     selected_columns = request.GET.getlist("additionalFields", []) + [
         "project",
-        "transaction.id",
+        "transaction.span_id",
         column,
         "timestamp",
         "span_id",
@@ -312,7 +310,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
         config=SearchResolverConfig(),
         offset=0,
         limit=100,
-        sampling_mode=None,
+        sampling_mode=snuba_params.sampling_mode,
         orderby=["-profile.id"],
         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
         selected_columns=[
@@ -344,7 +342,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
         config=SearchResolverConfig(use_aggregate_conditions=False),
         offset=0,
         limit=9,
-        sampling_mode=None,
+        sampling_mode=snuba_params.sampling_mode,
         query_string=samples_query_string,
         orderby=orderby,
         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,

@@ -2,20 +2,24 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
 const stringTags: TagCollection = {
   id: {
     key: 'id',
     name: 'id',
+    kind: FieldKind.TAG,
   },
   project: {
     key: 'project',
     name: 'project',
+    kind: FieldKind.TAG,
   },
   'span.op': {
     key: 'span.op',
     name: 'span.op',
+    kind: FieldKind.TAG,
   },
 };
 
@@ -23,15 +27,11 @@ const numberTags: TagCollection = {
   'span.duration': {
     key: 'span.duration',
     name: 'span.duration',
+    kind: FieldKind.MEASUREMENT,
   },
 };
 
 describe('ColumnEditorModal', function () {
-  beforeEach(function () {
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-  });
-
   it('allows closes modal on apply', async function () {
     const onClose = jest.fn();
 
@@ -123,7 +123,7 @@ describe('ColumnEditorModal', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
 
-    const columns2 = ['id', 'project', 'None'];
+    const columns2 = ['id', 'project', '\u2014'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
       expect(column).toHaveTextContent(columns2[i]!);
     });
@@ -134,7 +134,7 @@ describe('ColumnEditorModal', function () {
       ['span.duration', 'number'],
       ['span.op', 'string'],
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Column None'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Column \u2014'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]![0]);

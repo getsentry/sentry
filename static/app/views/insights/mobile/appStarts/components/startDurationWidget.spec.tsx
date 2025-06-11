@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -23,22 +24,20 @@ describe('StartDurationWidget', () => {
   const project = ProjectFixture();
 
   beforeEach(function () {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [parseInt(project.id, 10)],
         },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
-      },
-    });
+      })
+    );
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [
@@ -81,7 +80,7 @@ describe('StartDurationWidget', () => {
       },
     } as Location);
 
-    render(<StartDurationWidget chartHeight={200} />);
+    render(<StartDurationWidget />);
     expect(await screen.findByText('Average Cold Start')).toBeInTheDocument();
   });
 
@@ -93,7 +92,7 @@ describe('StartDurationWidget', () => {
       },
     } as Location);
 
-    render(<StartDurationWidget chartHeight={200} />);
+    render(<StartDurationWidget />);
     expect(await screen.findByText('Average Warm Start')).toBeInTheDocument();
   });
 

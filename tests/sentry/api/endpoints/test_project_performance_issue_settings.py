@@ -5,10 +5,10 @@ from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
+from sentry.performance_issues.performance_detection import get_merged_settings
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 
 class ProjectPerformanceIssueSettingsTest(APITestCase):
@@ -149,7 +149,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         response = self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
-            n_plus_one_db_queries_detection_enabled=False,
+            transaction_duration_regression_detection_enabled=False,
             method="put",
             status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -187,7 +187,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
-            n_plus_one_db_queries_detection_enabled=False,
+            function_duration_regression_detection_enabled=False,
             method="put",
             status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -198,18 +198,18 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
-            n_plus_one_db_queries_detection_enabled=False,
+            function_duration_regression_detection_enabled=False,
             method="put",
             status_code=status.HTTP_200_OK,
         )
 
-        assert not response.data["n_plus_one_db_queries_detection_enabled"]
+        assert not response.data["function_duration_regression_detection_enabled"]
 
         get_response = self.get_success_response(
             self.project.organization.slug, self.project.slug, format="json"
         )
 
-        assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
+        assert not get_response.data["function_duration_regression_detection_enabled"]
 
     @with_feature("organizations:performance-view")
     def test_put_update_non_super_user_option(self):
@@ -283,6 +283,36 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         )
 
         assert response.data == {"detail": "Invalid settings option"}
+
+    @with_feature("organizations:performance-view")
+    def test_project_admins_can_manage_detectors(self):
+        self.login_as(user=self.user, superuser=False)
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_200_OK,
+        )
+
+        assert not response.data["n_plus_one_db_queries_detection_enabled"]
+
+    @with_feature("organizations:performance-view")
+    def test_project_members_cannot_manage_detectors(self):
+        user = self.create_user("member@localhost")
+        self.create_member(
+            organization=self.project.organization,
+            user=user,
+            role="member",
+        )
+        self.login_as(user=user)
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
     @patch("sentry.api.base.create_audit_entry")
     @with_feature("organizations:performance-view")

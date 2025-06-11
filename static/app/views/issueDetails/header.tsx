@@ -7,6 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Badge} from 'sentry/components/core/badge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {TabList} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -15,7 +16,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,7 +51,7 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-export function GroupHeaderTabs({
+function GroupHeaderTabs({
   baseUrl,
   disabledTabs,
   eventRoute,
@@ -206,7 +206,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
+  const NEW_ISSUE_TYPES: IssueType[] = []; // adds a "new" banner next to the title
 
   return (
     <Layout.Header>

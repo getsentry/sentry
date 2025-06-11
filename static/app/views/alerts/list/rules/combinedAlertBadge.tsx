@@ -1,5 +1,5 @@
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
 import {getAggregateEnvStatus} from 'sentry/views/alerts/rules/crons/utils';
 import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';

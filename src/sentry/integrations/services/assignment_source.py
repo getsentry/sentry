@@ -25,11 +25,15 @@ class AssignmentSource:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        payload["queued"] = payload["queued"].isoformat()
+        return payload
 
     @classmethod
     def from_dict(cls, input_dict: dict[str, Any]) -> AssignmentSource | None:
         try:
+            if "queued" in input_dict and isinstance(input_dict["queued"], str):
+                input_dict["queued"] = datetime.fromisoformat(input_dict["queued"])
             return cls(**input_dict)
         except (ValueError, TypeError):
             return None

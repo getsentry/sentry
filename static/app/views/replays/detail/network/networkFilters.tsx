@@ -53,7 +53,7 @@ function NetworkFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Network Requests')}
         query={searchTerm}
-        disabled={!networkFrames || !networkFrames.length}
+        disabled={!networkFrames?.length}
       />
     </FiltersGrid>
   );

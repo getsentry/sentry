@@ -5,8 +5,6 @@ import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 
 interface NavTourModalProps {
@@ -20,16 +18,11 @@ export function NavTourModal({
   handleDismissTour,
   handleStartTour,
 }: NavTourModalProps) {
-  const config = useLegacyStore(ConfigStore);
-  const prefersDarkMode = config.theme === 'dark';
-
   return (
-    <TourContainer prefersDarkMode={prefersDarkMode}>
+    <TourContainer>
       <ModalImage src={stackedNavTourSvg} />
       <TextContainer>
-        <Header prefersDarkMode={prefersDarkMode}>
-          {t('Welcome to a simpler Sentry')}
-        </Header>
+        <Header>{t('Welcome to a simpler Sentry')}</Header>
         <Description>
           {t(
             'Find what you need, faster. Our new navigation puts your top workflows front and center.'
@@ -74,7 +67,7 @@ const ModalImage = styled('img')`
 `;
 
 // XXX: The negative margin is to undo the global modal styling
-const TourContainer = styled('div')<{prefersDarkMode: boolean}>`
+const TourContainer = styled('div')`
   margin: -${space(4)} -${space(3)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin: -${space(4)};
@@ -88,7 +81,7 @@ const TextContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 `;
 
-const Header = styled('div')<{prefersDarkMode: boolean}>`
+const Header = styled('div')`
   color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};

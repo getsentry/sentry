@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Never
 from urllib.parse import urlencode
 
 from django.http import HttpResponseRedirect
@@ -22,6 +22,7 @@ from sentry.integrations.base import (
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
@@ -117,7 +118,7 @@ class DiscordIntegration(IntegrationInstallation):
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
-    key = "discord"
+    key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration
@@ -148,7 +149,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[Never]]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -282,12 +283,12 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return has_credentials
 
 
-class DiscordInstallPipeline(PipelineView):
+class DiscordInstallPipeline(PipelineView[Never]):
     def __init__(self, params):
         self.params = params
         super().__init__()
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
             state = pipeline.fetch_state(key="discord") or {}
             redirect_uri = (

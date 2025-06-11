@@ -23,6 +23,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
 import {
   DASHBOARD_CARD_GRID_PADDING,
@@ -55,6 +56,7 @@ function DashboardGrid({
   columnCount,
   isLoading,
 }: Props) {
+  const queryClient = useQueryClient();
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
   const [currentDashboards, setCurrentDashboards] = useState<
@@ -102,7 +104,13 @@ function DashboardGrid({
   }
 
   async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
-    await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
+    await updateDashboardFavorite(
+      api,
+      queryClient,
+      organization.slug,
+      dashboard.id,
+      isFavorited
+    );
     onDashboardsChange();
     trackAnalytics('dashboards_manage.toggle_favorite', {
       organization,

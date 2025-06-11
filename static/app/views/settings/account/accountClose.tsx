@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,11 +26,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
-
-const Important = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: 1.2em;
-`;
 
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
@@ -114,8 +109,10 @@ function AccountClose() {
         data: {organizations: Array.from(orgsToRemove)},
       });
 
-      openModal(GoodbyeModalContent, {
-        onClose: leaveRedirect,
+      requestAnimationFrame(() => {
+        openModal(GoodbyeModalContent, {
+          onClose: leaveRedirect,
+        });
       });
 
       // Redirect after 10 seconds
@@ -148,9 +145,7 @@ function AccountClose() {
 
       <Alert.Container>
         <Alert type="error" showIcon>
-          <Important>
-            {t('Closing your account is permanent and cannot be undone')}!
-          </Important>
+          {t('Closing your account is permanent and cannot be undone')}!
         </Alert>
       </Alert.Container>
 
@@ -158,7 +153,7 @@ function AccountClose() {
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
+            {t('Organizations with checked boxes will be deleted!')}
             <br />
             {t(
               'Ownership will remain with other organization owners if an organization is not deleted.'

@@ -123,7 +123,7 @@ function IssueSyncListElement({
   );
 }
 
-export const IssueSyncListElementContainer = styled('div')`
+const IssueSyncListElementContainer = styled('div')`
   line-height: 0;
   display: flex;
   align-items: center;

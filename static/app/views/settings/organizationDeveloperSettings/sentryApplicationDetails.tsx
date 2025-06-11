@@ -16,6 +16,7 @@ import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -28,8 +29,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
@@ -56,7 +57,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
-import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
+import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -268,6 +269,14 @@ export default function SentryApplicationDetails(props: Props) {
     const token = await addSentryAppToken(api, app);
     const updatedNewTokens = newTokens.concat(token);
     setNewTokens(updatedNewTokens);
+    displayNewToken(token.token, () => handleFinishNewToken(token));
+  };
+
+  const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
+    const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
+    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
+    setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
+    setNewTokens(updatedNewTokens);
   };
 
   const onRemoveToken = async (token: InternalAppApiToken) => {
@@ -277,13 +286,6 @@ export default function SentryApplicationDetails(props: Props) {
     const updatedTokens = tokens.filter(tok => tok.id !== token.id);
     await removeSentryAppToken(api, app, token.id);
     setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
-  };
-
-  const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
-    const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
-    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
-    setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
-    setNewTokens(updatedNewTokens);
   };
 
   const renderTokens = () => {
@@ -303,28 +305,20 @@ export default function SentryApplicationDetails(props: Props) {
         onRemove={onRemoveToken}
       />
     ));
-    tokensToDisplay.push(
-      ...newTokens.map(newToken => (
-        <NewTokenHandler
-          data-test-id="new-api-token"
-          key={newToken.id}
-          token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
-          handleGoBack={() => handleFinishNewToken(newToken)}
-        />
-      ))
-    );
 
     return tokensToDisplay;
   };
 
   const rotateClientSecret = async () => {
-    try {
-      const rotateResponse = await api.requestPromise(
-        `/sentry-apps/${appSlug}/rotate-secret/`,
-        {
-          method: 'POST',
-        }
-      );
+    const rotateResponse = await api.requestPromise(
+      `/sentry-apps/${appSlug}/rotate-secret/`,
+      {
+        method: 'POST',
+      }
+    );
+
+    // Ensures that the modal is opened after the confirmation modal closes itself
+    requestAnimationFrame(() => {
       openModal(({Body, Header}) => (
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
@@ -340,9 +334,7 @@ export default function SentryApplicationDetails(props: Props) {
           </Body>
         </Fragment>
       ));
-    } catch {
-      addErrorMessage(t('Error rotating secret'));
-    }
+    });
   };
 
   const onFieldChange = (name: string, value: FieldValue): void => {
@@ -484,10 +476,12 @@ export default function SentryApplicationDetails(props: Props) {
           </Observer>
 
           {app && app.status === 'internal' && (
-            <Panel>
-              {hasTokenAccess() ? (
-                <PanelHeader hasButtons>
-                  {t('Tokens')}
+            <PanelTable
+              headers={[
+                t('Token'),
+                t('Created On'),
+                t('Scopes'),
+                <AddTokenHeader key="token-add">
                   <Button
                     size="xs"
                     icon={<IconAdd isCircled />}
@@ -496,12 +490,13 @@ export default function SentryApplicationDetails(props: Props) {
                   >
                     {t('New Token')}
                   </Button>
-                </PanelHeader>
-              ) : (
-                <PanelHeader>{t('Tokens')}</PanelHeader>
-              )}
-              <PanelBody>{renderTokens()}</PanelBody>
-            </Panel>
+                </AddTokenHeader>,
+              ]}
+              isEmpty={tokens.length === 0}
+              emptyMessage={t("You haven't created any authentication tokens yet.")}
+            >
+              {renderTokens()}
+            </PanelTable>
           )}
 
           {app && (
@@ -546,6 +541,7 @@ export default function SentryApplicationDetails(props: Props) {
                             message={t(
                               'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
                             )}
+                            errorMessage={t('Error rotating secret')}
                           >
                             <Button priority="danger">Rotate client secret</Button>
                           </Confirm>
@@ -597,4 +593,10 @@ const ClientSecret = styled('div')`
   justify-content: right;
   align-items: center;
   margin-right: 0;
+`;
+
+const AddTokenHeader = styled('div')`
+  margin: -${space(1)} 0;
+  display: flex;
+  justify-content: flex-end;
 `;

@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

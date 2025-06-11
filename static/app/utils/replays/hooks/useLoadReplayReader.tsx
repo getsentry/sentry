@@ -11,6 +11,7 @@ type Props = {
     endTimestampMs: number;
     startTimestampMs: number;
   };
+  eventTimestampMs?: number;
   group?: Group;
 };
 
@@ -23,14 +24,16 @@ export default function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,
+  eventTimestampMs,
   group,
 }: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, fetching, ...replayData} = useReplayData({
-    orgSlug,
-    replayId,
-  });
+  const {attachments, errors, replayRecord, status, isError, isPending, ...replayData} =
+    useReplayData({
+      orgSlug,
+      replayId,
+    });
 
   // get first error matching our group
   const firstMatchingError = useMemo(
@@ -59,20 +62,23 @@ export default function useLoadReplayReader({
         attachments,
         clipWindow: memoizedClipWindow,
         errors,
-        fetching,
+        fetching: isPending,
         replayRecord,
+        eventTimestampMs,
       }),
-    [attachments, memoizedClipWindow, errors, fetching, replayRecord]
+    [attachments, memoizedClipWindow, errors, isPending, replayRecord, eventTimestampMs]
   );
 
   return {
     ...replayData,
     attachments,
     errors,
-    fetching,
+    isError,
+    isPending,
     replay,
     replayId,
     replayRecord,
+    status,
   };
 }
 

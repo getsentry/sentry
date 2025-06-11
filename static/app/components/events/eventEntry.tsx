@@ -3,9 +3,10 @@ import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {isJavascriptPlatform} from 'sentry/utils/platform';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -41,6 +42,7 @@ function EventEntryContent({
   isShare,
 }: Props) {
   const groupingCurrentLevel = group?.metadata?.current_level;
+  const issueTypeConfig = group ? getConfigForIssueType(group, group.project) : null;
 
   switch (entry.type) {
     case EntryType.EXCEPTION:
@@ -107,7 +109,7 @@ function EventEntryContent({
       );
 
     case EntryType.DEBUGMETA:
-      if (isShare) {
+      if (isShare || isJavascriptPlatform(event.platform)) {
         return null;
       }
 
@@ -125,7 +127,7 @@ function EventEntryContent({
       if (isShare) {
         return null;
       }
-      if (group?.issueCategory === IssueCategory.PERFORMANCE) {
+      if (issueTypeConfig?.spanEvidence.enabled) {
         return (
           <SpanEvidenceSection
             event={event as EventTransaction}

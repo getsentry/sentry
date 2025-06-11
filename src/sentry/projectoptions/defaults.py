@@ -123,6 +123,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
+    "database_query_injection_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -196,3 +197,9 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should tempest fetch dumps for this project
 register(key="sentry:tempest_fetch_dumps", default=False)
+
+# Should autofix run automatically on new issues
+register(key="sentry:autofix_automation_tuning", default="off")
+
+# Should seer scanner run automatically on new issues
+register(key="sentry:seer_scanner_automation", default=True)

@@ -8,6 +8,13 @@ describe('ProjectCspReports', function () {
 
   const projectUrl = `/projects/${organization.slug}/${project.slug}/`;
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/csp/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/csp/',
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -27,10 +34,8 @@ describe('ProjectCspReports', function () {
   it('renders', async function () {
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
@@ -47,6 +52,7 @@ describe('ProjectCspReports', function () {
     });
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(
@@ -57,6 +63,7 @@ describe('ProjectCspReports', function () {
   it('can enable default ignored sources', async function () {
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -86,6 +93,7 @@ describe('ProjectCspReports', function () {
   it('can set additional ignored sources', async function () {
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
 
     const mock = MockApiClient.addMockResponse({

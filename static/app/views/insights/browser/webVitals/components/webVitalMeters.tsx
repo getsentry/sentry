@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -15,7 +15,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {makePerformanceScoreColors} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -117,7 +117,7 @@ type VitalMeterProps = {
   onClick?: (webVital: WebVitals) => void;
 };
 
-export function VitalMeter({
+function VitalMeter({
   webVital,
   showTooltip,
   score,
@@ -285,12 +285,12 @@ function MeterBarFooter({score}: {score: number | undefined}) {
 }
 
 const MeterBarFooterContainer = styled('div')<{
-  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+  status: keyof ReturnType<typeof makePerformanceScoreColors>;
 }>`
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;

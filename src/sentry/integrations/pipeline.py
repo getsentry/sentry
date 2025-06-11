@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import Any, Never, TypedDict
 
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
@@ -24,7 +24,6 @@ from sentry.shared_integrations.exceptions import IntegrationError, IntegrationP
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.web.helpers import render_to_response
 
 __all__ = ["IntegrationPipeline"]
@@ -89,7 +88,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     return mapping.region_name not in region_names
 
 
-class IntegrationPipeline(Pipeline):
+class IntegrationPipeline(Pipeline[Never]):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
@@ -214,7 +213,6 @@ class IntegrationPipeline(Pipeline):
                 # If the external_id is already used for a different user then throw an error
                 # otherwise we have the same user with a new external id
                 # and we update the identity with the new external_id and identity data
-                incr_rollback_metrics(Identity)
                 try:
                     matched_identity = Identity.objects.get(
                         idp=idp, external_id=identity["external_id"]

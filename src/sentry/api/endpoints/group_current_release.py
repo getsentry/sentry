@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -14,7 +14,7 @@ from sentry.models.releases.release_project import ReleaseProject
 
 
 @region_silo_endpoint
-class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
+class GroupCurrentReleaseEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

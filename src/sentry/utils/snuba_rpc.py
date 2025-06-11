@@ -17,6 +17,7 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionResponse,
 )
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesRequest, GetTracesResponse
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
@@ -58,7 +59,7 @@ class MultiRpcResponse:
     timeseries_response: list[TimeSeriesResponse]
 
 
-def log_snuba_info(content):
+def log_snuba_info(content: str) -> None:
     if SNUBA_INFO_FILE:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
@@ -121,8 +122,8 @@ def _make_rpc_requests(
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
         _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+        thread_isolation_scope=sentry_sdk.get_isolation_scope(),
+        thread_current_scope=sentry_sdk.get_current_scope(),
     )
     response = [
         result
@@ -162,6 +163,13 @@ def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttribu
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def get_traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
+    resp = _make_rpc_request("EndpointGetTraces", "v1", req.meta.referrer, req)
+    response = GetTracesResponse()
     response.ParseFromString(resp.data)
     return response
 
@@ -240,14 +248,12 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
 ) -> BaseHTTPResponse:
     thread_isolation_scope = (
-        sentry_sdk.Scope.get_isolation_scope()
+        sentry_sdk.get_isolation_scope()
         if thread_isolation_scope is None
         else thread_isolation_scope
     )
     thread_current_scope = (
-        sentry_sdk.Scope.get_current_scope()
-        if thread_current_scope is None
-        else thread_current_scope
+        sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
     )
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson

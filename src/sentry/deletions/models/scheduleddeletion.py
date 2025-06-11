@@ -17,6 +17,7 @@ from sentry.db.models import (
     control_silo_model,
     region_silo_model,
 )
+from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -124,7 +125,9 @@ class BaseScheduledDeletion(Model):
         )
 
     def get_model(self) -> type[Any]:
-        return apps.get_model(self.app_label, self.model_name)
+        key = (self.app_label, self.model_name)
+        app_label, model_name = RELOCATED_MODELS.get(key, key)
+        return apps.get_model(app_label, model_name)
 
     def get_instance(self) -> Model:
         from sentry import deletions

@@ -5,7 +5,6 @@ import omit from 'lodash/omit';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniq} from 'sentry/utils/array/uniq';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,6 +13,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
@@ -40,6 +40,7 @@ export function DomainSelector({
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const useEap = useInsightsEap();
 
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
@@ -86,25 +87,63 @@ export function DomainSelector({
     pageLinks,
   });
 
-  const incomingDomains = [
-    ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
-  ];
+  const domainList: Array<{label: string; value: string}> = [];
+  const uniqueDomains = new Set<string>();
+
+  domainData.forEach(row => {
+    const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
+
+    const domains = typeof spanDomain === 'string' ? spanDomain.split(',') : spanDomain;
+
+    if (!domains || domains.length === 0) {
+      return;
+    }
+
+    // if there is only one domain, this means that the domain is not a comma-separated list
+    if (domains.length === 1 && domains?.[0]) {
+      if (uniqueDomains.has(domains[0])) {
+        return;
+      }
+      uniqueDomains.add(domains[0]);
+      domainList.push({
+        label: domains[0],
+        value: useEap ? `*${domains[0]}*` : domains[0],
+      });
+    } else {
+      domains?.forEach(domain => {
+        if (uniqueDomains.has(domain) || !domain) {
+          return;
+        }
+        uniqueDomains.add(domain);
+        domainList.push({
+          label: domain,
+          value: useEap ? `*,${domain},*` : domain,
+        });
+      });
+    }
+  });
 
   if (value) {
-    incomingDomains.push(value);
+    let scrubbedValue = value;
+    if (useEap) {
+      if (scrubbedValue.startsWith('*') && scrubbedValue.endsWith('*')) {
+        scrubbedValue = scrubbedValue.slice(1, -1);
+      }
+      if (scrubbedValue.startsWith(',') && scrubbedValue.endsWith(',')) {
+        scrubbedValue = scrubbedValue.slice(1, -1);
+      }
+    }
+    domainList.push({
+      label: scrubbedValue,
+      value,
+    });
   }
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
-      incomingDomains
-        .filter(Boolean)
-        .filter(domain => domain !== EMPTY_OPTION_VALUE)
-        .map(datum => {
-          return {
-            value: datum,
-            label: datum,
-          };
-        })
+      domainList
+        .filter(domain => Boolean(domain?.label))
+        .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
     );
 
   useEffect(() => {

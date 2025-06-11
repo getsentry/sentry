@@ -1,5 +1,7 @@
 import logging
 import operator
+import time
+from datetime import timedelta
 from enum import StrEnum
 from typing import Any, TypeVar, cast
 
@@ -10,11 +12,15 @@ from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.utils.registry import NoRegistrationExistsError
+from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+
+class DataConditionEvaluationException(Exception):
+    pass
 
 
 class Condition(StrEnum):
@@ -47,6 +53,8 @@ class Condition(StrEnum):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions
@@ -96,6 +104,12 @@ LEGACY_CONDITIONS = [
 
 T = TypeVar("T")
 
+# Threshold at which we consider a fast condition's evaluation time to
+# be long enough to be worth logging. Our systems are designed on the
+# assumption that fast conditions should be fast, and if they aren't,
+# it's worth investigating.
+FAST_CONDITION_TOO_SLOW_THRESHOLD = timedelta(milliseconds=500)
+
 
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
@@ -122,6 +136,14 @@ class DataCondition(DefaultFieldsModel):
         related_name="conditions",
         on_delete=models.CASCADE,
     )
+
+    def get_snapshot(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": self.type,
+            "comparison": self.comparison,
+            "condition_result": self.condition_result,
+        }
 
     def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
@@ -153,21 +175,68 @@ class DataCondition(DefaultFieldsModel):
         if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
             op = CONDITION_OPS[Condition(self.type)]
-            result = op(cast(Any, value), self.comparison)
+            result = None
+            try:
+                result = op(cast(Any, value), self.comparison)
+            except TypeError:
+                logger.exception(
+                    "Invalid comparison for data condition",
+                    extra={
+                        "comparison": self.comparison,
+                        "value": value,
+                        "type": self.type,
+                        "condition_id": self.id,
+                    },
+                )
+
             return self.get_condition_result() if result else None
 
         # Otherwise, we need to get the handler and evaluate the value
         try:
             handler = condition_handler_registry.get(condition_type)
-        except NoRegistrationExistsError:
+        except registry.NoRegistrationExistsError:
             logger.exception(
                 "No registration exists for condition",
                 extra={"type": self.type, "id": self.id},
             )
             return None
 
-        result = handler.evaluate_value(value, self.comparison)
-        return self.get_condition_result() if result else None
+        should_be_fast = not is_slow_condition(self)
+        start_time = time.time()
+        try:
+            result = handler.evaluate_value(value, self.comparison)
+        except DataConditionEvaluationException as e:
+            metrics.incr("workflow_engine.data_condition.evaluation_error")
+            logger.info(
+                "A known error occurred while evaluating a data condition",
+                extra={
+                    "condition_id": self.id,
+                    "type": self.type,
+                    "comparison": self.comparison,
+                    "value": value,
+                    "error": str(e),
+                },
+            )
+            return None
+        finally:
+            duration = time.time() - start_time
+            if should_be_fast and duration >= FAST_CONDITION_TOO_SLOW_THRESHOLD.total_seconds():
+                logger.error(
+                    "Fast condition evaluation too slow; took %s seconds",
+                    duration,
+                    extra={
+                        "condition_id": self.id,
+                        "duration": duration,
+                        "type": self.type,
+                        "value": value,
+                        "comparison": self.comparison,
+                    },
+                )
+
+        if isinstance(result, bool):
+            return self.get_condition_result() if result else None
+
+        return result
 
 
 def is_slow_condition(condition: DataCondition) -> bool:
@@ -182,7 +251,7 @@ def enforce_data_condition_json_schema(data_condition: DataCondition) -> None:
 
     try:
         handler = condition_handler_registry.get(condition_type)
-    except NoRegistrationExistsError:
+    except registry.NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
             extra={"type": data_condition.type, "id": data_condition.id},

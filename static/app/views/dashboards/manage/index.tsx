@@ -1,6 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
@@ -46,7 +45,7 @@ import {
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import RouteError from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
@@ -95,7 +94,6 @@ function ManageDashboards() {
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
   const prefersStackedNav = usePrefersStackedNav();
-  const queryClient = useQueryClient();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -124,9 +122,7 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort()!.value,
-          ...(organization.features.includes('dashboards-favourite')
-            ? {pin: 'favorites'}
-            : {}),
+          pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
@@ -222,21 +218,6 @@ function ManageDashboards() {
         cursor: undefined,
         sort: value,
       },
-    });
-  };
-
-  const handleDashboardsChange = () => {
-    refetchDashboards();
-
-    // We also need to invalidate the cache for the query that is used by the
-    // <DashboardsSecondaryNav /> component ('static/app/views/dashboards/navigation.tsx').
-    // Otherwise, the starred / unstarred dashboards will not be reflected in the navigation
-    // before a full page reload.
-    queryClient.invalidateQueries({
-      queryKey: [
-        `/organizations/${organization.slug}/dashboards/`,
-        {query: {filter: 'onlyFavorites'}},
-      ],
     });
   };
 
@@ -336,7 +317,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={handleDashboardsChange}
+        onDashboardsChange={() => refetchDashboards()}
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
@@ -347,7 +328,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={handleDashboardsChange}
+        onDashboardsChange={() => refetchDashboards()}
         isLoading={isLoading}
       />
     );

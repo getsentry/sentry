@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
@@ -23,6 +23,7 @@ interface AssigneeSelectorProps {
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
+  showLabel?: boolean;
 }
 
 export type OnAssignCallback = (
@@ -79,6 +80,7 @@ export function AssigneeSelector({
   handleAssigneeChange,
   owners,
   additionalMenuFooterItems,
+  showLabel = false,
 }: AssigneeSelectorProps) {
   const theme = useTheme();
 
@@ -108,6 +110,7 @@ export function AssigneeSelector({
               })?.type
             }
             loading={assigneeLoading}
+            showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
         </StyledDropdownButton>
@@ -128,7 +131,7 @@ const StyledDropdownButton = styled(Button)`
   ${p =>
     // Chonk tags have a smaller border radius, so we need make sure it matches.
     p.theme.isChonk &&
-    `
+    css`
       > span > div {
         border-radius: 20px;
       }

@@ -1,5 +1,5 @@
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 

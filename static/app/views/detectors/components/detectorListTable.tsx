@@ -4,69 +4,54 @@ import {Flex} from 'sentry/components/container/flex';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {
-  BulkActions,
-  useBulkActions,
-} from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {
-  type Detector,
   DetectorListRow,
+  DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListRow';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 type DetectorListTableProps = {
   detectors: Detector[];
+  isPending: boolean;
 };
 
-function DetectorListTable({detectors}: DetectorListTableProps) {
-  const {
-    selectedRows,
-    handleSelect,
-    isSelectAllChecked,
-    toggleSelectAll,
-    bulkActionsVisible,
-    canDelete,
-  } = useBulkActions(detectors);
+function LoadingSkeletons() {
+  return Array.from({length: DETECTOR_LIST_PAGE_LIMIT}).map((_, index) => (
+    <DetectorListRowSkeleton key={index} />
+  ));
+}
 
+function DetectorListTable({detectors, isPending}: DetectorListTableProps) {
   return (
     <Panel>
       <StyledPanelHeader>
-        <BulkActions
-          bulkActionsVisible={bulkActionsVisible}
-          canDelete={canDelete}
-          isSelectAllChecked={isSelectAllChecked}
-          toggleSelectAll={toggleSelectAll}
-        />
+        <Flex className="type">
+          <Heading>{t('Type')}</Heading>
+        </Flex>
         <Flex className="issue">
           <HeaderDivider />
-          <Heading>{t('Issue')}</Heading>
+          <Heading>{t('Last Issue')}</Heading>
         </Flex>
-        <Flex className="open-issues">
+        <Flex className="owner">
           <HeaderDivider />
-          <Heading>{t('Open Issues')}</Heading>
+          <Heading>{t('Owner')}</Heading>
         </Flex>
         <Flex className="connected-automations">
           <HeaderDivider />
-          <Heading>{t('Connected Automations')}</Heading>
+          <Heading>{t('Automations')}</Heading>
         </Flex>
       </StyledPanelHeader>
       <PanelBody>
-        {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            automations={detector.automations}
-            groups={detector.groups}
-            id={detector.id}
-            link={detector.link}
-            name={detector.name}
-            project={detector.project}
-            details={detector.details}
-            handleSelect={handleSelect}
-            selected={selectedRows.includes(detector.id)}
-            disabled={detector.disabled}
-          />
-        ))}
+        {isPending ? (
+          <LoadingSkeletons />
+        ) : (
+          detectors.map(detector => (
+            <DetectorListRow key={detector.id} detector={detector} />
+          ))
+        )}
       </PanelBody>
     </Panel>
   );
@@ -91,23 +76,25 @@ const StyledPanelHeader = styled(PanelHeader)`
   min-height: 40px;
   align-items: center;
   display: grid;
+  text-transform: none;
 
-  .open-issues,
+  .type,
+  .creator,
   .last-issue,
   .connected-automations {
     display: none;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 3fr 0.8fr;
 
-    .open-issues {
+    .type {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 3fr 1fr 0.6fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
       display: flex;
@@ -115,15 +102,19 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .connected-automations {
+    .creator {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+
+    .connected-automations {
+      display: flex;
+    }
   }
 `;
 

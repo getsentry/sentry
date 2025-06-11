@@ -3,8 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 
 interface GroupStatusBadgeProps {
   children: string;

@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SegmentedControl} from './';
@@ -6,7 +8,7 @@ describe('SegmentedControl', function () {
   it('renders with uncontrolled value', async function () {
     const onChange = jest.fn();
     render(
-      <SegmentedControl aria-label="Test" defaultValue="1" onChange={onChange}>
+      <SegmentedControl aria-label="Test" value="1" onChange={onChange}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
         <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
         <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
@@ -37,7 +39,7 @@ describe('SegmentedControl', function () {
 
   it('renders with controlled value', function () {
     const {rerender} = render(
-      <SegmentedControl aria-label="Test" value="2">
+      <SegmentedControl aria-label="Test" value="2" onChange={jest.fn()}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
         <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
         <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
@@ -47,7 +49,7 @@ describe('SegmentedControl', function () {
     expect(screen.getByRole('radio', {name: 'Option 2'})).toBeChecked();
 
     rerender(
-      <SegmentedControl aria-label="Test" value="3">
+      <SegmentedControl aria-label="Test" value="3" onChange={jest.fn()}>
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
         <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
         <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
@@ -59,13 +61,27 @@ describe('SegmentedControl', function () {
 
   it('responds to mouse and keyboard events', async function () {
     const onChange = jest.fn();
-    render(
-      <SegmentedControl aria-label="Test" defaultValue="1" onChange={onChange}>
-        <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
-        <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
-        <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
-      </SegmentedControl>
-    );
+
+    function Component() {
+      const [value, setValue] = useState('1');
+
+      return (
+        <SegmentedControl
+          aria-label="Test"
+          value={value}
+          onChange={newValue => {
+            onChange(newValue);
+            setValue(newValue);
+          }}
+        >
+          <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
+          <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
+          <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
+        </SegmentedControl>
+      );
+    }
+
+    render(<Component />);
 
     // Clicking on Option 2 selects it
     await userEvent.click(screen.getByRole('radio', {name: 'Option 2'}));
@@ -93,15 +109,21 @@ describe('SegmentedControl', function () {
   });
 
   it('works with disabled options', async function () {
-    render(
-      <SegmentedControl aria-label="Test">
-        <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
-        <SegmentedControl.Item key="2" disabled>
-          Option 2
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
-      </SegmentedControl>
-    );
+    function Component() {
+      const [value, setValue] = useState('1');
+
+      return (
+        <SegmentedControl aria-label="Test" value={value} onChange={setValue}>
+          <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
+          <SegmentedControl.Item key="2" disabled>
+            Option 2
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
+        </SegmentedControl>
+      );
+    }
+
+    render(<Component />);
 
     expect(screen.getByRole('radio', {name: 'Option 2'})).toBeDisabled();
 

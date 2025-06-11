@@ -42,7 +42,7 @@ describe('OrganizationApiKeys', function () {
     render(<OrganizationApiKeys />);
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('link', {name: 'Remove API Key?'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Remove API Key'}));
     expect(deleteMock).toHaveBeenCalledTimes(0);
 
     await userEvent.click(screen.getByTestId('confirm-button'));

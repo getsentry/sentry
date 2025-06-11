@@ -70,7 +70,7 @@ export function TraceAutogroupedRow(
           virtualized_index={props.virtualized_index}
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_spaces={props.node.autogroupedSegments}
-          occurences={props.node.occurences}
+          occurrences={props.node.occurrences}
           profiles={props.node.profiles}
         />
         <button

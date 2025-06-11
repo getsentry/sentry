@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -28,6 +29,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import performance_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
@@ -90,6 +93,11 @@ class HighCardinalityWidgetException(Exception):
     soft_time_limit=60,
     time_limit=120,
     expires=180,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        expires=180,
+        processing_deadline_duration=120,
+    ),
 )
 def schedule_on_demand_check() -> None:
     """
@@ -183,8 +191,13 @@ def schedule_on_demand_check() -> None:
     soft_time_limit=60,
     time_limit=120,
     expires=180,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        expires=180,
+        processing_deadline_duration=120,
+    ),
 )
-def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
+def process_widget_specs(widget_query_ids: list[int], **kwargs: Any) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """

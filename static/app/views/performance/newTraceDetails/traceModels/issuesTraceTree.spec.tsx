@@ -62,7 +62,8 @@ function mockSpansResponse(
 
 function hasErrors(n: TraceTreeNode<any>): boolean {
   return (
-    (isTraceErrorNode(n) || n.errors.size > 0 || n.occurences.size > 0) && !isTraceNode(n)
+    (isTraceErrorNode(n) || n.errors.size > 0 || n.occurrences.size > 0) &&
+    !isTraceNode(n)
   );
 }
 

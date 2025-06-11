@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
-from sentry.testutils.cases import TestCase
+from sentry.auth.view import AuthView
 from sentry.testutils.silo import control_silo_test
 
 dummy_provider_config = {
@@ -24,7 +24,7 @@ class DummySAML2Provider(SAML2Provider):
     name = "dummy"
     key = "dummy_saml2"
 
-    def get_saml_setup_pipeline(self):
+    def get_saml_setup_pipeline(self) -> list[AuthView]:
         raise NotImplementedError
 
 

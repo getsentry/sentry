@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {IconSize} from 'sentry/utils/theme';
 
-export enum PlatformContextKeys {
+enum PlatformContextKeys {
   LARAVEL = 'laravel',
   REACT = 'react',
   UNITY = 'unity',

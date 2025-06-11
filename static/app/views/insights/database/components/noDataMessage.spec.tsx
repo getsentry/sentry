@@ -121,7 +121,7 @@ describe('NoDataMessage', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+    expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/awful-api/'
     );

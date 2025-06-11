@@ -2,16 +2,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export const SubHeading = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.textColor};
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
 export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;

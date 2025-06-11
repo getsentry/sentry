@@ -39,6 +39,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
 )
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.utils import metrics
@@ -248,6 +249,41 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
             project__in=projects,
         ).values_list("group_id", flat=True),
     )
+
+
+def seer_actionability_filter(trigger_values: list[float]) -> Q:
+    """
+    Converts float thresholds for the Seer fixability score into a query of ranges:
+    - "low" -> [0.0, low threshold]
+    - "medium" -> (low threshold, high threshold]
+    - "high" -> (high threshold, super high threshold]
+    - "super_high" -> (super high threshold, 1.0]
+    """
+    query = Q()
+
+    for val in set(trigger_values):
+        if val == FixabilityScoreThresholds.LOW.value:
+            query |= Q(
+                seer_fixability_score__gte=0.0,
+                seer_fixability_score__lte=FixabilityScoreThresholds.LOW.value,
+            )
+        elif val == FixabilityScoreThresholds.MEDIUM.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.LOW.value,
+                seer_fixability_score__lte=FixabilityScoreThresholds.HIGH.value,
+            )
+        elif val == FixabilityScoreThresholds.HIGH.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.HIGH.value,
+                seer_fixability_score__lte=FixabilityScoreThresholds.SUPER_HIGH.value,
+            )
+        elif val == FixabilityScoreThresholds.SUPER_HIGH.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.SUPER_HIGH.value,
+                seer_fixability_score__lte=1.0,
+            )
+
+    return query
 
 
 _side_query_pool = ThreadPoolExecutor(max_workers=10)
@@ -739,6 +775,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
+            "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
+            "issue.seer_last_run": ScalarCondition("seer_autofix_last_triggered"),
         }
 
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)

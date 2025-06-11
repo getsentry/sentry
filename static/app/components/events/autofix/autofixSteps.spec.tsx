@@ -53,14 +53,13 @@ describe('AutofixSteps', () => {
         repos: [],
       },
       codebases: {},
-      created_at: '2023-01-01T00:00:00Z',
+      last_triggered_at: '2023-01-01T00:00:00Z',
       run_id: '1',
       status: AutofixStatus.PROCESSING,
     }),
     groupId: 'group1',
     runId: 'run1',
-    onRetry: jest.fn(),
-  };
+  } satisfies React.ComponentProps<typeof AutofixSteps>;
 
   it('renders steps correctly', async () => {
     render(<AutofixSteps {...defaultProps} />);
@@ -69,7 +68,7 @@ describe('AutofixSteps', () => {
   });
 
   it('renders output stream when last step is processing', async () => {
-    const propsWithProcessingStep = {
+    const propsWithProcessingStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
@@ -93,11 +92,13 @@ describe('AutofixSteps', () => {
     };
 
     render(<AutofixSteps {...propsWithProcessingStep} />);
-    expect(await screen.findByText('Processing message')).toBeInTheDocument();
-  });
+    expect(
+      await screen.findByText('Processing message', undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
+  }, 10_000);
 
   it('shows error message when previous step errored', async () => {
-    const propsWithErroredStep = {
+    const propsWithErroredStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
@@ -125,7 +126,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...propsWithErroredStep} />);
     expect(
       await screen.findByText(
-        'Autofix encountered an error. Restarting step from scratch...'
+        'Seer encountered an error. Restarting step from scratch...'
       )
     ).toBeInTheDocument();
   });

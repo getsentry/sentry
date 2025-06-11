@@ -9,6 +9,13 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 @region_silo_model
 class DetectorState(DefaultFieldsModel):
+    """
+    This table can be seen as a denormalization of the latest open period state
+    of the issue associated to a detector. We need this because open-periods
+    are asynchronously created and there are scernios where we need to know the
+    detector state immediately after a state change.
+    """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     detector = FlexibleForeignKey("workflow_engine.Detector")
@@ -17,10 +24,10 @@ class DetectorState(DefaultFieldsModel):
     # allows us to link to a specific group from a single detector
     detector_group_key = models.CharField(max_length=200, blank=True, null=True)
 
-    # If the detector is currently active
-    active = models.BooleanField(default=False)
+    # If the detector has met the conditions to be in an triggered state
+    is_triggered = models.BooleanField(default=False, db_column="active")
 
-    # The current state of the detector
+    # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
     class Meta:

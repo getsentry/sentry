@@ -100,9 +100,7 @@ class LinkageView(BaseView, ABC):
         )
 
     @staticmethod
-    def render_error_page(
-        request: Request | HttpRequest, status: int, body_text: str
-    ) -> HttpResponse:
+    def render_error_page(request: HttpRequest, status: int, body_text: str) -> HttpResponse:
         template = "sentry/integrations/generic-error.html"
         context = {"body_text": body_text}
         return render_to_response(template, request=request, status=status, context=context)
@@ -282,12 +280,11 @@ class LinkIdentityView(IdentityLinkageView, ABC):
         if idp is None:
             raise ValueError('idp is required for linking (params must include "integration_id")')
 
-        user = request.user
-        if isinstance(user, AnonymousUser):
+        if isinstance(request.user, AnonymousUser):
             raise TypeError("Cannot link identity without a logged-in user")
 
         try:
-            Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
+            Identity.objects.link_identity(user=request.user, idp=idp, external_id=external_id)
         except IntegrityError:
             event = self.capture_metric("failure.integrity_error")
             logger.exception(event)
@@ -316,6 +313,8 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
     def persist_identity(
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
+        if isinstance(request.user, AnonymousUser):
+            raise TypeError("Cannot link identity without a logged-in user")
         try:
             identities = Identity.objects.filter(external_id=external_id)
             if idp is not None:

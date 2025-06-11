@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
@@ -19,6 +19,7 @@ import type {Actor} from 'sentry/types/core';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -116,7 +117,7 @@ function TriggerDescription({
           <TriggerText>
             {thresholdText}
             {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
-              <FeatureBadge
+              <StyledFeatureBadge
                 type="beta"
                 tooltipProps={{
                   title: t(
@@ -143,12 +144,12 @@ function TriggerDescription({
 }
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
-  if (theme.isChonk) {
+  if (isChonkTheme(theme)) {
     return type === 'critical'
-      ? (theme as DO_NOT_USE_ChonkTheme).colors.chonk.red400
+      ? theme.colors.chonk.red400
       : type === 'warning'
-        ? (theme as DO_NOT_USE_ChonkTheme).colors.chonk.yellow400
-        : (theme as DO_NOT_USE_ChonkTheme).colors.chonk.green400;
+        ? theme.colors.chonk.yellow400
+        : theme.colors.chonk.green400;
   }
   return type === 'critical'
     ? theme.errorText
@@ -456,4 +457,9 @@ const TriggerText = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   width: 100%;
   font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
+  padding-bottom: ${space(0.25)};
 `;

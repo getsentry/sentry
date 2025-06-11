@@ -8,9 +8,9 @@ from typing import Any
 from sentry_sdk import set_tag
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstore, eventstream, features, models, nodestore
+from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
@@ -78,9 +78,9 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def set_group_and_project_ids(self) -> None:
         group_ids = []
-        self.project_groups = defaultdict(list)
+        self.project_groups: defaultdict[int, list[Group]] = defaultdict(list)
         for group in self.groups:
-            self.project_groups[group.project_id].append(group.id)
+            self.project_groups[group.project_id].append(group)
             group_ids.append(group.id)
         self.group_ids = group_ids
         self.project_ids = list(self.project_groups.keys())
@@ -162,7 +162,8 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
 
     def delete_events_from_snuba(self) -> None:
         # Remove all group events now that their node data has been removed.
-        for project_id, group_ids in self.project_groups.items():
+        for project_id, groups in self.project_groups.items():
+            group_ids = [group.id for group in groups]
             eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
             eventstream.backend.end_delete_groups(eventstream_state)
 
@@ -173,6 +174,8 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
+    # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
+    max_rows_to_delete = 2000000
 
     def chunk(self) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
@@ -203,19 +206,45 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
     def delete_events_from_snuba(self) -> None:
         requests = []
-        for project_id, group_ids in self.project_groups.items():
-            query = DeleteQuery(
-                self.dataset.value,
-                column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
-            )
-            request = Request(
-                dataset=self.dataset.value,
-                app_id=self.referrer,
-                query=query,
-                tenant_ids=self.tenant_ids,
-            )
-            requests.append(request)
+        for project_id, groups in self.project_groups.items():
+            # Split group_ids into batches where the sum of times_seen is less than max_rows_to_delete
+            current_batch: list[int] = []
+            current_batch_rows = 0
+
+            # Deterministic sort for sanity, and for very large deletions we'll
+            # delete the "smaller" groups first
+            groups.sort(key=lambda g: (g.times_seen, g.id))
+
+            for group in groups:
+                times_seen = group.times_seen
+
+                # If adding this group would exceed the limit, create a request with the current batch
+                if current_batch_rows + times_seen > self.max_rows_to_delete:
+                    requests.append(self.delete_request(project_id, current_batch))
+                    # We now start a new batch
+                    current_batch = [group.id]
+                    current_batch_rows = times_seen
+                else:
+                    current_batch.append(group.id)
+                    current_batch_rows += times_seen
+
+            # Add the final batch if it's not empty
+            if current_batch:
+                requests.append(self.delete_request(project_id, current_batch))
+
         bulk_snuba_queries(requests)
+
+    def delete_request(self, project_id: int, group_ids: Sequence[int]) -> Request:
+        query = DeleteQuery(
+            self.dataset.value,
+            column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
+        )
+        return Request(
+            dataset=self.dataset.value,
+            app_id=self.referrer,
+            query=query,
+            tenant_ids=self.tenant_ids,
+        )
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
@@ -233,9 +262,16 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
         self.mark_deletion_in_progress(instance_list)
 
-        error_group_ids = [
-            group.id for group in instance_list if group.issue_category == GroupCategory.ERROR
-        ]
+        error_group_ids = []
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
+        for group in instance_list:
+            try:
+                if group.issue_category == GroupCategory.ERROR:
+                    error_group_ids.append(group.id)
+            except InvalidGroupTypeError:
+                pass
         # Tell seer to delete grouping records with these group hashes
         call_delete_seer_grouping_records_by_hash(error_group_ids)
 
@@ -253,32 +289,22 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
-        org = instance_list[0].project.organization
-        issue_platform_deletion_allowed = features.has(
-            "organizations:issue-platform-deletion", org, actor=None
-        )
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
-            if not issue_platform_deletion_allowed:
-                params = {"groups": instance_list}
+            if error_groups:
+                params = {"groups": error_groups}
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
-            else:
-                if error_groups:
-                    params = {"groups": error_groups}
-                    child_relations.append(
-                        BaseRelation(params=params, task=ErrorEventsDeletionTask)
-                    )
 
-                if issue_platform_groups:
-                    # This helps creating custom Sentry alerts;
-                    # remove when #proj-snuba-lightweight_delets is done
-                    set_tag("issue_platform_deletion", True)
-                    params = {"groups": issue_platform_groups}
-                    child_relations.append(
-                        BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
-                    )
+            if issue_platform_groups:
+                # This helps creating custom Sentry alerts;
+                # remove when #proj-snuba-lightweight_delets is done
+                set_tag("issue_platform_deletion", True)
+                params = {"groups": issue_platform_groups}
+                child_relations.append(
+                    BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
+                )
 
         self.delete_children(child_relations)
 
@@ -300,9 +326,12 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
     error_groups = []
     issue_platform_groups = []
     for group in instance_list:
-        (
-            error_groups.append(group)
-            if group.issue_category == GroupCategory.ERROR
-            else issue_platform_groups.append(group)
-        )
+        try:
+            if group.issue_category == GroupCategory.ERROR:
+                error_groups.append(group)
+                continue
+        except InvalidGroupTypeError:
+            pass
+        # Assume it was an issue platform group if the type is invalid
+        issue_platform_groups.append(group)
     return error_groups, issue_platform_groups

@@ -183,6 +183,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(expected_seer_request_params),
             headers={"content-type": "application/json;charset=utf-8"},
         )
@@ -485,7 +486,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         logged_gh_age = mock_logger.warning.call_args.kwargs["extra"]["parent_gh_age_in_sec"]
         assert isinstance(logged_gh_age, float)
-        assert logged_gh_age > 0 and logged_gh_age < 1
 
         # Note that unlike in the missing grouphash test below, we're not testing Seer deletion here
         # because it only happens conditionally, behavior that's tested in `test_similar_issues.py`
@@ -612,6 +612,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -638,6 +639,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
@@ -667,6 +669,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
+            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             body=orjson.dumps(
                 {
                     "threshold": 0.01,

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
@@ -106,7 +106,7 @@ function FeatureDisabled({
               onClick={() => setShowHelp(!showHelp)}
             >
               {t('Help')}
-              <IconChevron direction={showDescription ? 'up' : 'down'} />
+              <StyledIconChevron direction={showDescription ? 'up' : 'down'} />
             </ToggleButton>
           )}
         </FeatureDisabledMessage>
@@ -149,6 +149,10 @@ const HelpText = styled('p')`
   margin-bottom: ${space(1)};
 `;
 
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: ${space(1)};
+`;
+
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.active};
   height: ${p => p.theme.text.lineHeightBody}em;
@@ -156,12 +160,6 @@ const ToggleButton = styled(Button)`
 
   &:hover {
     color: ${p => p.theme.activeHover};
-  }
-
-  ${ButtonLabel} {
-    display: grid;
-    grid-auto-flow: column;
-    gap: ${space(1)};
   }
 `;
 

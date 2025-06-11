@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:29.774348+00:00'
+created: '2025-04-25T21:24:27.263161+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -31,14 +31,14 @@ contributing variants:
         chained-exception*
           exception*
             stacktrace*
-              frame*
+              frame* (marked in-app by the client)
                 filename*
                   "baz.py"
             type*
               "ValueError"
           exception*
             stacktrace*
-              frame*
+              frame* (marked in-app by the client)
                 filename*
                   "baz.py"
             type*

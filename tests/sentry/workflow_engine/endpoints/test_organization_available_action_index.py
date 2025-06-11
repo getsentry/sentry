@@ -2,13 +2,17 @@ from dataclasses import dataclass
 from unittest.mock import ANY, patch
 
 from sentry.constants import SentryAppStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.notification_action.action_handler_registry.base import (
     IntegrationActionHandler,
 )
 from sentry.plugins.base.manager import PluginManager
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
@@ -25,7 +29,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-        self.registry = Registry[ActionHandler](enable_reverse_lookup=False)
+        self.registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_available_action_index.action_handler_registry",
             new=self.registry,
@@ -57,7 +61,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class SlackActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "slack"
+            provider_slug = IntegrationProviderSlug.SLACK
             config_schema = {}
             data_schema = {}
 
@@ -74,7 +78,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class GithubActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.TICKET_CREATION
-            provider_slug = "github"
+            provider_slug = IntegrationProviderSlug.GITHUB
             config_schema = {}
             data_schema = {}
 
@@ -92,9 +96,82 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class MSTeamsActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "msteams"
+            provider_slug = IntegrationProviderSlug.MSTEAMS
             config_schema = {}
             data_schema = {}
+
+    def setup_integrations_with_services(self):
+        @self.registry.register(Action.Type.PAGERDUTY)
+        @dataclass(frozen=True)
+        class PagerdutyActionHandler(IntegrationActionHandler):
+            group = ActionHandler.Group.TICKET_CREATION
+            provider_slug = IntegrationProviderSlug.PAGERDUTY
+            config_schema = {}
+            data_schema = {}
+
+        services = [
+            {
+                "type": "service",
+                "integration_key": "PND4F9",
+                "service_id": "123",
+                "service_name": "moo-deng",
+            },
+            {
+                "type": "service",
+                "integration_key": "PND4F98",
+                "service_id": "234",
+                "service_name": "moo-waan",
+            },
+        ]
+        self.pagerduty_integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
+            metadata={"services": services},
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.pagerduty_service_1 = add_service(
+                org_integration,
+                service_name=services[0]["service_name"],
+                integration_key=services[0]["integration_key"],
+            )
+            self.pagerduty_service_2 = add_service(
+                org_integration,
+                service_name=services[1]["service_name"],
+                integration_key=services[1]["integration_key"],
+            )
+
+        @self.registry.register(Action.Type.OPSGENIE)
+        @dataclass(frozen=True)
+        class OpsgenieActionHandler(IntegrationActionHandler):
+            group = ActionHandler.Group.TICKET_CREATION
+            provider_slug = IntegrationProviderSlug.OPSGENIE
+            config_schema = {}
+            data_schema = {}
+
+        metadata = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        self.opsgenie_integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="opsgenie",
+            name="test-app",
+            external_id="test-app",
+            metadata=metadata,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.opsgenie_integration.add_organization(self.organization, self.user)
+            self.org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.opsgenie_integration.id
+            )
+            self.org_integration.config = {"team_table": [self.og_team]}
+            self.org_integration.save()
 
     def setup_sentry_apps(self):
         @self.registry.register(Action.Type.SENTRY_APP)
@@ -177,7 +254,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
-    def test_integrations(self):
+    def test_simple_integrations(self):
         self.setup_integrations()
 
         response = self.get_success_response(
@@ -208,6 +285,56 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
+    def test_integrations_with_services(self):
+        self.setup_integrations_with_services()
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert len(response.data) == 2
+        assert response.data == [
+            {
+                "type": Action.Type.OPSGENIE,
+                "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {
+                        "id": str(self.opsgenie_integration.id),
+                        "name": self.opsgenie_integration.name,
+                        "services": [
+                            {
+                                "id": str(self.og_team["id"]),
+                                "name": self.og_team["team"],
+                            },
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": Action.Type.PAGERDUTY,
+                "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {
+                        "id": str(self.pagerduty_integration.id),
+                        "name": self.pagerduty_integration.name,
+                        "services": [
+                            {
+                                "id": str(self.pagerduty_service_1["id"]),
+                                "name": self.pagerduty_service_1["service_name"],
+                            },
+                            {
+                                "id": str(self.pagerduty_service_2["id"]),
+                                "name": self.pagerduty_service_2["service_name"],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ]
+
     def test_sentry_apps(self):
         self.setup_sentry_apps()
 
@@ -226,8 +353,10 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
+                    "title": ANY,
                 },
             },
             {
@@ -239,6 +368,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
@@ -269,6 +399,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
 
         self.setup_sentry_apps()
         self.setup_integrations()
+        self.setup_integrations_with_services()
         self.setup_webhooks()
         self.setup_email()
 
@@ -284,7 +415,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 7
+        assert len(response.data) == 9
         assert response.data == [
             # notification actions, sorted alphabetically with email first
             {
@@ -328,8 +459,10 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
+                    "title": ANY,
                 },
             },
             {
@@ -341,6 +474,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
@@ -352,6 +486,46 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "dataSchema": {},
                 "integrations": [
                     {"id": str(self.github_integration.id), "name": self.github_integration.name}
+                ],
+            },
+            {
+                "type": Action.Type.OPSGENIE,
+                "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {
+                        "id": str(self.opsgenie_integration.id),
+                        "name": self.opsgenie_integration.name,
+                        "services": [
+                            {
+                                "id": str(self.og_team["id"]),
+                                "name": self.og_team["team"],
+                            },
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": Action.Type.PAGERDUTY,
+                "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {
+                        "id": str(self.pagerduty_integration.id),
+                        "name": self.pagerduty_integration.name,
+                        "services": [
+                            {
+                                "id": str(self.pagerduty_service_1["id"]),
+                                "name": self.pagerduty_service_1["service_name"],
+                            },
+                            {
+                                "id": str(self.pagerduty_service_2["id"]),
+                                "name": self.pagerduty_service_2["service_name"],
+                            },
+                        ],
+                    }
                 ],
             },
         ]

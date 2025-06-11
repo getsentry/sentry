@@ -1,7 +1,7 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -29,8 +29,15 @@ describe('StreamlinedGroupHeader', () => {
     platform: 'javascript',
     teams: [TeamFixture()],
   });
-  const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const router = RouterFixture();
+  const group = GroupFixture({
+    issueCategory: IssueCategory.ERROR,
+    isUnhandled: true,
+    assignedTo: ActorFixture({
+      id: '101',
+      email: 'leander.rodrigues@sentry.io',
+      name: 'Leander',
+    }),
+  });
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -74,7 +81,6 @@ describe('StreamlinedGroupHeader', () => {
         />,
         {
           organization,
-          router,
         }
       );
 
@@ -94,6 +100,7 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
+      expect(screen.getByText('Leander')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Manage issue experience'})
       ).toBeInTheDocument();
@@ -109,7 +116,9 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {organization, router}
+        {
+          organization,
+        }
       );
       expect(
         await screen.findByRole('button', {name: 'Manage issue experience'})
@@ -126,7 +135,6 @@ describe('StreamlinedGroupHeader', () => {
         />,
         {
           organization,
-          router,
         }
       );
 

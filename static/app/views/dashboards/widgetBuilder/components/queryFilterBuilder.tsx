@@ -59,7 +59,6 @@ function WidgetBuilderQueryFilterBuilder({
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    state.dataset !== WidgetType.SPANS &&
     state.query &&
     state.query.length < 3;
 
@@ -257,7 +256,7 @@ function WidgetBuilderQueryFilterBuilder({
 
 export default WidgetBuilderQueryFilterBuilder;
 
-export function DeleteButton({onDelete}: {onDelete: () => void}) {
+function DeleteButton({onDelete}: {onDelete: () => void}) {
   return (
     <Button
       size="zero"

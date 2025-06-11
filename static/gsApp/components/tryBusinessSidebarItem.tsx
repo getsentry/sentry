@@ -128,7 +128,7 @@ class TryBusinessSidebarItem extends Component<Props> {
       return null;
     }
 
-    if (prefersStackedNav()) {
+    if (prefersStackedNav(organization)) {
       return (
         <TryBusinessNavigationItem
           organization={organization}

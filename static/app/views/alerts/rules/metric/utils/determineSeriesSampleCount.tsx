@@ -1,17 +1,23 @@
 import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
+export type SeriesSamplingInfo = {
+  isSampled: boolean | null;
+  sampleCount: number;
+  dataScanned?: 'full' | 'partial';
+};
+
 export function determineSeriesSampleCountAndIsSampled(
   data: TimeSeries[],
   topNMode: boolean
-): {isSampled: boolean | null; sampleCount: number} {
+): SeriesSamplingInfo {
   if (data.length <= 0) {
     return {sampleCount: 0, isSampled: null};
   }
 
   if (topNMode) {
     // We dont want to count the other series in top N mode
-    data = data.filter(s => s.field !== 'Other');
+    data = data.filter(s => s.yAxis !== 'Other');
   }
 
   const merge: (a: number, b: number) => number = topNMode
@@ -27,6 +33,7 @@ export function determineSeriesSampleCountAndIsSampled(
 
   let hasSampledInterval = false;
   let hasUnsampledInterval = false;
+  let dataScanned: 'full' | 'partial' | undefined;
 
   const series: number[] = data[0]?.sampleCount?.map(item => item.value) ?? [];
 
@@ -44,9 +51,21 @@ export function determineSeriesSampleCountAndIsSampled(
         }
       }
     }
+    if (!dataScanned) {
+      // Take one entry of dataScanned, they should all be the same
+      if (data[i]?.dataScanned === 'partial') {
+        dataScanned = 'partial';
+      } else if (data[i]?.dataScanned === 'full') {
+        dataScanned = 'full';
+      }
+    }
   }
 
   const isSampled = hasSampledInterval ? true : hasUnsampledInterval ? false : null;
 
-  return {sampleCount: series.reduce((sum, count) => sum + count, 0), isSampled};
+  return {
+    sampleCount: series.reduce((sum, count) => sum + count, 0),
+    isSampled,
+    dataScanned,
+  };
 }

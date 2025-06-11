@@ -18,14 +18,13 @@ from sentry.testutils.cases import TestCase
 from .test_fixtures import mock_sessions_data
 
 
-class GetIntervalIndexesTest(TestCase):
-    def setUp(self):
+class TestGetIntervalIndexes:
+    def setup_method(self):
         # d.strftime('%Y-%m-%dT%H:%M:%SZ')
         # construct timestamps in iso utc format
         self.now = datetime.utcnow()
-        offsets = [r for r in range(-5, 5)]
         self.intervals = [
-            (self.now + timedelta(hours=x)).strftime("%Y-%m-%dT%H:%M:%SZ") for x in offsets
+            (self.now + timedelta(hours=x)).strftime("%Y-%m-%dT%H:%M:%SZ") for x in range(-5, 5)
         ]
 
     def test_gets_indexes_range_in_intervals(self):
@@ -59,14 +58,10 @@ class GetIntervalIndexesTest(TestCase):
         assert start_idx > end_idx
 
 
-class GetGroupTotals(TestCase):
-    def setUp(self):
-        # Mock data has 10 intervals
-        self.mock_sessions_data = mock_sessions_data
-
+class TestGetGroupTotals:
     def test_filters_groups_and_sums_total_success(self):
         total_v1 = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version1",
             project_id=1,
             field="sum(session)",
@@ -76,7 +71,7 @@ class GetGroupTotals(TestCase):
         assert total_v1 == 11
         # filters via release version
         total_v2 = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version2",
             project_id=1,
             field="sum(session)",
@@ -87,7 +82,7 @@ class GetGroupTotals(TestCase):
 
     def test_filters_group_by_project(self):
         total_p2_v1 = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version1",
             project_id=2,
             field="sum(session)",
@@ -97,7 +92,7 @@ class GetGroupTotals(TestCase):
         assert total_p2_v1 == 0
 
         total_p2_v2 = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version2",
             project_id=2,
             field="sum(session)",
@@ -108,7 +103,7 @@ class GetGroupTotals(TestCase):
 
     def test_filters_group_by_environment(self):
         total_canary = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version1",
             project_id=1,
             field="sum(session)",
@@ -118,7 +113,7 @@ class GetGroupTotals(TestCase):
         )
         assert total_canary == 0
         total_production = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version1",
             project_id=1,
             field="sum(session)",
@@ -130,7 +125,7 @@ class GetGroupTotals(TestCase):
 
     def test_filters_group_by_status(self):
         crashed = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version1",
             project_id=1,
             field="sum(session)",
@@ -142,7 +137,7 @@ class GetGroupTotals(TestCase):
 
     def test_sums_group_via_indexes(self):
         total_5_9 = get_groups_totals(
-            sessions_data=self.mock_sessions_data,
+            sessions_data=mock_sessions_data,
             release_version="version1",
             project_id=1,
             field="sum(session)",
@@ -154,7 +149,7 @@ class GetGroupTotals(TestCase):
     def test_raises_errors_with_bad_indexes(self):
         with pytest.raises(IndexError):
             get_groups_totals(
-                sessions_data=self.mock_sessions_data,
+                sessions_data=mock_sessions_data,
                 release_version="version1",
                 project_id=1,
                 field="sum(session)",
@@ -164,7 +159,7 @@ class GetGroupTotals(TestCase):
 
         with pytest.raises(IndexError):
             get_groups_totals(
-                sessions_data=self.mock_sessions_data,
+                sessions_data=mock_sessions_data,
                 release_version="version1",
                 project_id=1,
                 field="sum(session)",

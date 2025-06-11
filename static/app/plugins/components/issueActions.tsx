@@ -369,7 +369,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     // only works with one impacted field
     const impactedField = fieldList.find(({depends}) => {
-      if (!depends || !depends.length) {
+      if (!depends?.length) {
         return false;
       }
       // must be dependent on the field we just set

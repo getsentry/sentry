@@ -1,3 +1,4 @@
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
@@ -30,6 +31,11 @@ class ExternalIssueManagerTest(TestCase):
             data={"event_id": "b" * 32, "message": "boop"},
             project_id=self.project.id,
         )
+
+        assert self.event1.group is not None
+        self.group_event1 = GroupEvent.from_event(self.event1, self.event1.group)
+        assert self.event2.group is not None
+        self.group_event2 = GroupEvent.from_event(self.event2, self.event2.group)
         self.external_issue1 = self.create_integration_external_issue(
             group=self.event1.group, integration=self.integration1, key="ABC-123"
         )
@@ -59,7 +65,7 @@ class ExternalIssueManagerTest(TestCase):
     def test_get_linked_issues(self):
         # Base case
         result = ExternalIssue.objects.get_linked_issues(
-            event=self.event1, integration=self.api_integration1
+            event=self.group_event1, integration=self.api_integration1
         )
         assert len(result) == 1
         assert self.external_issue1 in result
@@ -67,30 +73,32 @@ class ExternalIssueManagerTest(TestCase):
             group=self.event1.group, integration=self.integration1, key="JKL-000"
         )
         result = ExternalIssue.objects.get_linked_issues(
-            event=self.event1, integration=self.api_integration1
+            event=self.group_event1, integration=self.api_integration1
         )
         assert len(result) == 2
         for ei in [self.external_issue1, external_issue4]:
             assert ei in result
         # Empty case
         result = ExternalIssue.objects.get_linked_issues(
-            event=self.event2, integration=self.api_integration2
+            event=self.group_event2, integration=self.api_integration2
         )
         assert len(result) == 0
 
     def test_has_linked_issue(self):
         # Base case
         result = ExternalIssue.objects.has_linked_issue(
-            event=self.event1, integration=self.api_integration1
+            event=self.group_event1, integration=self.api_integration1
         )
         assert result
         event = self.store_event(
             data={"event_id": "a" * 32, "message": "new event"},
             project_id=self.project.id,
         )
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
         # Empty case
         result = ExternalIssue.objects.has_linked_issue(
-            event=event, integration=self.api_integration1
+            event=group_event, integration=self.api_integration1
         )
         assert not result
         # Update case
@@ -98,6 +106,6 @@ class ExternalIssueManagerTest(TestCase):
             group=event.group, integration=self.integration1, key="JKL-000"
         )
         result = ExternalIssue.objects.has_linked_issue(
-            event=event, integration=self.api_integration1
+            event=group_event, integration=self.api_integration1
         )
         assert result

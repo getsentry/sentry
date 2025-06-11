@@ -2,11 +2,11 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';

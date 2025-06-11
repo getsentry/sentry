@@ -11,12 +11,12 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -54,7 +54,7 @@ const DOWNTIME_START_TYPES = [
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 
-export function useDowntimeDuration({group}: {group: Group}): {
+function useDowntimeDuration({group}: {group: Group}): {
   durationMs: number;
   endDate: Date;
   startDate: Date;

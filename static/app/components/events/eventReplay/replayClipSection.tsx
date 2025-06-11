@@ -3,7 +3,7 @@ import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';
@@ -129,7 +129,7 @@ const ReplaySectionMinHeight = styled(InterimSection)`
   min-height: 557px;
 `;
 
-export const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;

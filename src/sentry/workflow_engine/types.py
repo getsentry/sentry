@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
@@ -10,8 +10,12 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.issues.status_change_message import StatusChangeMessage
     from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
+    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
 
@@ -31,7 +35,20 @@ class DetectorPriorityLevel(IntEnum):
 DetectorGroupKey = str | None
 
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
-ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
+
+
+@dataclass(frozen=True)
+class DetectorEvaluationResult:
+    # TODO - Should group key live at this level?
+    group_key: DetectorGroupKey
+    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
+    # need to know the other results externally
+    is_triggered: bool
+    priority: DetectorPriorityLevel
+    # TODO: This is only temporarily optional. We should always have a value here if returning a result
+    result: IssueOccurrence | StatusChangeMessage | None = None
+    # Event data to supplement the `IssueOccurrence`, if passed.
+    event_data: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -64,7 +81,7 @@ class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         """
-        Bulk fetch related data-source models reutrning a dict of the
+        Bulk fetch related data-source models returning a dict of the
         `DataSource.id -> T`.
         """
         raise NotImplementedError
@@ -118,3 +135,10 @@ class SnubaQueryDataSourceType(TypedDict):
     resolution: float
     environment: str
     event_types: list[SnubaQueryEventType]
+
+
+@dataclass(frozen=True)
+class DetectorSettings:
+    handler: type[DetectorHandler] | None = None
+    validator: type[BaseDetectorTypeValidator] | None = None
+    config_schema: dict[str, Any] = field(default_factory=dict)

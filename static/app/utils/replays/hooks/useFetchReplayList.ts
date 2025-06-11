@@ -40,7 +40,7 @@ export default function useFetchReplayList({
 }: Options) {
   const fixedQueryKey = useMemo<ApiQueryKey>(() => {
     const url = `/organizations/${organization.slug}/replays/`;
-    if (!options || !options.query) {
+    if (!options?.query) {
       return [url];
     }
 

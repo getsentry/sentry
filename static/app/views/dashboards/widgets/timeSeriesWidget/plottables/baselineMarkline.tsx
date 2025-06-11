@@ -1,16 +1,14 @@
-import {useTheme} from '@emotion/react';
-
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
+import type {Theme} from 'sentry/utils/theme';
 
 interface Props {
+  theme: Theme;
+  value: number;
   label?: string;
-  value?: number;
 }
 
-export function BaselineMarkLine({value, label}: Props = {}) {
-  const theme = useTheme();
-
+export function BaselineMarkLine({theme, value, label}: Props) {
   return MarkLine({
     data: [
       {
@@ -27,8 +25,8 @@ export function BaselineMarkLine({value, label}: Props = {}) {
       position: 'insideEndBottom',
       formatter: () => label ?? t('Baseline'),
       fontSize: 14,
-      color: theme.chartLabel,
-      backgroundColor: theme.chartOther,
+      color: theme.tokens.content.muted,
+      backgroundColor: theme.tokens.background.primary,
     },
   });
 }

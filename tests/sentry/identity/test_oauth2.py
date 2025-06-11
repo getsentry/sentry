@@ -1,5 +1,6 @@
 from collections import namedtuple
 from functools import cached_property
+from unittest import TestCase
 from unittest.mock import patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
@@ -13,7 +14,6 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
-from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])

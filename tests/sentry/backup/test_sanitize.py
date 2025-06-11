@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
+from unittest import TestCase
 from unittest.mock import Mock, patch
 
 import orjson
@@ -24,7 +25,6 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.fields.uuid import UUIDField
-from sentry.testutils.cases import TestCase
 
 FAKE_EMAIL = "test@fake.com"
 FAKE_NAME = "Fake Name"

@@ -53,8 +53,8 @@ export type BaseEventAnalyticsParams = {
   is_sample_event?: boolean;
   mobile?: boolean;
   release_user_agent?: string;
-  sdk_name?: string;
-  sdk_version?: string;
+  sdk_name?: string | null;
+  sdk_version?: string | null;
 };
 
 type BaseTour = {
@@ -177,7 +177,7 @@ export type TeamInsightsEventParameters = {
   };
 };
 
-export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
+type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_builder.filter': 'Alert Builder: Filter',

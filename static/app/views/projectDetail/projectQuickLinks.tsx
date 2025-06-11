@@ -1,21 +1,18 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 import {
   getPerformanceBaseUrl,
-  getPerformanceTrendsUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 
@@ -27,26 +24,7 @@ type Props = {
   project?: Project;
 };
 
-function ProjectQuickLinks({organization, project, location}: Props) {
-  function getTrendsLink() {
-    const queryString = decodeScalar(location.query.query);
-    const conditions = new MutableSearch(queryString || '');
-    conditions.setFilterValues('tpm()', ['>0.01']);
-    conditions.setFilterValues('transaction.duration', [
-      '>0',
-      `<${DEFAULT_MAX_DURATION}`,
-    ]);
-
-    return {
-      pathname: getPerformanceTrendsUrl(organization),
-      query: {
-        project: project?.id,
-        cursor: undefined,
-        query: conditions.formatString(),
-      },
-    };
-  }
-
+function ProjectQuickLinks({organization, project}: Props) {
   const hasNewFeedback = organization.features.includes('user-feedback-ui');
   const domainView: DomainView | undefined = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
@@ -68,11 +46,6 @@ function ProjectQuickLinks({organization, project, location}: Props) {
         pathname: `${getPerformanceBaseUrl(organization.slug, domainView)}/`,
         query: {project: project?.id},
       },
-      disabled: !organization.features.includes('performance-view'),
-    },
-    {
-      title: t('Most Improved/Regressed Transactions'),
-      to: getTrendsLink(),
       disabled: !organization.features.includes('performance-view'),
     },
   ];
@@ -117,10 +90,10 @@ const QuickLink = styled((p: any) =>
 
   ${p =>
     p.disabled &&
-    `
-    color: ${p.theme.gray200};
-    cursor: not-allowed;
-  `}
+    css`
+      color: ${p.theme.gray200};
+      cursor: not-allowed;
+    `}
 `;
 
 const QuickLinkText = styled('span')`

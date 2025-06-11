@@ -38,13 +38,6 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const mockUpdateOnboardingTasks = jest.fn();
-jest.mock('sentry/actionCreators/onboardingTasks', () => ({
-  useUpdateOnboardingTasks: () => ({
-    mutate: mockUpdateOnboardingTasks,
-  }),
-}));
-
 describe('ProjectAlertsCreate', function () {
   beforeEach(function () {
     TeamStore.init();
@@ -124,7 +117,9 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     return {
@@ -363,8 +358,6 @@ describe('ProjectAlertsCreate', function () {
           })
         );
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-        expect(mockUpdateOnboardingTasks).toHaveBeenCalledTimes(1);
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(

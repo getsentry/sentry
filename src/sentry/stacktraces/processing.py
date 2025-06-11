@@ -14,7 +14,7 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path, safe_execute
+from sentry.utils.safe import get_path, safe_execute, set_path
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -330,6 +330,14 @@ def normalize_stacktraces_for_grouping(
             for frame in frames:
                 _update_frame(frame, platform)
 
+                # Track the incoming `in_app` value, before we make any changes. This is different
+                # from the `orig_in_app` value which may be set by
+                # `apply_category_and_updated_in_app_to_frames`, because it's not tied to the value
+                # changing as a result of stacktrace rules.
+                client_in_app = frame.get("in_app")
+                if client_in_app is not None:
+                    set_path(frame, "data", "client_in_app", value=client_in_app)
+
                 if platform == "javascript":
                     try:
                         parsed_filename = urlparse(frame.get("filename", ""))
@@ -433,7 +441,7 @@ def get_processors_for_stacktraces(data, infos):
     return processors
 
 
-def get_processable_frames(stacktrace_info, processors):
+def get_processable_frames(stacktrace_info, processors) -> list[ProcessableFrame]:
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
@@ -550,7 +558,7 @@ def get_stacktrace_processing_task(infos, processors):
     processors that seem to not handle any frames.
     """
     by_processor: dict[str, list[Any]] = {}
-    to_lookup: dict[str, str] = {}
+    to_lookup: dict[str, ProcessableFrame] = {}
 
     # by_stacktrace_info requires stable sorting as it is used in
     # StacktraceProcessingTask.iter_processable_stacktraces. This is important

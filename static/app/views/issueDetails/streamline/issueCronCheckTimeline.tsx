@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {Flex} from 'sentry/components/container/flex';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';

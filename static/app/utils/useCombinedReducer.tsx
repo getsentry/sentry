@@ -26,7 +26,7 @@ type ReducerActions<M> = M extends ReducersObject
   : never;
 
 type CombinedState<S> = {} & S;
-export type CombinedReducer<M extends ReducersObject> = Reducer<
+type CombinedReducer<M extends ReducersObject> = Reducer<
   CombinedState<ReducersState<M>>,
   ReducerActions<M>
 >;

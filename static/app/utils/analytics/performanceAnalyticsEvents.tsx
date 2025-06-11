@@ -234,7 +234,7 @@ export type PerformanceEventParameters = {
   'performance_views.vitals.vitals_tab_clicked': PageLayoutParams;
 };
 
-export type PerformanceEventKey = keyof PerformanceEventParameters;
+type PerformanceEventKey = keyof PerformanceEventParameters;
 
 export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.create_sample_transaction': 'Growth: Performance Sample Transaction',

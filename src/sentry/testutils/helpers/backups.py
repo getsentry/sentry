@@ -40,20 +40,14 @@ from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
-from sentry.incidents.models.incident import (
-    IncidentActivity,
-    IncidentSnapshot,
-    IncidentTrigger,
-    PendingIncidentSnapshot,
-    TimeSeriesSnapshot,
-)
+from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.models.project_integration import ProjectIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -467,12 +461,6 @@ class ExhaustiveFixtures(Fixtures):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is
-        # finally removed. Until then, it is included for completeness.
-        ProjectIntegration.objects.create(
-            project=project, integration_id=integration_id, config='{"hello":"hello"}'
-        )
-
         # Rule*
         rule = self.create_project_rule(project=project, owner_user_id=owner_id)
         RuleActivity.objects.create(
@@ -528,26 +516,10 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=timezone.now() - timedelta(hours=24),
-                end=timezone.now(),
-                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
-                period=1,
-            ),
-            unique_users=1,
-            total_events=1,
-        )
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
             status=1,
-        )
-
-        # *Snapshot
-        PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
         )
 
         # Dashboard
@@ -558,7 +530,8 @@ class ExhaustiveFixtures(Fixtures):
         )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
-            user_id=owner.id,
+            user_id=owner_id,
+            organization=org,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -727,6 +700,13 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             position=0,
+        )
+
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=org,
+            user_id=owner_id,
+            explore_saved_query=explore_saved_query,
+            last_visited=timezone.now(),
         )
 
         InsightsStarredSegment.objects.create(

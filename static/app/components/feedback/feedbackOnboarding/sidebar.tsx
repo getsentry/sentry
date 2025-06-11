@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
@@ -284,6 +284,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
+                        size="xs"
                         triggerLabel={jsFramework.label}
                         value={jsFramework.value}
                         onChange={setJsFramework}

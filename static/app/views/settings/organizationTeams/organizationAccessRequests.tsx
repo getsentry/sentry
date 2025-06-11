@@ -83,7 +83,7 @@ class OrganizationAccessRequests extends Component<Props, State> {
     const {requestList} = this.props;
     const {accessRequestBusy} = this.state;
 
-    if (!requestList || !requestList.length) {
+    if (!requestList?.length) {
       return null;
     }
 

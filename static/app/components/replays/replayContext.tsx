@@ -1,6 +1,7 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
+import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
@@ -50,6 +51,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * The speed is automatically determined by the length of each idle period
    */
   fastForwardSpeed: number;
+
+  /**
+   * Returns the replay DOM mirror
+   */
+  getMirror: () => Mirror | null;
 
   /**
    * Set to true while the library is reconstructing the DOM
@@ -132,6 +138,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setCurrentTime: () => {},
   setRoot: () => {},
   togglePlayPause: () => {},
+  getMirror: () => null,
 });
 
 type Props = {
@@ -517,14 +524,18 @@ export function Provider({
   // Initialize replayer for Video Replays
   useEffect(() => {
     const instance =
-      isVideoReplay && rootEl && !replayerRef.current && initVideoRoot(rootEl);
+      isVideoReplay &&
+      rootEl &&
+      !replay?.isFetching() &&
+      !replayerRef.current &&
+      initVideoRoot(rootEl);
 
     return () => {
       if (instance && !rootEl) {
         instance.destroy();
       }
     };
-  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents]);
+  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
   useEffect(() => {
@@ -611,6 +622,7 @@ export function Provider({
           restart,
           setCurrentTime,
           togglePlayPause,
+          getMirror: () => replayerRef.current?.getMirror() ?? null,
           ...value,
         }}
       >

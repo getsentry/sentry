@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {useReleaseDeploys} from 'sentry/views/releases/utils/useReleaseDeploys';
 
 interface DeploysCardProps {
-  projectSlug: string;
+  projectSlug: string | undefined;
   release: string;
 }
 

@@ -36,7 +36,7 @@ export function shouldShowPerformanceTasks(projects: Project[]): boolean {
   );
 }
 
-export function shouldShowReplayTasks(projects: Project[]): boolean {
+function shouldShowReplayTasks(projects: Project[]): boolean {
   return projects?.some(
     project => project.platform && replayOnboardingPlatforms.includes(project.platform)
   );

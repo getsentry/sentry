@@ -69,8 +69,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       fields: ['failure_rate()'],
       pageFilters: selection,
     },
-    REFERRER,
-    true
+    REFERRER
   );
 
   const getFailureRateBadge = () => {

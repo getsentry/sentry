@@ -9,8 +9,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment} from 'sentry/types/project';
@@ -74,7 +73,6 @@ export function DetectorTypeForm() {
             </p>
           </Header>
           <MonitorTypeField />
-          <DebugForm />
         </Group>
       </Flex>
     </Form>

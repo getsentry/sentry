@@ -25,7 +25,7 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
 )
 from sentry.rules.match import MatchType
-from sentry.tsdb.base import SnubaCondition, TSDBModel
+from sentry.tsdb.base import SnubaCondition, TSDBKey, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
@@ -39,7 +39,7 @@ class TSDBFunction(Protocol):
     def __call__(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: list[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
@@ -49,7 +49,8 @@ class TSDBFunction(Protocol):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-    ) -> dict[int, int]: ...
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]: ...
 
 
 class InvalidFilter(Exception):
@@ -101,6 +102,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         referrer_suffix: str,
         conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -113,6 +115,7 @@ class BaseEventFrequencyQueryHandler(ABC):
             tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            group_on_time=group_on_time,
         )
         return result
 
@@ -127,6 +130,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         referrer_suffix: str,
         filters: list[QueryFilter] | None = None,
+        group_on_time: bool = False,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -143,6 +147,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
                 conditions=conditions,
+                group_on_time=group_on_time,
             )
             batch_totals.update(result)
         return batch_totals
@@ -347,8 +352,9 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_frequency",
+                    referrer_suffix="wf_batch_alert_event_frequency",
                     filters=filters,
+                    group_on_time=False,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
@@ -392,8 +398,9 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_uniq_user_frequency",
+                    referrer_suffix="wf_batch_alert_event_uniq_user_frequency",
                     filters=filters,
+                    group_on_time=False,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
@@ -481,8 +488,9 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="batch_alert_event_frequency",
+                referrer_suffix="wf_batch_alert_event_frequency_percent",
                 filters=filters,
+                group_on_time=False,
             )
             for group_id, count in results.items():
                 percent: float = 100 * round(count / avg_sessions_in_interval, 4)

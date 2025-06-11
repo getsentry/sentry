@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';

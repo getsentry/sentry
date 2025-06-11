@@ -5,7 +5,16 @@ import orjson
 import responses
 
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.trello.plugin import TrelloPlugin
+
+
+def test_conf_key() -> None:
+    assert TrelloPlugin().conf_key == "trello"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("trello", TrelloPlugin())
 
 
 class TrelloPluginTestBase(PluginTestCase):
@@ -15,12 +24,6 @@ class TrelloPluginTestBase(PluginTestCase):
 
 
 class TrelloPluginTest(TrelloPluginTestBase):
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "trello"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("trello", self.plugin)
-
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")
         # test new and old format

@@ -11,6 +11,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -97,7 +98,12 @@ const getDynamicParts = (params: Params): string[] => {
 const getSdkClientSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [`dsn: "${params.dsn.public}"`],
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
     getIntegrations,
     getDynamicParts,
   });
@@ -139,6 +145,9 @@ Sentry.init({
           profilesSampleRate: 1.0,`
       : ''
   }
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `;
 
@@ -371,8 +380,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Upload Source Maps'),
+    getUploadSourceMapsStep({
       description: tct(
         'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
         {
@@ -381,7 +389,8 @@ const onboarding: OnboardingConfig = {
           ),
         }
       ),
-    },
+      ...params,
+    }),
   ],
   verify: () => [
     {

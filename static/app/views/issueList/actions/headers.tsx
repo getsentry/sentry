@@ -120,17 +120,13 @@ const FirstSeenLabel = styled(IssueStreamHeaderLabel)`
 
 const EventsOrUsersLabel = styled(IssueStreamHeaderLabel)`
   width: 60px;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    display: none;
-  }
 `;
 
 const PriorityLabel = styled(IssueStreamHeaderLabel)`
   width: 64px;
 `;
 
-export const AssigneeLabel = styled(IssueStreamHeaderLabel)`
+const AssigneeLabel = styled(IssueStreamHeaderLabel)`
   width: 66px;
 `;
 

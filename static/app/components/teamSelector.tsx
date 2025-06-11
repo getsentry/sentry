@@ -12,9 +12,9 @@ import type {
   StylesConfig,
 } from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -141,7 +141,7 @@ type TeamActor = {
   type: 'team';
 };
 
-type TeamOption = GeneralSelectValue & {
+export type TeamOption = GeneralSelectValue & {
   actor: TeamActor | null;
   searchKey: string;
 };
@@ -413,6 +413,4 @@ const AddToProjectButton = styled(Button)`
 export {TeamSelector};
 
 // TODO(davidenwang): this is broken due to incorrect types on react-select
-export default withOrganization(TeamSelector) as unknown as (
-  p: Omit<Props, 'organization'>
-) => React.JSX.Element;
+export default withOrganization(TeamSelector);

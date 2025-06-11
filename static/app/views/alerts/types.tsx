@@ -44,7 +44,7 @@ export type IncidentStats = {
   uniqueUsers: number;
 };
 
-export type ActivityTypeDraft = {
+type ActivityTypeDraft = {
   comment: null | string;
   dateCreated: string;
   id: string;

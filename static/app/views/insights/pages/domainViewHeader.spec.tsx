@@ -13,7 +13,7 @@ const useLocationMock = jest.mocked(useLocation);
 
 describe('DomainViewHeader', function () {
   const organization = OrganizationFixture({
-    features: ['insights-entry-points', 'insights-mobile-screens-module'],
+    features: ['insights-entry-points'],
   });
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     const overviewTab = screen.getByRole('tab', {name: 'Overview'});
@@ -82,7 +82,7 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {organization: organizationWithoutFeatures}
+      {organization: organizationWithoutFeatures, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('DomainViewHeader', function () {
         selectedModule={undefined}
         hasOverviewPage={false}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('DomainViewHeader', function () {
         selectedModule={undefined}
         hasOverviewPage={false}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
     expect(screen.getByRole('tab', {name: 'Mobile Vitals new'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();

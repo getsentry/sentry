@@ -9,6 +9,7 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -23,10 +24,8 @@ import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -38,12 +37,10 @@ import type {
   InboxDetails,
   PriorityLevel,
 } from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -98,11 +95,9 @@ function GroupCheckbox({
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
 
-  const onChange = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
-
-      if (mouseEvent.shiftKey) {
+  const handleToggle = useCallback(
+    (isShiftClick: boolean) => {
+      if (isShiftClick) {
         SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
@@ -111,8 +106,28 @@ function GroupCheckbox({
     [group.id]
   );
 
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+      handleToggle(mouseEvent.shiftKey);
+    },
+    [handleToggle]
+  );
+
   return (
     <GroupCheckBoxWrapper>
+      {!group.hasSeen && (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator
+            data-test-id="unread-issue-indicator"
+            onClick={(e: React.MouseEvent) => {
+              // Toggle checkbox on unread indicator misclick
+              e.stopPropagation();
+              handleToggle(e.shiftKey);
+            }}
+          />
+        </Tooltip>
+      )}
       <CheckboxLabel>
         <CheckboxWithBackground
           id={group.id}
@@ -122,11 +137,6 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
-      {group.hasSeen ? null : (
-        <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator data-test-id="unread-issue-indicator" />
-        </Tooltip>
-      )}
     </GroupCheckBoxWrapper>
   );
 }
@@ -423,17 +433,8 @@ function StreamGroup({
   const lastTriggeredDate = group.lastTriggered;
 
   const showSecondaryPoints = Boolean(
-    withChart && group && group.filtered && statsPeriod && useFilteredStats
+    withChart && group?.filtered && statsPeriod && useFilteredStats
   );
-
-  const groupCategoryCountTitles: Record<IssueCategory, string> = {
-    [IssueCategory.ERROR]: t('Error Events'),
-    [IssueCategory.PERFORMANCE]: t('Transaction Events'),
-    [IssueCategory.CRON]: t('Cron Events'),
-    [IssueCategory.REPLAY]: t('Replay Events'),
-    [IssueCategory.UPTIME]: t('Uptime Events'),
-    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
-  };
 
   const groupCount = defined(primaryCount) ? (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
@@ -442,7 +443,7 @@ function StreamGroup({
         isHoverable
         title={
           <CountTooltipContent>
-            <h4>{groupCategoryCountTitles[group.issueCategory]}</h4>
+            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
             {group.filtered && (
               <Fragment>
                 <div>{queryFilterDescription ?? t('Matching filters')}</div>
@@ -530,12 +531,6 @@ function StreamGroup({
     <Placeholder height="18px" />
   );
 
-  const issueStreamAnchor = isDemoModeActive() ? (
-    <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
-  ) : (
-    <GuideAnchor target="issue_stream" />
-  );
-
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (displayReprocessingLayout) {
       return;
@@ -591,7 +586,7 @@ function StreamGroup({
         <EventOrGroupHeader index={index} data={group} query={query} source={referrer} />
         <EventOrGroupExtraDetails data={group} showLifetime={false} />
       </GroupSummary>
-      {hasGuideAnchor && issueStreamAnchor}
+      {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
         <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
@@ -664,14 +659,16 @@ export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
   position: absolute;
-  top: 0;
+  top: -1px;
   left: 0;
   bottom: 0;
   height: 100%;
   width: 32px;
   padding-left: ${space(2)};
-  padding-top: 14px;
   margin: 0;
+  margin-top: -1px;
+  display: flex;
+  align-items: center;
 `;
 
 const UnreadIndicator = styled('div')`
@@ -679,8 +676,9 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
-  margin-left: ${space(3)};
-  margin-top: 10px;
+  margin-top: 1px;
+  margin-left: ${space(2)};
+  z-index: 1;
 `;
 
 // Position for wrapper is relative for overlay actions
@@ -693,15 +691,8 @@ const Wrapper = styled(PanelItem)<{
   padding: ${space(1)} 0;
   min-height: 82px;
 
-  &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
+  &:not(:has(:hover)):not(:has(input:checked)) {
     ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
-
-  &:hover,
-  &:focus-within {
-    ${UnreadIndicator} {
       ${p => p.theme.visuallyHidden};
     }
   }
@@ -775,7 +766,10 @@ const GroupCheckBoxWrapper = styled('div')`
   align-self: flex-start;
   width: 32px;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding-top: ${space(1)};
   z-index: 1;
 `;
 
@@ -789,7 +783,7 @@ const CountsWrapper = styled('div')`
   flex-direction: column;
 `;
 
-export const PrimaryCount = styled(Count)`
+const PrimaryCount = styled(Count)`
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   justify-content: right;

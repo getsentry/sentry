@@ -4,7 +4,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
-from sentry import features
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
@@ -97,12 +98,7 @@ class DashboardWidgetSerializer(Serializer):
         )
 
         if (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                obj.dashboard.organization,
-                actor=user,
-            )
-            and obj.widget_type == DashboardWidgetTypes.DISCOVER
+            obj.widget_type == DashboardWidgetTypes.DISCOVER
             and obj.discover_widget_split is not None
         ):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
@@ -196,6 +192,7 @@ class DashboardListResponse(TypedDict):
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    projects: list[int]
 
 
 class _WidgetPreview(TypedDict):
@@ -209,11 +206,13 @@ class _Widget(TypedDict):
     created_by: dict[str, Any] | None
     permissions: NotRequired[dict[str, Any]]
     is_favorited: NotRequired[bool]
+    projects: list[int]
 
 
 class DashboardListSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
+        prefetch_related_objects(item_list, "projects")
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by(
             "order"
@@ -228,7 +227,14 @@ class DashboardListSerializer(Serializer):
         permissions = DashboardPermissions.objects.filter(dashboard_id__in=item_dict.keys())
 
         result: dict[int, _Widget]
-        result = defaultdict(lambda: {"widget_display": [], "widget_preview": [], "created_by": {}})
+        result = defaultdict(
+            lambda: {
+                "widget_display": [],
+                "widget_preview": [],
+                "created_by": {},
+                "projects": [],
+            }
+        )
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
             display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
@@ -267,6 +273,7 @@ class DashboardListSerializer(Serializer):
         for dashboard in item_dict.values():
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
+            result[dashboard]["projects"] = list(dashboard.projects.values_list("id", flat=True))
 
         return result
 
@@ -280,6 +287,7 @@ class DashboardListSerializer(Serializer):
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": attrs.get("permissions", None),
             "isFavorited": attrs.get("is_favorited", False),
+            "projects": attrs.get("projects", []),
         }
 
 

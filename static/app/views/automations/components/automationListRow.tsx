@@ -1,52 +1,42 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  type Action,
-  ActionCell,
-} from 'sentry/components/workflowEngine/gridCell/actionCell';
-import {
-  ConnectionCell,
-  type Item,
-} from 'sentry/components/workflowEngine/gridCell/connectionCell';
+import {ProjectList} from 'sentry/components/projectList';
+import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
+import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {tn} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  useAutomationActions,
+  useAutomationProjectIds,
+} from 'sentry/views/automations/hooks/utils';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
-export type Automation = {
-  actions: Action[];
-  id: string;
-  link: string;
-  monitors: Item[];
-  name: string;
-  project: AvatarProject;
-  details?: string[];
-  disabled?: boolean;
-  lastTriggered?: Date;
-};
-
-type AutomationListRowProps = Automation & {
+type AutomationListRowProps = {
+  automation: Automation;
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
 };
 
 export function AutomationListRow({
-  actions,
-  id,
-  lastTriggered,
-  link,
-  monitors,
-  name,
-  project,
-  details,
+  automation,
   handleSelect,
   selected,
-  disabled,
 }: AutomationListRowProps) {
+  const organization = useOrganization();
+  const actions = useAutomationActions(automation);
+  const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
+  const projectIds = useAutomationProjectIds(automation);
+  const projectSlugs = projectIds.map(
+    projectId => ProjectsStore.getById(projectId)?.slug
+  ) as string[];
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
@@ -58,12 +48,9 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <StyledTitleCell
+          <AutomationTitleCell
             name={name}
-            project={project}
-            link={link}
-            details={details}
-            disabled={disabled}
+            href={makeAutomationDetailsPathname(organization.slug, id)}
           />
         </CellWrapper>
       </Flex>
@@ -73,12 +60,11 @@ export function AutomationListRow({
       <CellWrapper className="action">
         <ActionCell actions={actions} disabled={disabled} />
       </CellWrapper>
+      <CellWrapper className="projects">
+        <ProjectList projectSlugs={projectSlugs} />
+      </CellWrapper>
       <CellWrapper className="connected-monitors">
-        <ConnectionCell
-          items={monitors}
-          renderText={count => tn('%s monitor', '%s monitors', count)}
-          disabled={disabled}
-        />
+        <ConnectionCell ids={detectorIds} type="detector" disabled={disabled} />
       </CellWrapper>
     </RowWrapper>
   );
@@ -90,16 +76,14 @@ const StyledCheckbox = styled(Checkbox)<{checked?: boolean}>`
   opacity: 1;
 `;
 
-const CellWrapper = styled(Flex)`
+const CellWrapper = styled('div')`
+  justify-content: start;
   padding: 0 ${space(2)};
-  flex: 1;
   overflow: hidden;
   white-space: nowrap;
-`;
-
-const StyledTitleCell = styled(TitleCell)`
-  padding: ${space(2)};
-  margin: -${space(2)};
+  text-overflow: ellipsis;
+  width: 100%;
+  min-width: 0;
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
@@ -110,7 +94,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
+    css`
       ${CellWrapper} {
         opacity: 0.6;
       }
@@ -153,6 +137,6 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr;
   }
 `;

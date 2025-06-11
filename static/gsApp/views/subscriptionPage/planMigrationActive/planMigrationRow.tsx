@@ -4,6 +4,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -54,7 +55,7 @@ function formatCategoryRowString(
 ): string {
   const reservedWithUnits = formatReservedWithUnits(
     quantity,
-    DATA_CATEGORY_INFO[category].plural,
+    DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
   if (category === DataCategoryExact.ATTACHMENT) {
@@ -78,16 +79,17 @@ function formatCategoryRowString(
 function PlanMigrationRow(props: Props) {
   let currentValue: React.ReactNode;
   let nextValue: React.ReactNode;
-  let discountPrice: React.ReactNode;
+  let discountPrice: string | undefined;
   let currentTitle: React.ReactNode =
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     DATA_CATEGORY_INFO[props.type]?.productName ?? props.type;
-  const dataTestIdSuffix: React.ReactNode =
+  const dataTestIdSuffix: string =
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     DATA_CATEGORY_INFO[props.type]?.plural ?? props.type;
 
   const options = {isAbbreviated: true};
 
+  // TODO(data categories): check if this can be parsed
   switch (props.type) {
     case 'plan':
       currentValue = tct('Legacy [currentValue]', {currentValue: props.currentValue});

@@ -8,6 +8,8 @@ import {
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {DataCategory} from 'sentry/types/core';
+
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -168,7 +170,11 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
@@ -218,7 +224,11 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
@@ -269,11 +279,11 @@ describe('PendingChanges', function () {
           contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: [
-            'errors',
-            'attachments',
-            'spans',
-            'replays',
-            'monitorSeats',
+            DataCategory.ERRORS,
+            DataCategory.ATTACHMENTS,
+            DataCategory.SPANS,
+            DataCategory.REPLAYS,
+            DataCategory.MONITOR_SEATS,
           ],
         }),
         reservedEvents: 50_000,
@@ -362,7 +372,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — $0.02000000 → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for accepted spans and stored spans → $50,000.00 for accepted spans and stored spans'
+      'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
     );
   });
 
@@ -410,7 +420,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — None → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — None → $50,000.00 for accepted spans and stored spans'
+      'Reserved budgets — None → $50,000.00 for spans budget'
     );
   });
 
@@ -447,7 +457,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for accepted spans and stored spans → None'
+      'Reserved budgets — $100,000.00 for spans budget → None'
     );
   });
 

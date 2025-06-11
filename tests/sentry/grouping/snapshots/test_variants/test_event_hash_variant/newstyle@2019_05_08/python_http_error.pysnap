@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:54.973338+00:00'
+created: '2025-04-25T21:22:43.631715+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.utils.safe"
             filename (module takes precedence)
@@ -19,7 +19,7 @@ app:
               "safe_execute"
             context-line*
               "result = func(*args, **kwargs)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.integrations.slack.notify_action"
             filename (module takes precedence)
@@ -28,7 +28,7 @@ app:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "requests.models"
             filename (module takes precedence)

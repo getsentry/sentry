@@ -543,8 +543,10 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     """Eventually should just write the eap dataset from scratch, but inheriting for now to move fast"""
 
     sampling_weight = Column("sampling_weight")
-    _cached_count = None
-    _cached_count_weighted = None
+
+    def __init__(self, builder: BaseQueryBuilder):
+        super().__init__(builder)
+        self._cached_count_and_weighted: tuple[float, float] | None = None
 
     def _resolve_span_duration(self, alias: str) -> SelectType:
         # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
@@ -1043,8 +1045,8 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             alias,
         )
 
-    def _query_total_counts(self) -> tuple[float | int, float | int]:
-        if self._cached_count is None:
+    def _query_total_counts(self) -> tuple[float, float]:
+        if self._cached_count_and_weighted is None:
             total_query = spans_indexed.SpansEAPQueryBuilder(
                 dataset=self.builder.dataset,
                 params={},
@@ -1055,9 +1057,11 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             results = total_query.process_results(total_results)
             if len(results["data"]) != 1:
                 raise Exception("Could not query population size")
-            self._cached_count = results["data"][0]["count_sample"]
-            self._cached_count_weighted = results["data"][0]["count"]
-        return self._cached_count, self._cached_count_weighted
+            self._cached_count_and_weighted = (
+                results["data"][0]["count_sample"],
+                results["data"][0]["count"],
+            )
+        return self._cached_count_and_weighted
 
     @cached_property
     def _zscore(self):

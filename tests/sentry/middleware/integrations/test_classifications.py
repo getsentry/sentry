@@ -1,3 +1,4 @@
+from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponse
@@ -11,7 +12,6 @@ from sentry.middleware.integrations.integration_control import IntegrationContro
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
 
 
 class BaseClassificationTestCase(TestCase):

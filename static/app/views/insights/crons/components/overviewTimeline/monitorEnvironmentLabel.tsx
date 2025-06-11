@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   IconCheckmark,
   IconFire,
@@ -22,7 +22,7 @@ interface Props {
   monitorEnv: MonitorEnvironment;
 }
 
-export const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
+const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
     icon: <IconCheckmark color="successText" />,
     color: 'successText',
@@ -72,7 +72,9 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
 
   return (
     <EnvWithStatus>
-      <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
+      <Tooltip skipWrapper showOnlyOnOverflow title={name}>
+        <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
+      </Tooltip>
       <Tooltip disabled={!label} title={label} skipWrapper>
         {icon}
       </Tooltip>

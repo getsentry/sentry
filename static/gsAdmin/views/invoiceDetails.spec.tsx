@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -58,17 +57,14 @@ describe('InvoiceDetails', function () {
         body: InvoiceFixture({isClosed: true}),
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
-
-      render(<InvoiceDetails />, {router});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -89,17 +85,14 @@ describe('InvoiceDetails', function () {
         host: 'https://de.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'de',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/de/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
-
-      render(<InvoiceDetails />, {router});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -121,17 +114,14 @@ describe('InvoiceDetails', function () {
         host: 'https://us.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
-
-      render(<InvoiceDetails />, {router});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -153,16 +143,6 @@ describe('InvoiceDetails', function () {
         host: 'https://us.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
-          },
-        },
-      });
-
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${mockOrg.slug}/invoices/${invoice.id}/retry-payment/`,
         method: 'PUT',
@@ -171,7 +151,14 @@ describe('InvoiceDetails', function () {
         }),
       });
 
-      render(<InvoiceDetails />, {router});
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
+          },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+        },
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})
@@ -192,17 +179,14 @@ describe('InvoiceDetails', function () {
         host: 'https://us.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
-
-      render(<InvoiceDetails />, {router});
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'Invoices Actions'})

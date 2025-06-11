@@ -5,7 +5,6 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
 from typing import Any
-from urllib.parse import urlencode
 
 from sentry import analytics, features
 from sentry.db.models import Model
@@ -19,7 +18,6 @@ from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
 from sentry.models.group import Group
-from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -29,18 +27,23 @@ from sentry.notifications.types import (
 from sentry.notifications.utils import (
     get_commits,
     get_generic_data,
-    get_group_settings_link,
-    get_integration_link,
     get_interface_list,
-    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
     get_replay_id,
-    get_rules,
     get_transaction_data,
     has_alert_integration,
     has_integrations,
 )
+from sentry.notifications.utils.links import (
+    create_link_to_workflow,
+    get_group_settings_link,
+    get_integration_link,
+    get_issue_replay_link,
+    get_rules,
+    get_snooze_url,
+)
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.plugins.base.structs import Notification
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
@@ -63,12 +66,6 @@ def get_group_substatus_text(group: Group) -> str:
 
 
 GENERIC_TEMPLATE_NAME = "generic"
-
-
-def get_key_from_rule_data(rule: Rule, key: str) -> str:
-    value = rule.data.get("actions", [{}])[0].get(key)
-    assert value is not None
-    return value
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -149,19 +146,13 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def get_image_url(self) -> str | None:
-        if features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ):
-            image_builder = IssueAlertImageBuilder(
-                group=self.group, provider=ExternalProviderEnum.EMAIL
-            )
-            return image_builder.get_image_url()
-        return None
+        image_builder = IssueAlertImageBuilder(
+            group=self.group, provider=ExternalProviderEnum.EMAIL
+        )
+        return image_builder.get_image_url()
 
     def is_new_design(self) -> bool:
-        return features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ) and self.group.issue_type in [
+        return self.group.issue_type in [
             PerformanceP95EndpointRegressionGroupType,
             ProfileFunctionRegressionType,
         ]
@@ -259,11 +250,17 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if len(self.rules) > 0:
-            context["snooze_alert"] = True
-            context["snooze_alert_url"] = (
-                f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
-            )
+        # We don't show the snooze alert if the organization has not enabled the workflow engine UI links
+        # This is because in the new UI/system a user can't individually disable a workflow
+        if not features.has("organizations:workflow-engine-ui-links", self.organization):
+            if len(self.rules) > 0:
+                context["snooze_alert"] = True
+                context["snooze_alert_url"] = get_snooze_url(
+                    self.rules[0], self.organization, self.project, sentry_query_params
+                )
+        else:
+            context["snooze_alert"] = False
+            context["snooze_alert_url"] = None
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
@@ -289,7 +286,14 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            rule_url = build_rule_url(self.rules[0], self.group, self.project)
+            if features.has("organizations:workflow-engine-ui-links", self.organization):
+                rule_url = absolute_uri(
+                    create_link_to_workflow(
+                        self.organization.id, get_key_from_rule_data(self.rules[0], "workflow_id")
+                    )
+                )
+            else:
+                rule_url = build_rule_url(self.rules[0], self.group, self.project)
             title_str += (
                 f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
             )

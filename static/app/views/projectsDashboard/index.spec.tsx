@@ -72,7 +72,9 @@ describe('ProjectsDashboard', function () {
       const teamsWithOneProject = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithOneProject);
 
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByTestId('join-team')).toBeInTheDocument();
       expect(screen.getByTestId('create-project')).toBeInTheDocument();
@@ -110,7 +112,9 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
@@ -142,7 +146,9 @@ describe('ProjectsDashboard', function () {
       const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
 
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
@@ -179,7 +185,7 @@ describe('ProjectsDashboard', function () {
 
       const {router} = render(<ProjectsDashboard />, {
         organization: openOrg,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/projects/',
@@ -236,7 +242,7 @@ describe('ProjectsDashboard', function () {
 
       const {router} = render(<ProjectsDashboard />, {
         organization: openMembershipOrg,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/projects/',
@@ -295,6 +301,7 @@ describe('ProjectsDashboard', function () {
       render(<ProjectsDashboard />, {
         router,
         organization: closedOrg,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
@@ -358,6 +365,13 @@ describe('ProjectsDashboard', function () {
           firstEvent: new Date().toISOString(),
           stats: [],
         }),
+        ProjectFixture({
+          id: '4',
+          slug: 'project4',
+          teams: [],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
       ];
 
       ProjectsStore.loadInitialData(projects);
@@ -378,10 +392,14 @@ describe('ProjectsDashboard', function () {
         },
       });
 
-      render(<ProjectsDashboard />, {router});
+      render(<ProjectsDashboard />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByText('project3')).toBeInTheDocument();
       expect(screen.queryByText('project2')).not.toBeInTheDocument();
+      expect(screen.queryByText('project4')).not.toBeInTheDocument();
     });
 
     it('renders projects by search', async function () {
@@ -411,7 +429,9 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
         'project2{enter}'
@@ -487,7 +507,9 @@ describe('ProjectsDashboard', function () {
         ],
       });
 
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
 
       // check that all projects are displayed
       await waitFor(() =>
@@ -570,7 +592,9 @@ describe('ProjectsDashboard', function () {
         })),
       });
 
-      const {unmount} = render(<ProjectsDashboard />);
+      const {unmount} = render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(loadStatsSpy).toHaveBeenCalledTimes(6);
       expect(mock).not.toHaveBeenCalled();

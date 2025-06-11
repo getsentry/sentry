@@ -5,38 +5,7 @@ import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  type MetricsProperty,
-  SpanIndexedField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
-
-export type WebVitalsRow = {
-  'avg(measurements.score.cls)': number;
-  'avg(measurements.score.fcp)': number;
-  'avg(measurements.score.inp)': number;
-  'avg(measurements.score.lcp)': number;
-  'avg(measurements.score.total)': number;
-  'avg(measurements.score.ttfb)': number;
-  'count()': number;
-  'count_scores(measurements.score.cls)': number;
-  'count_scores(measurements.score.fcp)': number;
-  'count_scores(measurements.score.inp)': number;
-  'count_scores(measurements.score.lcp)': number;
-  'count_scores(measurements.score.total)': number;
-  'count_scores(measurements.score.ttfb)': number;
-  'performance_score(measurements.score.cls)': number;
-  'performance_score(measurements.score.fcp)': number;
-  'performance_score(measurements.score.inp)': number;
-  'performance_score(measurements.score.lcp)': number;
-  'performance_score(measurements.score.total)': number;
-  'performance_score(measurements.score.ttfb)': number;
-  'sum(measurements.score.weight.cls)': number | undefined;
-  'sum(measurements.score.weight.fcp)': number | undefined;
-  'sum(measurements.score.weight.inp)': number | undefined;
-  'sum(measurements.score.weight.lcp)': number | undefined;
-  'sum(measurements.score.weight.ttfb)': number | undefined;
-};
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -96,19 +65,23 @@ export const useProjectWebVitalsScoresQuery = ({
         `count_scores(measurements.score.inp)`,
         ...(weightWebVital === 'total'
           ? []
-          : [`sum(measurements.score.weight.${weightWebVital})` as MetricsProperty]),
+          : [`sum(measurements.score.weight.${weightWebVital})` as const]),
       ],
     },
     'api.performance.browser.web-vitals.project-scores'
   );
 
-  const data = result.data;
+  const finalData: Array<
+    (typeof result.data)[0] & {
+      'avg(measurements.score.total)': number;
+    }
+  > = result.data.map(row => {
+    // Map performance_score(measurements.score.total) to avg(measurements.score.total) so we don't have to handle both keys in the UI
+    return {
+      ...row,
+      'avg(measurements.score.total)': row['performance_score(measurements.score.total)'],
+    };
+  });
 
-  // Map performance_score(measurements.score.total) to avg(measurements.score.total) so we don't have to handle both keys in the UI
-  if (data?.[0]?.['performance_score(measurements.score.total)'] !== undefined) {
-    data[0]['avg(measurements.score.total)'] =
-      data[0]['performance_score(measurements.score.total)'];
-  }
-
-  return {...result, data: data as WebVitalsRow[]};
+  return {...result, data: finalData};
 };

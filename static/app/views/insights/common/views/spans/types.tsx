@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import type {SpanMetricsField, SubregionCode} from 'sentry/views/insights/types';
 
 export type ModuleFilters = {
   [SpanMetricsField.SPAN_ACTION]?: string;
@@ -11,7 +11,7 @@ export type ModuleFilters = {
   [SpanMetricsField.USER_GEO_SUBREGION]?: SubregionCode[];
 };
 
-export type DataKey =
+type DataKey =
   | 'change'
   | 'timeSpent'
   | 'p50p95'
@@ -34,7 +34,8 @@ export type DataKey =
   | 'httpCodeBreakdown'
   | 'cache_miss_rate()'
   | 'avg(cache.item_size)'
-  | 'transaction.duration';
+  | 'transaction.duration'
+  | 'performanceScore';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -60,6 +61,7 @@ export const DataTitles: Record<DataKey, string> = {
   httpCodeBreakdown: t('Response Code Breakdown'),
   'cache_miss_rate()': t('Miss Rate'),
   'transaction.duration': t('Transaction Duration'),
+  performanceScore: t('Perf Score'),
 };
 
 export const getThroughputTitle = (

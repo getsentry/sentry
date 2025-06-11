@@ -15,14 +15,14 @@ import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
-import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
   date: string;
@@ -264,14 +264,13 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         value: formatVersion(release.version, true),
 
         onClick: () => {
-          router.push(
-            normalizeUrl({
-              pathname: `/organizations/${
-                organization.slug
-              }/releases/${encodeURIComponent(release.version)}/`,
-              query,
-            })
-          );
+          router.push({
+            pathname: makeReleasesPathname({
+              organization,
+              path: `/${encodeURIComponent(release.version)}/`,
+            }),
+            query,
+          });
         },
 
         label: {
@@ -288,9 +287,13 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
           // XXX using this.props here as this function does not get re-run
           // unless projects are changed. Using a closure variable would result
           // in stale values.
-          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-            local: !this.props.utc,
-          });
+          const time = getFormattedDate(
+            data.value,
+            getFormat({timeZone: true, year: true}),
+            {
+              local: !this.props.utc,
+            }
+          );
           const version = escape(formatVersion(data.name, true));
           return [
             '<div class="tooltip-series">',

@@ -51,15 +51,18 @@ const mockReplay = ReplayReader.factory({
 
 mockUseLoadReplayReader.mockImplementation(() => {
   return {
+    attachmentError: undefined,
     attachments: [],
     errors: [],
     fetchError: undefined,
-    fetching: false,
+    isError: false,
+    isPending: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: REPLAY_ID_1,
     replayRecord: ReplayRecordFixture({id: REPLAY_ID_1}),
+    status: 'success' as const,
   };
 });
 
@@ -122,6 +125,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -151,6 +155,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => {
@@ -220,6 +225,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -250,6 +256,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -283,6 +290,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -318,6 +326,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -387,6 +396,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => {
@@ -493,6 +503,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('See Full Replay')).toBeInTheDocument();
@@ -567,6 +578,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => {

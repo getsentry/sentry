@@ -49,12 +49,11 @@ describe('ScreenshotModal', function () {
         onDownload={jest.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
         attachments={attachments}
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -67,7 +66,16 @@ describe('ScreenshotModal', function () {
 
   it('renders with previous and next buttons when passed attachments', async function () {
     const eventAttachment = EventAttachmentFixture();
-    const attachments = [eventAttachment, EventAttachmentFixture({id: '2'})];
+    const attachments = [
+      eventAttachment,
+      EventAttachmentFixture({id: '2'}),
+      EventAttachmentFixture({name: 'other-image.png'}),
+      EventAttachmentFixture({
+        name: 'textfile.txt',
+        mimetype: 'text/plain',
+        headers: {'Content-Type': 'text/plain'},
+      }),
+    ];
 
     render(
       <ScreenshotModal
@@ -81,21 +89,20 @@ describe('ScreenshotModal', function () {
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
         attachments={attachments}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
-    expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('1 of 2');
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
-    expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('2 of 2');
+    expect(screen.getByText('2 of 2')).toBeInTheDocument();
   });
 
   it('does not render pagination buttons when only one screenshot', function () {
@@ -111,11 +118,10 @@ describe('ScreenshotModal', function () {
         onDownload={jest.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -123,7 +129,6 @@ describe('ScreenshotModal', function () {
     expect(screen.getByText(eventAttachment.name)).toBeInTheDocument();
 
     expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
-    expect(screen.queryByTestId('pagination-header-text')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });
 });

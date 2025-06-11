@@ -162,7 +162,7 @@ function ScreensLandingPage() {
     },
     {
       title: t('Avg. TTID'),
-      description: t('Average time to intial display.'),
+      description: t('Average time to initial display.'),
       docs: t('The average time it takes until your app is drawing the first frame.'),
       setup: undefined,
       platformDocLinks: {
@@ -211,7 +211,7 @@ function ScreensLandingPage() {
     vital: VitalItem | undefined;
   }>({status: undefined, vital: undefined});
 
-  const query = new MutableSearch(['transaction.op:ui.load']);
+  const query = new MutableSearch(['transaction.op:[ui.load,navigation]']);
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }

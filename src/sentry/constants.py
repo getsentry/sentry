@@ -89,8 +89,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "404",
         "500",
         "_admin",
-        "_experiment",
         "_static",
+        "a",
         "about",
         "accept",
         "access",
@@ -109,6 +109,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "avatar",
         "billing",
         "blog",
+        "bounce",
         "branding",
         "careers",
         "client",
@@ -121,6 +122,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "debug",
         "devinfra",
         "docs",
+        "email",
         "enterprise",
         "eu",
         "events",
@@ -131,9 +133,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "features",
         "finance",
         "for",
+        "forum",
         "from",
         "get-cli",
         "github-deployment-gate",
+        "gsnlink",
+        "go",
         "guide",
         "help",
         "ingest",
@@ -145,13 +150,17 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ja",
         "jobs",
         "legal",
+        "live",
         "login",
         "logout",
         "lp",
         "mail",
         "manage",
+        "marketing",
+        "md",
         "my",
         "onboarding",
+        "open",
         "organization-avatar",
         "organizations",
         "out",
@@ -174,7 +183,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sa1",
         "sales",
         "security",
+        "securityportal",
         "sentry-apps",
+        "services",
         "settings",
         "signup",
         "sponsorship",
@@ -183,6 +194,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "staff",
         "subscribe",
         "support",
+        "swag",
         "syntax",
         "syntaxfm",
         "team-avatar",
@@ -194,6 +206,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "us",
         "vs",
         "welcome",
+        "www",
+        "www2",
     )
 )
 
@@ -691,17 +705,15 @@ PROJECT_RATE_LIMIT_DEFAULT = 100
 ACCOUNT_RATE_LIMIT_DEFAULT = 0
 REQUIRE_SCRUB_DATA_DEFAULT = False
 REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
-SENSITIVE_FIELDS_DEFAULT = None
-SAFE_FIELDS_DEFAULT = None
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 DEBUG_FILES_ROLE_DEFAULT = "admin"
 EVENTS_ADMIN_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
-TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
+GITLAB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False
@@ -709,7 +721,9 @@ UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
-STREAMLINE_UI_ONLY = None
+DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = "off"
+DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = False
+INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

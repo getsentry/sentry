@@ -110,7 +110,7 @@ export function SamplesTables({
         {EventSamples && (
           <SegmentedControl
             onChange={value => setSampleType(value)}
-            defaultValue={SPANS}
+            value={sampleType}
             label={t('Sample Type Selection')}
           >
             <SegmentedControl.Item key={SPANS} aria-label={t('By Spans')}>

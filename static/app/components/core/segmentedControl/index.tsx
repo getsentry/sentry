@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -7,18 +7,27 @@ import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
 import {useRadioGroupState} from '@react-stately/radio';
-import type {CollectionBase, ItemProps, Node} from '@react-types/shared';
+import type {Node} from '@react-types/shared';
+import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup, motion} from 'framer-motion';
 
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
-export interface SegmentedControlItemProps<Value extends string>
-  extends Omit<ItemProps<any>, 'children'> {
+import {
+  ChonkStyledGroupWrap,
+  ChonkStyledLabelWrap,
+  ChonkStyledSegmentWrap,
+  ChonkStyledVisibleLabel,
+  type Priority,
+} from './index.chonk';
+
+interface SegmentedControlItemProps<Value extends string> {
   key: Value;
   children?: React.ReactNode;
   disabled?: boolean;
@@ -30,6 +39,8 @@ export interface SegmentedControlItemProps<Value extends string>
    * not defined), then an `aria-label` must be provided for screen reader support.
    */
   icon?: React.ReactNode;
+  /** A string representation of the item's contents */
+  textValue?: string;
   /**
    * Optional tooltip that appears when the use hovers over the segment. Avoid using
    * tooltips if there are other, more visible ways to display the same information.
@@ -41,23 +52,20 @@ export interface SegmentedControlItemProps<Value extends string>
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-type Priority = 'default' | 'primary';
-export interface SegmentedControlProps<Value extends string>
-  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
-    CollectionBase<any> {
-  defaultValue?: Value;
+interface SegmentedControlProps<Value extends string>
+  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
+  children: CollectionChildren<Value>;
+  onChange: (value: Value) => void;
+  value: Value;
   disabled?: RadioGroupProps['isDisabled'];
-  onChange?: (value: Value) => void;
   priority?: Priority;
   size?: FormSize;
-  value?: Value;
 }
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
 export function SegmentedControl<Value extends string>({
   value,
-  defaultValue,
   onChange,
   size = 'md',
   priority = 'default',
@@ -66,17 +74,14 @@ export function SegmentedControl<Value extends string>({
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(props, collectionFactory);
-  const ariaProps: RadioGroupProps = {
+  const collection = useCollection(props as any, collectionFactory);
+  const ariaProps = {
     ...props,
-    // Cast value/defaultValue as string to comply with AriaRadioGroupProps. This is safe
-    // as value and defaultValue are already strings (their type, Value, extends string)
-    value: value as string,
-    defaultValue: defaultValue as string,
-    onChange: onChange && (val => onChange(val as Value)),
+    value,
+    onChange: onChange as (value: string) => void,
     orientation: 'horizontal',
     isDisabled: disabled,
-  };
+  } satisfies RadioGroupProps;
 
   const state = useRadioGroupState(ariaProps);
   const {radioGroupProps} = useRadioGroup(ariaProps, state);
@@ -84,7 +89,13 @@ export function SegmentedControl<Value extends string>({
   const collectionList = useMemo(() => [...collection], [collection]);
 
   return (
-    <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
+    <GroupWrap
+      {...radioGroupProps}
+      size={size}
+      priority={priority}
+      ref={ref}
+      listSize={collectionList.length}
+    >
       <LayoutGroup id={radioGroupProps.id}>
         {collectionList.map(option => (
           <Segment
@@ -136,6 +147,7 @@ function Segment<Value extends string>({
   ...props
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
+  const theme = useTheme();
 
   const {inputProps} = useRadio(props, state, ref);
 
@@ -146,21 +158,54 @@ function Segment<Value extends string>({
   const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
+
+  const label = theme.isChonk ? (
+    <VisibleLabel
+      size={size}
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      priority={priority}
+      role="presentation"
+    >
+      {props.children}
+    </VisibleLabel>
+  ) : (
+    // Once an item is selected, it gets a heavier font weight and becomes slightly
+    // wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
+    // will always have normal weight to take up constant space; and a visible,
+    // absolutely positioned container (VisibleLabel) that doesn't affect the layout.
+    <InnerLabelWrap role="presentation">
+      <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
+      <VisibleLabel
+        size={size}
+        isSelected={isSelected}
+        isDisabled={isDisabled}
+        priority={priority}
+        role="presentation"
+      >
+        {props.children}
+      </VisibleLabel>
+    </InnerLabelWrap>
+  );
+
   const content = (
     <SegmentWrap
       size={size}
       isSelected={isSelected}
       isDisabled={isDisabled}
+      priority={priority}
       data-test-id={props.value}
+      aria-checked={isSelected}
+      aria-disabled={isDisabled}
     >
       <SegmentInput {...inputProps} ref={ref} />
-      {!isDisabled && (
+      {!isDisabled && !theme.isChonk && (
         <SegmentInteractionStateLayer
           nextOptionIsSelected={nextOptionIsSelected}
           prevOptionIsSelected={prevOptionIsSelected}
         />
       )}
-      {isSelected && (
+      {isSelected && !theme.isChonk && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
@@ -171,27 +216,18 @@ function Segment<Value extends string>({
         />
       )}
 
-      <Divider visible={showDivider} role="separator" aria-hidden />
+      {theme.isChonk ? null : (
+        <Divider visible={showDivider} role="separator" aria-hidden />
+      )}
 
-      <LabelWrap size={size} role="presentation">
+      <LabelWrap
+        size={size}
+        isSelected={isSelected}
+        priority={priority}
+        role="presentation"
+      >
         {icon}
-        {/* Once an item is selected, it gets a heavier font weight and becomes slightly
-        wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
-        will always have normal weight to take up constant space; and a visible,
-        absolutely positioned container (VisibleLabel) that doesn't affect the layout. */}
-        {props.children && (
-          <InnerLabelWrap role="presentation">
-            <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-            <VisibleLabel
-              isSelected={isSelected}
-              isDisabled={isDisabled}
-              priority={priority}
-              role="presentation"
-            >
-              {props.children}
-            </VisibleLabel>
-          </InnerLabelWrap>
-        )}
+        {props.children && label}
       </LabelWrap>
     </SegmentWrap>
   );
@@ -211,50 +247,57 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
-  position: relative;
-  display: inline-grid;
-  grid-auto-flow: column;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
-  border: solid 1px ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  min-width: 0;
+const GroupWrap = withChonk(
+  styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
+    position: relative;
+    display: inline-grid;
+    grid-auto-flow: column;
+    background: ${p =>
+      p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
+    border: solid 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
+    min-width: 0;
 
-  ${p => p.theme.form[p.size]}
-`;
+    ${p => p.theme.form[p.size]}
+  `,
+  ChonkStyledGroupWrap
+);
 
-const SegmentWrap = styled('label')<{
-  isSelected: boolean;
-  size: FormSize;
-  isDisabled?: boolean;
-}>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  border-radius: calc(${p => p.theme.borderRadius} - 1px);
-  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
-  min-height: 0;
-  min-width: 0;
+const SegmentWrap = withChonk(
+  styled('label')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+    isDisabled?: boolean;
+  }>`
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    border-radius: calc(${p => p.theme.borderRadius} - 1px);
+    cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
+    min-height: 0;
+    min-width: 0;
 
-  ${p => p.theme.buttonPadding[p.size]}
-  font-weight: ${p => p.theme.fontWeightNormal};
+    ${p => p.theme.buttonPadding[p.size]}
+    font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p =>
-    !p.isDisabled &&
-    `
-    &:hover {
-      background-color: inherit;
+    ${p =>
+      !p.isDisabled &&
+      css`
+        &:hover {
+          background-color: inherit;
 
-      [role='separator'] {
-        opacity: 0;
-      }
-    }
-  `}
+          [role='separator'] {
+            opacity: 0;
+          }
+        }
+      `}
 
-  ${p => p.isSelected && `z-index: 1;`}
-`;
+    ${p => p.isSelected && `z-index: 1;`}
+  `,
+  ChonkStyledSegmentWrap
+);
 
 const SegmentInput = styled('input')`
   appearance: none;
@@ -310,39 +353,46 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
 
   ${p =>
     p.priority === 'primary'
-      ? `
-    background: ${p.theme.active};
-    border-radius: ${p.theme.borderRadius};
-    input:focus-visible ~ & {
-      box-shadow: 0 0 0 3px ${p.theme.focus};
-    }
+      ? css`
+          background: ${p.theme.active};
+          border-radius: ${p.theme.borderRadius};
+          input:focus-visible ~ & {
+            box-shadow: 0 0 0 3px ${p.theme.focus};
+          }
 
-    top: -1px;
-    bottom: -1px;
-    label:first-child > & {
-      left: -1px;
-    }
-    label:last-child > & {
-      right: -1px;
-    }
-  `
-      : `
-    background: ${p.theme.backgroundElevated};
-    border-radius: calc(${p.theme.borderRadius} - 1px);
-    box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-    input:focus-visible ~ & {
-      box-shadow: 0 0 0 2px ${p.theme.focusBorder};
-    }
-  `}
+          top: -1px;
+          bottom: -1px;
+          label:first-child > & {
+            left: -1px;
+          }
+          label:last-child > & {
+            right: -1px;
+          }
+        `
+      : css`
+          background: ${p.theme.backgroundElevated};
+          border-radius: calc(${p.theme.borderRadius} - 1px);
+          box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
+          input:focus-visible ~ & {
+            box-shadow: 0 0 0 2px ${p.theme.focusBorder};
+          }
+        `}
 `;
 
-const LabelWrap = styled('span')<{size: FormSize}>`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
-  z-index: 1;
-`;
+const LabelWrap = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+  }>`
+    display: grid;
+    grid-auto-flow: column;
+    align-items: center;
+    gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+    z-index: 1;
+  `,
+  ChonkStyledLabelWrap
+);
 
 const InnerLabelWrap = styled('span')`
   position: relative;
@@ -370,38 +420,58 @@ function getTextColor({
   isDisabled?: boolean;
 }) {
   if (isDisabled) {
-    return `color: ${theme.subText};`;
+    return priority === 'primary'
+      ? isSelected
+        ? css`
+            color: ${theme.white};
+          `
+        : css`
+            color: ${theme.subText};
+          `
+      : css`
+          color: ${theme.subText};
+        `;
   }
 
   if (isSelected) {
     return priority === 'primary'
-      ? `color: ${theme.white};`
-      : `color: ${theme.headingColor};`;
+      ? css`
+          color: ${theme.white};
+        `
+      : css`
+          color: ${theme.headingColor};
+        `;
   }
 
-  return `color: ${theme.textColor};`;
+  return css`
+    color: ${theme.textColor};
+  `;
 }
 
-const VisibleLabel = styled('span')<{
-  isSelected: boolean;
-  priority: Priority;
-  isDisabled?: boolean;
-}>`
-  ${p => p.theme.overflowEllipsis}
+const VisibleLabel = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+    isDisabled?: boolean;
+  }>`
+    ${p => p.theme.overflowEllipsis}
 
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  transition: color 0.25s ease-out;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: color 0.25s ease-out;
 
-  user-select: none;
-  font-weight: ${p => (p.isSelected ? 600 : 400)};
-  letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
-  text-align: center;
-  line-height: ${p => p.theme.text.lineHeightBody};
-  ${getTextColor}
-`;
+    user-select: none;
+    font-weight: ${p => (p.isSelected ? 600 : 400)};
+    letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
+    text-align: center;
+    line-height: ${p => p.theme.text.lineHeightBody};
+    ${getTextColor}
+  `,
+  ChonkStyledVisibleLabel
+);
 
 const Divider = styled('div')<{visible: boolean}>`
   position: absolute;
@@ -416,5 +486,9 @@ const Divider = styled('div')<{visible: boolean}>`
     display: none;
   }
 
-  ${p => !p.visible && `opacity: 0;`}
+  ${p =>
+    !p.visible &&
+    css`
+      opacity: 0;
+    `}
 `;

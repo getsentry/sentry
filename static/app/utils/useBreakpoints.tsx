@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-export function useInstantRef<T>(value: T) {
+function useInstantRef<T>(value: T) {
   const ref = useRef(value);
   ref.current = value;
   return ref;

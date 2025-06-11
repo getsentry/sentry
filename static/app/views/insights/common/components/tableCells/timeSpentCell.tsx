@@ -1,7 +1,7 @@
 import clamp from 'lodash/clamp';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {NumberContainer} from 'sentry/utils/discover/styles';
@@ -33,7 +33,7 @@ export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
   );
 }
 
-export function getTimeSpentExplanation(percentage: number, op?: string) {
+function getTimeSpentExplanation(percentage: number, op?: string) {
   const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
 
   return tct(

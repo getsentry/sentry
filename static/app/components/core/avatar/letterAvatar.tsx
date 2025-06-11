@@ -3,12 +3,14 @@ import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
+
 import {
   type BaseAvatarComponentProps,
   BaseAvatarComponentStyles,
 } from './baseAvatarComponentStyles';
 
-export interface LetterAvatarProps
+interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
     BaseAvatarComponentProps {
   displayName?: string;
@@ -44,11 +46,10 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
 
   rect {
     fill: ${props =>
-      props.theme.isChonk
+      isChonkTheme(props.theme)
         ? props.suggested
           ? props.theme.background
-          : getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme)
-              .background
+          : getChonkColor(props.identifier, props.theme).background
         : props.suggested
           ? props.theme.background
           : getColor(props.identifier)};
@@ -56,10 +57,10 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
 
   text {
     fill: ${props =>
-      props.theme.isChonk
+      isChonkTheme(props.theme)
         ? props.suggested
           ? props.theme.subText
-          : getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).content
+          : getChonkColor(props.identifier, props.theme).content
         : props.suggested
           ? props.theme.subText
           : props.theme.white};

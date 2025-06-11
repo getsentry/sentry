@@ -1,13 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {
-  BarSeriesOption,
-  LegendComponentOption,
-  SeriesOption,
-  TooltipComponentOption,
-} from 'echarts';
+import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
-import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
@@ -19,7 +15,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -27,83 +23,23 @@ import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
-const GIGABYTE = 10 ** 9;
-
 export type CategoryOption = {
   /**
    * Scale of y-axis with no usage data.
    */
   yAxisMinInterval: number;
-} & SelectValue<DataCategoryInfo['plural']>;
+} & SelectValue<DataCategory>;
 
-export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
-  {
-    label: DATA_CATEGORY_INFO.error.titleName,
-    value: DATA_CATEGORY_INFO.error.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.transaction.titleName,
-    value: DATA_CATEGORY_INFO.transaction.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.replay.titleName,
-    value: DATA_CATEGORY_INFO.replay.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.attachment.titleName,
-    value: DATA_CATEGORY_INFO.attachment.plural,
-    disabled: false,
-    yAxisMinInterval: 0.5 * GIGABYTE,
-  },
-  {
-    label: DATA_CATEGORY_INFO.profile.titleName,
-    value: DATA_CATEGORY_INFO.profile.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.monitor.titleName,
-    value: DATA_CATEGORY_INFO.monitor.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.span.titleName,
-    value: DATA_CATEGORY_INFO.span.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.profileDuration.titleName,
-    value: DATA_CATEGORY_INFO.profileDuration.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.profileDurationUI.titleName,
-    value: DATA_CATEGORY_INFO.profileDurationUI.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.logItem.titleName,
-    value: DATA_CATEGORY_INFO.logItem.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.logByte.titleName,
-    value: DATA_CATEGORY_INFO.logByte.plural,
-    disabled: false,
-    yAxisMinInterval: 0.5 * GIGABYTE,
-  },
-];
+export const CHART_OPTIONS_DATACATEGORY = [
+  ...Object.values(DATA_CATEGORY_INFO)
+    .filter(categoryInfo => categoryInfo.statsInfo.showExternalStats)
+    .map(categoryInfo => ({
+      label: categoryInfo.titleName,
+      value: categoryInfo.plural,
+      disabled: false,
+      yAxisMinInterval: categoryInfo.statsInfo.yAxisMinInterval,
+    })),
+] satisfies CategoryOption[];
 
 export enum ChartDataTransform {
   CUMULATIVE = 'cumulative',
@@ -134,7 +70,7 @@ export const enum SeriesTypes {
 }
 
 export type UsageChartProps = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
   dataTransform: ChartDataTransform;
   usageDateEnd: string;
   usageDateStart: string;
@@ -157,7 +93,7 @@ export type UsageChartProps = {
   /**
    * Replace default tooltip
    */
-  chartTooltip?: TooltipComponentOption;
+  chartTooltip?: BaseChartProps['tooltip'];
   errors?: Record<string, Error>;
   /**
    * Modify the usageStats using the transformation method selected.

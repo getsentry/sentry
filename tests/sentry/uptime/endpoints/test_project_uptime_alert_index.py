@@ -6,7 +6,8 @@ from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 

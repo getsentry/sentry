@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -50,7 +51,7 @@ function SetupReleasesPrompt() {
   );
 }
 
-export interface ResolveActionsProps {
+interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;

@@ -9,6 +9,7 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   type SavedQuery,
   useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
@@ -24,11 +25,7 @@ export function useSaveQuery() {
   const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
-
-  const visualize = visualizes.map(({chartType, yAxes}) => ({
-    chartType,
-    yAxes,
-  }));
+  const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const data = useMemo(() => {
     return {
@@ -46,7 +43,7 @@ export function useSaveQuery() {
           orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
           groupby: groupBys.filter(groupBy => groupBy !== ''),
           query: query ?? '',
-          visualize,
+          visualize: visualizes.map(visualize => visualize.toJSON()),
           mode,
         },
       ],
@@ -54,7 +51,7 @@ export function useSaveQuery() {
   }, [
     groupBys,
     sortBys,
-    visualize,
+    visualizes,
     fields,
     query,
     mode,
@@ -68,7 +65,7 @@ export function useSaveQuery() {
   ]);
 
   const saveQuery = useCallback(
-    async (newTitle: string) => {
+    async (newTitle: string, starred = true) => {
       const response = await api.requestPromise(
         `/organizations/${organization.slug}/explore/saved/`,
         {
@@ -76,14 +73,15 @@ export function useSaveQuery() {
           data: {
             ...data,
             name: newTitle,
-            starred: true,
+            starred,
           },
         }
       );
       invalidateSavedQueries();
+      invalidateSavedQuery();
       return response;
     },
-    [api, organization.slug, data, invalidateSavedQueries]
+    [api, organization.slug, data, invalidateSavedQueries, invalidateSavedQuery]
   );
 
   const updateQuery = useCallback(async () => {
@@ -95,8 +93,9 @@ export function useSaveQuery() {
       }
     );
     invalidateSavedQueries();
+    invalidateSavedQuery();
     return response;
-  }, [api, organization.slug, id, data, invalidateSavedQueries]);
+  }, [api, organization.slug, id, data, invalidateSavedQueries, invalidateSavedQuery]);
 
   const saveQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {

@@ -3,7 +3,7 @@ import {createContext, useContext, useMemo} from 'react';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-export type OnboardingContextProps = {
+type OnboardingContextProps = {
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
   selectedPlatform?: OnboardingSelectedSDK;
 };
@@ -11,7 +11,7 @@ export type OnboardingContextProps = {
 /**
  * Prefer using `useOnboardingContext` hook instead of directly using this context.
  */
-export const OnboardingContext = createContext<OnboardingContextProps>({
+const OnboardingContext = createContext<OnboardingContextProps>({
   selectedPlatform: undefined,
   setSelectedPlatform: () => {},
 });

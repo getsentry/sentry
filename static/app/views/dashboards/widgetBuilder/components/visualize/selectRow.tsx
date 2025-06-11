@@ -16,6 +16,7 @@ import {
   parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -32,10 +33,7 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {
-  DEFAULT_VISUALIZATION_AGGREGATE,
-  DEFAULT_VISUALIZATION_FIELD,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -130,26 +128,22 @@ export function SelectRow({
     });
   }, []);
 
-  // We want to lock down the fields dropdown when using count so that we can
-  // render `count(spans)` for better legibility. However, for backwards
-  // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions =
-    state.dataset === WidgetType.SPANS &&
-    field.kind === FieldValueKind.FUNCTION &&
-    field.function[0] === DEFAULT_VISUALIZATION_AGGREGATE &&
-    field.function[1] === DEFAULT_VISUALIZATION_FIELD;
-
-  const columnOptions = useMemo(() => {
-    return lockOptions
-      ? [
+  const [lockOptions, columnOptions] = useMemo(() => {
+    if (state.dataset === WidgetType.SPANS && field.kind === FieldValueKind.FUNCTION) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
           {
             label: t('spans'),
             value: DEFAULT_VISUALIZATION_FIELD,
             textValue: DEFAULT_VISUALIZATION_FIELD,
           },
-        ]
-      : defaultColumnOptions;
-  }, [lockOptions, defaultColumnOptions]);
+        ];
+        return [true, options];
+      }
+    }
+
+    return [false, defaultColumnOptions];
+  }, [defaultColumnOptions, state.dataset, field]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -272,18 +266,6 @@ export function SelectRow({
               ) as AggregationKeyWithAlias;
 
               if (
-                // when switching to the count aggregate, we want to reset the
-                // field to the default
-                state.dataset === WidgetType.SPANS &&
-                currentField.function[0] === DEFAULT_VISUALIZATION_AGGREGATE
-              ) {
-                currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
-
-                // Wipe out the remaining parameters that are unnecessary
-                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
-                  currentField.function[i + 1] = undefined;
-                }
-              } else if (
                 selectedAggregate?.value.meta &&
                 'parameters' in selectedAggregate.value.meta
               ) {
@@ -311,6 +293,7 @@ export function SelectRow({
                           option.value === currentField.function[1] && !option.disabled
                       )?.value
                     );
+
                   currentField.function[1] =
                     (isValidColumn
                       ? currentField.function[1]

@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
 
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -8,8 +9,56 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 
 class VisualizeSerializer(serializers.Serializer):
-    chartType = serializers.IntegerField()
+    chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
+
+
+class GroupBySerializer(serializers.Serializer):
+    groupBy = serializers.CharField()
+
+
+class AggregateFieldSerializer(serializers.Serializer):
+    # visualizes
+    chartType = serializers.IntegerField(required=False)
+    yAxes = serializers.ListField(child=serializers.CharField(), required=False)
+
+    # group bys
+    groupBy = serializers.CharField(required=False)
+
+    def validate(self, data):
+        visualize_serializer = VisualizeSerializer(data=data)
+
+        group_by_serializer = GroupBySerializer(data=data)
+
+        # if one of them is valid, then it's good
+        if visualize_serializer.is_valid() != group_by_serializer.is_valid():
+            return data
+
+        if visualize_serializer.is_valid() and group_by_serializer.is_valid():
+            raise ParseError("Ambiguous aggregate field. Must specify groupBy or yAxes, not both.")
+
+        # when neither are valid, we need to do some better error handling
+        visualize_errors = visualize_serializer.errors
+        group_by_errors = group_by_serializer.errors
+
+        visualize_has_not_required_errors = any(
+            error.code != "required" for error in visualize_errors.get("yAxes", [])
+        )
+        group_by_has_not_required_errors = any(
+            error.code != "required" for error in group_by_errors.get("groupBy", [])
+        )
+
+        if visualize_has_not_required_errors:
+            visualize_serializer.is_valid(raise_exception=True)
+        elif group_by_has_not_required_errors:
+            group_by_serializer.is_valid(raise_exception=True)
+
+        raise ValidationError(
+            {
+                **visualize_errors,
+                **group_by_errors,
+            }
+        )
 
 
 @extend_schema_serializer(exclude_fields=["groupby"])
@@ -34,6 +83,12 @@ class QuerySerializer(serializers.Serializer):
     )
     visualize = ListField(
         child=VisualizeSerializer(),
+        required=False,
+        allow_null=True,
+        help_text="The visualizations to be plotted on the chart.",
+    )
+    aggregateField = ListField(
+        child=AggregateFieldSerializer(),
         required=False,
         allow_null=True,
         help_text="The visualizations to be plotted on the chart.",
@@ -89,6 +144,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
 
+    # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):
         query = {}
         query_keys = [
@@ -106,6 +162,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "groupby",
             "visualize",
             "mode",
+            "aggregateField",
         ]
 
         for key in query_keys:

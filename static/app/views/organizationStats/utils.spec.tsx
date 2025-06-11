@@ -160,6 +160,8 @@ describe('formatUsageWithUnits', function () {
       expect(formatUsageWithUnits(7.6 * hourInMs, dataCategory)).toBe('7.6');
       expect(formatUsageWithUnits(hourInMs, dataCategory)).toBe('1');
       expect(formatUsageWithUnits(24 * hourInMs, dataCategory)).toBe('24');
+      expect(formatUsageWithUnits(0.001 * hourInMs, dataCategory)).toBe('0.001');
+      expect(formatUsageWithUnits(0.011 * hourInMs, dataCategory)).toBe('0.01');
     });
   });
 

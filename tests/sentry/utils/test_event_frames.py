@@ -81,6 +81,7 @@ class FilenameMungingTestCase(unittest.TestCase):
             {
                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
                 "filename": "NativeMethodAccessorImpl.java",
+                "abs_path": "NativeMethodAccessorImpl.java",
             }
         ]
         assert munged_filename_and_frames("java", frames, "munged")
@@ -92,14 +93,17 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
             {
                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
                 "filename": "NativeMethodAccessorImpl.java",
+                "abs_path": "NativeMethodAccessorImpl.java",
             },
             {
                 "module": "io.sentry.example.Application",
                 "filename": "Application.java",
+                "abs_path": "Application.java",
             },
             {
                 "module": "io.sentry.example.Application",
                 "filename": "Application.java",
+                "abs_path": "Application.java",
             },
         ]
         ret = munged_filename_and_frames("java", frames, "munged_filename")
@@ -125,6 +129,16 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
         }
         no_munged = munged_filename_and_frames("java", [no_module])
         assert not no_munged
+
+    def test_platform_java_do_not_follow_java_package_naming_convention_does_not_raise_exception(
+        self,
+    ):
+        frame = {
+            "abs_path": "gsp_arcus_drops_proofReadingmodecInspectionProofRead_gsp.groovy",
+            "module": "gsp_arcus_drops_proofReadingmodecInspectionProofRead_gsp$_run_closure2",
+        }
+        munged = munged_filename_and_frames("java", [frame])
+        assert munged is None
 
     def test_platform_android_kotlin(self):
         exception_frames = [

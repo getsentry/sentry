@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 

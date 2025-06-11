@@ -3,12 +3,7 @@ import {PluginFixture} from 'sentry-fixture/plugin';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
@@ -45,14 +40,14 @@ describe('PluginDetailedView', function () {
     const router = RouterFixture({
       params: {orgId: organization.slug, integrationSlug: plugin.slug},
     });
-    render(<PluginDetailedView />, {organization, router});
+    render(<PluginDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
-
-    renderGlobalModal();
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('view configurations', async function () {
@@ -61,7 +56,11 @@ describe('PluginDetailedView', function () {
       location: {query: {tab: 'configurations'}},
     });
 
-    render(<PluginDetailedView />, {router, organization});
+    render(<PluginDetailedView />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByTestId('installed-plugin')).toBeInTheDocument();

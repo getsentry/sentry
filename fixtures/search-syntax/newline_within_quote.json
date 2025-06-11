@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "a\nrelease", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "a\nrelease",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

@@ -11,9 +11,9 @@ from sentry.snuba import (
     metrics_performance,
     ourlogs,
     profiles,
-    spans_eap,
     spans_indexed,
     spans_metrics,
+    spans_rpc,
     transactions,
     uptime_checks,
 )
@@ -31,7 +31,7 @@ DATASET_OPTIONS = {
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "spans": spans_eap,
+    "spans": spans_rpc,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
@@ -89,6 +89,7 @@ ERROR_ONLY_FIELDS = [
     "stack.package",
     "stack.resource",
     "stack.stack_level",
+    "symbolicated_in_app",
 ]
 
 

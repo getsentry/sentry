@@ -71,7 +71,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["yaxis"] == "count()"
+        assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == build_expected_timeseries(
             self.start,
             3_600_000,
@@ -81,7 +81,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
-            "valueType": "integer",
+            "valueType": "string",
             "interval": 3_600_000,
         }
 

@@ -8,16 +8,19 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useExploreDataset,
   useExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
-import {type SpanResult, useTraceSpans} from 'sentry/views/explore/hooks/useTraceSpans';
+import type {SpanResult, SpanResults} from 'sentry/views/explore/hooks/useTraceSpans';
 import {type Field, FIELDS, SORTS} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
@@ -36,34 +39,18 @@ import {
   StyledSpanPanelItem,
 } from 'sentry/views/explore/tables/tracesTable/styles';
 import {getSecondaryNameFromSpan} from 'sentry/views/explore/tables/tracesTable/utils';
+import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 const ONE_MINUTE = 60 * 1000; // in milliseconds
 
 export function SpanTable({trace}: {trace: TraceResult}) {
   const organization = useOrganization();
 
-  const dataset = useExploreDataset();
   const query = useExploreQuery();
 
-  const {data, isPending, isError} = useTraceSpans({
-    dataset,
-    trace,
-    fields: [
-      ...FIELDS,
-      ...SORTS.map(field =>
-        field.startsWith('-') ? (field.substring(1) as Field) : (field as Field)
-      ),
-    ],
-    datetime: {
-      // give a 1 minute buffer on each side so that start != end
-      start: getUtcDateString(moment(trace.start - ONE_MINUTE)),
-      end: getUtcDateString(moment(trace.end + ONE_MINUTE)),
-      period: null,
-      utc: true,
-    },
-    limit: 10,
+  const {data, isPending, isError} = useSpans({
     query,
-    sort: SORTS,
+    trace,
   });
 
   const spans = useMemo(() => data?.data ?? [], [data]);
@@ -183,4 +170,100 @@ function SpanRow({
       </StyledSpanPanelItem>
     </Fragment>
   );
+}
+
+interface UseSpansOptions {
+  query: string;
+  trace: TraceResult;
+}
+
+function useSpans({query, trace}: UseSpansOptions): {
+  data: SpanResults<(typeof FIELDS)[number]>;
+  isError: boolean;
+  isPending: boolean;
+} {
+  const {selection} = usePageFilters();
+  const dataset = useExploreDataset();
+
+  const eventView = useMemo(() => {
+    const fields = [
+      ...FIELDS.map(field =>
+        field === 'transaction.id' ? 'transaction.span_id' : field
+      ),
+      ...SORTS.map(field =>
+        field.startsWith('-') ? (field.substring(1) as Field) : (field as Field)
+      ),
+    ];
+
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+    search.addFilterValues('trace', [trace.trace]);
+
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'Explore - Span Samples',
+      fields,
+      orderby: SORTS,
+      query: search.formatString(),
+      version: 2,
+      dataset,
+      multiSort: true,
+    };
+
+    const pageFilters = {
+      ...selection,
+      datetime: {
+        // give a 1 minute buffer on each side so that start != end
+        start: getUtcDateString(moment(trace.start - ONE_MINUTE)),
+        end: getUtcDateString(moment(trace.end + ONE_MINUTE)),
+        period: null,
+        utc: true,
+      },
+    };
+
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
+  }, [dataset, query, selection, trace]);
+
+  const result = useSpansQuery({
+    eventView,
+    initialData: [],
+    limit: 10,
+    referrer: 'api.trace-explorer.trace-spans-list',
+    allowAggregateConditions: false,
+    trackResponseAnalytics: false,
+  });
+
+  const data = useMemo(() => {
+    return {
+      meta: result.meta,
+      data: (result.data ?? []).map(r => {
+        const row = r as any;
+        return {
+          project: row.project,
+          'transaction.id': row['transaction.span_id'],
+          id: row.id,
+          timestamp: row.timestamp,
+          'sdk.name': row['sdk.name'],
+          'span.op': row['span.op'],
+          'span.description': row['span.description'],
+          'span.duration': row['span.duration'],
+          'span.status': row['span.status'],
+          'span.self_time': row['span.self_time'],
+          'precise.start_ts': row['precise.start_ts'],
+          'precise.finish_ts': row['precise.finish_ts'],
+          is_transaction: row.is_transaction,
+        };
+      }),
+    };
+  }, [result]);
+
+  return {
+    isPending: result.isPending,
+    isError: result.isError,
+    data,
+  };
 }

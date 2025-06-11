@@ -1,5 +1,5 @@
 // Import to ensure echarts components are loaded.
-import './components/markPoint';
+import 'echarts/lib/component/markPoint';
 
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
@@ -9,6 +9,7 @@ import set from 'lodash/set';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import {BarChart, type BarChartProps, type BarChartSeries} from './barChart';
 
@@ -275,7 +276,9 @@ function MiniBarChart({
   ...props
 }: Props) {
   const theme = useTheme();
-  const xAxisLineColor: string = theme.gray200;
+  const xAxisLineColor: string = isChonkTheme(theme)
+    ? theme.tokens.graphics.muted
+    : theme.gray200;
 
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {

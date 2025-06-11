@@ -9,6 +9,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     _get_redis_key,
     _record_sample,
     clear_samples,
+    get_active_project_ids,
     get_active_projects,
     get_redis_client,
     get_transaction_names,
@@ -277,8 +278,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
             _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
 
-    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-    project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+    project1 = Project(name="project1", organization_id=default_organization.id)
+    project2 = Project(name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
         _add_mock_data(project, 4)
@@ -345,6 +346,30 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     )
 
 
+# From the test -- number of transactions: 30 == 10 * 2 + 5 * 2
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 30)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay")
+@django_db_all
+@freeze_time("2000-01-01 01:00:00")
+def test_run_clusterer_spawn_cluster_projects(cluster_projects_delay, default_organization):
+    def _add_mock_data(proj, number):
+        for i in range(0, number):
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
+
+    project1 = Project(name="project1", organization_id=default_organization.id)
+    project2 = Project(name="project2", organization_id=default_organization.id)
+    for project in (project1, project2):
+        project.save()
+        _add_mock_data(project, 4)
+
+    spawn_clusterers()
+
+    assert cluster_projects_delay.call_count == 1
+    cluster_projects_delay.assert_called_once_with(project_ids=[project1.id, project2.id])
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
@@ -354,7 +379,7 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
-    cluster_projects([project])
+    cluster_projects(project_ids=[project.id])
     # Clusterer didn't create rules. Still, it updates the stores.
     assert mock_update_rules.call_count == 1
     assert mock_update_rules.call_args == mock.call(ClustererNamespace.TRANSACTIONS, project, [])
@@ -363,11 +388,26 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/2")
-    cluster_projects([project])
+    cluster_projects(project_ids=[project.id])
     assert mock_update_rules.call_count == 2
     assert mock_update_rules.call_args == mock.call(
         ClustererNamespace.TRANSACTIONS, project, ["/transaction/number/*/**"]
     )
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
+@django_db_all
+def test_clusterer_skips_deleted_projects(mock_update_rules, default_project):
+    project = default_project
+    assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
+
+    _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
+    # The 6666 record doesn't exist, the task should not fail
+    cluster_projects(project_ids=[project.id, 6666])
+    assert mock_update_rules.call_count == 1
+    mock_update_rules.assert_called_once_with(ClustererNamespace.TRANSACTIONS, project, [])
 
 
 @django_db_all
@@ -375,6 +415,7 @@ def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
     _record_sample(ClustererNamespace.TRANSACTIONS, deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.TRANSACTIONS)) == []
+    assert list(get_active_project_ids(ClustererNamespace.TRANSACTIONS)) == [666]
 
 
 @django_db_all

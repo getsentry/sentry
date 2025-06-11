@@ -1,6 +1,7 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -13,7 +14,6 @@ import {
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {QUERY_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -34,10 +34,20 @@ export function useMultiQueryTableAggregateMode({
   enabled,
   queryExtras,
 }: Props) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableAggregateModeImpl,
     queryHookArgs: {groupBys, query, yAxes, sortBys, enabled, queryExtras},
-    queryMode: QUERY_MODE.SERIAL,
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
   });
 }
 
@@ -99,10 +109,20 @@ function useMultiQueryTableAggregateModeImpl({
 }
 
 export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
     queryHookArgs: {query, yAxes, sortBys, enabled},
-    queryMode: QUERY_MODE.SERIAL,
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
   });
 }
 

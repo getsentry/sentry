@@ -87,6 +87,7 @@ function getDisabledProducts({
 
     disabledProducts[ProductSolution.SESSION_REPLAY] = {
       reason,
+      requiresUpgrade: shouldShowUpsellModals,
       onClick: shouldShowUpsellModals ? showSessionReplayModal : undefined,
     };
   }
@@ -124,6 +125,7 @@ function getDisabledProducts({
 
     disabledProducts[ProductSolution.PROFILING] = {
       reason,
+      requiresUpgrade: shouldShowUpsellModals,
       onClick: shouldShowUpsellModals ? showProfilingModal : undefined,
     };
   }

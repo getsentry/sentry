@@ -2,18 +2,19 @@
 
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {
-  SpanIndexedField,
-  SpanIndexedProperty,
-  SpanIndexedResponse,
-} from 'sentry/views/insights/types';
-
-import {useInsightsEap} from '../../common/utils/useEap';
+  DefaultSpanSampleFields,
+  NonDefaultSpanSampleFields,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
+import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -24,7 +25,7 @@ interface UseSpanSamplesOptions<Fields> {
   search?: MutableSearch;
 }
 
-export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
+export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: UseSpanSamplesOptions<Fields> = {}
 ) => {
   const {
@@ -36,6 +37,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     max = undefined,
   } = options;
 
+  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -50,19 +52,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
   const dateConditions = getDateConditions(selection);
 
   return useApiQuery<{
-    data: Array<
-      Pick<
-        SpanIndexedResponse,
-        | Fields[number]
-        // These fields are returned by default
-        | SpanIndexedField.PROJECT
-        | SpanIndexedField.TRANSACTION_ID
-        | SpanIndexedField.TIMESTAMP
-        | SpanIndexedField.SPAN_ID
-        | SpanIndexedField.PROFILE_ID
-        | SpanIndexedField.SPAN_SELF_TIME
-      >
-    >;
+    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
     meta: EventsMetaType;
   }>(
     [
@@ -78,10 +68,12 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           firstBound: max && max * (1 / 3),
           secondBound: max && max * (2 / 3),
           upperBound: max,
-          additionalFields: fields,
+          // TODO: transaction.span_id should be a default from the backend
+          additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
           referrer,
-          useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
     ],

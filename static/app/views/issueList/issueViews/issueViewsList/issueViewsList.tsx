@@ -1,21 +1,40 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
-import {IconSort} from 'sentry/icons';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {unreachable} from 'sentry/utils/unreachable';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
+import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
+import {
+  DEFAULT_ENVIRONMENTS,
+  DEFAULT_TIME_FILTERS,
+} from 'sentry/views/issueList/issueViews/utils';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
+import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
+import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   makeFetchGroupSearchViewsKey,
   useFetchGroupSearchViews,
@@ -25,50 +44,90 @@ import {
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
 } from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
   cursorQueryParam: string;
   limit: number;
+  emptyState?: React.ReactNode;
 };
+
+// We expose a few simplified sort options which are mapped to multiple
+// backend sorts to provide the best results.
+function getEndpointSort(
+  sort: GroupSearchViewSort = GroupSearchViewSort.POPULARITY
+): GroupSearchViewBackendSortOption[] {
+  switch (sort) {
+    case GroupSearchViewSort.POPULARITY:
+      return ['-popularity', '-visited', '-created'];
+    case GroupSearchViewSort.NAME_ASC:
+      return ['name', '-visited', '-created'];
+    case GroupSearchViewSort.NAME_DESC:
+      return ['-name', '-visited', '-created'];
+    case GroupSearchViewSort.VIEWED:
+      return ['-visited', '-popularity', '-created'];
+    case GroupSearchViewSort.CREATED_ASC:
+      return ['created', '-popularity', '-visited'];
+    case GroupSearchViewSort.CREATED_DESC:
+      return ['-created', '-popularity', '-visited'];
+    default:
+      unreachable(sort);
+      return [];
+  }
+}
 
 function useIssueViewSort(): GroupSearchViewSort {
   const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.VISITED_DESC;
+  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY;
 
   return sort as GroupSearchViewSort;
 }
 
-function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSectionProps) {
+function IssueViewSection({
+  createdBy,
+  limit,
+  cursorQueryParam,
+  emptyState,
+}: IssueViewSectionProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const sort = useIssueViewSort();
+  const query = typeof location.query.query === 'string' ? location.query.query : '';
   const cursor =
     typeof location.query[cursorQueryParam] === 'string'
       ? location.query[cursorQueryParam]
       : undefined;
   const queryClient = useQueryClient();
+  const endpointSort = getEndpointSort(sort);
 
   const {
     data: views = [],
     isPending,
     isError,
     getResponseHeader,
-  } = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-    createdBy,
-    limit,
-    sort,
-    cursor,
-  });
+  } = useFetchGroupSearchViews(
+    {
+      orgSlug: organization.slug,
+      createdBy,
+      limit,
+      sort: endpointSort,
+      cursor,
+      query,
+    },
+    {staleTime: 0}
+  );
 
   const tableQueryKey = makeFetchGroupSearchViewsKey({
     orgSlug: organization.slug,
     createdBy,
     limit,
     cursor,
-    sort,
+    sort: endpointSort,
+    query,
   });
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -87,8 +146,35 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       });
     },
   });
+  const {mutate: deleteView} = useDeleteGroupSearchView({
+    onMutate: variables => {
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+        return data?.filter(v => v.id !== variables.id);
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: tableQueryKey});
+    },
+  });
+  const updateViewName = (view: GroupSearchView) => {
+    setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+      return data?.map(v => (v.id === view.id ? {...v, name: view.name} : v));
+    });
+  };
+
+  useRouteAnalyticsParams(
+    isPending
+      ? {}
+      : {
+          [`num_results_${createdBy}`]: views.length,
+        }
+  );
 
   const pageLinks = getResponseHeader?.('Link');
+
+  if (emptyState && !isPending && views.length === 0) {
+    return emptyState;
+  }
 
   return (
     <Fragment>
@@ -100,20 +186,89 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         handleStarView={view => {
           mutateViewStarred({id: view.id, starred: !view.starred, view});
         }}
+        handleDeleteView={view => {
+          deleteView({id: view.id});
+        }}
+        onRenameView={view => {
+          updateViewName(view);
+        }}
+        hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
         pageLinks={pageLinks}
         onCursor={newCursor => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              [cursorQueryParam]: newCursor,
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                [cursorQueryParam]: newCursor,
+              },
             },
-          });
+            {
+              preventScrollReset: true,
+            }
+          );
         }}
       />
     </Fragment>
+  );
+}
+
+function NoViewsBanner({
+  handleCreateView,
+  isCreatingView,
+}: {
+  handleCreateView: () => void;
+  isCreatingView: boolean;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <Banner>
+      <BannerTitle>{t('Create your first view')}</BannerTitle>
+      <BannerText>
+        {t(
+          'Your haven’t saved any issue views yet — saving views makes it easier to return to your most frequent search queries, like high priority, assigned to you, or most recent.'
+        )}
+      </BannerText>
+      <Feature
+        features={'organizations:issue-views'}
+        hookName="feature-disabled:issue-views"
+        renderDisabled={props => (
+          <Hovercard
+            body={
+              <FeatureDisabled
+                features={props.features}
+                hideHelpToggle
+                featureName={t('Issue Views')}
+              />
+            }
+          >
+            {typeof props.children === 'function'
+              ? props.children(props)
+              : props.children}
+          </Hovercard>
+        )}
+      >
+        {({hasFeature}) => (
+          <BannerAddViewButton
+            priority="primary"
+            icon={<IconAdd />}
+            size="sm"
+            onClick={() => {
+              trackAnalytics('issue_views.table.banner_create_view_clicked', {
+                organization,
+              });
+              handleCreateView();
+            }}
+            disabled={!hasFeature || isCreatingView}
+          >
+            {t('Create View')}
+          </BannerAddViewButton>
+        )}
+      </Feature>
+    </Banner>
   );
 }
 
@@ -136,17 +291,17 @@ function SortDropdown() {
         });
         navigate({
           pathname: location.pathname,
-          query: {sort: newSort.value},
+          query: {...location.query, sort: newSort.value},
         });
       }}
       options={[
         {
-          label: t('Recently Viewed'),
-          value: GroupSearchViewSort.VISITED_DESC,
+          label: t('Most Starred'),
+          value: GroupSearchViewSort.POPULARITY,
         },
         {
-          label: t('Most Starred'),
-          value: GroupSearchViewSort.POPULARITY_DESC,
+          label: t('Recently Viewed'),
+          value: GroupSearchViewSort.VIEWED,
         },
         {
           label: t('Name (A-Z)'),
@@ -155,6 +310,14 @@ function SortDropdown() {
         {
           label: t('Name (Z-A)'),
           value: GroupSearchViewSort.NAME_DESC,
+        },
+        {
+          label: t('Created (Newest)'),
+          value: GroupSearchViewSort.CREATED_DESC,
+        },
+        {
+          label: t('Created (Oldest)'),
+          value: GroupSearchViewSort.CREATED_ASC,
         },
       ]}
     />
@@ -166,48 +329,207 @@ export default function IssueViewsList() {
   const navigate = useNavigate();
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
+  const openFeedbackForm = useFeedbackForm();
+  const {mutate: createGroupSearchView, isPending: isCreatingView} =
+    useCreateGroupSearchView();
+  const defaultProject = useDefaultProject();
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!organization.features.includes('issue-view-sharing')) {
+  if (!prefersStackedNav) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
+  const handleCreateView = () => {
+    createGroupSearchView(
+      {
+        name: t('New View'),
+        query: 'is:unresolved',
+        projects: defaultProject,
+        environments: DEFAULT_ENVIRONMENTS,
+        timeFilters: DEFAULT_TIME_FILTERS,
+        querySort: IssueSortOptions.DATE,
+        starred: true,
+      },
+      {
+        onSuccess: data => {
+          navigate({
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/issues/views/${data.id}/`
+            ),
+            query: {
+              ...getIssueViewQueryParams({view: data}),
+              new: 'true',
+            },
+          });
+        },
+      }
+    );
+  };
+
   return (
-    <Layout.Page>
-      <Layout.Header unified>
-        <Layout.Title>{t('All Views')}</Layout.Title>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <FilterSortBar>
-            <SearchBar
-              defaultQuery={query}
-              onSearch={newQuery => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {query: newQuery},
-                });
-              }}
-              placeholder=""
+    <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
+      <Layout.Page>
+        <Layout.Header unified>
+          <Layout.HeaderContent>
+            <Layout.Title>{t('All Views')}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {openFeedbackForm ? (
+                <Button
+                  icon={<IconMegaphone />}
+                  size="sm"
+                  onClick={() => {
+                    openFeedbackForm({
+                      formTitle: t('Give Feedback'),
+                      messagePlaceholder: t(
+                        'How can we make issue views better for you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'custom_views',
+                        ['feedback.owner']: 'issues',
+                      },
+                    });
+                  }}
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
+
+              <Feature
+                features={'organizations:issue-views'}
+                hookName="feature-disabled:issue-views"
+                renderDisabled={props => (
+                  <Hovercard
+                    body={
+                      <FeatureDisabled
+                        features={props.features}
+                        hideHelpToggle
+                        featureName={t('Issue Views')}
+                      />
+                    }
+                  >
+                    {typeof props.children === 'function'
+                      ? props.children(props)
+                      : props.children}
+                  </Hovercard>
+                )}
+              >
+                {({hasFeature}) => (
+                  <Button
+                    priority="primary"
+                    icon={<IconAdd />}
+                    size="sm"
+                    disabled={!hasFeature || isCreatingView}
+                    busy={isCreatingView}
+                    onClick={() => {
+                      trackAnalytics('issue_views.table.create_view_clicked', {
+                        organization,
+                      });
+                      handleCreateView();
+                    }}
+                  >
+                    {t('Create View')}
+                  </Button>
+                )}
+              </Feature>
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <MainTableLayout fullWidth>
+            <FilterSortBar>
+              <SearchBar
+                defaultQuery={query}
+                onSearch={newQuery => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, query: newQuery},
+                  });
+                  trackAnalytics('issue_views.table.search', {
+                    organization,
+                    query: newQuery,
+                  });
+                }}
+                placeholder={t('Search views by name or query')}
+              />
+              <SortDropdown />
+            </FilterSortBar>
+            <AllViewsWelcomeBanner />
+            <TableHeading>{t('Created by Me')}</TableHeading>
+            <IssueViewSection
+              createdBy={GroupSearchViewCreatedBy.ME}
+              limit={20}
+              cursorQueryParam="mc"
+              emptyState={
+                <NoViewsBanner
+                  handleCreateView={() => {
+                    trackAnalytics('issue_views.table.banner_create_view_clicked', {
+                      organization,
+                    });
+                    handleCreateView();
+                  }}
+                  isCreatingView={isCreatingView}
+                />
+              }
             />
-            <SortDropdown />
-          </FilterSortBar>
-          <TableHeading>{t('My Views')}</TableHeading>
-          <IssueViewSection
-            createdBy={GroupSearchViewCreatedBy.ME}
-            limit={20}
-            cursorQueryParam="mc"
-          />
-          <TableHeading>{t('Created by Others')}</TableHeading>
-          <IssueViewSection
-            createdBy={GroupSearchViewCreatedBy.OTHERS}
-            limit={20}
-            cursorQueryParam="sc"
-          />
-        </Layout.Main>
-      </Layout.Body>
-    </Layout.Page>
+            <TableHeading>{t('Created by Others')}</TableHeading>
+            <IssueViewSection
+              createdBy={GroupSearchViewCreatedBy.OTHERS}
+              limit={20}
+              cursorQueryParam="sc"
+            />
+          </MainTableLayout>
+        </Layout.Body>
+      </Layout.Page>
+    </SentryDocumentTitle>
   );
 }
+
+const Banner = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-top: ${space(2)};
+  margin-bottom: 0;
+  padding: 12px;
+  gap: ${space(1)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
+  background: linear-gradient(
+    269.35deg,
+    ${p => p.theme.backgroundTertiary} 0.32%,
+    rgba(245, 243, 247, 0) 99.69%
+  );
+`;
+
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const BannerText = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  flex-shrink: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    max-width: 75%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    max-width: 60%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    max-width: 50%;
+  }
+`;
+
+const BannerAddViewButton = styled(Button)`
+  align-self: flex-start;
+`;
 
 const FilterSortBar = styled('div')`
   display: grid;
@@ -223,4 +545,8 @@ const TableHeading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
+`;
+
+const MainTableLayout = styled(Layout.Main)`
+  container-type: inline-size;
 `;

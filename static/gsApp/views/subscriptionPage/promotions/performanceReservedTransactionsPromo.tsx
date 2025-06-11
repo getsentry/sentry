@@ -5,13 +5,15 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {useNavigate} from 'sentry/utils/useNavigate';
 
 import {openPromotionModal} from 'getsentry/actionCreators/modal';
 import type {PromotionData} from 'getsentry/types';
 
 type Props = {
   api: Client;
+  navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
   promotionData: PromotionData;
   promptFeature:
@@ -54,6 +56,7 @@ function openPerformanceReservedTransactionsDiscountModal({
   promotionData,
   organization,
   promptFeature,
+  navigate,
 }: Props) {
   const activePromotion = promotionData.activePromotions?.find(
     promo =>
@@ -84,12 +87,14 @@ function openPerformanceReservedTransactionsDiscountModal({
     api,
     PromotionModalBody,
     onAccept: () => {
-      browserHistory.push({
-        pathname: `/settings/billing/checkout/`,
-        query: {
-          skipBundles: true,
-        },
-      });
+      navigate(
+        normalizeUrl({
+          pathname: `/settings/${organization.slug}/billing/checkout/`,
+          query: {
+            skipBundles: true,
+          },
+        })
+      );
     },
   });
 }

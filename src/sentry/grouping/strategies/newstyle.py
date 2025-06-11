@@ -444,9 +444,7 @@ def _single_stacktrace_variant(
             if frame.in_app:
                 found_in_app_frame = True
             else:
-                # We have to do this here (rather than it being done in the rust enhancer) because
-                # the rust enhancer doesn't know about system vs app variants
-                frame_component.update(contributes=False, hint="non app frame")
+                frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -628,7 +626,12 @@ def chained_exception(
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
         # TODO: Except we do, as it turns out. See https://github.com/getsentry/sentry/issues/73592.
         logging.exception(
-            "Failed to filter exceptions for exception groups. Continuing with original list."
+            "Failed to filter exceptions for exception groups. Continuing with original list.",
+            extra={
+                "event_id": context.event.event_id,
+                "project_id": context.event.project.id,
+                "org_id": context.event.project.organization.id,
+            },
         )
         exceptions = all_exceptions
 
@@ -687,7 +690,7 @@ def filter_exceptions_for_exception_groups(
             children: list[SingleException] | None = None,
         ):
             self.exception = exception
-            self.children = children if children else []
+            self.children = children or []
 
     exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
@@ -863,10 +866,12 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     return main_exception_id
 
 
+MAIN_EXCEPTION_ID_FUNCS = [
+    react_error_with_cause,
+]
+
+
 def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
-    MAIN_EXCEPTION_ID_FUNCS = [
-        react_error_with_cause,
-    ]
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)

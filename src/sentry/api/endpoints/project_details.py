@@ -58,7 +58,6 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -129,12 +128,10 @@ class ProjectMemberSerializer(serializers.Serializer):
         "copy_from_project",
         "targetSampleRate",
         "dynamicSamplingBiases",
-        "performanceIssueCreationRate",
-        "performanceIssueCreationThroughPlatform",
-        "performanceIssueSendToPlatform",
-        "uptimeAutodetection",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
+        "autofixAutomationTuning",
+        "seerScannerAutomation",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -224,12 +221,12 @@ E.g. `['release', 'environment']`""",
     copy_from_project = serializers.IntegerField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
-    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    uptimeAutodetection = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "super_low", "low", "medium", "high", "always"], required=False
+    )
+    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -352,7 +349,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_config_string(value)
+            Enhancements.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -457,6 +454,28 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -557,6 +576,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (
@@ -622,7 +643,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 with transaction.atomic(router.db_for_write(ProjectBookmark)):
                     ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
-                incr_rollback_metrics(ProjectBookmark)
                 pass
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
@@ -764,9 +784,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if result.get("uptimeAutodetection") is not None:
-            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
-                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
+        if result.get("autofixAutomationTuning") is not None:
+            if project.update_option(
+                "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
+            ):
+                changed_proj_settings["sentry:autofix_automation_tuning"] = result[
+                    "autofixAutomationTuning"
+                ]
+        if result.get("seerScannerAutomation") is not None:
+            if project.update_option(
+                "sentry:seer_scanner_automation", result["seerScannerAutomation"]
+            ):
+                changed_proj_settings["sentry:seer_scanner_automation"] = result[
+                    "seerScannerAutomation"
+                ]
 
         if has_elevated_scopes:
             options = result.get("options", {})

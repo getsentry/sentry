@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
@@ -16,12 +16,14 @@ from sentry.integrations.messaging.message_builder import (
     build_footer,
     get_color,
     get_title_link,
+    get_title_link_workflow_engine_ui,
 )
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.utils.rules import get_key_from_rule_data
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
 
@@ -55,24 +57,48 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         rule_id = None
         rule_environment_id = None
         if self.rules:
-            rule_id = self.rules[0].id
             rule_environment_id = self.rules[0].environment_id
+            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+                rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
+            elif features.has(
+                "organizations:workflow-engine-trigger-actions", self.group.organization
+            ):
+                rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
+            else:
+                rule_id = self.rules[0].id
+
+        url = None
+
+        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+            url = get_title_link_workflow_engine_ui(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.DISCORD,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
+        else:
+            url = get_title_link(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.DISCORD,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
 
         embeds = [
             DiscordMessageEmbed(
                 title=build_attachment_title(obj),
                 description=build_attachment_text(self.group, self.event) or None,
-                url=get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.DISCORD,
-                    rule_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                ),
+                url=url,
                 color=LEVEL_TO_COLOR[get_color(event_for_tags, self.notification, self.group)],
                 # We can't embed urls in Discord embed footers.
                 footer=DiscordMessageEmbedFooter(

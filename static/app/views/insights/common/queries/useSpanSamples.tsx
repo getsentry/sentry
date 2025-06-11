@@ -1,9 +1,11 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
@@ -19,7 +21,7 @@ import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
-type Options<Fields> = {
+type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   groupId: string;
   transactionName: string;
   additionalFields?: Fields;
@@ -33,7 +35,7 @@ type Options<Fields> = {
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
   | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -42,7 +44,20 @@ export type SpanSample = Pick<
   | SpanIndexedField.TRACE
 >;
 
-export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
+export type DefaultSpanSampleFields =
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TRANSACTION_SPAN_ID
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.SPAN_ID
+  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.SPAN_SELF_TIME;
+
+export type NonDefaultSpanSampleFields = Exclude<
+  SpanIndexedProperty,
+  DefaultSpanSampleFields
+>;
+
+export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: Options<Fields>
 ) => {
   const organization = useOrganization();
@@ -57,6 +72,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -82,7 +98,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const dateCondtions = getDateConditions(pageFilter.selection);
+  const dateConditions = getDateConditions(pageFilter.selection);
 
   const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {
@@ -102,20 +118,13 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
+  type DataRow = Pick<
+    SpanIndexedResponse,
+    Fields[number] | DefaultSpanSampleFields // These fields are returned by default
+  >;
+
   return useApiQuery<{
-    data: Array<
-      Pick<
-        SpanIndexedResponse,
-        | Fields[number]
-        // These fields are returned by default
-        | SpanIndexedField.PROJECT
-        | SpanIndexedField.TRANSACTION_ID
-        | SpanIndexedField.TIMESTAMP
-        | SpanIndexedField.SPAN_ID
-        | SpanIndexedField.PROFILE_ID
-        | SpanIndexedField.SPAN_SELF_TIME
-      >
-    >;
+    data: DataRow[];
     meta: EventsMetaType;
   }>(
     [
@@ -124,16 +133,21 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
         query: {
           query: query.formatString(),
           project: pageFilter.selection.projects,
-          ...dateCondtions,
+          ...dateConditions,
           ...{utc: location.query.utc},
           environment: pageFilter.selection.environments,
           lowerBound: min,
           firstBound: max * (1 / 3),
           secondBound: max * (2 / 3),
           upperBound: max,
-          additionalFields,
+          additionalFields: [
+            SpanIndexedField.ID,
+            SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
+            ...additionalFields,
+          ],
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
           sort: `-${SPAN_SELF_TIME}`,
-          useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
     ],

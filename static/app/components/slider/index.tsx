@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useImperativeHandle, useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
@@ -6,7 +6,7 @@ import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
 import {SliderThumb} from './thumb';
@@ -211,11 +211,15 @@ export function Slider({
           <SliderLabelWrapper className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
-              {nThumbs > 1
-                ? `${getFormattedValue(selectedRange[0]!)}–${getFormattedValue(
-                    selectedRange[1]!
-                  )}`
-                : getFormattedValue(selectedRange[1]!)}
+              {nThumbs > 1 ? (
+                <Fragment>
+                  {getFormattedValue(selectedRange[0]!)}
+                  {'-'}
+                  {getFormattedValue(selectedRange[1]!)}
+                </Fragment>
+              ) : (
+                getFormattedValue(selectedRange[1]!)
+              )}
             </SliderLabelOutput>
           </SliderLabelWrapper>
         )}

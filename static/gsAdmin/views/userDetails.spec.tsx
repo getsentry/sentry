@@ -1,6 +1,5 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UserDetails from 'admin/views/userDetails';
@@ -43,10 +42,13 @@ describe('User Details', function () {
 
   describe('page rendering', function () {
     it('renders correct sections', async function () {
-      const {router, routerProps} = initializeOrg();
-
-      render(<UserDetails {...routerProps} params={{userId: mockUser.id}} />, {
-        router,
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: `/admin/users/:userId/`,
+        },
       });
 
       expect(await screen.findByText('Active')).toBeInTheDocument();
@@ -55,10 +57,13 @@ describe('User Details', function () {
     });
 
     it('renders correct dropdown options for active account', async function () {
-      const {router, routerProps} = initializeOrg();
-
-      render(<UserDetails {...routerProps} params={{userId: mockUser.id}} />, {
-        router,
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: `/admin/users/:userId/`,
+        },
       });
 
       await userEvent.click(
@@ -69,15 +74,18 @@ describe('User Details', function () {
     });
 
     it('renders correct UserOverview', async function () {
-      const {router, routerProps} = initializeOrg();
-
-      render(<UserDetails {...routerProps} params={{userId: mockUser.id}} />, {
-        router,
+      render(<UserDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/admin/users/${mockUser.id}/`,
+          },
+          route: `/admin/users/:userId/`,
+        },
       });
 
       expect(await screen.findByText('test-username')).toBeInTheDocument();
       expect(screen.getByText('test-email@gmail.com')).toBeInTheDocument();
-      expect(screen.getByText('Remove')).toBeInTheDocument();
+      expect(screen.getByText('Revoke')).toBeInTheDocument();
     });
   });
 });

@@ -35,13 +35,7 @@ function TransactionReplays() {
 
   return (
     <PageLayout
-      location={{
-        ...location,
-        query: {
-          ...location.query,
-          statsPeriod: '90d',
-        },
-      }}
+      location={location}
       organization={organization}
       projects={projects}
       tab={Tab.REPLAYS}
@@ -96,9 +90,16 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
+  // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
     replayIdsEventView,
-    location,
+    location: {
+      ...location,
+      query: {
+        ...location.query,
+        statsPeriod: '90d',
+      },
+    },
     organization,
   });
 

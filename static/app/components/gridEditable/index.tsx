@@ -45,6 +45,7 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
+  tooltip?: React.ReactNode;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
@@ -56,7 +57,7 @@ export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
 /**
  * Store state at the start of "resize" action
  */
-export type ColResizeMetadata = {
+type ColResizeMetadata = {
   columnIndex: number; // Column being resized
   columnWidth: number; // Column width at start of resizing
   cursorX: number; // X-coordinate of cursor on window
@@ -477,7 +478,7 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body style={bodyStyle}>
+          <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"

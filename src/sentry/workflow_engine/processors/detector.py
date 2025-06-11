@@ -5,9 +5,12 @@ import logging
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorGroupKey, WorkflowEventData
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    WorkflowEventData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
-def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
+def create_issue_platform_payload(result: DetectorEvaluationResult):
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
@@ -46,7 +49,7 @@ def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
-    results = []
+    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
         handler = detector.detector_handler
@@ -61,18 +64,38 @@ def process_detectors(
 
         detector_results = handler.evaluate(data_packet)
 
+        if detector_results is None:
+            return results
+
         for result in detector_results.values():
+            logger_extra = {
+                "detector": detector.id,
+                "detector_type": detector.type,
+                "evaluation_data": data_packet.packet,
+                "result": result,
+            }
             if result.result is not None:
-                metrics.incr(
-                    "workflow_engine.process_detector.triggered",
-                    tags={"detector_type": detector.type},
-                )
-                create_issue_occurrence_from_result(result)
+                if isinstance(result.result, IssueOccurrence):
+                    metrics.incr(
+                        "workflow_engine.process_detector.triggered",
+                        tags={"detector_type": detector.type},
+                    )
+                    logger.info(
+                        "detector_triggered",
+                        extra=logger_extra,
+                    )
+                else:
+                    metrics.incr(
+                        "workflow_engine.process_detector.resolved",
+                        tags={"detector_type": detector.type},
+                    )
+                    logger.info(
+                        "detector_resolved",
+                        extra=logger_extra,
+                    )
+                create_issue_platform_payload(result)
 
         if detector_results:
             results.append((detector, detector_results))
-
-        # Now that we've processed all results for this detector, commit any state changes
-        handler.commit_state_updates()
 
     return results

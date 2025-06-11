@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Switch} from 'sentry/components/core/switch';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';

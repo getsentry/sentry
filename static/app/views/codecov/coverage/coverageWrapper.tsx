@@ -17,7 +17,7 @@ export default function CoveragePageWrapper() {
           <HeaderContentBar>
             <Layout.Title>
               {COVERAGE_PAGE_TITLE}
-              <FeatureBadge type="new" variant="badge" />
+              <FeatureBadge type="new" />
             </Layout.Title>
           </HeaderContentBar>
         </Layout.HeaderContent>

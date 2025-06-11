@@ -73,6 +73,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -83,6 +84,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -110,6 +113,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -120,6 +124,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -144,6 +150,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -154,6 +161,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -177,7 +186,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -206,7 +218,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     renderGlobalModal();
@@ -246,6 +261,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -257,16 +273,18 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+      expect(addErrorMessage).toHaveBeenCalledWith('Title is required during creation');
     });
 
-    expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
+    expect(screen.getByText('Custom Widget Builder')).toBeInTheDocument();
   });
 
   it('clears the alias when dataset changes', async () => {
@@ -287,6 +305,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -297,6 +316,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -324,6 +345,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -334,6 +356,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -368,6 +392,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -376,6 +401,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -401,7 +428,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('Update Widget'));
@@ -430,11 +460,90 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
-    expect(onSave).toHaveBeenCalledWith({index: undefined, widget: expect.any(Object)});
+    expect(onSave).toHaveBeenCalledWith({
+      index: undefined,
+      widget: expect.any(Object),
+    });
+  });
+
+  it('should render the widget template title if templates selected', () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
+    );
+
+    expect(screen.getByText('Widget Library')).toBeInTheDocument();
+  });
+
+  it('should render appropriate breadcrumbs if library widget is customized', async () => {
+    const onSave = jest.fn();
+    const {rerender} = render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
+    );
+
+    screen.getByText('Widget Library');
+
+    await userEvent.click(screen.getByText('Duration Distribution'));
+    await userEvent.click(screen.getByText('Customize'));
+
+    rerender(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>
+    );
+
+    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
   });
 });

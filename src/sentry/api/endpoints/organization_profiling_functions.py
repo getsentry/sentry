@@ -24,7 +24,7 @@ from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
@@ -202,7 +202,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         trending_functions = get_trends_data(stats_data)
 
         all_trending_functions_count = len(trending_functions)
-        set_measurement("profiling.top_functions", all_trending_functions_count)
+        set_span_attribute("profiling.top_functions", all_trending_functions_count)
 
         # Profiling functions have a resolution of ~10ms. To increase the confidence
         # of the results, the caller can specify a min threshold for the trend difference.
@@ -215,7 +215,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             ]
 
         filtered_trending_functions_count = all_trending_functions_count - len(trending_functions)
-        set_measurement(
+        set_span_attribute(
             "profiling.top_functions.below_threshold", filtered_trending_functions_count
         )
 

@@ -13,7 +13,7 @@ describe('EAPField', () => {
 
   beforeEach(() => {
     fieldsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
     });
   });
@@ -25,18 +25,76 @@ describe('EAPField', () => {
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
+        query: expect.objectContaining({attributeType: 'number'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
+        query: expect.objectContaining({attributeType: 'string'}),
       })
     );
     expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
+  });
+
+  it('renders epm with argument disabled', () => {
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'epm()'} onChange={() => {}} />
+      </SpanTagsProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string'}),
+      })
+    );
+    expect(screen.getByText('epm')).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(2);
+    // this corresponds to the `count` input
+    expect(inputs[0]).toBeEnabled();
+    // this corresponds to the `spans` input
+    expect(inputs[1]).toBeDisabled();
+  });
+
+  it('renders failure_rate with argument disabled', () => {
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'failure_rate()'} onChange={() => {}} />
+      </SpanTagsProvider>
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'number'}),
+      })
+    );
+    expect(fieldsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-items/attributes/`,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'string'}),
+      })
+    );
+    expect(screen.getByText('failure_rate')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
 
     const inputs = screen.getAllByRole('textbox');
@@ -55,15 +113,15 @@ describe('EAPField', () => {
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
+        query: expect.objectContaining({attributeType: 'number'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
+        query: expect.objectContaining({attributeType: 'string'}),
       })
     );
     await userEvent.click(screen.getByText('count'));
@@ -82,18 +140,6 @@ describe('EAPField', () => {
     }
 
     render(<Component />);
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
-      })
-    );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
-      })
-    );
 
     // switch from count(spans) -> max(span.duration)
     await userEvent.click(screen.getByText('count'));
@@ -110,5 +156,38 @@ describe('EAPField', () => {
     await userEvent.click(await screen.findByText('count'));
     expect(screen.getByText('count')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
+  });
+
+  it('defaults count_unique argument to span.op', async function () {
+    function Component() {
+      const [aggregate, setAggregate] = useState('count(span.duration)');
+      return (
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <EAPField aggregate={aggregate} onChange={setAggregate} />
+        </SpanTagsProvider>
+      );
+    }
+
+    render(<Component />);
+
+    // switch from count(spans) -> count_unique(span.op)
+    await userEvent.click(screen.getByText('count'));
+    await userEvent.click(await screen.findByText('count_unique'));
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    expect(screen.getByText('span.op')).toBeInTheDocument();
+
+    // switch from count_unique(span.op) -> avg(span.self_time)
+    await userEvent.click(screen.getByText('count_unique'));
+    await userEvent.click(await screen.findByText('avg'));
+    await userEvent.click(screen.getByText('span.duration'));
+    await userEvent.click(await screen.findByText('span.self_time'));
+    expect(screen.getByText('avg')).toBeInTheDocument();
+    expect(screen.getByText('span.self_time')).toBeInTheDocument();
+
+    // switch from avg(span.self_time) -> count_unique(span.op)
+    await userEvent.click(screen.getByText('avg'));
+    await userEvent.click(await screen.findByText('count_unique'));
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    expect(screen.getByText('span.op')).toBeInTheDocument();
   });
 });

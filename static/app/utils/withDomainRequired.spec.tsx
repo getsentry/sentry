@@ -45,7 +45,7 @@ describe('withDomainRequired', function () {
   });
 
   afterEach(function () {
-    window.location = originalLocation;
+    window.location = originalLocation as typeof window.location & string;
     ConfigStore.loadInitialData(configState);
   });
 
@@ -84,8 +84,7 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -134,8 +133,7 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -184,8 +182,7 @@ describe('withDomainRequired', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
