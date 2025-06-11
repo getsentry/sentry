@@ -2,7 +2,7 @@ import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
 
-export function useAutomationActions(automation: Automation): ActionType[] {
+export function getAutomationActions(automation: Automation): ActionType[] {
   return [
     ...new Set(
       automation.actionFilters
