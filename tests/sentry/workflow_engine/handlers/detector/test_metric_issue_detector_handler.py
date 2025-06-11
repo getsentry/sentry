@@ -83,7 +83,7 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
             )
         return evidence_data
 
-    def test_metric_issue_occurence(self):
+    def test_metric_issue_occurrence(self):
         value = self.critical_detector_trigger.comparison + 1
         packet = QuerySubscriptionUpdate(
             entity="entity",
