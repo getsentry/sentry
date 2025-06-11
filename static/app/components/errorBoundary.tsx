@@ -62,10 +62,7 @@ class ErrorBoundary extends Component<Props, State> {
     // doesn't persist stale error state after code fixes
     if (process.env.NODE_ENV === 'development') {
       if (typeof module !== 'undefined' && module.hot) {
-        module.hot.accept(() => {
-          // Reset error state when this module is hot-reloaded
-          this.setState({error: null});
-        });
+        module.hot.accept(this.handleClose.bind(this));
       }
     }
   }
@@ -74,9 +71,7 @@ class ErrorBoundary extends Component<Props, State> {
     // Clean up HMR listeners to prevent memory leaks
     if (process.env.NODE_ENV === 'development') {
       if (typeof module !== 'undefined' && module.hot) {
-        module.hot.dispose(() => {
-          // Cleanup when module is being replaced
-        });
+        module.hot.dispose(this.handleClose.bind(this));
       }
     }
   }
