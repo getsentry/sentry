@@ -16,6 +16,10 @@ const mockTestResultAggregates = [
     totalSkipsPercentChange: -0.23,
     totalSlowTests: 100,
     totalSlowTestsPercentChange: 0,
+    flakeCount: 3,
+    flakeCountPercentChange: null,
+    flakeRate: 4.9326690672322796e-5,
+    flakeRatePercentChange: null,
   },
 ];
 
