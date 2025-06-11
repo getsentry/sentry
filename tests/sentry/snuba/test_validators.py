@@ -1,3 +1,5 @@
+import pytest
+from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.snuba.dataset import Dataset
@@ -56,3 +58,19 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.errors.get("queryType") == [
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
+
+    def test_validated_create_source_limits(self):
+        with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert validator.is_valid()
+            validator.validated_create_source(validator.validated_data)
+            validator.validated_create_source(validator.validated_data)
+
+            with pytest.raises(serializers.ValidationError) as e:
+                validator.validated_create_source(validator.validated_data)
+            assert e.value.detail == [
+                ErrorDetail(
+                    string="You may not exceed 2 data sources of this type.",
+                    code="invalid",
+                )
+            ]
