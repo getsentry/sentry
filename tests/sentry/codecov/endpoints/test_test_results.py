@@ -98,7 +98,7 @@ class TestResultsEndpointTest(APITestCase):
                 "test_suites": None,
             },
             "ordering": {
-                "direction": "ASC",
+                "direction": "DESC",
                 "parameter": "COMMITS_WHERE_FAIL",
             },
             "first": 20,
@@ -221,7 +221,7 @@ class TestResultsEndpointTest(APITestCase):
                 "test_suites": None,
             },
             "ordering": {
-                "direction": "ASC",
+                "direction": "DESC",
                 "parameter": "COMMITS_WHERE_FAIL",
             },
             "first": None,
