@@ -340,7 +340,6 @@ export default function ReleasesList() {
                   getTagValues={getTagValues}
                   placeholder={t('Search by version, build, package, or stage')}
                   searchSource="releases"
-                  showUnsubmittedIndicator
                 />
                 <ReleasesStatusOptions selected={activeStatus} onSelect={handleStatus} />
                 <ReleasesSortOptions

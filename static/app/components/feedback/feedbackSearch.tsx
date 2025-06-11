@@ -284,7 +284,6 @@ export default function FeedbackSearch() {
       onSearch={onSearch}
       searchSource={'feedback-list'}
       placeholder={t('Search Feedback')}
-      showUnsubmittedIndicator
     />
   );
 }

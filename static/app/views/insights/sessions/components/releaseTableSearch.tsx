@@ -72,7 +72,6 @@ export default function ReleaseTableSearch() {
       getTagValues={getTagValues}
       placeholder={t('Search by version, build, package, or stage')}
       searchSource="releases"
-      showUnsubmittedIndicator
     />
   );
 }

@@ -195,7 +195,6 @@ function IssueListSearchBar({
       filterKeys={filterKeys}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators
-      showUnsubmittedIndicator
       searchSource={searchSource}
       {...props}
     />

@@ -360,7 +360,6 @@ function ResultsSearchQueryBuilder(props: Props) {
       getTagValues={getEventFieldValues}
       recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
       portalTarget={portalTarget}
-      showUnsubmittedIndicator
     />
   );
 }

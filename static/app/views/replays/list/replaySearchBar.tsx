@@ -213,7 +213,6 @@ function ReplaySearchBar(props: Props) {
         t('Search for users, duration, clicked elements, count_errors, and more')
       }
       recentSearches={SavedSearchType.REPLAY}
-      showUnsubmittedIndicator
     />
   );
 }
