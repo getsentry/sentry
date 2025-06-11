@@ -21,10 +21,8 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     Detector,
     Workflow,
-    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
@@ -621,39 +619,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         assert not triggered_actions
 
         # TODO @saponifi3d - Add a check to ensure the second condition is enqueued for later evaluation
-
-    def test_creates_histories(self):
-        self.create_data_condition(
-            condition_group=self.action_group,
-            type=Condition.EVENT_SEEN_COUNT,
-            comparison=1,
-            condition_result=True,
-        )
-
-        workflow = self.create_workflow()
-        action_group, _ = self.create_workflow_action(workflow=workflow)
-        self.create_data_condition(
-            condition_group=action_group,
-            type=Condition.EVENT_SEEN_COUNT,
-            comparison=5,
-            condition_result=True,
-        )  # condition is not met
-
-        triggered_actions = filter_recently_fired_actions(
-            evaluate_workflows_action_filters({self.workflow, workflow}, self.event_data),
-            self.event_data,
-        )
-        assert set(triggered_actions) == {self.action}
-
-        assert WorkflowFireHistory.objects.all().count() == 1
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=self.workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-            ).count()
-            == 1
-        )
 
 
 class TestEnqueueWorkflows(BaseWorkflowTest):
