@@ -43,7 +43,13 @@ class TestResultsAggregatesEndpointTest(APITestCase):
                                 "totalFailsPercentChange": 10,
                                 "totalSkips": 100,
                                 "totalSkipsPercentChange": 10,
-                            }
+                            },
+                            "flakeAggregates": {
+                                "flakeCount": 10,
+                                "flakeCountPercentChange": 5.0,
+                                "flakeRate": 0.5,
+                                "flakeRatePercentChange": 0.1,
+                            },
                         },
                     }
                 }
@@ -73,6 +79,10 @@ class TestResultsAggregatesEndpointTest(APITestCase):
         assert response.data["totalFailsPercentChange"] == 10.0
         assert response.data["totalSkips"] == 100
         assert response.data["totalSkipsPercentChange"] == 10.0
+        assert response.data["flakeCount"] == 10
+        assert response.data["flakeCountPercentChange"] == 5.0
+        assert response.data["flakeRate"] == 0.5
+        assert response.data["flakeRatePercentChange"] == 0.1
 
     @patch(
         "sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates.CodecovApiClient"
@@ -95,7 +105,13 @@ class TestResultsAggregatesEndpointTest(APITestCase):
                                 "totalFailsPercentChange": 10,
                                 "totalSkips": 100,
                                 "totalSkipsPercentChange": 10,
-                            }
+                            },
+                            "flakeAggregates": {
+                                "flakeCount": 10,
+                                "flakeCountPercentChange": 5.0,
+                                "flakeRate": 0.5,
+                                "flakeRatePercentChange": 0.1,
+                            },
                         },
                     }
                 }

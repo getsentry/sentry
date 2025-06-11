@@ -20,6 +20,12 @@ query = """query GetTestResultsAggregates(
                         totalSkips
                         totalSkipsPercentChange
                     }
+                    flakeAggregates(interval: $interval) {
+                        flakeCount
+                        flakeCountPercentChange
+                        flakeRate
+                        flakeRatePercentChange
+                    }
                 }
             }
             ... on NotFoundError {
