@@ -3,8 +3,9 @@ import zlib
 from unittest.mock import patch
 
 from django.urls import reverse
+from rest_framework.exceptions import ParseError
 
-from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import PROMPT, get_request_data
+from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import get_request_data
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.testutils.cases import TransactionTestCase
 from sentry.utils import json
@@ -60,12 +61,63 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(TransactionTestCase):
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        with self.feature("organizations:session-replay"):
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
+
+    def test_get_feature_flag_disabled(self):
+        self.save_recording_segment(0, json.dumps([]).encode())
+
+        features = [
+            (False, True, True),
+            (True, False, True),
+            (True, True, False),
+            (True, False, False),
+            (False, True, False),
+            (False, False, True),
+            (False, False, False),
+        ]
+
+        for replay, replay_ai, gen_ai in features:
+            with self.feature(
+                {
+                    "organizations:session-replay": replay,
+                    "organizations:replay-ai-summaries": replay_ai,
+                    "organizations:gen-ai-features": gen_ai,
+                }
+            ):
+                response = self.client.get(self.url)
+                assert response.status_code == 404
+
+    @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
+    def test_get_seer_failed(self, make_seer_request):
+        def x(x):
+            raise ParseError("e")
+
+        make_seer_request.side_effect = x
+        self.save_recording_segment(0, json.dumps([]).encode())
+
+        with self.feature(
+            {
+                "organizations:session-replay": True,
+                "organizations:replay-ai-summaries": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 400
+        assert response.get("Content-Type") == "application/json"
+        assert response.json() == {"detail": "e"}
 
 
 def test_get_request_data():
@@ -94,4 +146,4 @@ def test_get_request_data():
         )
 
     result = get_request_data(_faker())
-    assert result == PROMPT + "Logged: hello at 0.0\nLogged: world at 0.0\n"
+    assert result == ["Logged: hello at 0.0", "Logged: world at 0.0"]
