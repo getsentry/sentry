@@ -549,7 +549,7 @@ def fire_rules(
                                 "group_id": group.id,
                             },
                         )
-                        break
+                        continue
 
                     updated = (
                         GroupRuleStatus.objects.filter(id=status.id)
@@ -567,7 +567,7 @@ def fire_rules(
                                 "group_id": group.id,
                             },
                         )
-                        break
+                        continue
 
                     notification_uuid = str(uuid.uuid4())
                     groupevent = group_to_groupevent[group]
