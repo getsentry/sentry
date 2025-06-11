@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 import sentry_sdk
@@ -21,6 +22,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -77,17 +80,20 @@ def _sync_project_debug_files(
     if not source_org or not target_org:
         return
 
-    source_project_ids = list(
-        Project.objects.filter(
-            organization_id=source_org.id,
-        ).values_list("id", flat=True)
-    )
+    with sentry_sdk.start_span(name="sync-project-debug-files-get-project-ids") as span:
+        source_project_ids = list(
+            Project.objects.filter(
+                organization_id=source_org.id,
+            ).values_list("id", flat=True)
+        )
 
-    target_project_ids = list(
-        Project.objects.filter(
-            organization_id=target_org.id,
-        ).values_list("id", flat=True)
-    )
+        target_project_ids = list(
+            Project.objects.filter(
+                organization_id=target_org.id,
+            ).values_list("id", flat=True)
+        )
+        span.set_data("source_project_ids", source_project_ids)
+        span.set_data("target_project_ids", target_project_ids)
 
     project_debug_files = ProjectDebugFile.objects.filter(
         Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
@@ -107,7 +113,9 @@ def _sync_project_debug_files(
     )
 
     for source_project_debug_file in different_project_debug_files:
-        _sync_project_debug_file(source_project_debug_file, target_org)
+        with sentry_sdk.start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
+            span.set_data("source_project_debug_file_id", source_project_debug_file.id)
+            _sync_project_debug_file(source_project_debug_file, target_org)
 
 
 def _sync_proguard_artifact_releases(
@@ -293,4 +301,4 @@ def _find_matching_project(project_id, organization_id):
     except Project.DoesNotExist:
         sentry_sdk.set_context("project_id", project_id)
         sentry_sdk.set_context("organization_id", organization_id)
-        raise
+        return None
