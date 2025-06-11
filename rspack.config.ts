@@ -469,7 +469,7 @@ const appConfig: Configuration = {
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
-      'process/browser': require.resolve('process/browser'),
+      'process/browser': import.meta.resolve('process/browser'),
     },
 
     // Prefers local modules over node_modules
@@ -805,7 +805,7 @@ if (IS_PRODUCTION) {
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
-  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+  const {codecovWebpackPlugin} = await import('@codecov/webpack-plugin');
   // defaulting to an empty string which in turn will fallback to env var or
   // determine merge commit sha from git
   const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
