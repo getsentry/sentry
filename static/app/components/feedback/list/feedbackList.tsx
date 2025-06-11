@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {
   AutoSizer,
@@ -17,10 +17,12 @@ import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -40,7 +42,15 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
   );
 }
 
-export default function FeedbackList() {
+interface FeedbackListProps {
+  feedbackSummary: {
+    error: Error | null;
+    loading: boolean;
+    summary: string | null;
+  };
+}
+
+export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const {
     isFetchingNextPage,
@@ -56,6 +66,16 @@ export default function FeedbackList() {
     uniqueField: 'id',
     enabled: Boolean(listQueryKey),
   });
+
+  const location = useLocation();
+
+  const {summary, loading: summaryLoading} = feedbackSummary;
+
+  const locationRef = useRef({pathname: location.pathname, query: location.query});
+
+  useEffect(() => {
+    locationRef.current = {pathname: location.pathname, query: location.query};
+  }, [location]);
 
   const checkboxState = useListItemCheckboxState({
     hits,
@@ -95,6 +115,16 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
+      <Summary>
+        <SummaryHeader>Feedback Summary</SummaryHeader>
+        {summaryLoading ? (
+          <Placeholder height="200px" />
+        ) : (
+          <Fragment>
+            <div>{summary}</div>
+          </Fragment>
+        )}
+      </Summary>
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
         <InfiniteLoader
@@ -151,6 +181,21 @@ export default function FeedbackList() {
     </Fragment>
   );
 }
+
+const SummaryHeader = styled('div')`
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Summary = styled('div')`
+  padding: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
 
 const FeedbackListItems = styled('div')`
   display: grid;

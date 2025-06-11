@@ -56,6 +56,14 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         ):
             return Response(status=403)
 
+        return Response(
+            {
+                "summary": "This is a test summary",
+                "success": True,
+                "num_feedbacks_used": 10,
+            }
+        )
+
         try:
             start, end = get_date_range_from_stats_period(
                 request.GET,
