@@ -97,10 +97,13 @@ export function getFileAndFunctionName(componentType: string) {
   return {file: null, functionName: componentType};
 }
 
-export function mapTreeResponseToTree(
-  root: TreeContainer,
-  response: TreeResponseItem[]
-): void {
+export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
+  const root: TreeContainer = {
+    children: [],
+    name: 'root',
+    type: 'folder',
+  };
+
   // Each item of the response is a component in the tree with a path
   for (const item of response) {
     const path = item['function.nextjs.path'];
@@ -153,6 +156,8 @@ export function mapTreeResponseToTree(
       query: `span.description:"${item['span.description']}" span.op:function.nextjs`,
     });
   }
+
+  return root;
 }
 
 export function ServerTree() {
@@ -187,17 +192,11 @@ export function ServerTree() {
   const treeData = treeRequest.data?.data ?? [];
   const hasData = treeData.length > 0;
 
-  const root: TreeContainer = {
-    children: [],
-    name: 'root',
-    type: 'folder',
-  };
-
-  mapTreeResponseToTree(root, treeData);
+  const tree = mapResponseToTree(treeData);
 
   return (
     <StyledPanel>
-      <TreeWidgetVisualization tree={root} />
+      <TreeWidgetVisualization tree={tree} />
       {treeRequest.isLoading ? (
         <LoadingIndicator />
       ) : hasData ? null : (

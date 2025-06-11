@@ -14,7 +14,7 @@ import OverviewSlowNextjsSSRWidget from 'sentry/views/insights/common/components
 import {ApiTable} from 'sentry/views/insights/pages/platform/nextjs/apiTable';
 import {ClientTable} from 'sentry/views/insights/pages/platform/nextjs/clientTable';
 import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
-import {ServerTree} from 'sentry/views/insights/pages/platform/nextjs/ServerTree';
+import {ServerTree} from 'sentry/views/insights/pages/platform/nextjs/serverTree';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
