@@ -8,7 +8,11 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {
+  getInlineAttachmentRenderer,
+  imageMimeTypes,
+  webmMimeType,
+} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -37,14 +41,6 @@ type Props = {
   onlyRenderScreenshot?: boolean;
 };
 
-const loadingMimeTypes = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'video/webm',
-];
-
 function Screenshot({
   eventId,
   organization,
@@ -59,19 +55,19 @@ function Screenshot({
   openVisualizationModal,
 }: Props) {
   const [loadingImage, setLoadingImage] = useState(
-    loadingMimeTypes.includes(screenshot.mimetype)
+    imageMimeTypes.includes(screenshot.mimetype) || webmMimeType === screenshot.mimetype
   );
+
   const {hasRole} = useRole({role: 'attachmentsRole'});
+  if (!hasRole) {
+    return null;
+  }
 
   function handleDelete(screenshotAttachmentId: string) {
     trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
       organization,
     });
     onDelete(screenshotAttachmentId);
-  }
-
-  if (!hasRole) {
-    return null;
   }
 
   function renderContent(screenshotAttachment: EventAttachment) {
@@ -180,10 +176,6 @@ function Screenshot({
         )}
       </Fragment>
     );
-  }
-
-  if (!hasRole) {
-    return null;
   }
 
   return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
