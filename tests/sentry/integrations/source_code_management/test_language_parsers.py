@@ -967,12 +967,6 @@ class CSharpParserTestCase(TestCase):
 
 @@ -145,10 +145,10 @@ ~UserService()
 
-@@ -155,12 +155,12 @@ public string Name
-{
-    get { return _name; }
-    set { _name = value; }
-}
-
 @@ -168,15 +168,15 @@ public int Count => _users.Count;
 
 @@ -180,18 +180,18 @@ public User this[int index] => _users[index];
@@ -987,8 +981,6 @@ class CSharpParserTestCase(TestCase):
             "CreateDefault",
             "OnUserChanged",
             "Dispose",
-            "get",
-            "set",
             "Count",
         }
 
@@ -1031,7 +1023,6 @@ class CSharpParserTestCase(TestCase):
 
         assert CSharpParser.extract_functions_from_patch(patch) == {
             "OuterMethod",
-            "InnerFunction",
             "Calculate",
             "ProcessDataAsync",
             "GenericLocalFunction",

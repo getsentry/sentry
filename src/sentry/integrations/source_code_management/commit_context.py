@@ -32,7 +32,6 @@ from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
 from sentry.integrations.source_code_management.language_parsers import (
-    PATCH_PARSERS,
     get_patch_parsers_for_organization,
 )
 from sentry.integrations.source_code_management.metrics import (
@@ -671,14 +670,7 @@ class OpenPRCommentWorkflow(ABC):
         if not len(projects):
             return []
 
-        # Get organization for feature flag check
-        try:
-            organization = Organization.objects.get_from_cache(id=projects[0].organization_id)
-            patch_parsers = get_patch_parsers_for_organization(organization)
-        except (Organization.DoesNotExist, IndexError):
-            # Fallback to standard parsers if organization not found or no projects
-            patch_parsers = get_patch_parsers_for_organization(None)
-        # NOTE: if we are testing beta patch parsers, add check here
+        patch_parsers = get_patch_parsers_for_organization(projects[0].organization)
 
         # fetches the appropriate parser for formatting the snuba query given the file extension
         # the extension is never replaced in reverse codemapping

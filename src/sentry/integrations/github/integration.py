@@ -46,7 +46,6 @@ from sentry.integrations.source_code_management.commit_context import (
     _open_pr_comment_log,
 )
 from sentry.integrations.source_code_management.language_parsers import (
-    PATCH_PARSERS,
     get_patch_parsers_for_organization,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
@@ -526,14 +525,8 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         changed_lines_count = 0
         filtered_pr_files = []
 
-        # Get organization for feature flag check
-        try:
-            organization = Organization.objects.get_from_cache(id=repo.organization_id)
-            patch_parsers = get_patch_parsers_for_organization(organization)
-        except Organization.DoesNotExist:
-            # Fallback to standard parsers if organization not found
-            patch_parsers = get_patch_parsers_for_organization(None)
-        # NOTE: if we are testing beta patch parsers, add check here
+        organization = Organization.objects.get_from_cache(id=repo.organization_id)
+        patch_parsers = get_patch_parsers_for_organization(organization)
 
         for file in pr_files:
             filename = file["filename"]

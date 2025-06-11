@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import re
 from abc import ABC
-from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
 from sentry import features
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 
 stackframe_function_name = lambda i: Function(
     "arrayElement",
@@ -319,7 +320,7 @@ class CSharpParser(LanguageParser):
     ]
 
 
-PATCH_PARSERS: dict[str, Any] = {
+PATCH_PARSERS: dict[str, SimpleLanguageParser | LanguageParser] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
@@ -330,12 +331,12 @@ PATCH_PARSERS: dict[str, Any] = {
 }
 
 # Beta parsers for experimental language support
-BETA_PATCH_PARSERS: dict[str, Any] = {
+BETA_PATCH_PARSERS: dict[str, SimpleLanguageParser | LanguageParser] = {
     "cs": CSharpParser,
 }
 
 
-def get_patch_parsers_for_organization(organization=None):
+def get_patch_parsers_for_organization(organization: Organization | RpcOrganization | None = None):
     """
     Returns the appropriate patch parsers based on feature flags.
     Falls back to the standard parsers if no organization is provided.

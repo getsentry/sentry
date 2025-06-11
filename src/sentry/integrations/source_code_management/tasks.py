@@ -282,7 +282,6 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     top_issues_per_file = []
 
     patch_parsers = get_patch_parsers_for_organization(organization)
-    # NOTE: if we are testing beta patch parsers, add check here
 
     file_extensions = set()
     # fetch issues related to the files
