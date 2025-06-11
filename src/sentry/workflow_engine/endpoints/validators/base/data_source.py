@@ -38,16 +38,14 @@ class BaseDataSourceValidator(CamelSnakeModelSerializer[T], Generic[T]):
         Validates that the number of instances of this data source type for the organization
         does not exceed the limit.
         """
-        subscription_limit = self.data_source_type_handler.get_instance_limit(
-            self.context["organization"]
-        )
-        if subscription_limit is not None:
+        limit = self.data_source_type_handler.get_instance_limit(self.context["organization"])
+        if limit is not None:
             current_instance_count = self.data_source_type_handler.get_current_instance_count(
                 self.context["organization"]
             )
-            if current_instance_count >= subscription_limit:
+            if current_instance_count >= limit:
                 raise serializers.ValidationError(
-                    f"You may not exceed {subscription_limit} data sources of this type."
+                    f"You may not exceed {limit} data sources of this type."
                 )
         return self.create_source(validated_data)
 
