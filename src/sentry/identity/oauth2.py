@@ -7,12 +7,14 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
+import sentry_sdk
 from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from requests import Response
 from requests.exceptions import HTTPError, SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
@@ -27,9 +29,9 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.pipeline.views.base import PipelineView
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.users.models.identity import Identity
+from sentry.pipeline import Pipeline
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
+from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.utils.http import absolute_uri
 
 from .base import Provider
@@ -153,59 +155,26 @@ class OAuth2Provider(Provider):
 
         return data
 
-    def handle_refresh_error(self, req, payload):
-        error_name = "unknown_error"
-        error_description = "no description available"
-        for name_key in ["error", "Error"]:
-            if name_key in payload:
-                error_name = payload.get(name_key)
-                break
+    def get_refresh_token(
+        self, refresh_token, url: str, identity: Identity | RpcIdentity, **kwargs: Any
+    ) -> Response:
+        data = self.get_refresh_token_params(refresh_token, identity, **kwargs)
 
-        for desc_key in ["error_description", "ErrorDescription"]:
-            if desc_key in payload:
-                error_description = payload.get(desc_key)
-                break
-
-        formatted_error = f"HTTP {req.status_code} ({error_name}): {error_description}"
-
-        if req.status_code == 401:
-            logger.info(
-                "identity.oauth.refresh.identity-not-valid-error",
-                extra={
-                    "error_name": error_name,
-                    "error_status_code": req.status_code,
-                    "error_description": error_description,
-                    "provider_key": self.key,
-                },
+        try:
+            req = safe_urlopen(
+                url=url,
+                headers=self.get_refresh_token_headers(),
+                data=data,
             )
-            raise IdentityNotValid(formatted_error)
+            req.raise_for_status()
+        except HTTPError as e:
+            error_resp = e.response
+            exc = ApiError.from_response(error_resp, url=url)
+            if isinstance(exc, ApiUnauthorized) or isinstance(exc, ApiInvalidRequestError):
+                raise IdentityNotValid from e
+            raise exc from e
 
-        if req.status_code == 400:
-            # this may not be common, but at the very least Google will return
-            # an invalid grant when a user is suspended
-            if error_name == "invalid_grant":
-                logger.info(
-                    "identity.oauth.refresh.identity-not-valid-error",
-                    extra={
-                        "error_name": error_name,
-                        "error_status_code": req.status_code,
-                        "error_description": error_description,
-                        "provider_key": self.key,
-                    },
-                )
-                raise IdentityNotValid(formatted_error)
-
-        if req.status_code != 200:
-            logger.info(
-                "identity.oauth.refresh.api-error",
-                extra={
-                    "error_name": error_name,
-                    "error_status_code": req.status_code,
-                    "error_description": error_description,
-                    "provider_key": self.key,
-                },
-            )
-            raise ApiError(formatted_error)
+        return req
 
     def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         refresh_token = identity.data.get("refresh_token")
@@ -213,27 +182,18 @@ class OAuth2Provider(Provider):
         if not refresh_token:
             raise IdentityNotValid("Missing refresh token")
 
-        data = self.get_refresh_token_params(refresh_token, identity, **kwargs)
-
-        try:
-            url = self.get_refresh_token_url()
-            req = safe_urlopen(
-                url=self.get_refresh_token_url(),
-                headers=self.get_refresh_token_headers(),
-                data=data,
-            )
-            req.raise_for_status()
-        except HTTPError as e:
-            error_resp = e.response
-            raise ApiError.from_response(error_resp, url=url) from e
+        req = self.get_refresh_token(
+            refresh_token=refresh_token,
+            url=self.get_refresh_token_url(),
+            identity=identity,
+            **kwargs,
+        )
 
         try:
             body = safe_urlread(req)
             payload = orjson.loads(body)
         except orjson.JSONDecodeError:
             payload = {}
-
-        self.handle_refresh_error(req, payload)
 
         identity.data.update(self.get_oauth_data(payload))
         identity.update(data=identity.data)
@@ -316,7 +276,7 @@ class OAuth2CallbackView:
         if client_secret is not None:
             self.client_secret = client_secret
 
-    def get_token_params(self, code, redirect_uri):
+    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | None]:
         return {
             "grant_type": "authorization_code",
             "code": code,
@@ -325,26 +285,35 @@ class OAuth2CallbackView:
             "client_secret": self.client_secret,
         }
 
+    def get_access_token(self, pipeline: Pipeline[IdentityProvider], code: str) -> Response:
+        data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
+        verify_ssl = pipeline.config.get("verify_ssl", True)
+        return safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
+
     def exchange_token(
         self, request: HttpRequest, pipeline: IdentityPipeline, code: str
     ) -> dict[str, str]:
         with record_event(
             IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
         ).capture() as lifecycle:
-            # TODO: this needs the auth yet
-            data = self.get_token_params(
-                code=code, redirect_uri=absolute_uri(_redirect_url(pipeline))
-            )
-            verify_ssl = pipeline.config.get("verify_ssl", True)
             try:
-                req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
+                req: Response = self.get_access_token(pipeline, code)
                 req.raise_for_status()
             except HTTPError as e:
                 error_resp = e.response
-                raise ApiError.from_response(error_resp, url=self.access_token_url) from e
+                exc = ApiError.from_response(error_resp, url=self.access_token_url)
+                sentry_sdk.capture_exception(exc)
+                lifecycle.record_failure(exc)
+                return {
+                    "error": f"Could not retrieve access token. Received {exc.code}: {exc.text}",
+                }
             except SSLError:
                 lifecycle.record_failure(
-                    "ssl_error", {"verify_ssl": verify_ssl, "url": self.access_token_url}
+                    "ssl_error",
+                    {
+                        "verify_ssl": pipeline.config.get("verify_ssl", True),
+                        "url": self.access_token_url,
+                    },
                 )
                 url = self.access_token_url
                 return {
