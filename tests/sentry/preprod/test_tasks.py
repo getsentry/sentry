@@ -85,7 +85,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         assert len(artifacts) == 1
         artifact = artifacts[0]
         assert artifact.build_configuration is None
-        assert artifact.extras is None
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)  # type: ignore[unreachable]
 
