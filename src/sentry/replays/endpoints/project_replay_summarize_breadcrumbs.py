@@ -48,17 +48,6 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
         )
 
 
-PROMPT = (
-    "I have a series of logs I've collected from a Javascript application running in a web "
-    "browser. Please summarize the logs and give an overview of what happened. The logs are "
-    "sequential and happened in order.  Shorten the summary to contain only the most salient "
-    "information. Don't explain the application to me. Explain the user journey and what issues "
-    "they encountered. Your summary should be bullet points of only the most salient information. "
-    "I only care about the most salient information with the highest magnitude. Its fine to ignore "
-    "ranges in the replay which don't matter.\n\n"
-)
-
-
 @sentry_sdk.trace
 def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> bytes:
     # Data is serialized into its final format and submitted to Seer for processing.
@@ -70,7 +59,7 @@ def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> b
     # small segment ranges being requested anyway.
     #
     # Leaving it in the iterator form in the hopes one day we can stream it.
-    request_data = json.dumps({"data": get_request_data(iter_segment_data(segments))})
+    request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments))})
 
     # I have to deserialize this request so it can be automatically reserialized by the paginate
     # method. This is less than ideal.
@@ -92,14 +81,13 @@ def make_seer_request(request_data: str) -> bytes:
     return response.content
 
 
-def get_request_data(iterator: Iterator[tuple[int, memoryview]]) -> str:
-    return "".join(gen_request_data(map(lambda r: r[1], iterator)))
+def get_request_data(iterator: Iterator[tuple[int, memoryview]]) -> list[str]:
+    return list(gen_request_data(map(lambda r: r[1], iterator)))
 
 
 def gen_request_data(segments: Iterator[memoryview]) -> Generator[str]:
-    yield PROMPT
     for segment in segments:
         for event in json.loads(segment.tobytes().decode("utf-8")):
             message = as_log_message(event)
             if message:
-                yield message + "\n"
+                yield message
