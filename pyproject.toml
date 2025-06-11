@@ -433,6 +433,7 @@ module = [
     "sentry.utils.security.*",
     "sentry.utils.sentry_apps.*",
     "sentry.utils.services",
+    "sentry.utils.signing",
     "sentry.utils.sms",
     "sentry.utils.snowflake",
     "sentry.utils.snuba_rpc",
