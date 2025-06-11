@@ -13,19 +13,18 @@ from sentry.models.organizationmemberteam import (
     OrganizationMemberTeam as OrganizationMemberTeamType,
 )
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.team import Team
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 logger = logging.getLogger(__name__)
 
 
-def get_user_ids_from_team(projectTeam: ProjectTeam, apps: StateApps) -> list[str]:
+def get_user_ids_from_team(projectTeam: ProjectTeam, apps: StateApps):
     OrganizationMemberTeam = cast(
         OrganizationMemberTeamType, apps.get_model("sentry", "Organizationmemberteam")
     )
 
-    team = cast(Team, projectTeam.team)
+    team = projectTeam.team
     team_members = OrganizationMemberTeam.objects.filter(team=team)
     return [member.organizationmember.user_id for member in team_members]
 
