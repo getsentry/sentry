@@ -57,7 +57,7 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
     }
   }, [api, navigate, organization, projectSlug, replayId, issueReferrer, groupId]);
 
-  const confirmDelte = useCallback(() => {
+  const confirmDelete = useCallback(() => {
     if (!projectSlug || !replayId) {
       return;
     }
@@ -68,5 +68,5 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
     });
   }, [handleDelete, projectSlug, replayId]);
 
-  return confirmDelte;
+  return confirmDelete;
 }
