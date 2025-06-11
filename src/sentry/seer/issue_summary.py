@@ -55,6 +55,13 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
     Asynchronous task to trigger Autofix.
     """
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "user_id": user_id,
+                "auto_run_source": auto_run_source,
+            }
+        )
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
@@ -62,6 +69,14 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             return
 
         project = group.project
+
+        sentry_sdk.set_tags(
+            {
+                "org_slug": group.organization.slug,
+                "org_id": group.organization.id,
+                "project_id": project.id,
+            }
+        )
 
         if not features.has("projects:unlimited-auto-triggered-autofix-runs", project):
             limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
@@ -74,14 +89,8 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             if is_rate_limited:
                 sentry_sdk.set_tags(
                     {
-                        "group_id": group_id,
-                        "user_id": user_id,
-                        "auto_run_source": auto_run_source,
                         "auto_run_count": current,
                         "auto_run_limit": limit,
-                        "org_slug": group.organization.slug,
-                        "org_id": group.organization.id,
-                        "project_id": project.id,
                     }
                 )
                 logger.error("Autofix auto-trigger rate limit hit")
