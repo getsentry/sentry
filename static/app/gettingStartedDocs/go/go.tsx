@@ -73,7 +73,8 @@ func main() {
 }`;
 
 const getVerifySnippet = (params: Params) =>
-  params.platformOptions.logsBeta === YesNo.YES ? `
+  params.platformOptions.logsBeta === YesNo.YES
+    ? `
 package main
 
 import (
@@ -110,7 +111,8 @@ func main() {
   })
 
   sentry.CaptureMessage("It works!")
-}` : `
+}`
+    : `
 package main
 
 import (
@@ -173,9 +175,14 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: (params: Params) => [
     {
       type: StepType.VERIFY,
-      description: params.platformOptions.logsBeta === YesNo.YES
-        ? t('The quickest way to verify Sentry in your Go program is to capture logs and a message:')
-        : t('The quickest way to verify Sentry in your Go program is to capture a message:'),
+      description:
+        params.platformOptions.logsBeta === YesNo.YES
+          ? t(
+              'The quickest way to verify Sentry in your Go program is to capture logs and a message:'
+            )
+          : t(
+              'The quickest way to verify Sentry in your Go program is to capture a message:'
+            ),
       configurations: [
         {
           language: 'go',
@@ -184,7 +191,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
       ...(params.platformOptions.logsBeta === YesNo.YES && {
         additionalInfo: t(
-          "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+          'With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context.'
         ),
       }),
     },

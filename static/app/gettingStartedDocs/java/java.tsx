@@ -361,7 +361,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
   ],
-  verify: (params) => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: tct(
@@ -371,7 +371,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           language: 'java',
-          code: params.platformOptions.logsBeta === YesNo.YES ? getLogsVerifySnippet() : getVerifySnippet(),
+          code:
+            params.platformOptions.logsBeta === YesNo.YES
+              ? getLogsVerifySnippet()
+              : getVerifySnippet(),
         },
       ],
       additionalInfo: (
@@ -389,7 +392,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           {params.platformOptions.logsBeta === YesNo.YES && (
             <p>
               {t(
-                "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+                'With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context.'
               )}
             </p>
           )}

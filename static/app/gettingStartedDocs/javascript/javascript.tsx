@@ -299,14 +299,16 @@ Sentry.init({
 };
 
 const getVerifyJSSnippet = (params: Params) =>
-  params.platformOptions.logsBeta === YesNo.YES ? `
+  params.platformOptions.logsBeta === YesNo.YES
+    ? `
 // Send logs using Sentry logger
 const { logger } = Sentry;
 logger.info("This is an info log from Sentry");
 logger.error("This is an error log from Sentry");
 
 // Test error reporting
-myUndefinedFunction();` : `
+myUndefinedFunction();`
+    : `
 myUndefinedFunction()`;
 
 const getInstallConfig = () => [
@@ -338,9 +340,14 @@ const getInstallConfig = () => [
 const getVerifyConfig = (params: Params) => [
   {
     type: StepType.VERIFY,
-    description: params.platformOptions.logsBeta === YesNo.YES
-      ? t("This snippet shows how to send logs and includes an intentional error to test that everything's working as expected.")
-      : t("This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."),
+    description:
+      params.platformOptions.logsBeta === YesNo.YES
+        ? t(
+            "This snippet shows how to send logs and includes an intentional error to test that everything's working as expected."
+          )
+        : t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
     configurations: [
       {
         code: [
@@ -355,7 +362,7 @@ const getVerifyConfig = (params: Params) => [
     ],
     ...(params.platformOptions.logsBeta === YesNo.YES && {
       additionalInfo: t(
-        "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+        'With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context.'
       ),
     }),
   },
@@ -444,7 +451,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       },
     },
   ],
-  verify: (params) => getVerifyConfig(params),
+  verify: params => getVerifyConfig(params),
   nextSteps: () => [
     {
       id: 'source-maps',
@@ -539,7 +546,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
   ],
-  verify: (params) => getVerifyConfig(params),
+  verify: params => getVerifyConfig(params),
   nextSteps: () => [],
   onPageLoad: params => {
     return () => {
@@ -608,7 +615,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     isAutoInstall(params)
       ? loaderScriptOnboarding.configure(params)
       : packageManagerOnboarding.configure(params),
-  verify: (params) => getVerifyConfig(params),
+  verify: params => getVerifyConfig(params),
   nextSteps: params =>
     isAutoInstall(params)
       ? loaderScriptOnboarding.nextSteps?.(params)

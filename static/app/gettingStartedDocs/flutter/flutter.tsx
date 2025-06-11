@@ -121,7 +121,8 @@ const configureAdditionalInfo = tct(
 );
 
 const getVerifySnippet = (params: Params) =>
-  params?.platformOptions?.logsBeta === YesNo.YES ? `
+  params?.platformOptions?.logsBeta === YesNo.YES
+    ? `
 // Send logs using Sentry
 Sentry.logger.info("This is an info log from Sentry");
 Sentry.logger.error("This is an error log from Sentry");
@@ -131,7 +132,8 @@ child: ElevatedButton(
     throw StateError('This is test exception');
   },
   child: const Text('Verify Sentry Setup'),
-)` : `
+)`
+    : `
 child: ElevatedButton(
   onPressed: () {
     throw StateError('This is test exception');

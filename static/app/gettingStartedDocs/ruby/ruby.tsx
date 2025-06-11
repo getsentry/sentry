@@ -142,7 +142,8 @@ Sentry.init do |config|
 end`;
 
 const getVerifySnippet = (params: Params) =>
-  params.platformOptions.logsBeta === YesNo.YES ? `
+  params.platformOptions.logsBeta === YesNo.YES
+    ? `
 # Send logs using Sentry logger
 Sentry::Logger.info("This is an info log from Sentry")
 Sentry::Logger.error("This is an error log from Sentry")
@@ -153,7 +154,8 @@ rescue ZeroDivisionError => exception
   Sentry.capture_exception(exception)
 end
 
-Sentry.capture_message("test message")` : `
+Sentry.capture_message("test message")`
+    : `
 begin
   1 / 0
 rescue ZeroDivisionError => exception
@@ -211,12 +213,17 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: (params) => [
+  verify: params => [
     {
       type: StepType.VERIFY,
-      description: params.platformOptions.logsBeta === YesNo.YES
-        ? t("This snippet shows how to send logs and includes a deliberate error and message sent to Sentry to test that everything's working as expected.")
-        : t("This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."),
+      description:
+        params.platformOptions.logsBeta === YesNo.YES
+          ? t(
+              "This snippet shows how to send logs and includes a deliberate error and message sent to Sentry to test that everything's working as expected."
+            )
+          : t(
+              "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+            ),
       configurations: [
         {
           language: 'ruby',
@@ -225,7 +232,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
       ...(params.platformOptions.logsBeta === YesNo.YES && {
         additionalInfo: t(
-          "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+          'With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context.'
         ),
       }),
     },

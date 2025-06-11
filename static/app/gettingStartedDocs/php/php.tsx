@@ -65,7 +65,8 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
 ]);`;
 
 const getVerifySnippet = (params: Params) =>
-  params.platformOptions.logsBeta === YesNo.YES ? `
+  params.platformOptions.logsBeta === YesNo.YES
+    ? `
 // Send logs using Sentry
 \\Sentry\\Hub::getCurrent()->addBreadcrumb(new \\Sentry\\Breadcrumb(
     \\Sentry\\Breadcrumb::LEVEL_INFO,
@@ -78,7 +79,8 @@ try {
   $this->functionFailsForSure();
 } catch (\\Throwable $exception) {
   \\Sentry\\captureException($exception);
-}` : `
+}`
+    : `
 try {
   $this->functionFailsForSure();
 } catch (\\Throwable $exception) {
@@ -162,12 +164,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: (params) => [
+  verify: params => [
     {
       type: StepType.VERIFY,
-      description: params.platformOptions.logsBeta === YesNo.YES
-        ? t('In PHP you can send logs and capture exceptions. This example shows both:')
-        : t('In PHP you can either capture a caught exception or capture the last error with captureLastError.'),
+      description:
+        params.platformOptions.logsBeta === YesNo.YES
+          ? t('In PHP you can send logs and capture exceptions. This example shows both:')
+          : t(
+              'In PHP you can either capture a caught exception or capture the last error with captureLastError.'
+            ),
       configurations: [
         {
           language: 'php',
@@ -176,7 +181,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
       ...(params.platformOptions.logsBeta === YesNo.YES && {
         additionalInfo: t(
-          "With logs enabled, you can now send structured logs to Sentry using breadcrumbs and logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+          'With logs enabled, you can now send structured logs to Sentry using breadcrumbs and logger APIs. These logs will be automatically linked to errors and traces for better debugging context.'
         ),
       }),
     },

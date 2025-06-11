@@ -265,11 +265,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           language: 'python',
-          description: params.platformOptions.logsBeta === YesNo.YES
-            ? t('Send logs and test error reporting with the following code:')
-            : t('Raise an unhandled Python exception by inserting a divide by zero expression into your application:'),
-          code: params.platformOptions.logsBeta === YesNo.YES
-            ? `from sentry_sdk import logger as sentry_logger
+          description:
+            params.platformOptions.logsBeta === YesNo.YES
+              ? t('Send logs and test error reporting with the following code:')
+              : t(
+                  'Raise an unhandled Python exception by inserting a divide by zero expression into your application:'
+                ),
+          code:
+            params.platformOptions.logsBeta === YesNo.YES
+              ? `from sentry_sdk import logger as sentry_logger
 
 # Send logs using Sentry logger
 sentry_logger.info('This is an info log from Sentry')
@@ -277,12 +281,12 @@ sentry_logger.error('This is an error log from Sentry')
 
 # Test error reporting
 division_by_zero = 1 / 0`
-            : 'division_by_zero = 1 / 0',
+              : 'division_by_zero = 1 / 0',
         },
       ],
       ...(params.platformOptions.logsBeta === YesNo.YES && {
         additionalInfo: t(
-          "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+          'With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context.'
         ),
       }),
     },
