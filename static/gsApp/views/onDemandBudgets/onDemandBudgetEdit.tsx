@@ -121,7 +121,6 @@ class OnDemandBudgetEdit extends Component<Props> {
           {getOnDemandCategories({
             plan: activePlan,
             budgetMode: displayBudgetMode,
-            configurableOnly: true,
           }).map(category => {
             const categoryBudgetKey = `${category}Budget`;
             const displayName = getPlanCategoryName({plan: activePlan, category});
@@ -205,7 +204,6 @@ class OnDemandBudgetEdit extends Component<Props> {
       categories: getOnDemandCategories({
         plan: activePlan,
         budgetMode: selectedBudgetMode,
-        configurableOnly: true,
       }),
     });
 

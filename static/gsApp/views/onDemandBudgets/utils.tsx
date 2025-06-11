@@ -119,7 +119,6 @@ export function formatOnDemandBudget(
     categories = getOnDemandCategories({
       plan,
       budgetMode: budget.budgetMode,
-      configurableOnly: true,
     });
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,

@@ -868,36 +868,18 @@ describe('getOnDemandCategories', function () {
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      configurableOnly: true,
     });
     expect(categories).toHaveLength(plan.onDemandCategories.length - 2);
     expect(categories).not.toContain(DataCategory.SEER_SCANNER);
     expect(categories).not.toContain(DataCategory.SEER_AUTOFIX);
   });
 
-  it('does not filter out unconfigurable categories for per-category budget mode', function () {
-    const categories = getOnDemandCategories({
-      plan,
-      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      configurableOnly: false,
-    });
-    expect(categories).toHaveLength(plan.onDemandCategories.length);
-    expect(categories).toContain(DataCategory.SEER_SCANNER);
-    expect(categories).toContain(DataCategory.SEER_AUTOFIX);
-  });
-
   it('does not filter out any categories for shared budget mode', function () {
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.SHARED,
-      configurableOnly: false,
     });
     expect(categories).toHaveLength(plan.onDemandCategories.length);
-    const configurableCategories = getOnDemandCategories({
-      plan,
-      budgetMode: OnDemandBudgetMode.SHARED,
-      configurableOnly: true,
-    });
-    expect(categories).toEqual(configurableCategories);
+    expect(categories).toEqual(plan.onDemandCategories);
   });
 });

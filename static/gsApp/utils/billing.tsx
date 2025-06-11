@@ -380,19 +380,16 @@ export const displayBudgetName = (
  *
  * @param plan - The plan to get the on-demand/PAYG categories for
  * @param budgetMode - The on-demand/PAYG budget mode
- * @param configurableOnly - Whether to return only the on-demand/PAYG categories that can be configured for the specified budget mode
- * @returns A list of the appropriate on-demand/PAYG categories for the given plan, budget mode, and `configurableOnly` flag
+ * @returns A list of the appropriate on-demand/PAYG categories for the given plan and budget mode
  */
 export const getOnDemandCategories = ({
   plan,
   budgetMode,
-  configurableOnly,
 }: {
   budgetMode: OnDemandBudgetMode | null;
-  configurableOnly: boolean;
   plan: Plan;
 }) => {
-  if (budgetMode === OnDemandBudgetMode.PER_CATEGORY && configurableOnly) {
+  if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return plan.onDemandCategories.filter(category => {
       return Object.values(plan.availableReservedBudgetTypes).every(
         budgetType => !budgetType.dataCategories.includes(category)

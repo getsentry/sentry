@@ -144,7 +144,6 @@ class OnDemandBudgets extends Component<Props> {
           {getOnDemandCategories({
             plan: subscription.planDetails,
             budgetMode: onDemandBudgets.budgetMode,
-            configurableOnly: true,
           }).map(category => (
             <Category key={category}>
               <DetailTitle>
@@ -211,7 +210,6 @@ class OnDemandBudgets extends Component<Props> {
       categories: getOnDemandCategories({
         plan: subscription.planDetails,
         budgetMode: onDemandBudgets.budgetMode,
-        configurableOnly: true,
       }),
     });
     let description = t('Applies to %s.', oxfordCategories);
