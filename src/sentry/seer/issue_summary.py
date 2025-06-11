@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, quotas
+from sentry import eventstore, features, quotas, ratelimits
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
@@ -59,6 +59,27 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
+            return
+
+        project = group.project
+
+        is_rate_limited = ratelimits.backend.is_limited(
+            project=project,
+            key="autofix.auto_triggered",
+            limit=20,
+            window=60 * 60,  # 1 hour
+        )
+        if is_rate_limited:
+            logger.warning(
+                "autofix.rate_limited",
+                extra={
+                    "group_id": group_id,
+                    "user_id": user_id,
+                    "organization_slug": group.organization.slug,
+                    "organization_id": group.organization.id,
+                    "project_id": project.id,
+                },
+            )
             return
 
         user: User | AnonymousUser | RpcUser | None = None
