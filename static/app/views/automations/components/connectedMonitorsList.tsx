@@ -4,12 +4,12 @@ import {Button} from 'sentry/components/core/button';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
@@ -91,7 +91,7 @@ const baseColumns = defineColumns<BaseMonitorsData>({
   },
   type: {
     Header: () => t('Type'),
-    Cell: ({value}) => <TypeCell type={value} />,
+    Cell: ({value}) => <DetectorTypeCell type={value} />,
     width: '1fr',
   },
   lastIssue: {
