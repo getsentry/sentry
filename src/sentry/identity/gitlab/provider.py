@@ -7,7 +7,7 @@ import orjson
 
 from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.http import safe_urlopen, safe_urlread
+from sentry.http import safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
@@ -106,10 +106,11 @@ class GitlabIdentityProvider(OAuth2Provider):
         if not refresh_token_url:
             raise IdentityNotValid("Missing refresh token url")
 
-        data = self.get_refresh_token_params(refresh_token=refresh_token, identity=identity)
-
-        req = safe_urlopen(
-            url=refresh_token_url, headers={}, data=data, verify_ssl=kwargs["verify_ssl"]
+        req = self.get_refresh_token(
+            refresh_token=refresh_token,
+            url=refresh_token_url,
+            identity=identity,
+            **kwargs,
         )
 
         try:
@@ -129,8 +130,6 @@ class GitlabIdentityProvider(OAuth2Provider):
                 },
             )
             payload = {}
-
-        self.handle_refresh_error(req, payload)
 
         identity.data.update(get_oauth_data(payload))
         return identity_service.update_data(identity_id=identity.id, data=identity.data)

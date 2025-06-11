@@ -4,7 +4,6 @@ from unittest import TestCase
 from unittest.mock import patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
-import pytest
 import responses
 from django.test import Client, RequestFactory
 from requests.exceptions import SSLError
@@ -14,7 +13,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
@@ -151,8 +150,10 @@ class OAuth2CallbackViewTest(TestCase):
         )
         pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
-        with pytest.raises(ApiError):
-            self.view.exchange_token(self.request, pipeline, code)
+        result = self.view.exchange_token(self.request, pipeline, code)
+        assert "token" not in result
+        assert "error" in result
+        assert "401" in result["error"]
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
