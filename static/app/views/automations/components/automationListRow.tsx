@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  useAutomationActions,
+  getAutomationActions,
   useAutomationProjectIds,
 } from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
@@ -31,7 +31,7 @@ export function AutomationListRow({
   selected,
 }: AutomationListRowProps) {
   const organization = useOrganization();
-  const actions = useAutomationActions(automation);
+  const actions = getAutomationActions(automation);
   const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   const projectIds = useAutomationProjectIds(automation);
   const projectSlugs = projectIds.map(

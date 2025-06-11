@@ -1,3 +1,4 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
 import {DetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -41,6 +42,26 @@ describe('DetectorsList', function () {
     expect(within(row).getByText('Metric')).toBeInTheDocument();
     // Assignee should be Sentry because owner is null
     expect(within(row).getByTestId('assignee-sentry')).toBeInTheDocument();
+  });
+
+  it('displays connected automations', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [DetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
+    });
+
+    render(<DetectorsList />, {organization});
+    const row = await screen.findByTestId('detector-list-row');
+    expect(within(row).getByText('1 automation')).toBeInTheDocument();
+
+    // Tooltip should fetch and display the automation name/action
+    await userEvent.hover(within(row).getByText('1 automation'));
+    expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+    expect(await screen.findByText('Slack')).toBeInTheDocument();
   });
 
   it('can filter by project', async function () {
