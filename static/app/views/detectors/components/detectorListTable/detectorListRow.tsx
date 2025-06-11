@@ -20,7 +20,7 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({
-  detector: {workflowIds, owner, id, projectId, name, disabled, type},
+  detector: {workflowIds, owner, id, projectId, name, disabled, type, createdBy},
 }: DetectorListRowProps) {
   const organization = useOrganization();
   const link = makeMonitorDetailsPathname(organization.slug, id);
