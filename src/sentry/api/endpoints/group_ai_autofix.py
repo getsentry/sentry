@@ -35,14 +35,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=60),
-            RateLimitCategory.USER: RateLimit(limit=5, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=60 * 60),  # 1 hour
+            RateLimitCategory.IP: RateLimit(limit=25, window=60),
+            RateLimitCategory.USER: RateLimit(limit=25, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
         },
         "GET": {
-            RateLimitCategory.IP: RateLimit(limit=256, window=60),
-            RateLimitCategory.USER: RateLimit(limit=256, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=2048, window=60),
+            RateLimitCategory.IP: RateLimit(limit=1024, window=60),
+            RateLimitCategory.USER: RateLimit(limit=1024, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
         },
     }
 
