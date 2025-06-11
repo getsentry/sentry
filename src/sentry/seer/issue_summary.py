@@ -182,7 +182,7 @@ def _generate_fixability_score(group: Group):
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(body),
         },
-        timeout=settings.SEER_SEVERITY_TIMEOUT,
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
     )
 
     response.raise_for_status()
