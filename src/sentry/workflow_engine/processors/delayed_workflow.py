@@ -44,7 +44,10 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.action import filter_recently_fired_actions
+from sentry.workflow_engine.processors.action import (
+    create_workflow_fire_histories,
+    filter_recently_fired_actions,
+)
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
@@ -445,9 +448,6 @@ def fire_actions_for_groups(
                     ):
                         action_filters.add(dcg)
 
-                # process action filters
-                filtered_actions = filter_recently_fired_actions(action_filters, event_data)
-
                 # process workflow_triggers
                 workflows = set(
                     Workflow.objects.filter(when_condition_group_id__in=workflow_triggers)
@@ -460,7 +460,10 @@ def fire_actions_for_groups(
                     threshold_seconds=1,
                 ):
                     workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
-                filtered_actions = filtered_actions.union(workflows_actions)
+                filtered_actions = filter_recently_fired_actions(
+                    action_filters | workflows_actions, event_data
+                )
+                create_workflow_fire_histories(filtered_actions, event_data)
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
