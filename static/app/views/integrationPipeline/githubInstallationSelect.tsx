@@ -16,7 +16,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Installation = {
   avatar_url: string;
@@ -153,11 +152,8 @@ export function GithubInstallationSelect({
       <LinkButton
         icon={<IconLightning />}
         priority="primary"
-        onClick={() => {
-          trackAnalytics(`${source}.upsell`, {
-            organization: organization.slug,
-          });
-        }}
+        analyticsEventKey="github.multi_org.upsell"
+        analyticsEventName="Github Multi-Org Upsell Clicked"
         href={`${origin}/settings/${organization.slug}/billing/overview/?referrer=upgrade-${source}`}
         disabled={isSaving || !installationID || isSelfHosted}
       >
