@@ -586,7 +586,7 @@ A POST request is issued with no body. The URL and authorization context is used
 
 ## Replay Summarize Breadcrumb [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/summarize/breadcrumbs/]
 
-### Fetch Replay Summarize Breadcrumb [GET]
+### Fetch Replay Breadcrumb Summary [GET]
 
 | Column                   | Type            | Description                                                                                   |
 | ------------------------ | --------------- | --------------------------------------------------------------------------------------------- |
