@@ -66,7 +66,7 @@ function useTimelineCursor<E extends HTMLElement>({
       // elements within the container may trigger an onMouseLeave even when
       // the mouse is still "inside" of the container
       //
-      // Also tests that the mouse is not obscured by a overlay element.
+      // Also tests that the mouse is not occluded by a overlay element.
       const isInsideContainer =
         e.clientX > containerRect.left &&
         e.clientX < containerRect.right &&
