@@ -86,7 +86,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         artifact = artifacts[0]
         assert artifact.build_configuration is None
 
-        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)  # type: ignore[unreachable]
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
     def test_assemble_preprod_artifact_generates_filename(self):
         content = b"test preprod artifact with generated filename"
