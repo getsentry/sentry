@@ -11,6 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   getInlineAttachmentRenderer,
   imageMimeTypes,
+  webmMimeType,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -54,7 +55,7 @@ function Screenshot({
   openVisualizationModal,
 }: Props) {
   const [loadingImage, setLoadingImage] = useState(
-    imageMimeTypes.includes(screenshot.mimetype)
+    imageMimeTypes.includes(screenshot.mimetype) || webmMimeType === screenshot.mimetype
   );
 
   const {hasRole} = useRole({role: 'attachmentsRole'});

@@ -11,10 +11,9 @@ export const imageMimeTypes = [
   'image/png',
   'image/gif',
   'image/webp',
-  'video/webm',
 ];
 
-const LogFileMimeTypes = [
+const logFileMimeTypes = [
   'text/css',
   'text/csv',
   'text/html',
@@ -22,12 +21,14 @@ const LogFileMimeTypes = [
   'text/plain',
 ];
 
-const JsonMimeTypes = [
+const jsonMimeTypes = [
   'application/json',
   'application/ld+json',
   'text/json',
   'text/x-json',
 ];
+
+export const webmMimeType = 'video/webm';
 
 type AttachmentRenderer =
   | typeof ImageViewer
@@ -42,18 +43,18 @@ export const getInlineAttachmentRenderer = (
     return ImageViewer;
   }
 
-  if (LogFileMimeTypes.includes(attachment.mimetype)) {
+  if (logFileMimeTypes.includes(attachment.mimetype)) {
     return LogFileViewer;
   }
 
   if (
-    (JsonMimeTypes.includes(attachment.mimetype) && attachment.name === 'rrweb.json') ||
+    (jsonMimeTypes.includes(attachment.mimetype) && attachment.name === 'rrweb.json') ||
     attachment.name.startsWith('rrweb-')
   ) {
     return JsonViewer;
   }
 
-  if (attachment.mimetype === 'video/webm') {
+  if (webmMimeType === attachment.mimetype) {
     return WebMViewer;
   }
 
