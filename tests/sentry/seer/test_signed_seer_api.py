@@ -43,7 +43,6 @@ def test_simple():
         PATH,
         body=REQUEST_BODY,
         headers={"content-type": "application/json;charset=utf-8"},
-        retries=None,
     )
 
 
@@ -55,7 +54,6 @@ def test_uses_given_timeout():
         PATH,
         body=REQUEST_BODY,
         headers={"content-type": "application/json;charset=utf-8"},
-        retries=None,
         timeout=5,
     )
 
@@ -84,7 +82,6 @@ def test_uses_shared_secret():
                 "content-type": "application/json;charset=utf-8",
                 "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
             },
-            retries=None,
         )
 
 
@@ -98,7 +95,6 @@ def test_uses_shared_secret_missing_secret():
             PATH,
             body=REQUEST_BODY,
             headers={"content-type": "application/json;charset=utf-8"},
-            retries=None,
         )
 
 
