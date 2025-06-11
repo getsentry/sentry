@@ -6,6 +6,7 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useTeamsById as useTeamsById} from './useTeamsById';
 
@@ -22,7 +23,9 @@ describe('useTeamsById', function () {
   const mockTeams = [TeamFixture()];
 
   const wrapper = ({children}: {children?: any}) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <OrganizationContext.Provider value={org}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </OrganizationContext.Provider>
   );
 
   beforeEach(function () {
