@@ -4370,5 +4370,29 @@ describe('SearchQueryBuilder', function () {
         screen.getByRole('row', {name: 'span.description:randomValue'})
       ).toBeInTheDocument();
     });
+
+    it('can handle values with spaces', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+      expect(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getByText('span.description')
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:"random value"'})
+      ).toBeInTheDocument();
+    });
   });
 });
