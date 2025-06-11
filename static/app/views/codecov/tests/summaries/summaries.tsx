@@ -1,13 +1,7 @@
 import {SummaryContainer} from 'sentry/components/codecov/summary';
+import {useTestResultsAggregates} from 'sentry/views/codecov/tests/queries/useTestResultsAggregates';
 import {CIEfficiency} from 'sentry/views/codecov/tests/summaries/ciEfficiency';
 import {TestPerformance} from 'sentry/views/codecov/tests/summaries/testPerformance';
-
-const testCIEfficiencyData = {
-  totalTestsRunTime: 12300000,
-  totalTestsRunTimeChange: 0.46,
-  slowestTests: 100,
-  slowestTestsDuration: 10000,
-};
 
 const testPerformanceData = {
   flakyTests: 88,
@@ -21,9 +15,16 @@ const testPerformanceData = {
 };
 
 export function Summaries() {
+  const {data: testAggregateData, isLoading: isTestAggregateLoading} =
+    useTestResultsAggregates();
+
+  if (isTestAggregateLoading) {
+    return null;
+  }
+
   return (
     <SummaryContainer columns={24}>
-      <CIEfficiency {...testCIEfficiencyData} isLoading={false} />
+      <CIEfficiency {...testAggregateData} isLoading={isTestAggregateLoading} />
       <TestPerformance {...testPerformanceData} isLoading={false} />
     </SummaryContainer>
   );
