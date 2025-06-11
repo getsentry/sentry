@@ -140,7 +140,7 @@ class IssueAlertMigratorTest(TestCase):
         assert workflow.enabled == is_enabled
 
         detector = Detector.objects.get(id=issue_alert_detector.detector.id)
-        assert detector.name == "Error Detector"
+        assert detector.name == "Error Monitor"
         assert detector.project_id == self.project.id
         assert detector.enabled is True
         assert detector.owner_user_id is None
@@ -442,7 +442,7 @@ class TestEnsureDefaultErrorDetector(TestCase):
     def test_ensure_default_error_detector(self):
         project = self.create_project()
         detector = ensure_default_error_detector(project)
-        assert detector.name == "Error Detector"
+        assert detector.name == "Error Monitor"
         assert detector.project_id == project.id
         assert detector.type == ErrorGroupType.slug
 

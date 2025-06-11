@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+ERROR_DETECTOR_NAME = "Error Monitor"
+
 
 class DetectorException(Exception):
     pass
