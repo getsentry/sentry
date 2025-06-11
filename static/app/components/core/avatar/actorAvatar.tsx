@@ -15,7 +15,7 @@ interface SimpleActor extends Omit<Actor, 'name'> {
   name?: string;
 }
 
-interface ActorAvatarProps extends BaseAvatarProps {
+export interface ActorAvatarProps extends BaseAvatarProps {
   actor: SimpleActor;
   ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }

@@ -17,16 +17,12 @@ import {
   TypeCell,
   type TypeCellProps,
 } from 'sentry/components/workflowEngine/gridCell/typeCell';
-import {
-  UserCell,
-  type UserCellProps,
-} from 'sentry/components/workflowEngine/gridCell/userCell';
 import * as Storybook from 'sentry/stories';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
   actions: ActionType[];
-  creator: UserCellProps['user'];
+  creator: string | null;
   linkedItems: ConnectionCellProps;
   openIssues: number;
   timeAgo: Date | null;
@@ -50,7 +46,7 @@ export default Storybook.story('Grid Cell Components', story => {
       },
       openIssues: 3,
       creator: '1',
-      type: 'uptime',
+      type: 'uptime_domain_failure',
     },
     {
       title: {
@@ -67,7 +63,7 @@ export default Storybook.story('Grid Cell Components', story => {
       },
       openIssues: 1,
       creator: '1',
-      type: 'metric',
+      type: 'metric_issue',
     },
     {
       title: {
@@ -83,7 +79,7 @@ export default Storybook.story('Grid Cell Components', story => {
         type: 'workflow',
       },
       creator: 'sentry',
-      type: 'uptime',
+      type: 'uptime_domain_failure',
       openIssues: 0,
     },
     {
@@ -95,7 +91,7 @@ export default Storybook.story('Grid Cell Components', story => {
       },
       actions: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
-      type: 'uptime',
+      type: 'uptime_domain_failure',
       timeAgo: null,
       linkedItems: {
         ids: [],
@@ -154,8 +150,6 @@ export default Storybook.story('Grid Cell Components', story => {
         return <ActionCell actions={dataRow.actions} />;
       case 'type':
         return <TypeCell type={dataRow.type} />;
-      case 'creator':
-        return <UserCell user={dataRow.creator} />;
       case 'timeAgo':
         return <TimeAgoCell date={dataRow.timeAgo ?? undefined} />;
       case 'linkedItems':
