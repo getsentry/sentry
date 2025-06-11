@@ -40,10 +40,6 @@ filterwarnings = [
 
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
-
-  # TODO-anton: just for testing locally, remove before merging
-  "ignore::DeprecationWarning:setuptools._distutils.version",
-  "ignore::DeprecationWarning:redis.connection"
 ]
 looponfailroots = ["src", "tests"]
 
