@@ -26,8 +26,7 @@ import ScreenshotPagination from './screenshotPagination';
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
   /**
-   * The target screenshot attachment to show. If the attachment is not a
-   * screenshot
+   * The target screenshot attachment to show.
    */
   eventAttachment: EventAttachment;
   projectSlug: Project['slug'];
