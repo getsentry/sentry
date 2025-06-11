@@ -1,7 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {ProjectList} from 'sentry/components/projectList';
@@ -21,15 +20,9 @@ import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames'
 
 type AutomationListRowProps = {
   automation: Automation;
-  handleSelect: (id: string, checked: boolean) => void;
-  selected: boolean;
 };
 
-export function AutomationListRow({
-  automation,
-  handleSelect,
-  selected,
-}: AutomationListRowProps) {
+export function AutomationListRow({automation}: AutomationListRowProps) {
   const organization = useOrganization();
   const actions = useAutomationActions(automation);
   const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
@@ -40,20 +33,12 @@ export function AutomationListRow({
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
-      <Flex justify="space-between">
-        <StyledCheckbox
-          checked={selected}
-          onChange={() => {
-            handleSelect(id, !selected);
-          }}
+      <CellWrapper>
+        <AutomationTitleCell
+          name={name}
+          href={makeAutomationDetailsPathname(organization.slug, id)}
         />
-        <CellWrapper>
-          <AutomationTitleCell
-            name={name}
-            href={makeAutomationDetailsPathname(organization.slug, id)}
-          />
-        </CellWrapper>
-      </Flex>
+      </CellWrapper>
       <CellWrapper className="last-triggered">
         <TimeAgoCell date={lastTriggered} />
       </CellWrapper>
@@ -88,6 +73,9 @@ const CellWrapper = styled('div')`
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
   display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
+
   position: relative;
   align-items: center;
   padding: ${space(2)};
@@ -104,39 +92,5 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
     ${StyledCheckbox} {
       visibility: visible;
     }
-  }
-
-  .last-triggered,
-  .action,
-  .connected-monitors {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 2.5fr 1fr;
-
-    .action {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 2.5fr 1fr 1fr;
-
-    .last-triggered {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 1fr 1fr;
-
-    .connected-monitors {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr;
   }
 `;
