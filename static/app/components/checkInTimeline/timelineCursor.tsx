@@ -21,9 +21,14 @@ interface Options {
    */
   labelText: (positionX: number) => string;
   /**
-   * The vertical offset of the cursor overlay from the top of the container
+   * Whether to anchor the cursor overlay to the top or bottom of the container. Defaults to 'top'
    */
-  cursorOverlayTopOffset?: number;
+  anchor?: 'top' | 'bottom';
+  /**
+   * The offset of the cursor overlay. If anchor is 'top', this will be added to the top offset.
+   * If anchor is 'bottom', this will be added to the bottom offset.
+   */
+  anchorOffset?: number;
   /**
    * May be set to false to disable rendering the timeline cursor
    */
@@ -45,7 +50,8 @@ function useTimelineCursor<E extends HTMLElement>({
   sticky,
   offsets,
   labelText,
-  cursorOverlayTopOffset,
+  anchor = 'top',
+  anchorOffset = 0,
 }: Options) {
   const rafIdRef = useRef<number | null>(null);
 
@@ -123,7 +129,8 @@ function useTimelineCursor<E extends HTMLElement>({
       animated
       placement="right"
       offsets={offsets}
-      cursorOverlayTopOffset={cursorOverlayTopOffset}
+      anchor={anchor}
+      anchorOffset={anchorOffset}
     />
   );
   const cursorLabel = sticky ? <StickyLabel>{labelOverlay}</StickyLabel> : labelOverlay;
@@ -166,7 +173,8 @@ const Cursor = styled(motion.div)`
 `;
 
 const CursorLabel = styled(Overlay)<{
-  cursorOverlayTopOffset?: number;
+  anchor: 'top' | 'bottom';
+  anchorOffset: number;
   offsets?: CursorOffsets;
 }>`
   font-variant-numeric: tabular-nums;
@@ -176,7 +184,8 @@ const CursorLabel = styled(Overlay)<{
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
   position: absolute;
-  top: ${p => (p.cursorOverlayTopOffset ?? 0) + 12}px;
+  ${p =>
+    p.anchor === 'top' ? `top: ${p.anchorOffset}px;` : `bottom: ${p.anchorOffset}px;`}
   left: clamp(
     0px,
     calc(var(--cursorOffset) + ${p => p.offsets?.left ?? 0}px + ${TOOLTIP_OFFSET}px),

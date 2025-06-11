@@ -147,9 +147,14 @@ interface GridLineOverlayProps {
    */
   cursorOffsets?: CursorOffsets;
   /**
-   * The vertical offset of the cursor overlay from the top of the container
+   * Whether to anchor the cursor overlay to the top or bottom of the container. Defaults to 'top'
    */
-  cursorOverlayTopOffset?: number;
+  cursorOverlayAnchor?: 'top' | 'bottom';
+  /**
+   * The offset of the cursor overlay. If anchor is 'top', this will be added to the top offset.
+   * If anchor is 'bottom', this will be added to the bottom offset.
+   */
+  cursorOverlayAnchorOffset?: number;
   /**
    * Configres where the timeline labels are displayed
    */
@@ -174,7 +179,8 @@ export function GridLineOverlay({
   additionalUi,
   stickyCursor,
   cursorOffsets,
-  cursorOverlayTopOffset,
+  cursorOverlayAnchor,
+  cursorOverlayAnchorOffset,
   allowZoom,
   className,
   labelPosition = 'left-top',
@@ -223,7 +229,8 @@ export function GridLineOverlay({
     sticky: stickyCursor,
     offsets: cursorOffsets,
     labelText: makeCursorLabel,
-    cursorOverlayTopOffset,
+    anchor: cursorOverlayAnchor,
+    anchorOffset: cursorOverlayAnchorOffset,
   });
 
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
