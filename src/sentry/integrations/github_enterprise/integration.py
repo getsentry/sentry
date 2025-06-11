@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Never
+from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
@@ -23,13 +23,14 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider, bu
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt, metrics
@@ -333,8 +334,8 @@ class InstallationForm(forms.Form):
         self.fields["verify_ssl"].initial = True
 
 
-class InstallationConfigView(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class InstallationConfigView(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -385,7 +386,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         ]
     )
 
-    def _make_identity_pipeline_view(self):
+    def _make_identity_pipeline_view(self) -> IntegrationPipelineViewT:
         """
         Make the nested identity provider view. It is important that this view is
         not constructed until we reach this step and the
@@ -411,7 +412,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
     def get_pipeline_views(
         self,
-    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
+    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
         return (
             InstallationConfigView(),
             GitHubEnterpriseInstallationRedirect(),
@@ -516,7 +517,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         )
 
 
-class GitHubEnterpriseInstallationRedirect(PipelineView[Never]):
+class GitHubEnterpriseInstallationRedirect(IntegrationPipelineViewT):
     def get_app_url(self, installation_data):
         if installation_data.get("public_link"):
             return installation_data["public_link"]
@@ -525,7 +526,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView[Never]):
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         installation_data = pipeline.fetch_state(key="installation_data")
 
         if "installation_id" in request.GET:
