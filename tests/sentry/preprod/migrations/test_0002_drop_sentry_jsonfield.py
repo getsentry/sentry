@@ -7,7 +7,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
 
-class AddPreprodModelsTests(TestMigrations):
+class DropSentryJsonfieldTests(TestMigrations):
     app = "preprod"
     migrate_from = "0001_emerge_upload_models"
     migrate_to = "0002_drop_sentry_jsonfield"
