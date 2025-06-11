@@ -1,26 +1,28 @@
 from sentry import analytics
 
 
+@analytics.eventclass()
 class AiAutofixPrEvent(analytics.Event):
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("run_id"),
-        analytics.Attribute("integration"),
-    )
+    organization_id: str
+    project_id: str
+    group_id: str
+    run_id: str
+    integration: str
 
 
+@analytics.eventclass("ai.autofix.pr.closed")
 class AiAutofixPrClosedEvent(AiAutofixPrEvent):
-    type = "ai.autofix.pr.closed"
+    pass
 
 
+@analytics.eventclass("ai.autofix.pr.merged")
 class AiAutofixPrMergedEvent(AiAutofixPrEvent):
-    type = "ai.autofix.pr.merged"
+    pass
 
 
+@analytics.eventclass("ai.autofix.pr.opened")
 class AiAutofixPrOpenedEvent(AiAutofixPrEvent):
-    type = "ai.autofix.pr.opened"
+    pass
 
 
 analytics.register(AiAutofixPrClosedEvent)
