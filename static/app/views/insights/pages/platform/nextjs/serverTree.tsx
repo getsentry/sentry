@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -189,10 +189,10 @@ export function ServerTree() {
     {staleTime: 0}
   );
 
-  const treeData = treeRequest.data?.data ?? [];
+  const treeData = useMemo(() => treeRequest.data?.data ?? [], [treeRequest.data]);
   const hasData = treeData.length > 0;
 
-  const tree = mapResponseToTree(treeData);
+  const tree = useMemo(() => mapResponseToTree(treeData), [treeData]);
 
   return (
     <StyledPanel>
