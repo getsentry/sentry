@@ -40,9 +40,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
         },
         "GET": {
-            RateLimitCategory.IP: RateLimit(limit=256, window=60),
-            RateLimitCategory.USER: RateLimit(limit=256, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=2048, window=60),
+            RateLimitCategory.IP: RateLimit(limit=1024, window=60),
+            RateLimitCategory.USER: RateLimit(limit=1024, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
         },
     }
 
