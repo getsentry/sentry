@@ -3449,3 +3449,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable the collection of Reporting API reports via the `/api/0/reporting-api-experiment/`
+# endpoint. When this is false, the endpoint will just 404.
+register(
+    "issues.browser_reporting.collector_endpoint_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
