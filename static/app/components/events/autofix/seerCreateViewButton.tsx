@@ -6,27 +6,24 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {
+  type GroupSearchView,
+  GroupSearchViewCreatedBy,
+} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface StarFixabilityViewButtonProps {
   isCompleted: boolean;
-  onSkip: () => void;
   project: Project;
 }
 
-function StarFixabilityViewButton({
-  isCompleted,
-  project,
-  onSkip,
-}: StarFixabilityViewButtonProps) {
+function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButtonProps) {
   const organization = useOrganization();
 
   const {mutate: createIssueView} = useCreateGroupSearchView({
@@ -54,11 +51,23 @@ function StarFixabilityViewButton({
   });
 
   // Fetch all views to check for existing ones with our target name
-  const {data: allViews = []} = useFetchGroupSearchViews({
+  const {data: othersViews = []} = useFetchGroupSearchViews({
     orgSlug: organization.slug,
-    limit: 25,
+    limit: 20,
     query: 'Easy Fixes 🤖', // Search by name
+    sort: ['-popularity'],
+    createdBy: GroupSearchViewCreatedBy.OTHERS,
   });
+
+  const {data: myViews = []} = useFetchGroupSearchViews({
+    orgSlug: organization.slug,
+    limit: 20,
+    query: 'Easy Fixes 🤖', // Search by name
+    sort: ['-popularity'],
+    createdBy: GroupSearchViewCreatedBy.ME,
+  });
+
+  const allViews = useMemo(() => [...othersViews, ...myViews], [othersViews, myViews]);
 
   // Define the properties of the view we want to create/find
   const targetViewProperties = useMemo(
@@ -88,7 +97,7 @@ function StarFixabilityViewButton({
         return false;
       }
 
-      // Must have exact query match
+      // Must query the right field
       if (!view.query.includes('issue.seer_actionability:')) {
         return false;
       }
@@ -138,20 +147,15 @@ function StarFixabilityViewButton({
   };
 
   return (
-    <GuidedSteps.StepButtons>
-      <Button onClick={onSkip} size="sm" aria-label={t('Skip for now')}>
-        {t('Skip for Now')}
-      </Button>
-      <Button
-        onClick={handleStarFixabilityView}
-        size="sm"
-        priority="primary"
-        disabled={isCompleted}
-        aria-label={isCompleted ? t('View already starred') : t('Star recommended view')}
-      >
-        {isCompleted ? t('View Already Starred') : t('Star Recommended View')}
-      </Button>
-    </GuidedSteps.StepButtons>
+    <Button
+      onClick={handleStarFixabilityView}
+      size="sm"
+      priority="primary"
+      disabled={isCompleted}
+      aria-label={isCompleted ? t('View already starred') : t('Star recommended view')}
+    >
+      {isCompleted ? t('View Already Starred') : t('Star Recommended View')}
+    </Button>
   );
 }
 

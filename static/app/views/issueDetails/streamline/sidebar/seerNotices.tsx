@@ -271,7 +271,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <StarFixabilityViewButton
                     isCompleted={!needsFixabilityView}
                     project={project}
-                    onSkip={() => setStepsCollapsed(true)}
                   />
                 </GuidedSteps.StepButtons>
               </GuidedSteps.Step>
