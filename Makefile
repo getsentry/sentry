@@ -51,7 +51,7 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 
 watch-api-docs:
 	@cd api-docs/ && pnpm install --frozen-lockfile
-	@cd api-docs/ && ts-node ./watch.ts
+	@cd api-docs/ && node --experimental-transform-types ./watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
