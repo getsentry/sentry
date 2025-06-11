@@ -118,7 +118,11 @@ class OnDemandBudgetEdit extends Component<Props> {
     ) {
       return (
         <InputFields>
-          {getOnDemandCategories(activePlan).map(category => {
+          {getOnDemandCategories({
+            plan: activePlan,
+            budgetMode: displayBudgetMode,
+            configurableOnly: true,
+          }).map(category => {
             const categoryBudgetKey = `${category}Budget`;
             const displayName = getPlanCategoryName({plan: activePlan, category});
             return (
@@ -198,7 +202,11 @@ class OnDemandBudgetEdit extends Component<Props> {
     const selectedBudgetMode = onDemandBudget.budgetMode;
     const oxfordCategories = listDisplayNames({
       plan: activePlan,
-      categories: getOnDemandCategories(activePlan),
+      categories: getOnDemandCategories({
+        plan: activePlan,
+        budgetMode: selectedBudgetMode,
+        configurableOnly: true,
+      }),
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {

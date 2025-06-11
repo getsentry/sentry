@@ -25,7 +25,7 @@ import type {
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
-import {PlanName, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
 import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
@@ -368,12 +368,39 @@ export const displayBudgetName = (
   return text;
 };
 
-export const getOnDemandCategories = (plan: Plan) => {
-  return plan.onDemandCategories.filter(category =>
-    plan.availableReservedBudgetTypes.seer
-      ? !plan.availableReservedBudgetTypes.seer.dataCategories.includes(category)
-      : true
-  );
+/**
+ * Returns the on-demand/PAYG categories for the given plan
+ * and budget mode.
+ *
+ * If `configurableOnly` is true, then only the on-demand/PAYG
+ * categories that can be configured for the specified budget mode
+ * are returned.
+ *
+ * Otherwise, we return all on-demand/PAYG categories.
+ *
+ * @param plan - The plan to get the on-demand/PAYG categories for
+ * @param budgetMode - The on-demand/PAYG budget mode
+ * @param configurableOnly - Whether to return only the on-demand/PAYG categories that can be configured for the specified budget mode
+ * @returns A list of the appropriate on-demand/PAYG categories for the given plan, budget mode, and `configurableOnly` flag
+ */
+export const getOnDemandCategories = ({
+  plan,
+  budgetMode,
+  configurableOnly,
+}: {
+  budgetMode: OnDemandBudgetMode | null;
+  configurableOnly: boolean;
+  plan: Plan;
+}) => {
+  if (budgetMode === OnDemandBudgetMode.PER_CATEGORY && configurableOnly) {
+    return plan.onDemandCategories.filter(category => {
+      return Object.values(plan.availableReservedBudgetTypes).every(
+        budgetType => !budgetType.dataCategories.includes(category)
+      );
+    });
+  }
+
+  return plan.onDemandCategories;
 };
 
 export const displayPlanName = (plan?: Plan | null) => {
