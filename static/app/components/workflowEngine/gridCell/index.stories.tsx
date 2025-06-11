@@ -13,10 +13,6 @@ import {
   TitleCell,
   type TitleCellProps,
 } from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {
-  TypeCell,
-  type TypeCellProps,
-} from 'sentry/components/workflowEngine/gridCell/typeCell';
 import * as Storybook from 'sentry/stories';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
@@ -27,7 +23,6 @@ type ExampleAutomation = {
   openIssues: number;
   timeAgo: Date | null;
   title: TitleCellProps;
-  type: TypeCellProps['type'];
 };
 
 export default Storybook.story('Grid Cell Components', story => {
@@ -46,7 +41,6 @@ export default Storybook.story('Grid Cell Components', story => {
       },
       openIssues: 3,
       creator: '1',
-      type: 'uptime_domain_failure',
     },
     {
       title: {
@@ -63,7 +57,6 @@ export default Storybook.story('Grid Cell Components', story => {
       },
       openIssues: 1,
       creator: '1',
-      type: 'metric_issue',
     },
     {
       title: {
@@ -79,7 +72,6 @@ export default Storybook.story('Grid Cell Components', story => {
         type: 'workflow',
       },
       creator: 'sentry',
-      type: 'uptime_domain_failure',
       openIssues: 0,
     },
     {
@@ -91,7 +83,6 @@ export default Storybook.story('Grid Cell Components', story => {
       },
       actions: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
-      type: 'uptime_domain_failure',
       timeAgo: null,
       linkedItems: {
         ids: [],
@@ -103,10 +94,6 @@ export default Storybook.story('Grid Cell Components', story => {
 
   const TitleTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'title', name: 'Name', width: 200},
-  ];
-
-  const typeTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
-    {key: 'type', name: 'Type', width: 150},
   ];
 
   const actionTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
@@ -148,8 +135,6 @@ export default Storybook.story('Grid Cell Components', story => {
         );
       case 'actions':
         return <ActionCell actions={dataRow.actions} />;
-      case 'type':
-        return <TypeCell type={dataRow.type} />;
       case 'timeAgo':
         return <TimeAgoCell date={dataRow.timeAgo ?? undefined} />;
       case 'linkedItems':
@@ -222,20 +207,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={openIssuesTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
-  ));
-
-  story('TypeCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={typeTable}
         columnSortBy={[]}
         grid={{
           renderHeadCell,
