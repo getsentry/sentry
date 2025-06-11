@@ -405,7 +405,7 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 
 // Ensures that the replaced token is separated from the rest of the query
 // and cleans up any extra whitespace
-export function replaceTokensWithPadding(
+function replaceTokensWithPadding(
   query: string,
   tokens: Array<TokenResult<Token>>,
   value: string
