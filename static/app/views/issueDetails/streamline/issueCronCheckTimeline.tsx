@@ -151,6 +151,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
         timeWindowConfig={timeWindowConfig}
         labelPosition="center-bottom"
         envCount={statEnvironments.length}
+        cursorOverlayAnchor="bottom"
+        cursorOverlayAnchorOffset={4}
       />
       <IssueGridLineLabels
         timeWindowConfig={timeWindowConfig}

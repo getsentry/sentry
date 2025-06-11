@@ -107,6 +107,8 @@ export function CronTimelineSection({event, organization, project}: Props) {
           additionalUi={
             !isPending && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
           }
+          cursorOverlayAnchor="top"
+          cursorOverlayAnchorOffset={10}
         />
         {monitorStats && !isPending ? (
           <Fragment>

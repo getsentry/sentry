@@ -109,6 +109,8 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
         showCursor
         timeWindowConfig={timeWindowConfig}
         labelPosition="center-bottom"
+        cursorOverlayAnchor="bottom"
+        cursorOverlayAnchorOffset={2}
       />
       <GridLineLabels timeWindowConfig={timeWindowConfig} labelPosition="center-bottom" />
       <TimelineContainer>
