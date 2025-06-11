@@ -40,8 +40,16 @@ class BrowserReportingCollectorEndpoint(Endpoint):
 
         logger.info("browser_report_received", extra={"request_body": request.data})
 
+        report_type = request.data.get("type")
         metrics.incr(
-            "browser_reporting.raw_report_received", tags={"type": request.data.get("type")}
+            "browser_reporting.raw_report_received",
+            tags={
+                "type": (
+                    report_type
+                    if report_type in ["crash", "deprecation", "intervention"]
+                    else "other"
+                )
+            },
         )
 
         return HttpResponse(status=200)
