@@ -96,7 +96,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             if total_chars > MAX_FEEDBACKS_TO_SUMMARIZE_CHARS:
                 break
             group_feedbacks.append(group.data["metadata"]["message"])
-            feedback_ids.append(group.id)
+            feedback_ids.append(str(group.id))
 
         # Edge case
         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
