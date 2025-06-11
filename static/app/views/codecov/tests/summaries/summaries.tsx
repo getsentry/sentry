@@ -18,10 +18,6 @@ export function Summaries() {
   const {data: testAggregateData, isLoading: isTestAggregateLoading} =
     useTestResultsAggregates();
 
-  if (isTestAggregateLoading) {
-    return null;
-  }
-
   return (
     <SummaryContainer columns={24}>
       <CIEfficiency {...testAggregateData} isLoading={isTestAggregateLoading} />
