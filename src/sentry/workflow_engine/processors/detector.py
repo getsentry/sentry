@@ -34,9 +34,12 @@ def create_issue_platform_payload(result: DetectorEvaluationResult):
     if isinstance(result.result, IssueOccurrence):
         occurrence = result.result
         payload_type = PayloadType.OCCURRENCE
+
+        metrics.incr("workflow_engine.issue_platform.payload.sent.occurrence")
     else:
         status_change = result.result
         payload_type = PayloadType.STATUS_CHANGE
+        metrics.incr("workflow_engine.issue_platform.payload.sent.status_change")
 
     produce_occurrence_to_kafka(
         payload_type=payload_type,
