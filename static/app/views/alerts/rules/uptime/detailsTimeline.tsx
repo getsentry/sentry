@@ -50,6 +50,8 @@ export function DetailsTimeline({uptimeRule, onStatsLoaded}: Props) {
         resetPaginationOnZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
+        cursorOverlayAnchor="top"
+        cursorOverlayAnchorOffset={10}
       />
       <OverviewRow
         uptimeRule={uptimeRule}

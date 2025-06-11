@@ -123,6 +123,8 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
         resetPaginationOnZoom
         timeWindowConfig={timeWindowConfig}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
+        cursorOverlayAnchor="top"
+        cursorOverlayAnchorOffset={10}
       />
       <OverviewRow
         monitor={monitor}
