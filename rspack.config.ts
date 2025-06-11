@@ -98,9 +98,9 @@ const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
-const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
+const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
-const staticPrefix = path.join(__dirname, 'static');
+const staticPrefix = path.join(import.meta.dirname, 'static');
 
 // Locale compilation and optimizations.
 //
@@ -116,7 +116,7 @@ const staticPrefix = path.join(__dirname, 'static');
 // dependency list, so that our compiled bundle does not expect that *all*
 // locale chunks must be loaded
 const localeCatalogPath = path.join(
-  __dirname,
+  import.meta.dirname,
   'src',
   'sentry',
   'locale',
@@ -296,7 +296,9 @@ const appConfig: Configuration = {
       },
       {
         test: /\.pegjs$/,
-        use: [{loader: path.resolve(__dirname, './build-utils/peggy-loader.ts')}],
+        use: [
+          {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
+        ],
       },
       {
         test: /\.css/,
@@ -342,7 +344,7 @@ const appConfig: Configuration = {
      */
     new rspack.ContextReplacementPlugin(
       /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      path.join(import.meta.dirname, 'src', 'sentry', 'locale', path.sep),
       true,
       new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
     ),
@@ -386,7 +388,10 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+              configFile: path.resolve(
+                import.meta.dirname,
+                './config/tsconfig.build.json'
+              ),
             },
             devServer: false,
           }),
@@ -423,7 +428,10 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': path.resolve(__dirname, 'static/app/stories/type-loader.ts'),
+      'type-loader': path.resolve(
+        import.meta.dirname,
+        'static/app/stories/type-loader.ts'
+      ),
     },
   },
 
@@ -436,16 +444,16 @@ const appConfig: Configuration = {
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
-      'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+      'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
       admin: path.join(staticPrefix, 'gsAdmin'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),
-      'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
-      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
+      'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
       'ios-device-list': path.join(
-        __dirname,
+        import.meta.dirname,
         'node_modules',
         'ios-device-list',
         'dist',
@@ -504,14 +512,14 @@ const appConfig: Configuration = {
 
 if (IS_TEST) {
   (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
-    __dirname,
+    import.meta.dirname,
     'fixtures',
     'js-stubs'
   );
 }
 
 if (IS_ACCEPTANCE_TEST) {
-  appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
+  appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
 // Dev only! Hot module reloading
@@ -655,7 +663,7 @@ if (IS_UI_DEV_ONLY) {
   };
 
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
-  const certPath = path.join(__dirname, 'config');
+  const certPath = path.join(import.meta.dirname, 'config');
   const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
     ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
@@ -824,7 +832,7 @@ if (env.WEBPACK_CACHE_PATH) {
     // https://rspack.dev/config/experiments#cachestorage
     storage: {
       type: 'filesystem',
-      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
     },
   };
 }
