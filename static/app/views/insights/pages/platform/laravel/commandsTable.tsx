@@ -17,7 +17,10 @@ import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+import {
+  ErrorRateCell,
+  getErrorCellIssuesLink,
+} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 
@@ -76,7 +79,16 @@ export function CommandsTable() {
         case 'command':
           return <CommandCell command={dataRow.command} />;
         case 'failure_rate()':
-          return <ErrorRateCell errorRate={dataRow['failure_rate()']} />;
+          return (
+            <ErrorRateCell
+              errorRate={dataRow['failure_rate()']}
+              total={dataRow['count()']}
+              issuesLink={getErrorCellIssuesLink({
+                projectId: dataRow['project.id'],
+                query: `command:"${dataRow.command}"`,
+              })}
+            />
+          );
         case 'avg(span.duration)':
         case 'p95(span.duration)':
           return <DurationCell milliseconds={dataRow[column.key]} />;

@@ -41,13 +41,11 @@ export function useTableData<Fields extends EAPSpanProperty>({
 
 export function useTableDataWithController<Fields extends EAPSpanProperty>({
   fields,
-  fetchRouteController,
   referrer,
   cursorParamName,
   query,
 }: {
   cursorParamName: string;
-  fetchRouteController: boolean;
   fields: Fields[];
   query: string;
   referrer: string;
@@ -78,8 +76,7 @@ export function useTableDataWithController<Fields extends EAPSpanProperty>({
         'count()',
       ],
       limit: PER_PAGE,
-      enabled:
-        fetchRouteController && !!transactionsRequest.data && transactionPaths.length > 0,
+      enabled: !!transactionsRequest.data && transactionPaths.length > 0,
     },
     referrer
   );
