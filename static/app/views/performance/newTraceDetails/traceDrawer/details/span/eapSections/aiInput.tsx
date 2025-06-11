@@ -19,6 +19,9 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 function renderUserMessage(content: any) {
+  if (!Array.isArray(content)) {
+    return content;
+  }
   return content
     .filter((part: any) => part.type === 'text')
     .map((part: any) => part.text)
@@ -26,6 +29,9 @@ function renderUserMessage(content: any) {
 }
 
 function renderAssistantMessage(content: any) {
+  if (!Array.isArray(content)) {
+    return content;
+  }
   return content
     .filter((part: any) => part.type === 'text')
     .map((part: any) => part.text)
@@ -39,7 +45,6 @@ function renderToolMessage(content: any) {
 function parseAIMessages(messages: string) {
   try {
     const array: any[] = JSON.parse(messages);
-
     return array
       .map((message: any) => {
         switch (message.role) {

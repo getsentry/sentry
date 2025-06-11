@@ -117,7 +117,7 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  const toolArgs = getAttribute(attributeObject, 'ai.toolCall.args');
+  const toolArgs = getAttribute(attributeObject, 'gen_ai.tool.input');
   if (toolArgs) {
     highlightedAttributes.push({
       name: t('Arguments'),
@@ -125,7 +125,7 @@ export function getHighlightedSpanAttributes({
     });
   }
 
-  const toolResult = getAttribute(attributeObject, 'ai.toolCall.result');
+  const toolResult = getAttribute(attributeObject, 'gen_ai.tool.output');
   if (toolResult) {
     highlightedAttributes.push({
       name: t('Result'),
