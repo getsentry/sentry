@@ -101,52 +101,6 @@ def create_workflow_fire_histories(
     return WorkflowFireHistory.objects.bulk_create(fire_histories)
 
 
-# TODO(cathy): only reinforce workflow frequency for certain issue types
-def filter_recently_fired_actions(
-    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> BaseQuerySet[Action]:
-    # get the actions for any of the triggered data condition groups
-    actions = (
-        Action.objects.filter(dataconditiongroupaction__condition_group__in=filtered_action_groups)
-        .annotate(
-            workflow_id=models.F(
-                "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__id"
-            )
-        )
-        .distinct()
-    )
-
-    group = event_data.event.group
-
-    now = timezone.now()
-    statuses = get_action_last_updated_statuses(now, actions, group)
-
-    actions_without_statuses = actions.exclude(id__in=statuses.values_list("action_id", flat=True))
-    actions_to_include = set(
-        statuses.filter(difference__gt=F("frequency_minutes")).values_list("action_id", flat=True)
-    )
-
-    ActionGroupStatus.objects.filter(
-        action__in=actions_to_include, group=group, date_updated__lt=now
-    ).order_by("id").update(date_updated=now)
-    ActionGroupStatus.objects.bulk_create(
-        [
-            ActionGroupStatus(action=action, group=group, date_updated=now)
-            for action in actions_without_statuses
-        ],
-        batch_size=1000,
-        ignore_conflicts=True,
-    )
-
-    actions_without_statuses_ids = {action.id for action in actions_without_statuses}
-    filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
-
-    # dual write to WorkflowActionGroupStatus, ignoring results for now until they are canonical
-    _ = filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
-
-    return filtered_actions
-
-
 def get_workflow_action_group_statuses(
     action_to_workflows_ids: dict[int, set[int]], group: Group, workflow_ids: set[int]
 ) -> dict[int, list[WorkflowActionGroupStatus]]:

@@ -19,7 +19,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
-    filter_recently_fired_actions,
+    filter_recently_fired_workflow_actions,
 )
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -279,7 +279,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         return set()
 
     actions_to_trigger = evaluate_workflows_action_filters(triggered_workflows, event_data)
-    actions = filter_recently_fired_actions(actions_to_trigger, event_data)
+    actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
