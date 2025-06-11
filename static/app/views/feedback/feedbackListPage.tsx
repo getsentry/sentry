@@ -116,6 +116,15 @@ const Background = styled('div')`
   flex-direction: column;
   align-items: stretch;
   gap: ${space(2)};
+`;
+
+const LayoutGrid = styled('div')`
+  overflow: hidden;
+  flex-grow: 1;
+
+  display: grid;
+  gap: ${space(2)};
+  place-items: stretch;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)};
@@ -128,15 +137,6 @@ const Background = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding: ${space(2)} ${space(4)};
   }
-`;
-
-const LayoutGrid = styled('div')`
-  overflow: hidden;
-  flex-grow: 1;
-
-  display: grid;
-  gap: ${space(2)};
-  place-items: stretch;
 
   grid-template-rows: max-content 1fr;
   grid-template-areas:
