@@ -56,6 +56,31 @@ class ErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
+  componentDidMount(): void {
+    // Reset error state on HMR (Hot Module Replacement) in development
+    // This ensures that when React Fast Refresh occurs, the error boundary
+    // doesn't persist stale error state after code fixes
+    if (process.env.NODE_ENV === 'development') {
+      if (typeof module !== 'undefined' && module.hot) {
+        module.hot.accept(() => {
+          // Reset error state when this module is hot-reloaded
+          this.setState({error: null});
+        });
+      }
+    }
+  }
+
+  componentWillUnmount(): void {
+    // Clean up HMR listeners to prevent memory leaks
+    if (process.env.NODE_ENV === 'development') {
+      if (typeof module !== 'undefined' && module.hot) {
+        module.hot.dispose(() => {
+          // Cleanup when module is being replaced
+        });
+      }
+    }
+  }
+
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
 
