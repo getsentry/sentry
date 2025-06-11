@@ -744,7 +744,7 @@ def _update_migrated_detector_triggers(apps: Apps, alert_rule: Any, detector: An
             )
     except Exception as e:
         logger.info(
-            "error when migrating detector triggers",
+            "error when updating detector triggers",
             extra={"error": str(e), "alert_rule_id": alert_rule.id},
         )
         sentry_sdk.capture_exception(e)
