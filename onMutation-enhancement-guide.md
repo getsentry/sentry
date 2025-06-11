@@ -31,8 +31,17 @@ const observer = new (mutationObserverCtor as new (
 );
 ```
 
-**Enhanced Implementation**:
+**Enhanced Implementation with Browser Compatibility**:
 ```typescript
+// Browser-compatible array detection
+function isArray(value: unknown): value is unknown[] {
+  if (typeof Array.isArray === 'function') {
+    return Array.isArray(value);
+  }
+  // Fallback for older browsers (IE8 and below)
+  return Object.prototype.toString.call(value) === '[object Array]';
+}
+
 const observer = new (mutationObserverCtor as new (
   callback: MutationCallback,
 ) => MutationObserver)(
@@ -45,8 +54,8 @@ const observer = new (mutationObserverCtor as new (
       if (result === false) {
         return;
       }
-      // If onMutation returns an array, use it as the processed mutations
-      if (Array.isArray(result)) {
+      // Use browser-compatible array check
+      if (isArray(result)) {
         mutationBuffer.processMutations.bind(mutationBuffer)(result);
         return;
       }
@@ -74,7 +83,16 @@ export type onMutationCallback = (
 ) => boolean | void | mutationRecord[];
 ```
 
-### 3. Usage Examples
+### 3. Browser Compatibility Details
+
+The enhanced implementation uses a robust array detection method that works across all browsers:
+
+- **Modern Browsers** (Chrome 5+, Firefox 4+, Safari 5+, IE9+): Uses native `Array.isArray()`
+- **Legacy Browsers** (IE8 and below): Falls back to `Object.prototype.toString.call()`
+- **Cross-frame Safe**: Works with arrays from different iframes/contexts
+- **Performance**: Negligible overhead, only checks when `onMutation` returns a value
+
+### 4. Usage Examples
 
 #### Backwards Compatible Usage
 
@@ -227,6 +245,47 @@ describe('onMutation pre-processing', () => {
     // Trigger mutations
     // Assert processMutations was called with processedMutations
   });
+
+  it('should work with legacy browsers without Array.isArray', () => {
+    // Mock legacy browser environment
+    const originalArrayIsArray = Array.isArray;
+    delete Array.isArray;
+
+    const processedMutations = [/* mutations */];
+    const onMutation = jest.fn().mockReturnValue(processedMutations);
+    const processMutations = jest.fn();
+
+    // Trigger mutations
+    // Assert processMutations was called with processedMutations
+
+    // Restore
+    Array.isArray = originalArrayIsArray;
+  });
+});
+```
+
+### Browser Compatibility Tests
+
+```javascript
+describe('Array detection compatibility', () => {
+  it('should detect arrays correctly across environments', () => {
+    // Test cases for the isArray function
+    expect(isArray([])).toBe(true);
+    expect(isArray(new Array())).toBe(true);
+    expect(isArray({})).toBe(false);
+    expect(isArray(null)).toBe(false);
+    expect(isArray('array')).toBe(false);
+  });
+
+  it('should work without Array.isArray', () => {
+    const originalArrayIsArray = Array.isArray;
+    delete Array.isArray;
+
+    expect(isArray([])).toBe(true);
+    expect(isArray({})).toBe(false);
+
+    Array.isArray = originalArrayIsArray;
+  });
 });
 ```
 
@@ -244,16 +303,26 @@ describe('Sentry Replay with onMutation', () => {
 
 ## Implementation Notes
 
-1. **Performance**: The enhancement adds minimal overhead as it only checks the return type
-2. **Memory**: Pre-processing should be mindful of memory usage when creating new arrays
-3. **Error Handling**: Consider wrapping `onMutation` calls in try-catch to prevent breaking recording
-4. **Documentation**: Update rrweb documentation to explain the new capability
+1. **Browser Compatibility**: The `Object.prototype.toString.call()` fallback works in all JavaScript environments
+2. **Performance**: The enhancement adds minimal overhead as it only checks the return type
+3. **Memory**: Pre-processing should be mindful of memory usage when creating new arrays
+4. **Error Handling**: Consider wrapping `onMutation` calls in try-catch to prevent breaking recording
+5. **Cross-frame Safety**: The implementation works with arrays from different iframes/contexts
+6. **Documentation**: Update rrweb documentation to explain the new capability
+
+## Browser Support Matrix
+
+| Method | IE6-8 | IE9+ | Modern Browsers |
+|--------|-------|------|-----------------|
+| `Array.isArray()` | ❌ | ✅ | ✅ |
+| `Object.prototype.toString.call()` | ✅ | ✅ | ✅ |
+| Our Implementation | ✅ | ✅ | ✅ |
 
 ## Migration Path
 
-1. Implement changes in rrweb
+1. Implement changes in rrweb with browser compatibility
 2. Update rrweb version in Sentry replay integration
 3. Add documentation and examples
 4. Consider adding helper utilities for common filtering patterns
 
-This enhancement provides powerful mutation pre-processing capabilities while maintaining full backwards compatibility with existing implementations.
+This enhancement provides powerful mutation pre-processing capabilities while maintaining full backwards compatibility with existing implementations and supporting all browsers.
