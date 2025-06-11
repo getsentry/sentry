@@ -143,10 +143,6 @@ def pr_comment_workflow(pr_id: int, project_id: int):
     top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
 
     comment_body = pr_comment_workflow.get_comment_body(issue_ids=top_5_issue_ids)
-    logger.info(
-        _pr_comment_log(integration_name=integration_name, suffix="comment_body"),
-        extra={"body": comment_body},
-    )
 
     top_24_issue_ids = issue_ids[:24]  # 24 is the P99 for issues-per-PR
 

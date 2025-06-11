@@ -105,8 +105,6 @@ class CommitContextIntegrationInteractionEvent(SCMIntegrationInteractionEvent):
 class CommitContextHaltReason(StrEnum):
     """Common reasons why a commit context integration may halt without success/failure."""
 
-    PR_BOT_DISABLED = "pr_bot_disabled"
-    INCORRECT_REPO_CONFIG = "incorrect_repo_config"
     COMMIT_NOT_IN_DEFAULT_BRANCH = "commit_not_in_default_branch"
     MISSING_PR = "missing_pr"
     ALREADY_QUEUED = "already_queued"

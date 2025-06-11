@@ -223,6 +223,20 @@ class CommitContextIntegration(ABC):
         except NotImplementedError:
             return
 
+        if not OrganizationOption.objects.get_value(
+            organization=project.organization,
+            key=pr_comment_workflow.organization_option_key,
+            default=True,
+        ):
+            return
+
+        repo_query = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
+        group = Group.objects.get_from_cache(id=group_id)
+        if not (
+            group.level is not logging.INFO and repo_query.exists()
+        ):  # Don't comment on info level issues
+            return
+
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
@@ -230,35 +244,13 @@ class CommitContextIntegration(ABC):
             project=project,
             commit=commit,
         ).capture() as lifecycle:
-            if not OrganizationOption.objects.get_value(
-                organization=project.organization,
-                key=pr_comment_workflow.organization_option_key,
-                default=True,
-            ):
-                # TODO: remove logger in favor of the log recorded in  lifecycle.record_halt
-                logger.info(
-                    _pr_comment_log(integration_name=self.integration_name, suffix="disabled"),
-                    extra={"organization_id": project.organization_id},
-                )
-                lifecycle.record_halt(CommitContextHaltReason.PR_BOT_DISABLED)
-                return
-
-            repo_query = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
-            group = Group.objects.get_from_cache(id=group_id)
-            if not (
-                group.level is not logging.INFO and repo_query.exists()
-            ):  # Don't comment on info level issues
-                logger.info(
-                    _pr_comment_log(
-                        integration_name=self.integration_name, suffix="incorrect_repo_config"
-                    ),
-                    extra={"organization_id": project.organization_id},
-                )
-                lifecycle.record_halt(CommitContextHaltReason.INCORRECT_REPO_CONFIG)
-                return
-
             repo: Repository = repo_query.get()
-            lifecycle.add_extra("repository_id", repo.id)
+            lifecycle.add_extras(
+                {
+                    "repository_id": repo.id,
+                    "group_id": group_id,
+                }
+            )
 
             logger.info(
                 _pr_comment_log(
@@ -282,19 +274,11 @@ class CommitContextIntegration(ABC):
                 return
 
             if merge_commit_sha is None:
-                logger.info(
-                    _pr_comment_log(
-                        integration_name=self.integration_name,
-                        suffix="queue_comment_workflow.commit_not_in_default_branch",
-                    ),
-                    extra={
-                        "organization_id": commit.organization_id,
-                        "repository_id": repo.id,
-                        "commit_sha": commit.key,
-                    },
-                )
+                lifecycle.add_extra("commit_sha", commit.key)
                 lifecycle.record_halt(CommitContextHaltReason.COMMIT_NOT_IN_DEFAULT_BRANCH)
                 return
+
+            lifecycle.add_extra("merge_commit_sha", merge_commit_sha)
 
             pr_query = PullRequest.objects.filter(
                 organization_id=commit.organization_id,
@@ -302,17 +286,6 @@ class CommitContextIntegration(ABC):
                 merge_commit_sha=merge_commit_sha,
             )
             if not pr_query.exists():
-                logger.info(
-                    _pr_comment_log(
-                        integration_name=self.integration_name,
-                        suffix="queue_comment_workflow.missing_pr",
-                    ),
-                    extra={
-                        "organization_id": commit.organization_id,
-                        "repository_id": repo.id,
-                        "commit_sha": commit.key,
-                    },
-                )
                 lifecycle.record_halt(CommitContextHaltReason.MISSING_PR)
                 return
 
