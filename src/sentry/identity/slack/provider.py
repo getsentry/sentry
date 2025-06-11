@@ -1,7 +1,6 @@
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
-from sentry.pipeline.views.base import PipelineView
-from sentry.users.models.identity import IdentityProvider
+from sentry.identity.pipeline_types import IdentityPipelineViewT
 
 
 class SlackIdentityProvider(OAuth2Provider):
@@ -36,7 +35,7 @@ class SlackIdentityProvider(OAuth2Provider):
     def get_user_scopes(self):
         return self.config.get("user_scopes", self.user_scopes)
 
-    def get_pipeline_views(self) -> list[PipelineView[IdentityProvider]]:
+    def get_pipeline_views(self) -> list[IdentityPipelineViewT]:
         return [
             SlackOAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),

@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, Never, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -28,13 +28,13 @@ from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.pipeline_types import IntegrationPipelineViewT
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
-from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -1139,7 +1139,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
 
-    def get_pipeline_views(self) -> list[PipelineView[Never]]:
+    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
         return []
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

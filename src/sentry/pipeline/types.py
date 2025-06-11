@@ -9,10 +9,10 @@ from .store import PipelineSessionStore
 
 
 @dataclass
-class PipelineRequestState[M: Model]:
+class PipelineRequestState[M: Model, S: PipelineSessionStore]:
     """Initial pipeline attributes from a request."""
 
-    state: PipelineSessionStore
+    state: S
     provider_model: M | None
     organization: RpcOrganization | None
     provider_key: str
