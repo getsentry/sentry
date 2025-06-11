@@ -8,6 +8,7 @@ from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -30,6 +31,7 @@ from sentry.workflow_engine.processors.workflow import (
     enqueue_workflow,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
+    handle_activity_creation,
     process_workflows,
 )
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
@@ -745,3 +747,12 @@ class TestDeleteWorkflow:
         workflow_id = self.workflow.id
         delete_workflow(self.workflow)
         assert not Workflow.objects.filter(id=workflow_id).exists()
+
+
+class TestHandleActivityCreation(TestCase):
+    def test(self):
+        with patch(
+            "sentry.workflow_engine.processors.workflow.process_workflows"
+        ) as mock_process_workflows:
+            handle_activity_creation(self.activity)
+            mock_process_workflows.assert_called_once_with(WorkflowEventData(event=self.activity))

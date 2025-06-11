@@ -8,6 +8,7 @@ from django.db.models import F, Q
 
 from sentry import buffer, features
 from sentry.eventstore.models import GroupEvent
+from sentry.models.activity import Activity, activity_creation_registry
 from sentry.models.environment import Environment
 from sentry.utils import json
 from sentry.workflow_engine.models import (
@@ -311,3 +312,16 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics_incr("process_workflows.fired_actions")
 
     return triggered_workflows
+
+
+@activity_creation_registry.register("workflow_engine:process_workflows")
+def handle_activity_creation(activity: Activity) -> None:
+    workflow_event_data = WorkflowEventData(
+        event=activity,
+        has_reappeared=None,
+        has_escalated=None,
+        workflow_id=None,
+        workflow_env=None,
+    )
+
+    process_workflows(workflow_event_data)
