@@ -51,7 +51,7 @@ function SeerHeader({title, loading = false}: {title: string; loading?: boolean}
 function SeerSearchSkeleton() {
   return (
     <LoadingSkeleton>
-      <SeerHeader title={t('Seer is thinking...')} loading />
+      <SeerHeader title={t('Thinking...')} loading />
       <SkeletonCellsContainer>
         <SkeletonCell>
           <SkeletonLine width="95%" />
@@ -241,7 +241,7 @@ export function SeerSearch() {
                 });
                 setDisplaySeerResults(false);
               }}
-              aria-label={t('Close Seer search')}
+              aria-label={t('Close Seer Search')}
               borderless
             />
           </PositionedCloseButtonContainer>
@@ -314,7 +314,6 @@ const SearchInputContainer = styled('div')<{isDropdownOpen: boolean}>`
   display: flex;
   align-items: center;
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
   border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.borderRadius)};
@@ -351,14 +350,12 @@ const DropdownContent = styled('div')`
   right: 0;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-top: none;
   border-radius: ${p => p.theme.borderRadius};
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
-  min-height: 300px;
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
@@ -373,7 +370,6 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.purple100};
 `;
 
 const SearchIcon = styled(IconSearch)`
