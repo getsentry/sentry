@@ -40,7 +40,6 @@ class SentryAppIdentifier(StrEnum):
     """
 
     SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
-    SENTRY_APP_SLUG = "sentry_app_slug"
     SENTRY_APP_ID = "sentry_app_id"
 
 

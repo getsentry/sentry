@@ -14,6 +14,7 @@ from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.rules.processing.buffer_processing import (
@@ -32,7 +33,6 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     QueryResult,
@@ -148,7 +148,7 @@ def fetch_workflows_envs(
     workflows = list(Workflow.objects.filter(id__in=workflow_ids))
 
     for workflow in workflows:
-        workflows_to_envs[workflow.id] = workflow.environment.id if workflow.environment else None
+        workflows_to_envs[workflow.id] = workflow.environment_id
         workflow_ids_to_workflows[workflow.id] = workflow
 
     return workflow_ids_to_workflows, workflows_to_envs
@@ -256,8 +256,7 @@ def get_condition_group_results(
                 unique_condition.comparison_interval
             )
 
-        result = safe_execute(
-            handler.get_rate_bulk,
+        result = handler.get_rate_bulk(
             duration=duration,
             group_ids=group_ids,
             environment_id=unique_condition.environment_id,
@@ -265,7 +264,7 @@ def get_condition_group_results(
             comparison_interval=comparison_interval,
             filters=unique_condition.filters,
         )
-        condition_group_results[unique_condition] = result or {}
+        condition_group_results[unique_condition] = result
 
     return condition_group_results
 
@@ -406,6 +405,7 @@ def get_group_to_groupevent(
 
 @sentry_sdk.trace
 def fire_actions_for_groups(
+    organization: Organization,
     groups_to_fire: dict[int, set[DataConditionGroup]],
     trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
@@ -422,7 +422,7 @@ def fire_actions_for_groups(
     )
 
     with track_batch_performance(
-        "workflow_engine.delayed_workflow.group_to_groupevent.loop",
+        "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
         logger,
         threshold=timedelta(seconds=40),
     ) as tracker:
@@ -459,11 +459,8 @@ def fire_actions_for_groups(
                     extra={"group_id": group.id, "event_data": event_data},
                     threshold_seconds=1,
                 ):
-                    workflow_actions = evaluate_workflows_action_filters(workflows, event_data)
-                filtered_actions = filtered_actions.union(workflow_actions)
-
-                # temporary fetching of organization, so not passing in as parameter
-                organization = group.project.organization
+                    workflows_actions = evaluate_workflows_action_filters(workflows, event_data)
+                filtered_actions = filtered_actions.union(workflows_actions)
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -611,7 +608,9 @@ def process_delayed_workflows(
             project_id,
         )
 
-    fire_actions_for_groups(groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent)
+    fire_actions_for_groups(
+        project.organization, groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent
+    )
     cleanup_redis_buffer(project_id, workflow_event_dcg_data, batch_key)
 
 

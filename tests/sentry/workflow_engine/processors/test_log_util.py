@@ -112,8 +112,8 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         self.tracker.finalize()
         self.logger.info.assert_called_once()
         call_args = self.logger.info.call_args[1]
-        assert call_args["extra"]["durations_truncated"] == 100  # 300 - 200
-        assert len(call_args["extra"]["durations"]) == 200  # Should only keep top 200
+        assert call_args["extra"]["durations_truncated"] == 100
+        assert len(call_args["extra"]["durations"]) == _MAX_ITERATIONS_LOGGED
 
 
 def test_top_n_slowest():

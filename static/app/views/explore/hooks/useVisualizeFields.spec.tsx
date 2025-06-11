@@ -42,7 +42,6 @@ function useWrapper(yAxis: string) {
   return useVisualizeFields({
     numberTags,
     stringTags,
-    yAxes: [yAxis],
     parsedFunction: parseFunction(yAxis) ?? undefined,
   });
 }
