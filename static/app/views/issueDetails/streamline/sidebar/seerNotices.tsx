@@ -312,7 +312,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                     priority="primary"
                     disabled={!needsFixabilityView}
                   >
-                    {!needsFixabilityView ? t('View Already Starred') : t('Star Recommended View')}
+                    {needsFixabilityView
+                      ? t('Star Recommended View')
+                      : t('View Already Starred')}
                   </Button>
                 </GuidedSteps.StepButtons>
               </GuidedSteps.Step>
