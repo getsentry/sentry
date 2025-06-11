@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,6 +32,12 @@ class TestResultsEndpoint(CodecovEndpoint):
         parameters=[
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
+            PreventParams.TEST_RESULTS_SORT_BY,
+            PreventParams.TEST_RESULTS_FILTER_BY,
+            PreventParams.INTERVAL,
+            PreventParams.BRANCH,
+            PreventParams.FIRST,
+            PreventParams.LAST,
         ],
         request=None,
         responses={
@@ -43,29 +50,51 @@ class TestResultsEndpoint(CodecovEndpoint):
     def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
-        owner = "codecov"
-        repository = "gazebo"
-        branch = "main"
+        sort_by = request.query_params.get("sortBy", OrderingParameter.COMMITS_WHERE_FAIL.value)
+
+        if sort_by and sort_by.startswith("-"):
+            sort_by = sort_by[1:]
+            direction = OrderingDirection.DESC.value
+        else:
+            direction = OrderingDirection.ASC.value
+
+        first_param = request.query_params.get("first")
+        last_param = request.query_params.get("last")
+
+        first = int(first_param) if first_param else None
+        last = int(last_param) if last_param else None
+
+        if first and last:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "Cannot specify both `first` and `last`"},
+            )
+
+        if not first and not last:
+            first = 20
 
         variables = {
             "owner": owner,
             "repo": repository,
             "filters": {
-                "branch": branch,
+                "branch": request.query_params.get("branch", "main"),
+                "parameter": request.query_params.get("filterBy"),
+                "interval": (
+                    request.query_params.get("interval", MeasurementInterval.INTERVAL_30_DAY.value)
+                ),
                 "flags": None,
-                "interval": MeasurementInterval.INTERVAL_30_DAY.value,
-                "parameter": None,
                 "term": None,
                 "test_suites": None,
             },
             "ordering": {
-                "direction": OrderingDirection.DESC.value,
-                "parameter": OrderingParameter.COMMITS_WHERE_FAIL.value,
+                "direction": direction,
+                "parameter": sort_by,
             },
-            "first": 10,
+            "first": first,
+            "last": last,
         }
 
-        client = CodecovApiClient(git_provider_org="codecov")
+        client = CodecovApiClient(git_provider_org=owner)
         graphql_response = client.query(query=query, variables=variables)
 
         test_results = TestResultSerializer().to_representation(graphql_response.json())

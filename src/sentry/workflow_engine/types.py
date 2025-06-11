@@ -21,6 +21,12 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+ERROR_DETECTOR_NAME = "Error Monitor"
+
+
+class DetectorException(Exception):
+    pass
+
 
 class DetectorPriorityLevel(IntEnum):
     OK = 0
@@ -74,6 +80,7 @@ class ActionHandler:
 
     @staticmethod
     def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
+        # TODO - do we need to pass all of this data to an action?
         raise NotImplementedError
 
 

@@ -134,6 +134,36 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
             response_with_collapse.data["release"]
         )
 
+    def test_prev_filtered(self) -> None:
+        url = f"/api/0/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        response = self.client.get(
+            url,
+            {
+                "start": self.event_b.datetime.isoformat(),
+                "end": before_now(minutes=0),
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] == str(self.event_c.event_id)
+
+    def test_next_filtered(self) -> None:
+        url = f"/api/0/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        response = self.client.get(
+            url,
+            {
+                "start": self.event_a.datetime.isoformat(),
+                "end": self.event_b.datetime.isoformat(),
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] == str(self.event_a.event_id)
+        assert response.data["nextEventID"] is None
+
 
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin

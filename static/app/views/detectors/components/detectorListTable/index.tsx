@@ -10,7 +10,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
-} from 'sentry/views/detectors/components/detectorListRow';
+} from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 type DetectorListTableProps = {
@@ -31,13 +31,17 @@ function DetectorListTable({detectors, isPending}: DetectorListTableProps) {
         <Flex className="type">
           <Heading>{t('Type')}</Heading>
         </Flex>
+        <Flex className="type">
+          <HeaderDivider />
+          <Heading>{t('Type')}</Heading>
+        </Flex>
         <Flex className="issue">
           <HeaderDivider />
           <Heading>{t('Last Issue')}</Heading>
         </Flex>
-        <Flex className="owner">
+        <Flex className="assignee">
           <HeaderDivider />
-          <Heading>{t('Owner')}</Heading>
+          <Heading>{t('Assignee')}</Heading>
         </Flex>
         <Flex className="connected-automations">
           <HeaderDivider />
