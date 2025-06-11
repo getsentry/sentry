@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
-import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -51,7 +51,10 @@ export function DetectorListRow({
         <DetectorAssigneeCell assignee={owner} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
-        <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />
+        <DetectorListConnectedAutomations
+          automationIds={workflowIds}
+          disabled={disabled}
+        />
       </CellWrapper>
     </RowWrapper>
   );
