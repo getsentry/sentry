@@ -37,8 +37,8 @@ function TotalTestsRunTimeTooltip() {
 }
 
 interface SlowestTestsTooltipProps {
-  slowestTests: number;
-  slowestTestsDuration: number;
+  slowestTests?: number;
+  slowestTestsDuration?: number;
 }
 
 function SlowestTestsTooltip({
@@ -67,10 +67,10 @@ const ToolTipTitle = styled('strong')`
 `;
 
 interface CIEfficiencyBodyProps {
-  slowestTests: number;
-  slowestTestsDuration: number;
-  totalTestsRunTime: number;
-  totalTestsRunTimeChange: number;
+  slowestTests?: number;
+  slowestTestsDuration?: number;
+  totalTestsRunTime?: number;
+  totalTestsRunTimeChange?: number | null;
 }
 
 function CIEfficiencyBody({
@@ -87,9 +87,11 @@ function CIEfficiencyBody({
         </SummaryEntryLabel>
         <SummaryEntryValue>
           {formatTimeDuration(totalTestsRunTime, 2)}
-          <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
-            {formatPercentRate(totalTestsRunTimeChange)}
-          </Tag>
+          {totalTestsRunTimeChange ? (
+            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(totalTestsRunTimeChange)}
+            </Tag>
+          ) : null}
         </SummaryEntryValue>
       </SummaryEntry>
       <SummaryEntry columns={3}>
@@ -112,12 +114,8 @@ function CIEfficiencyBody({
   );
 }
 
-interface CIEfficiencyProps {
+interface CIEfficiencyProps extends CIEfficiencyBodyProps {
   isLoading: boolean;
-  slowestTests: number;
-  slowestTestsDuration: number;
-  totalTestsRunTime: number;
-  totalTestsRunTimeChange: number;
 }
 
 export function CIEfficiency({isLoading, ...bodyProps}: CIEfficiencyProps) {
