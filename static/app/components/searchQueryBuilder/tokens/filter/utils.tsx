@@ -100,10 +100,12 @@ export function getValidOpsForFilter(
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
-  const isTextFilter =
-    filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
   // Special case for text, add contains operator
-  if (isTextFilter && fieldDefinition?.allowWildcard !== false && hasWildcardOperators) {
+  if (
+    hasWildcardOperators &&
+    fieldDefinition?.allowWildcard !== false &&
+    (filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN)
+  ) {
     validOps.add(WildcardOperators.CONTAINS);
     validOps.add(WildcardOperators.DOES_NOT_CONTAIN);
     validOps.add(WildcardOperators.STARTS_WITH);
