@@ -222,6 +222,7 @@ function GlobalModal({onClose}: Props) {
   return createPortal(
     <Fragment>
       <Backdrop
+        data-overlay
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
         css={options?.backdropCss}
       />
