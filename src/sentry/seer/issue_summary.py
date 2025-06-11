@@ -69,16 +69,17 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             return
 
         project = group.project
+        organization = group.organization
 
         sentry_sdk.set_tags(
             {
-                "org_slug": group.organization.slug,
-                "org_id": group.organization.id,
+                "org_slug": organization.slug,
+                "org_id": organization.id,
                 "project_id": project.id,
             }
         )
 
-        if not features.has("projects:unlimited-auto-triggered-autofix-runs", project):
+        if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
             limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
             is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
                 project=project,
