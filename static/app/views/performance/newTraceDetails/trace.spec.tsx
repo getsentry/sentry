@@ -62,12 +62,11 @@ class MockResizeObserver {
 
 type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
-function mockQueryString(queryString: string) {
-  Object.defineProperty(window, 'location', {
-    value: {
-      search: queryString,
-    },
+function mockQueryString(queryString: `?${string}` | '') {
+  (global as any).jsdom.reconfigure({
+    url: `http://localhost/${queryString}`,
   });
+  expect(window.location.search).toBe(queryString);
 }
 
 function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
@@ -1002,7 +1001,7 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    window.location.search = `?timestamp=${twelveMinutesAgoInSeconds.toString()}`;
+    mockQueryString(`?timestamp=${twelveMinutesAgoInSeconds.toString()}`);
     render(<TraceView />, {
       router,
       deprecatedRouterMocks: true,
@@ -1031,7 +1030,7 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
+    mockQueryString(`?timestamp=${oneMinuteAgoInSeconds.toString()}`);
     render(<TraceView />, {
       router,
       deprecatedRouterMocks: true,
