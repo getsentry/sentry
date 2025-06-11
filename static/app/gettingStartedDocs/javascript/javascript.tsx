@@ -546,7 +546,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     },
     getAiRulesConfig(params),
   ],
-  verify: () => getVerifyConfig(),
+  verify: getVerifyConfig,
   nextSteps: () => [
     {
       id: 'source-maps',
@@ -642,7 +642,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     }),
     getAiRulesConfig(params),
   ],
-  verify: () => getVerifyConfig(),
+  verify: getVerifyConfig,
   nextSteps: () => [],
   onPageLoad: params => {
     return () => {
