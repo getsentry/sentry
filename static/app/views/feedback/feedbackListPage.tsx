@@ -52,6 +52,8 @@ export default function FeedbackListPage() {
     pageFilters.selection.projects.includes(Number(p.id))
   );
 
+  // console.log(pageFilters);
+
   // one selected project is widget eligible
   const oneIsWidgetEligible = selectedProjects.some(p =>
     feedbackWidgetPlatforms.includes(p.platform!)

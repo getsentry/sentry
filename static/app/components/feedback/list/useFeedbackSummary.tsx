@@ -1,7 +1,7 @@
 // import {useEffect, useMemo, useRef, useState} from 'react';
 
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -30,7 +30,11 @@ export default function useFeedbackSummary(): {
 
   const queryView = useLocationQuery({
     fields: {
+      end: decodeScalar,
       project: decodeList,
+      start: decodeScalar,
+      statsPeriod: decodeScalar,
+      utc: decodeScalar,
     },
   });
 
@@ -44,7 +48,7 @@ export default function useFeedbackSummary(): {
     // refetch: refetchFeedbackSummary,
   } = useApiQuery<FeedbackSummaryResponse>( // TODO: fix this type
     [
-      `/organizations/${organization.slug}/user-feedback/summary/`,
+      `/organizations/${organization.slug}/feedback-summary/`,
       {
         query: {
           // ...normalizeDateTimeParams(datetime), # add something in the frontend or options to query feedbacks in a certain time range?

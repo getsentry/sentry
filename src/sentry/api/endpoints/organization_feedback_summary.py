@@ -58,7 +58,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         return Response(
             {
-                "summary": "This is a test summary",
+                "summary": "This is a test summary that is being used to test the feedback summary frontend view, since we don't have the LLM set up here. I am making this purposefully long just to see if it will add an option to read more.",
                 "success": True,
                 "num_feedbacks_used": 10,
             }
