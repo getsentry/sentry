@@ -98,7 +98,7 @@ export type HydratedReplayRecord = {
    */
   count_rage_clicks?: number;
 };
-export type ArchivedReplayRecord = {
+type ArchivedReplayRecord = {
   /**
    * Number that represents how much user activity happened in a replay.
    */
