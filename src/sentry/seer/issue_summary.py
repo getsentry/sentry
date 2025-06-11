@@ -169,11 +169,14 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-def _generate_fixability_score(group_id: int):
+def _generate_fixability_score(group: Group):
     path = "/v1/automation/summarize/fixability"
     body = orjson.dumps(
         {
-            "group_id": group_id,
+            "group_id": group.id,
+            "organization_slug": group.organization.slug,
+            "organization_id": group.organization.id,
+            "project_id": group.project.id,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -185,6 +188,7 @@ def _generate_fixability_score(group_id: int):
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(body),
         },
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
     )
 
     response.raise_for_status()
@@ -288,7 +292,7 @@ def _run_automation(
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
         try:
-            issue_summary = _generate_fixability_score(group_id)
+            issue_summary = _generate_fixability_score(group)
         except Exception:
             logger.exception("Error generating fixability score", extra={"group_id": group_id})
             return
