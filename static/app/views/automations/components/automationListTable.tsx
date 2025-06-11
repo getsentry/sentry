@@ -3,40 +3,22 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {
-  BulkActions,
-  useBulkActions,
-} from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AutomationListRow} from 'sentry/views/automations/components/automationListRow';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 
 function AutomationListTable() {
-  const {data: automations = [], isLoading} = useAutomationsQuery();
-
-  const {
-    selectedRows,
-    handleSelect,
-    isSelectAllChecked,
-    toggleSelectAll,
-    bulkActionsVisible,
-    canDelete,
-  } = useBulkActions(automations);
+  const {data: automations = [], isPending} = useAutomationsQuery();
 
   return (
-    <Panel>
+    <PanelGrid>
       <StyledPanelHeader>
-        <BulkActions
-          bulkActionsVisible={bulkActionsVisible}
-          canDelete={canDelete}
-          isSelectAllChecked={isSelectAllChecked}
-          toggleSelectAll={toggleSelectAll}
-        />
+        <Flex className="name">
+          <Heading>{t('Name')}</Heading>
+        </Flex>
         <Flex className="last-triggered">
-          <HeaderDivider />
           <Heading>{t('Last Triggered')}</Heading>
         </Flex>
         <Flex className="action">
@@ -52,20 +34,57 @@ function AutomationListTable() {
           <Heading>{t('Monitors')}</Heading>
         </Flex>
       </StyledPanelHeader>
-      <PanelBody>
-        {isLoading ? <LoadingIndicator /> : null}
-        {automations.map(automation => (
-          <AutomationListRow
-            key={automation.id}
-            automation={automation}
-            handleSelect={handleSelect}
-            selected={selectedRows.includes(automation.id)}
-          />
-        ))}
-      </PanelBody>
-    </Panel>
+      {isPending ? <LoadingIndicator /> : null}
+      {automations.map(automation => (
+        <AutomationListRow key={automation.id} automation={automation} />
+      ))}
+    </PanelGrid>
   );
 }
+
+const PanelGrid = styled(Panel)`
+  display: grid;
+  grid-template-columns: 1fr;
+
+  .last-triggered,
+  .action,
+  .projects,
+  .connected-monitors {
+    display: none;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+    grid-template-columns: 2.5fr 1fr;
+
+    .projects {
+      display: flex;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 2.5fr 1fr 1fr;
+
+    .action {
+      display: flex;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 2.5fr 1fr 1fr 1fr;
+
+    .last-triggered {
+      display: flex;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
+
+    .connected-monitors {
+      display: flex;
+    }
+  }
+`;
 
 const HeaderDivider = styled('div')`
   background-color: ${p => p.theme.gray200};
@@ -81,46 +100,15 @@ const Heading = styled('div')`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
+
   justify-content: left;
   padding: ${space(0.75)} ${space(2)};
   min-height: 40px;
   align-items: center;
-  display: grid;
   text-transform: none;
-
-  .last-triggered,
-  .action,
-  .connected-monitors {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 2.5fr 1fr;
-
-    .action {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 2.5fr 1fr 1fr;
-
-    .last-triggered {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 1fr 1fr;
-
-    .connected-monitors {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr;
-  }
 `;
 
 export default AutomationListTable;
