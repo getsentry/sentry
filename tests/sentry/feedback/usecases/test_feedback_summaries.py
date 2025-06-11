@@ -21,5 +21,5 @@ def test_parse_response_valid_extra_whitespace():
 def test_parse_response_response_invalid():
     invalid_response = "This is not a valid summary"
 
-    with pytest.raises(Exception, match="Error parsing AI feedback summary"):
+    with pytest.raises(ValueError, match="Failed to parse AI feedback summary response"):
         parse_response(invalid_response)
