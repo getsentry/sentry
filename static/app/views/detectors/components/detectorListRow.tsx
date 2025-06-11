@@ -31,6 +31,7 @@ export function DetectorListRow({
       <CellWrapper>
         <StyledTitleCell
           name={name}
+          createdBy={createdBy}
           projectId={projectId}
           link={link}
           disabled={disabled}
