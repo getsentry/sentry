@@ -4,10 +4,10 @@ import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
-  IconCodecov,
   IconDashboard,
   IconGraph,
   IconIssues,
+  IconPrevent,
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
@@ -126,7 +126,7 @@ export function PrimaryNavigationItems() {
             analyticsKey="codecov"
             group={PrimaryNavGroup.CODECOV}
           >
-            <IconCodecov />
+            <IconPrevent />
           </SidebarLink>
         </Feature>
 
