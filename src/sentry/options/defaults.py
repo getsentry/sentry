@@ -949,6 +949,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity.grouping-ingest-retries",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.similarity.grouping-ingest-timeout",
     type=Int,
     default=1,

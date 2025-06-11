@@ -21,6 +21,7 @@ def make_signed_seer_api_request(
     path: str,
     body: bytes,
     timeout: int | None = None,
+    retries: int | None = None,
     metric_tags: dict[str, Any] | None = None,
 ) -> BaseHTTPResponse:
     host = connection_pool.host
@@ -46,6 +47,7 @@ def make_signed_seer_api_request(
             parsed.path,
             body=body,
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
+            retries=retries,
             **timeout_options,
         )
 

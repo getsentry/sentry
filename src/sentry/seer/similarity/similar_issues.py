@@ -72,6 +72,7 @@ def get_similarity_data_from_seer(
             json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
                 "utf8"
             ),
+            retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
             metric_tags={"referrer": referrer} if referrer else {},
         )
