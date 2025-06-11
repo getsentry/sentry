@@ -1,4 +1,5 @@
 import {installation_info} from 'sentry-fixture/githubInstallationSelect';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,13 +14,12 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org
-        organization_slug="le-org"
+        organization={OrganizationFixture({features: ['integrations-scm-multi-org']})}
       />
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
@@ -43,8 +43,7 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org
-        organization_slug="le-org"
+        organization={OrganizationFixture({features: ['integrations-scm-multi-org']})}
       />
     );
     // Click the select dropdown
@@ -74,8 +73,7 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org
-        organization_slug="le-org"
+        organization={OrganizationFixture()}
       />
     );
 
@@ -94,17 +92,16 @@ describe('GithubInstallationSelect', () => {
     );
   });
 
-  it('renders tooltip and adds the upsell if user is not on biz plan', async () => {
+  it('renders the upsell if user is not on biz plan', async () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_scm_multi_org={false}
-        organization_slug="le-org"
+        organization={OrganizationFixture()}
       />
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();

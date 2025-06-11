@@ -478,7 +478,7 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body style={bodyStyle}>
+          <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"

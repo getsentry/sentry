@@ -11,6 +11,7 @@ interface NewAutomation {
 }
 
 export interface Automation extends Readonly<NewAutomation> {
+  readonly createdBy: string;
   readonly dateCreated: string;
   readonly dateUpdated: string;
   readonly id: string;

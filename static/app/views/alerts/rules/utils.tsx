@@ -4,11 +4,13 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -160,4 +162,20 @@ export function getAlertRuleExploreUrl({
     ],
     query: rule.query,
   });
+}
+
+export function isEapAlertType(alertType?: AlertType) {
+  if (!defined(alertType)) {
+    return false;
+  }
+  return [
+    'eap_metrics',
+    'trace_item_throughput',
+    'trace_item_duration',
+    'trace_item_apdex',
+    'trace_item_failure_rate',
+    'trace_item_lcp',
+    'trace_item_fid',
+    'trace_item_cls',
+  ].includes(alertType);
 }

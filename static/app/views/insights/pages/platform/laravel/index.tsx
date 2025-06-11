@@ -15,9 +15,9 @@ import OverviewRequestsChartWidget from 'sentry/views/insights/common/components
 import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
 import {CommandsTable} from 'sentry/views/insights/pages/platform/laravel/commandsTable';
 import {JobsTable} from 'sentry/views/insights/pages/platform/laravel/jobsTable';
+import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 
 enum TableType {

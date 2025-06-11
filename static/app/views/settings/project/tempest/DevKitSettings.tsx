@@ -84,7 +84,7 @@ export default function DevKitSettings({organization, project}: Props) {
                 >
                   <GuidedSteps.Step
                     stepKey="step-1"
-                    title={t('Copy Playstation Ingestion URL')}
+                    title={t('Copy PlayStation Ingestion URL')}
                   >
                     <DescriptionWrapper>
                       <p>
@@ -101,7 +101,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
                   <GuidedSteps.Step
                     stepKey="step-2"
-                    title={t('Using Windows tool set up Upload URL')}
+                    title={t('Using Windows tool to set up Upload URL')}
                   >
                     <DescriptionWrapper>
                       <StepContentColumn>
@@ -125,7 +125,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
                   <GuidedSteps.Step
                     stepKey="step-3"
-                    title={t('Using DevKit Directly set up Upload URL')}
+                    title={t('Using DevKit Directly to set up Upload URL')}
                   >
                     <DescriptionWrapper>
                       <StepContentColumn>
@@ -169,7 +169,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
                       <p>
                         {t(
-                          'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. Short videos should be supposed so configuring the DevKit to keep them short is a temporary solution.'
+                          'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. During the first setup it is recommended to not send any videos, and once you made sure everything works, you can start sending larger attachments.'
                         )}
                       </p>
                     </DescriptionWrapper>

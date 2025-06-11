@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
@@ -11,6 +12,7 @@ export type TitleCellProps = {
   link: string;
   name: string;
   className?: string;
+  createdBy?: string | null;
   details?: string[];
   disabled?: boolean;
   projectId?: string;
@@ -18,17 +20,21 @@ export type TitleCellProps = {
 
 export function TitleCell({
   name,
-  projectId: project_id,
+  createdBy,
+  projectId,
   details,
   link,
   disabled = false,
   className,
 }: TitleCellProps) {
-  const project = useProjectFromId({project_id});
+  const project = useProjectFromId({project_id: projectId});
   return (
     <TitleWrapper to={link} disabled={disabled} className={className}>
       <Name disabled={disabled}>
         <strong>{name}</strong>
+        {!createdBy && (
+          <IconSentry size="xs" color="subText" style={{alignSelf: 'center'}} />
+        )}
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
       <DetailsWrapper>
