@@ -269,7 +269,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         data_condition_group = self.create_data_condition_group()
         error_detector = self.create_detector(
             project_id=self.project.id,
-            name="Error Detector",
+            name="Error Monitor",
             type=ErrorGroupType.slug,
             workflow_condition_group=data_condition_group,
         )
