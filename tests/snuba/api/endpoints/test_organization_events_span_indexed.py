@@ -1424,9 +1424,49 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     {
                         "description": "foo",
                         "sentry_tags": {"status": "success"},
-                        "tags": {"foo": "five"},
                     },
                     measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "description",
+                    "tags[foo,number]",
+                ],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["tags[foo,number]"] == 5
+
+    def test_numeric_attr_overlap_string_attr(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -1449,20 +1489,24 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0]["tags[foo,number]"] == 5
+
+        assert data[0]["tags[foo,number]"] is None
         assert data[0]["tags[foo,string]"] == "five"
         assert data[0]["tags[foo]"] == "five"
+
+        assert data[1]["tags[foo,number]"] == 5
+        assert data[1]["tags[foo,string]"] is None
+        assert data[1]["tags[foo]"] is None
 
     def test_numeric_attr_with_spaces(self):
         self.store_spans(
             [
                 self.create_span(
                     {
-                        "description": "foo",
+                        "description": "zoo",
                         "sentry_tags": {"status": "success"},
-                        "tags": {"foo": "five"},
                     },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
@@ -1476,8 +1520,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "field": [
                     "description",
                     "tags[foo,    number]",
-                    "tags[foo, string]",
-                    "tags[foo]",
                 ],
                 "query": "",
                 "orderby": "description",
@@ -1490,8 +1532,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[0]["tags[foo,    number]"] == 5
-        assert data[0]["tags[foo, string]"] == "five"
-        assert data[0]["tags[foo]"] == "five"
 
     def test_numeric_attr_filtering(self):
         self.store_spans(
@@ -1500,7 +1540,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     {
                         "description": "foo",
                         "sentry_tags": {"status": "success"},
-                        "tags": {"foo": "five"},
                     },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
@@ -1508,7 +1547,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 self.create_span(
                     {
                         "description": "bar",
-                        "sentry_tags": {"status": "success", "foo": "five"},
+                        "sentry_tags": {"status": "success"},
                     },
                     measurements={"foo": {"value": 8}},
                     start_ts=self.ten_mins_ago,
@@ -5444,3 +5483,35 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "release": "test@1.2.3+122",
             },
         ]
+
+    def test_file_extension(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"file_extension": "css"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"file_extension": "js"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "file_extension",
+                ],
+                "orderby": "file_extension",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["file_extension"] == "css"
+        assert data[1]["file_extension"] == "js"
+        assert meta["dataset"] == self.dataset

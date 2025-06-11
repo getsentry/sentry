@@ -4,40 +4,31 @@ import {Flex} from 'sentry/components/container/flex';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {
-  BulkActions,
-  useBulkActions,
-} from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {DetectorListRow} from 'sentry/views/detectors/components/detectorListRow';
+import {
+  DetectorListRow,
+  DetectorListRowSkeleton,
+} from 'sentry/views/detectors/components/detectorListRow';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 type DetectorListTableProps = {
   detectors: Detector[];
+  isPending: boolean;
 };
 
-function DetectorListTable({detectors}: DetectorListTableProps) {
-  const {
-    selectedRows,
-    handleSelect,
-    isSelectAllChecked,
-    toggleSelectAll,
-    bulkActionsVisible,
-    canDelete,
-  } = useBulkActions(detectors);
+function LoadingSkeletons() {
+  return Array.from({length: DETECTOR_LIST_PAGE_LIMIT}).map((_, index) => (
+    <DetectorListRowSkeleton key={index} />
+  ));
+}
 
+function DetectorListTable({detectors, isPending}: DetectorListTableProps) {
   return (
     <Panel>
       <StyledPanelHeader>
-        <BulkActions
-          bulkActionsVisible={bulkActionsVisible}
-          canDelete={canDelete}
-          isSelectAllChecked={isSelectAllChecked}
-          toggleSelectAll={toggleSelectAll}
-        />
         <Flex className="type">
-          <HeaderDivider />
           <Heading>{t('Type')}</Heading>
         </Flex>
         <Flex className="issue">
@@ -54,14 +45,13 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
         </Flex>
       </StyledPanelHeader>
       <PanelBody>
-        {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            detector={detector}
-            handleSelect={handleSelect}
-            selected={selectedRows.includes(detector.id)}
-          />
-        ))}
+        {isPending ? (
+          <LoadingSkeletons />
+        ) : (
+          detectors.map(detector => (
+            <DetectorListRow key={detector.id} detector={detector} />
+          ))
+        )}
       </PanelBody>
     </Panel>
   );

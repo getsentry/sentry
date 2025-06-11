@@ -4,10 +4,9 @@ from enum import StrEnum
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 
 from sentry import buffer, features
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.utils import json
@@ -87,16 +86,6 @@ def enqueue_workflow(
         value=value,
     )
 
-    logger.info(
-        "workflow_engine.enqueue_workflow",
-        extra={
-            "workflow": workflow.id,
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "delayed_conditions": [condition.id for condition in delayed_conditions],
-        },
-    )
-
 
 @sentry_sdk.trace
 def evaluate_workflow_triggers(
@@ -148,36 +137,18 @@ def evaluate_workflow_triggers(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
-) -> BaseQuerySet[Action]:
+) -> set[DataConditionGroup]:
     filtered_action_groups: set[DataConditionGroup] = set()
-
     action_conditions = (
         DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
-        .prefetch_related("workflowdataconditiongroup_set")
+        .annotate(workflow_id=F("workflowdataconditiongroup__workflow_id"))
         .distinct()
     )
-
+    workflows_by_id = {workflow.id: workflow for workflow in workflows}
     for action_condition in action_conditions:
-        workflow_event_data = event_data
-
-        # each DataConditionGroup here has 1 WorkflowDataConditionGroup
-        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
-
-        # Populate the workflow_env in the event_data for the action_condition evaluation
-        if workflow_data_condition_group:
-            workflow_event_data = replace(
-                workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
-            )
-        else:
-            logger.info(
-                "workflow_engine.evaluate_workflows_action_filters.no_workflow_data_condition_group",
-                extra={
-                    "group_id": event_data.event.group_id,
-                    "event_id": event_data.event.event_id,
-                    "action_condition_id": action_condition.id,
-                },
-            )
-
+        workflow_event_data = replace(
+            event_data, workflow_env=workflows_by_id[action_condition.workflow_id].environment
+        )
         group_evaluation, remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_event_data
         )
@@ -185,13 +156,12 @@ def evaluate_workflows_action_filters(
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            if workflow_data_condition_group:
-                enqueue_workflow(
-                    workflow_data_condition_group.workflow,
-                    remaining_conditions,
-                    event_data.event,
-                    WorkflowDataConditionGroupType.ACTION_FILTER,
-                )
+            enqueue_workflow(
+                workflows_by_id[action_condition.workflow_id],
+                remaining_conditions,
+                event_data.event,
+                WorkflowDataConditionGroupType.ACTION_FILTER,
+            )
         else:
             if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
@@ -207,27 +177,7 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    actions = filter_recently_fired_actions(filtered_action_groups, event_data)
-
-    metrics_incr(
-        "process_workflows.actions",
-        len(actions),
-    )
-
-    # TODO - Remove once logger uses WorkflowContext
-    detector = WorkflowEventContext.get().detector or get_detector_by_event(event_data)
-
-    logger.info(
-        "workflow_engine.process_workflows.actions (all)",
-        extra={
-            "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
-            "workflow_ids": [workflow.id for workflow in workflows],
-            "action_ids": [action.id for action in actions],
-            "detector_type": detector.type,
-        },
-    )
-    return actions
+    return filtered_action_groups
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment:
@@ -325,7 +275,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         # if there aren't any triggered workflows, there's no action filters to evaluate
         return set()
 
-    actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
+    actions_to_trigger = evaluate_workflows_action_filters(triggered_workflows, event_data)
+    actions = filter_recently_fired_actions(actions_to_trigger, event_data)
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
         return triggered_workflows
@@ -336,13 +287,12 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             organization,
         ):
             for action in actions:
-                # TODO - change this to kick of a celery task instead
                 action.trigger(event_data, detector)
-
                 metrics_incr(
                     "action.trigger",
                     tags={"action_type": action.type},
                 )
+
                 logger.info(
                     "workflow_engine.action.trigger",
                     extra={

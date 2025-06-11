@@ -86,7 +86,12 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending your comment.'));
@@ -122,7 +127,12 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
       );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when resolving the thread.'));
@@ -160,7 +170,7 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const {data: autofixData} = useAutofixData({groupId});
+  const {data: autofixData} = useAutofixData({groupId, isUserWatching: true});
   const currentStep = isAgentComment
     ? autofixData?.steps?.[stepIndex + 1]
     : autofixData?.steps?.[stepIndex];

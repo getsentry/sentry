@@ -46,11 +46,12 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {
+  findSpanAttributeValue,
   getProfileMeta,
+  getTraceAttributesTreeActions,
   sortAttributes,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -376,7 +377,7 @@ function EAPSpanNodeDetails({
 
   const {
     data: eventTransaction,
-    isPending: isEventTransactionPending,
+    isLoading: isEventTransactionLoading,
     isError: isEventTransactionError,
   } = useTransaction({
     event_id: node.value.transaction_id,
@@ -388,7 +389,7 @@ function EAPSpanNodeDetails({
 
   const traceState = useTraceState();
 
-  if (isTraceItemPending || isEventTransactionPending) {
+  if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;
   }
 
@@ -403,8 +404,8 @@ function EAPSpanNodeDetails({
       ? 1
       : undefined;
 
-  const isTransaction = isEAPTransactionNode(node);
-  const profileMeta = getProfileMeta(eventTransaction) || '';
+  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
@@ -459,7 +460,7 @@ function EAPSpanNodeDetails({
                         <SectionTitleWithQuestionTooltip
                           title={t('Attributes')}
                           tooltipText={t(
-                            'These attributes are indexed and can be queries in the Trace Explorer.'
+                            'These attributes are indexed and can be queried in the Trace Explorer.'
                           )}
                         />
                       }
@@ -473,6 +474,11 @@ function EAPSpanNodeDetails({
                           location,
                           organization,
                         }}
+                        getCustomActions={getTraceAttributesTreeActions({
+                          location,
+                          organization,
+                          projectIds: findSpanAttributeValue(attributes, 'project_id'),
+                        })}
                       />
                     </FoldSection>
 
@@ -483,7 +489,7 @@ function EAPSpanNodeDetails({
                           <SectionTitleWithQuestionTooltip
                             title={t('Contexts')}
                             tooltipText={t(
-                              "This data is not indexed and can't be queries in the Trace Explorer. For querying, attach these as attributes to your spans."
+                              "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
                             )}
                           />
                         }
@@ -513,10 +519,6 @@ function EAPSpanNodeDetails({
                         event={eventTransaction}
                         organization={organization}
                       />
-                    ) : null}
-
-                    {isTransaction ? (
-                      <BreadCrumbs event={eventTransaction} organization={organization} />
                     ) : null}
 
                     {isTransaction && project ? (

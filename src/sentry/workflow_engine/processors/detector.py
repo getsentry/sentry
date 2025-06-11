@@ -48,15 +48,18 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
-def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
+def create_issue_platform_payload(result: DetectorEvaluationResult):
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
         occurrence = result.result
         payload_type = PayloadType.OCCURRENCE
+
+        metrics.incr("workflow_engine.issue_platform.payload.sent.occurrence")
     else:
         status_change = result.result
         payload_type = PayloadType.STATUS_CHANGE
+        metrics.incr("workflow_engine.issue_platform.payload.sent.status_change")
 
     produce_occurrence_to_kafka(
         payload_type=payload_type,
@@ -88,22 +91,32 @@ def process_detectors(
             return results
 
         for result in detector_results.values():
+            logger_extra = {
+                "detector": detector.id,
+                "detector_type": detector.type,
+                "evaluation_data": data_packet.packet,
+                "result": result,
+            }
             if result.result is not None:
-                create_issue_occurrence_from_result(result)
-                metrics.incr(
-                    "workflow_engine.process_detector.triggered",
-                    tags={"detector_type": detector.type},
-                )
-
-                logger.info(
-                    "detector_triggered",
-                    extra={
-                        "detector": detector.id,
-                        "detector_type": detector.type,
-                        "evaluation_data": data_packet.packet,
-                        "result": result,
-                    },
-                )
+                if isinstance(result.result, IssueOccurrence):
+                    metrics.incr(
+                        "workflow_engine.process_detector.triggered",
+                        tags={"detector_type": detector.type},
+                    )
+                    logger.info(
+                        "detector_triggered",
+                        extra=logger_extra,
+                    )
+                else:
+                    metrics.incr(
+                        "workflow_engine.process_detector.resolved",
+                        tags={"detector_type": detector.type},
+                    )
+                    logger.info(
+                        "detector_resolved",
+                        extra=logger_extra,
+                    )
+                create_issue_platform_payload(result)
 
         if detector_results:
             results.append((detector, detector_results))

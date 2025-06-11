@@ -13,23 +13,31 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.setup_data()
 
     def setup_data(self):
-        one_min_ago = before_now(minutes=1).isoformat()
-        two_min_ago = before_now(minutes=2).isoformat()
-        three_min_ago = before_now(minutes=3).isoformat()
-        four_min_ago = before_now(minutes=4).isoformat()
+        self.one_min_ago = before_now(minutes=1).isoformat()
+        self.two_min_ago = before_now(minutes=2).isoformat()
+        self.three_min_ago = before_now(minutes=3).isoformat()
+        self.four_min_ago = before_now(minutes=4).isoformat()
 
         self.prev_event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": four_min_ago, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.four_min_ago,
+                "fingerprint": ["group-1"],
+            },
             project_id=self.project.id,
         )
         self.cur_event = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": three_min_ago, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.three_min_ago,
+                "fingerprint": ["group-1"],
+            },
             project_id=self.project.id,
         )
         self.next_event = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": two_min_ago,
+                "timestamp": self.two_min_ago,
                 "fingerprint": ["group-1"],
                 "environment": "production",
                 "tags": {"environment": "production"},
@@ -42,7 +50,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": one_min_ago,
+                "timestamp": self.one_min_ago,
                 "fingerprint": ["group-2"],
                 "environment": "production",
                 "tags": {"environment": "production"},
@@ -84,6 +92,44 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == self.cur_event.event_id
         assert response.data["groupID"] == str(self.cur_group.id)
 
+    def test_snuba_filtered_prev(self):
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+            query={
+                "start": self.three_min_ago,
+                "end": before_now(minutes=0).isoformat(),
+            },
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] == str(self.next_event.event_id)
+
+    def test_snuba_filtered_next(self):
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+            query={
+                "start": self.four_min_ago,
+                "end": self.three_min_ago,
+            },
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] == str(self.prev_event.event_id)
+        assert response.data["nextEventID"] is None
+
     def test_snuba_with_environment(self):
         url = reverse(
             "sentry-api-0-project-event-details",
@@ -121,10 +167,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
     def setup_data(self):
-        one_min_ago = before_now(minutes=1).isoformat()
-        two_min_ago = before_now(minutes=2).isoformat()
-        three_min_ago = before_now(minutes=3).isoformat()
-        four_min_ago = before_now(minutes=4).isoformat()
+        self.one_min_ago = before_now(minutes=1).isoformat()
+        self.two_min_ago = before_now(minutes=2).isoformat()
+        self.three_min_ago = before_now(minutes=3).isoformat()
+        self.four_min_ago = before_now(minutes=4).isoformat()
 
         prev_event_id = "a" * 32
         self.prev_event, _ = self.process_occurrence(
@@ -132,8 +178,8 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-1"],
             event_data={
-                "timestamp": four_min_ago,
-                "message_timestamp": four_min_ago,
+                "timestamp": self.four_min_ago,
+                "message_timestamp": self.four_min_ago,
             },
         )
 
@@ -143,8 +189,8 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-1"],
             event_data={
-                "timestamp": three_min_ago,
-                "message_timestamp": three_min_ago,
+                "timestamp": self.three_min_ago,
+                "message_timestamp": self.three_min_ago,
             },
         )
         assert cur_group_info is not None
@@ -156,8 +202,8 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-1"],
             event_data={
-                "timestamp": two_min_ago,
-                "message_timestamp": two_min_ago,
+                "timestamp": self.two_min_ago,
+                "message_timestamp": self.two_min_ago,
                 "tags": {"environment": "production"},
             },
         )
@@ -168,8 +214,8 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-2"],
             event_data={
-                "timestamp": one_min_ago,
-                "message_timestamp": one_min_ago,
+                "timestamp": self.one_min_ago,
+                "message_timestamp": self.one_min_ago,
                 "tags": {"environment": "production"},
             },
         )

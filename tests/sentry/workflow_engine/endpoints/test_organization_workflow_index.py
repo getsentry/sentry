@@ -40,6 +40,32 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert response.data == []
 
+    def test_filter_by_ids(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
+        )
+        assert len(response.data) == 2
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+        }
+
+        # Test with non-existent ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+        )
+        assert len(response.data) == 0
+
+        # Test with invalid ID format
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": "not-an-id"},
+            status_code=400,
+        )
+        assert response.data == {"id": ["Invalid ID format"]}
+
     def test_sort_by_name(self):
         response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
         assert [w["name"] for w in response.data] == [

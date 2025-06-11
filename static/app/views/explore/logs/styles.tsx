@@ -195,7 +195,7 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
 
 export const FilterBarContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
@@ -214,6 +214,8 @@ export const LogsItemContainer = styled('div')`
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
   margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
@@ -326,6 +328,7 @@ export const BottomSectionBody = styled('div')`
 `;
 
 export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
+  height: 100%;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: ${p => (p.sidebarOpen ? '325px minmax(100px, auto)' : 'auto')};

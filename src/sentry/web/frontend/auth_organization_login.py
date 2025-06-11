@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
 from sentry.auth.helper import AuthHelper
+from sentry.auth.store import FLOW_LOGIN
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcOrganization, organization_service
@@ -28,7 +29,7 @@ class AuthOrganizationLoginView(AuthLoginView):
                 request=request,
                 organization=organization,
                 auth_provider=auth_provider,
-                flow=AuthHelper.FLOW_LOGIN,
+                flow=FLOW_LOGIN,
                 referrer=request.GET.get(
                     "referrer"
                 ),  # TODO: get referrer from the form submit - not the query parms

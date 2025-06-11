@@ -6,8 +6,8 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
 from sentry.models.project import Project
+from sentry.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils import metrics
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 
 logger = logging.getLogger(__name__)
 

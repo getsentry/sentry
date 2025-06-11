@@ -1,3 +1,4 @@
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {
   useResourceLandingSeries,
@@ -13,6 +14,8 @@ export default function ResourceLandingDurationChartWidget(
   props: LoadableChartWidgetProps
 ) {
   const {search, enabled} = useResourceLandingSeriesSearch();
+  const referrer = Referrer.RESOURCE_LANDING_SERIES;
+
   const {data, isPending, error} = useResourceLandingSeries({
     search,
     enabled,
@@ -22,7 +25,7 @@ export default function ResourceLandingDurationChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search, referrer, yAxis: [`avg(${SPAN_SELF_TIME})`]}}
       id="resourceLandingDurationChartWidget"
       title={getDurationChartTitle('resource')}
       series={[data[`avg(${SPAN_SELF_TIME})`]]}

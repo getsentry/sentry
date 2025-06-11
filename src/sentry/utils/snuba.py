@@ -1091,7 +1091,7 @@ def _apply_cache_and_build_results(
     use_cache: bool | None = False,
 ) -> ResultSet:
     parent_api: str = "<missing>"
-    scope = sentry_sdk.Scope.get_current_scope()
+    scope = sentry_sdk.get_current_scope()
     if scope.transaction:
         parent_api = scope.transaction.name
 
@@ -1161,8 +1161,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     _snuba_query,
                     [
                         (
-                            sentry_sdk.Scope.get_isolation_scope(),
-                            sentry_sdk.Scope.get_current_scope(),
+                            sentry_sdk.get_isolation_scope(),
+                            sentry_sdk.get_current_scope(),
                             snuba_request,
                         )
                         for snuba_request in snuba_requests_list
@@ -1174,8 +1174,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             query_results = [
                 _snuba_query(
                     (
-                        sentry_sdk.Scope.get_isolation_scope(),
-                        sentry_sdk.Scope.get_current_scope(),
+                        sentry_sdk.get_isolation_scope(),
+                        sentry_sdk.get_current_scope(),
                         snuba_requests_list[0],
                     )
                 )

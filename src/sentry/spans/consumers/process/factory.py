@@ -12,6 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
+from sentry import killswitches
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -34,19 +35,15 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        max_flush_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
-        max_memory_percentage: float = 1.0,
     ):
         super().__init__()
 
         # config
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.max_flush_segments = max_flush_segments
-        self.max_memory_percentage = max_memory_percentage
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
@@ -65,21 +62,19 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         committer = CommitOffsets(commit)
 
         buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
+        first_partition = next((p.index for p in partitions), 0)
 
         # patch onto self just for testing
         flusher: ProcessingStrategy[FilteredPayload | int]
-
         flusher = self._flusher = SpanFlusher(
             buffer,
-            max_flush_segments=self.max_flush_segments,
-            max_memory_percentage=self.max_memory_percentage,
-            produce_to_pipe=self.produce_to_pipe,
             next_step=committer,
+            produce_to_pipe=self.produce_to_pipe,
         )
 
         if self.num_processes != 1:
             run_task = run_task_with_multiprocessing(
-                function=partial(process_batch, buffer),
+                function=partial(process_batch, buffer, first_partition),
                 next_step=flusher,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
@@ -89,7 +84,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )
         else:
             run_task = RunTask(
-                function=partial(process_batch, buffer),
+                function=partial(process_batch, buffer, first_partition),
                 next_step=flusher,
             )
 
@@ -123,7 +118,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def process_batch(
-    buffer: SpansBuffer, values: Message[ValuesBatch[tuple[int, KafkaPayload]]]
+    buffer: SpansBuffer,
+    first_partition: int,
+    values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     min_timestamp = None
     spans = []
@@ -133,7 +130,24 @@ def process_batch(
             min_timestamp = timestamp
 
         val = rapidjson.loads(payload.value)
+
+        partition_id: int = first_partition
+        if len(value.committable) == 1:
+            partition_id = next(iter(value.committable)).index
+
+        if killswitches.killswitch_matches_context(
+            "spans.drop-in-buffer",
+            {
+                "org_id": val.get("organization_id"),
+                "project_id": val.get("project_id"),
+                "trace_id": val.get("trace_id"),
+                "partition_id": partition_id,
+            },
+        ):
+            continue
+
         span = Span(
+            partition=partition_id,
             trace_id=val["trace_id"],
             span_id=val["span_id"],
             parent_span_id=val.get("parent_span_id"),

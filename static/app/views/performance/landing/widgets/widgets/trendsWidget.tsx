@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -39,12 +38,7 @@ import {
 import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
 import {Chart} from 'sentry/views/performance/trends/chart';
 import {TrendChangeType, TrendFunctionField} from 'sentry/views/performance/trends/types';
-import {
-  getProjectID,
-  getSelectedProjectPlatforms,
-  handleTrendsClick,
-  trendsTargetRoute,
-} from 'sentry/views/performance/utils';
+import {getProjectID, trendsTargetRoute} from 'sentry/views/performance/utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
@@ -64,7 +58,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
 
   const {
     eventView: _eventView,
-    ContainerActions,
     organization,
     withStaticFilters,
     InteractiveTitle,
@@ -272,28 +265,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       }
       location={location}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
-      HeaderActions={provided => {
-        return (
-          <Fragment>
-            <div>
-              <Button
-                onClick={() =>
-                  handleTrendsClick({
-                    location,
-                    organization,
-                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
-                  })
-                }
-                size="sm"
-                data-test-id="view-all-button"
-              >
-                {t('View All')}
-              </Button>
-            </div>
-            {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
-          </Fragment>
-        );
-      }}
       EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={Visualizations}

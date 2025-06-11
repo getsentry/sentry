@@ -12,6 +12,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
@@ -20,7 +21,10 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -36,6 +40,7 @@ type Props = Omit<FormFieldProps, 'children'> & {
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
+  isEditing?: boolean;
 };
 
 export default function WizardField({
@@ -45,6 +50,68 @@ export default function WizardField({
   alertType,
   ...fieldProps
 }: Props) {
+  const deprecatedTransactionAggregationOptions: MenuOption[] = [
+    {
+      label: AlertWizardAlertNames.throughput,
+      value: 'throughput',
+    },
+    {
+      label: AlertWizardAlertNames.trans_duration,
+      value: 'trans_duration',
+    },
+    {
+      label: AlertWizardAlertNames.apdex,
+      value: 'apdex',
+    },
+    {
+      label: AlertWizardAlertNames.failure_rate,
+      value: 'failure_rate',
+    },
+    {
+      label: AlertWizardAlertNames.lcp,
+      value: 'lcp',
+    },
+    {
+      label: AlertWizardAlertNames.fid,
+      value: 'fid',
+    },
+    {
+      label: AlertWizardAlertNames.cls,
+      value: 'cls',
+    },
+  ];
+
+  const traceItemAggregationOptions: MenuOption[] = [
+    {
+      label: AlertWizardAlertNames.trace_item_throughput,
+      value: 'trace_item_throughput',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_duration,
+      value: 'trace_item_duration',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_apdex,
+      value: 'trace_item_apdex',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_failure_rate,
+      value: 'trace_item_failure_rate',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_lcp,
+      value: 'trace_item_lcp',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_fid,
+      value: 'trace_item_fid',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_cls,
+      value: 'trace_item_cls',
+    },
+  ];
+
   const menuOptions: GroupedMenuOption[] = [
     {
       label: t('ERRORS'),
@@ -79,34 +146,9 @@ export default function WizardField({
     {
       label: t('PERFORMANCE'),
       options: [
-        {
-          label: AlertWizardAlertNames.throughput,
-          value: 'throughput',
-        },
-        {
-          label: AlertWizardAlertNames.trans_duration,
-          value: 'trans_duration',
-        },
-        {
-          label: AlertWizardAlertNames.apdex,
-          value: 'apdex',
-        },
-        {
-          label: AlertWizardAlertNames.failure_rate,
-          value: 'failure_rate',
-        },
-        {
-          label: AlertWizardAlertNames.lcp,
-          value: 'lcp',
-        },
-        {
-          label: AlertWizardAlertNames.fid,
-          value: 'fid',
-        },
-        {
-          label: AlertWizardAlertNames.cls,
-          value: 'cls',
-        },
+        ...(deprecateTransactionAlerts(organization)
+          ? traceItemAggregationOptions
+          : deprecatedTransactionAggregationOptions),
 
         ...(hasEAPAlerts(organization)
           ? [
@@ -178,7 +220,7 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {alertType === 'eap_metrics' ? (
+            {isEapAlertType(alertType) ? (
               <EAPField
                 aggregate={aggregate}
                 onChange={newAggregate => {
