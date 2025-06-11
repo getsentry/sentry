@@ -47,6 +47,11 @@ export enum InstallationMode {
   MANUAL = 'manual',
 }
 
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
 const platformOptions = {
   installationMode: {
     label: t('Installation Mode'),
@@ -61,6 +66,19 @@ const platformOptions = {
       },
     ],
     defaultValue: InstallationMode.AUTO,
+  },
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
   },
 } satisfies BasePlatformOptions;
 
@@ -249,6 +267,12 @@ const getDynamicParts = (params: Params): string[] => {
         profilesSampleRate: 1.0`);
   }
 
+  if (params.platformOptions.logsBeta === YesNo.YES) {
+    dynamicParts.push(`
+      // Enable Sentry logs beta feature
+      _experiments: { enableLogs: true }`);
+  }
+
   return dynamicParts;
 };
 
@@ -274,8 +298,16 @@ Sentry.init({
 `;
 };
 
-const getVerifyJSSnippet = () => `
-myUndefinedFunction();`;
+const getVerifyJSSnippet = (params: Params) =>
+  params.platformOptions.logsBeta === YesNo.YES ? `
+// Send logs using Sentry logger
+const { logger } = Sentry;
+logger.info("This is an info log from Sentry");
+logger.error("This is an error log from Sentry");
+
+// Test error reporting
+myUndefinedFunction();` : `
+myUndefinedFunction()`;
 
 const getInstallConfig = () => [
   {
@@ -303,12 +335,12 @@ const getInstallConfig = () => [
   },
 ];
 
-const getVerifyConfig = () => [
+const getVerifyConfig = (params: Params) => [
   {
     type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
+    description: params.platformOptions.logsBeta === YesNo.YES
+      ? t("This snippet shows how to send logs and includes an intentional error to test that everything's working as expected.")
+      : t("This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."),
     configurations: [
       {
         code: [
@@ -316,11 +348,16 @@ const getVerifyConfig = () => [
             label: 'Javascript',
             value: 'javascript',
             language: 'javascript',
-            code: getVerifyJSSnippet(),
+            code: getVerifyJSSnippet(params),
           },
         ],
       },
     ],
+    ...(params.platformOptions.logsBeta === YesNo.YES && {
+      additionalInfo: t(
+        "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+      ),
+    }),
   },
 ];
 
@@ -407,7 +444,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       },
     },
   ],
-  verify: getVerifyConfig,
+  verify: (params) => getVerifyConfig(params),
   nextSteps: () => [
     {
       id: 'source-maps',
@@ -502,7 +539,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
   ],
-  verify: getVerifyConfig,
+  verify: (params) => getVerifyConfig(params),
   nextSteps: () => [],
   onPageLoad: params => {
     return () => {
@@ -571,10 +608,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     isAutoInstall(params)
       ? loaderScriptOnboarding.configure(params)
       : packageManagerOnboarding.configure(params),
-  verify: params =>
-    isAutoInstall(params)
-      ? loaderScriptOnboarding.verify(params)
-      : packageManagerOnboarding.verify(params),
+  verify: (params) => getVerifyConfig(params),
   nextSteps: params =>
     isAutoInstall(params)
       ? loaderScriptOnboarding.nextSteps?.(params)

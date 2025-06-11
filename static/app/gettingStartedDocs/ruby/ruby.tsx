@@ -1,6 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -8,7 +9,29 @@ import type {
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
+const platformOptions = {
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
+  },
+} satisfies BasePlatformOptions;
+
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
 export const getRubyProfilingOnboarding = ({
   frameworkPackage,
@@ -109,10 +132,28 @@ Sentry.init do |config|
   # We recommend adjusting this value in production.
   config.profiles_sample_rate = 1.0`
       : ''
+  }${
+    params.platformOptions.logsBeta === YesNo.YES
+      ? `
+  # Enable Sentry logs beta feature
+  config.enable_logs = true`
+      : ''
   }
 end`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) =>
+  params.platformOptions.logsBeta === YesNo.YES ? `
+# Send logs using Sentry logger
+Sentry::Logger.info("This is an info log from Sentry")
+Sentry::Logger.error("This is an error log from Sentry")
+
+begin
+  1 / 0
+rescue ZeroDivisionError => exception
+  Sentry.capture_exception(exception)
+end
+
+Sentry.capture_message("test message")` : `
 begin
   1 / 0
 rescue ZeroDivisionError => exception
@@ -121,7 +162,7 @@ end
 
 Sentry.capture_message("test message")`;
 
-const onboarding: OnboardingConfig = {
+const onboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -170,23 +211,29 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
-      ),
+      description: params.platformOptions.logsBeta === YesNo.YES
+        ? t("This snippet shows how to send logs and includes a deliberate error and message sent to Sentry to test that everything's working as expected.")
+        : t("This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."),
       configurations: [
         {
           language: 'ruby',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
+      ...(params.platformOptions.logsBeta === YesNo.YES && {
+        additionalInfo: t(
+          "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+        ),
+      }),
     },
   ],
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
+  platformOptions,
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: getRubyProfilingOnboarding(),

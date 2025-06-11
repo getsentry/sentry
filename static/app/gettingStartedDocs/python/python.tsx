@@ -2,6 +2,7 @@ import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/even
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
+  type BasePlatformOptions,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -17,7 +18,29 @@ import {
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
-type Params = DocsParams;
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
+const platformOptions = {
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
+  },
+} satisfies BasePlatformOptions;
+
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
 type FeatureFlagConfiguration = {
   integrationName: string;
@@ -167,6 +190,14 @@ sentry_sdk.init(
     # of profile sessions.
     profile_session_sample_rate=1.0,`
           : ''
+    }${
+      params.platformOptions.logsBeta === YesNo.YES
+        ? `
+    # Enable Sentry logs beta feature
+    _experiments={
+        "enable_logs": True,
+    },`
+        : ''
     }
 )${
   params.isProfilingSelected &&
@@ -197,7 +228,7 @@ sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
 
-const onboarding: OnboardingConfig = {
+const onboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -225,7 +256,7 @@ const onboarding: OnboardingConfig = {
         ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -234,12 +265,26 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          description: t(
-            'Raise an unhandled Python exception by inserting a divide by zero expression into your application:'
-          ),
-          code: 'division_by_zero = 1 / 0',
+          description: params.platformOptions.logsBeta === YesNo.YES
+            ? t('Send logs and test error reporting with the following code:')
+            : t('Raise an unhandled Python exception by inserting a divide by zero expression into your application:'),
+          code: params.platformOptions.logsBeta === YesNo.YES
+            ? `from sentry_sdk import logger as sentry_logger
+
+# Send logs using Sentry logger
+sentry_logger.info('This is an info log from Sentry')
+sentry_logger.error('This is an error log from Sentry')
+
+# Test error reporting
+division_by_zero = 1 / 0`
+            : 'division_by_zero = 1 / 0',
         },
       ],
+      ...(params.platformOptions.logsBeta === YesNo.YES && {
+        additionalInfo: t(
+          "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+        ),
+      }),
     },
   ],
 };
@@ -396,7 +441,8 @@ export const featureFlagOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
+  platformOptions,
   onboarding,
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,

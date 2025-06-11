@@ -24,6 +24,11 @@ export enum InstallationMode {
   MANUAL = 'manual',
 }
 
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
 const platformOptions = {
   installationMode: {
     label: t('Installation Mode'),
@@ -38,6 +43,19 @@ const platformOptions = {
       },
     ],
     defaultValue: InstallationMode.AUTO,
+  },
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
   },
 } satisfies BasePlatformOptions;
 
@@ -109,6 +127,13 @@ const getConfigurationSnippet = (params: Params) => `
   <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
       : ''
+  }${
+    params.platformOptions.logsBeta === YesNo.YES
+      ? `
+
+  <!-- Enable Sentry logs beta feature -->
+  <meta-data android:name="io.sentry.enable-logs" android:value="true" />`
+      : ''
   }
 </application>`;
 
@@ -119,6 +144,14 @@ ${
     ? `
 // Start profiling, if lifecycle is set to \`manual\`
 Sentry.startProfiler()`
+    : ''
+}${
+  params.platformOptions.logsBeta === YesNo.YES
+    ? `
+// Send logs using Sentry
+Sentry.getLogger().info("This is an info log from Sentry")
+Sentry.getLogger().error("This is an error log from Sentry")
+`
     : ''
 }
 val breakWorld = Button(this).apply {

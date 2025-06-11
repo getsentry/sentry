@@ -25,6 +25,11 @@ export enum InstallationMode {
   MANUAL = 'manual',
 }
 
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
 const platformOptions = {
   installationMode: {
     label: t('Installation Mode'),
@@ -39,6 +44,19 @@ const platformOptions = {
       },
     ],
     defaultValue: InstallationMode.AUTO,
+  },
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
   },
 } satisfies BasePlatformOptions;
 
@@ -77,6 +95,12 @@ Future<void> main() async {
       // Setting to 1.0 will profile 100% of sampled transactions:
       options.profilesSampleRate = 1.0;`
           : ''
+      }${
+        params.platformOptions.logsBeta === YesNo.YES
+          ? `
+      // Enable Sentry logs beta feature
+      options.enableLogs = true;`
+          : ''
       }
     },
     appRunner: () => runApp(
@@ -96,7 +120,18 @@ const configureAdditionalInfo = tct(
   }
 );
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) =>
+  params?.platformOptions?.logsBeta === YesNo.YES ? `
+// Send logs using Sentry
+Sentry.logger.info("This is an info log from Sentry");
+Sentry.logger.error("This is an error log from Sentry");
+
+child: ElevatedButton(
+  onPressed: () {
+    throw StateError('This is test exception');
+  },
+  child: const Text('Verify Sentry Setup'),
+)` : `
 child: ElevatedButton(
   onPressed: () {
     throw StateError('This is test exception');
@@ -300,7 +335,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     label: 'Dart',
                     value: 'dart',
                     language: 'dart',
-                    code: getVerifySnippet(),
+                    code: getVerifySnippet(params),
                   },
                 ],
               },

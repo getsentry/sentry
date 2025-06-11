@@ -2,6 +2,7 @@ import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -17,7 +18,29 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
+const platformOptions = {
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
+  },
+} satisfies BasePlatformOptions;
+
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
 const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
   'dsn' => '${params.dsn.public}',${
@@ -32,17 +55,37 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
   'profiles_sample_rate' => 1.0,`
       : ''
+  }${
+    params.platformOptions.logsBeta === YesNo.YES
+      ? `
+  // Enable Sentry logs beta feature
+  'enable_logs' => true,`
+      : ''
   }
 ]);`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) =>
+  params.platformOptions.logsBeta === YesNo.YES ? `
+// Send logs using Sentry
+\\Sentry\\Hub::getCurrent()->addBreadcrumb(new \\Sentry\\Breadcrumb(
+    \\Sentry\\Breadcrumb::LEVEL_INFO,
+    \\Sentry\\Breadcrumb::TYPE_DEFAULT,
+    'logs',
+    'This is an info log from Sentry'
+));
+
+try {
+  $this->functionFailsForSure();
+} catch (\\Throwable $exception) {
+  \\Sentry\\captureException($exception);
+}` : `
 try {
   $this->functionFailsForSure();
 } catch (\\Throwable $exception) {
   \\Sentry\\captureException($exception);
 }`;
 
-const onboarding: OnboardingConfig = {
+const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -119,24 +162,29 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'In PHP you can either capture a caught exception or capture the last error with captureLastError.'
-      ),
+      description: params.platformOptions.logsBeta === YesNo.YES
+        ? t('In PHP you can send logs and capture exceptions. This example shows both:')
+        : t('In PHP you can either capture a caught exception or capture the last error with captureLastError.'),
       configurations: [
         {
           language: 'php',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
+      ...(params.platformOptions.logsBeta === YesNo.YES && {
+        additionalInfo: t(
+          "With logs enabled, you can now send structured logs to Sentry using breadcrumbs and logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+        ),
+      }),
     },
   ],
   nextSteps: () => [],
 };
 
-const crashReportOnboarding: OnboardingConfig = {
+const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportPHPInstallStep(params),
   configure: () => [
@@ -151,7 +199,7 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const performanceOnboarding: OnboardingConfig = {
+const performanceOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     t(
       "Adding Performance to your PHP project is simple. Make sure you've got these basics down."
@@ -176,7 +224,13 @@ const performanceOnboarding: OnboardingConfig = {
 
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for performance monitoring.
-  'traces_sample_rate' => 1.0,
+  'traces_sample_rate' => 1.0,${
+    params.platformOptions.logsBeta === YesNo.YES
+      ? `
+  // Enable Sentry logs beta feature
+  'enable_logs' => true,`
+      : ''
+  }
 ]);
 `,
           additionalInfo: tct(
@@ -214,15 +268,21 @@ const performanceOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const getProfilingConfigureSnippet = (params: DocsParams) => `\\Sentry\\init([
+const getProfilingConfigureSnippet = (params: Params) => `\\Sentry\\init([
   'dsn' => '${params.dsn.public}',
   // Specify a fixed sample rate
   'traces_sample_rate' => 1.0,
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
-  'profiles_sample_rate' => 1.0
+  'profiles_sample_rate' => 1.0${
+    params.platformOptions.logsBeta === YesNo.YES
+      ? `,
+  // Enable Sentry logs beta feature
+  'enable_logs' => true`
+      : ''
+  }
 ]);`;
 
-const profilingOnboarding: OnboardingConfig = {
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -297,7 +357,8 @@ const profilingOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
+  platformOptions,
   onboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,

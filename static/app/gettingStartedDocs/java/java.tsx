@@ -64,6 +64,19 @@ const platformOptions = {
       },
     ],
   },
+  logsBeta: {
+    label: t('Logs Beta'),
+    items: [
+      {
+        label: t('Yes'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('No'),
+        value: YesNo.NO,
+      },
+    ],
+  },
 } satisfies BasePlatformOptions;
 
 type PlatformOptions = typeof platformOptions;
@@ -147,6 +160,12 @@ send-default-pii=true${
     ? `
 traces-sample-rate=1.0`
     : ''
+}${
+  params.platformOptions.logsBeta === YesNo.YES
+    ? `
+# Enable Sentry logs beta feature
+enable-logs=true`
+    : ''
 }`;
 
 const getConfigureSnippet = (params: Params) => `
@@ -164,6 +183,12 @@ Sentry.init(options -> {
   // We recommend adjusting this value in production.
   options.setTracesSampleRate(1.0);`
       : ''
+  }${
+    params.platformOptions.logsBeta === YesNo.YES
+      ? `
+  // Enable Sentry logs beta feature
+  options.setEnableLogs(true);`
+      : ''
   }
   // When first trying Sentry it's good to see what the SDK is doing:
   options.setDebug(true);
@@ -173,6 +198,20 @@ const getVerifySnippet = () => `
 import java.lang.Exception;
 import io.sentry.Sentry;
 
+try {
+  throw new Exception("This is a test.");
+} catch (Exception e) {
+  Sentry.captureException(e);
+}`;
+
+const getLogsVerifySnippet = () => `
+import io.sentry.Sentry;
+
+// Send logs using the Sentry logger
+Sentry.getLogger().info("This is an info log from Sentry");
+Sentry.getLogger().error("This is an error log from Sentry");
+
+// You can also capture an exception along with logs
 try {
   throw new Exception("This is a test.");
 } catch (Exception e) {
@@ -322,7 +361,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
   ],
-  verify: () => [
+  verify: (params) => [
     {
       type: StepType.VERIFY,
       description: tct(
@@ -332,7 +371,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           language: 'java',
-          code: getVerifySnippet(),
+          code: params.platformOptions.logsBeta === YesNo.YES ? getLogsVerifySnippet() : getVerifySnippet(),
         },
       ],
       additionalInfo: (
@@ -347,6 +386,13 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               "If you're an existing user and have disabled alerts, you won't receive this email."
             )}
           </p>
+          {params.platformOptions.logsBeta === YesNo.YES && (
+            <p>
+              {t(
+                "With logs enabled, you can now send structured logs to Sentry using the logger APIs. These logs will be automatically linked to errors and traces for better debugging context."
+              )}
+            </p>
+          )}
         </Fragment>
       ),
     },
