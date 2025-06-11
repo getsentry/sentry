@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -27,6 +27,7 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.utils.registry import Registry
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -98,8 +99,12 @@ class ActivityManager(BaseManager["Activity"]):
         if user_id is not None:
             activity_args["user_id"] = user_id
         activity = self.create(**activity_args)
+
         if send_notification:
             activity.send_notification()
+
+        for handler in activity_creation_registry.registrations.values():
+            handler(activity)
 
         return activity
 
@@ -218,3 +223,7 @@ class ActivityIntegration(Enum):
     MSTEAMS = "msteams"
     DISCORD = "discord"
     SUSPECT_COMMITTER = "suspectCommitter"
+
+
+ActivityCreationHandler = Callable[[Activity], None]
+activity_creation_registry = Registry[ActivityCreationHandler](enable_reverse_lookup=False)
