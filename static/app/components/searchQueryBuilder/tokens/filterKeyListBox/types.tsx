@@ -31,6 +31,11 @@ export interface FilterValueItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
+export interface AskSeerItem extends SelectOptionWithKey<string> {
+  type: 'ask-seer';
+  value: string;
+}
+
 interface RecentFilterItem extends SelectOptionWithKey<string> {
   type: 'recent-filter';
   value: string;
@@ -42,7 +47,12 @@ export interface RecentQueryItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export type SearchKeyItem = KeySectionItem | KeyItem | RawSearchItem | FilterValueItem;
+export type SearchKeyItem =
+  | KeySectionItem
+  | KeyItem
+  | RawSearchItem
+  | FilterValueItem
+  | AskSeerItem;
 
 export type FilterKeyItem =
   | KeyItem
@@ -50,7 +60,8 @@ export type FilterKeyItem =
   | KeySectionItem
   | RecentQueryItem
   | RawSearchItem
-  | FilterValueItem;
+  | FilterValueItem
+  | AskSeerItem;
 
 export type Section = {
   label: ReactNode;

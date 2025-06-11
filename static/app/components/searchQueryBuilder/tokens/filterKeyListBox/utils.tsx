@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  AskSeerItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
@@ -128,6 +130,24 @@ export function createRawSearchItem(value: string): RawSearchItem {
   };
 }
 
+export function createAskSeerItem(value: string): AskSeerItem {
+  return {
+    key: getEscapedKey(`__ask_seer__${value}`),
+    label: (
+      <AskSeerLabel>
+        <SeerIcon size="sm" />
+        {t('Ask Seer')}
+      </AskSeerLabel>
+    ),
+    value: `__ask_seer__${value}`,
+    textValue: t('Ask Seer'),
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'ask-seer',
+  };
+}
+
 export function createFilterValueItem(key: string, value: string): FilterValueItem {
   const filter = `${key}:${escapeFilterValue(value)}`;
 
@@ -182,4 +202,12 @@ export function createRecentQueryItem({
 const SearchItemLabel = styled('div')`
   color: ${p => p.theme.subText};
   white-space: nowrap;
+`;
+
+const AskSeerLabel = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: ${p => p.theme.purple400};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

@@ -7,6 +7,7 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  createAskSeerItem,
   createFilterValueItem,
   createItem,
   createRawSearchItem,
@@ -16,6 +17,7 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -129,6 +131,7 @@ export function useSortedFilterKeyItems({
 }): SearchKeyItem[] {
   const {filterKeys, getFieldDefinition, filterKeySections, disallowFreeText} =
     useSearchQueryBuilder();
+  const organization = useOrganization();
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -185,19 +188,40 @@ export function useSortedFilterKeyItems({
       });
 
     if (includeSuggestions) {
-      const rawSearchSection: KeySectionItem = {
-        key: 'raw-search',
-        value: 'raw-search',
-        label: '',
-        options: [createRawSearchItem(inputValue)],
-        type: 'section',
-      };
-
       const shouldIncludeRawSearch =
         !disallowFreeText &&
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' '));
+
+      // Check if AI features are available for Ask Seer
+      const areAiFeaturesAllowed =
+        !organization?.hideAiFeatures &&
+        organization.features.includes('gen-ai-features');
+
+      const rawSearchOptions = [createRawSearchItem(inputValue)];
+
+      const rawSearchSection: KeySectionItem = {
+        key: 'raw-search',
+        value: 'raw-search',
+        label: '',
+        options: rawSearchOptions,
+        type: 'section',
+      };
+
+      // Create separate Ask Seer section if AI features are available and there's input
+      const shouldShowAskSeer =
+        areAiFeaturesAllowed && !disallowFreeText && inputValue && !isQuoted(inputValue);
+
+      const askSeerSection: KeySectionItem | null = shouldShowAskSeer
+        ? {
+            key: 'ask-seer',
+            value: 'ask-seer',
+            label: '',
+            options: [createAskSeerItem(inputValue)],
+            type: 'section',
+          }
+        : null;
 
       const keyItemsSection: KeySectionItem = {
         key: 'key-items',
@@ -210,12 +234,33 @@ export function useSortedFilterKeyItems({
       const {shouldShowAtTop, suggestedFiltersSection} =
         getValueSuggestionsFromSearchResult(searched);
 
-      return [
-        ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-        ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
-        keyItemsSection,
-        ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-      ];
+      // Build sections array with Ask Seer always at the bottom when present
+      const sections = [];
+
+      // Add suggested filters at top if they should show there
+      if (shouldShowAtTop && suggestedFiltersSection) {
+        sections.push(suggestedFiltersSection);
+      }
+
+      // Add raw search if needed
+      if (shouldIncludeRawSearch) {
+        sections.push(rawSearchSection);
+      }
+
+      // Add key items
+      sections.push(keyItemsSection);
+
+      // Add suggested filters at bottom if they shouldn't show at top
+      if (!shouldShowAtTop && suggestedFiltersSection) {
+        sections.push(suggestedFiltersSection);
+      }
+
+      // Always add Ask Seer section at the very bottom if it should show
+      if (askSeerSection) {
+        sections.push(askSeerSection);
+      }
+
+      return sections;
     }
 
     return keyItems;
@@ -229,5 +274,6 @@ export function useSortedFilterKeyItems({
     includeSuggestions,
     inputValue,
     search,
+    organization,
   ]);
 }

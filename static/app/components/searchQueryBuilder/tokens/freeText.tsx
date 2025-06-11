@@ -271,6 +271,7 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    setDisplaySeerResults,
   } = useSearchQueryBuilder();
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
@@ -399,6 +400,11 @@ function SearchQueryBuilderInputInternal({
               focusOverride: {itemKey: 'end'},
             });
             handleSearch(option.value);
+            return;
+          }
+
+          if (option.type === 'ask-seer') {
+            setDisplaySeerResults(true);
             return;
           }
 
