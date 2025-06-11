@@ -1,6 +1,7 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 
 @control_silo_test
@@ -59,6 +60,8 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
         self.create_member(user=self.user1, organization=org2)
         self.create_member(user=self.user2, organization=org3)
 
+        self.unrelated_user = self.create_user(email="foo@bar.com")
+
         self.login_as(self.user1)
 
     def test_simple(self):
@@ -67,3 +70,48 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
         assert not User.objects.filter(id=self.user2.id).exists()
         assert not User.objects.filter(id=self.user3.id).exists()
+
+    def test_primary_email_unverified(self):
+        user_email = UserEmail.objects.get(user_id=self.user1.id, email="mifu@email.com")
+        user_email.update(is_verified=False)
+        data = {"ids_to_delete": [self.user3.id], "ids_to_merge": [self.user2.id]}
+        response = self.get_error_response(**data)
+        assert response.status_code == 403
+        assert response.data == {
+            "error": "You must verify your primary email address to use this endpoint"
+        }
+
+    def test_merge_unrelated_account(self):
+        data = {"ids_to_merge": [self.unrelated_user.id]}
+        response = self.get_error_response(**data)
+        assert response.status_code == 403
+        assert response.data == {
+            "error": "One or more of the accounts in your request does not share your primary email address"
+        }
+
+    def test_delete_unrelated_account(self):
+        data = {"ids_to_delete": [self.unrelated_user.id]}
+        response = self.get_error_response(**data)
+        assert response.status_code == 403
+        assert response.data == {
+            "error": "One or more of the accounts in your request does not share your primary email address"
+        }
+
+    def test_related_and_unrelated_accounts(self):
+        data = {
+            "ids_to_delete": [self.user3.id, self.unrelated_user.id],
+            "ids_to_merge": [self.user2.id],
+        }
+        response = self.get_error_response(**data)
+        assert response.status_code == 403
+        assert response.data == {
+            "error": "One or more of the accounts in your request does not share your primary email address"
+        }
+
+    def test_pass_current_user_id(self):
+        data = {"ids_to_delete": [self.user1.id]}
+        response = self.get_error_response(**data)
+        assert response.status_code == 400
+        assert response.data == {
+            "error": "You may not merge or delete the user attached to your current session"
+        }

@@ -58,6 +58,13 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
 
         ids_to_delete = request.data.get("ids_to_delete", [])
         ids_to_merge = request.data.get("ids_to_merge", [])
+        if user.id in ids_to_delete or user.id in ids_to_merge:
+            return Response(
+                status=400,
+                data={
+                    "error": "You may not merge or delete the user attached to your current session"
+                },
+            )
         shared_email = primary_user.email
         affected_user_emails = User.objects.filter(
             id__in=(ids_to_delete + ids_to_merge)
