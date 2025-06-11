@@ -58,14 +58,7 @@ interface UptimeSubscriptionDataSource extends BaseDataSource {
  */
 type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
 
-export type DetectorType =
-  | 'crons'
-  | 'error'
-  | 'metric'
-  | 'performance'
-  | 'replay'
-  | 'trace'
-  | 'uptime';
+export type DetectorType = 'error' | 'metric_issue' | 'uptime_domain_failure';
 
 interface NewDetector {
   conditionGroup: DataConditionGroup | null;
