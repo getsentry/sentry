@@ -13,6 +13,7 @@ class WorkflowEventContextTestCase(TestCase):
     def tearDown(self):
         if self.ctx_token:
             WorkflowEventContext.reset(self.ctx_token)
+            self.ctx_token = None
 
 
 class MockContextualClass:
@@ -56,7 +57,7 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         ctx_data = WorkflowEventContextData(
             organization=self.organization,
         )
-        WorkflowEventContext.set(ctx_data)
+        self.ctx_token = WorkflowEventContext.set(ctx_data)
         ctx = WorkflowEventContext.get()
 
         assert ctx.detector is None
@@ -68,15 +69,17 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         organization = self.organization
         environment = self.create_environment()
 
-        ctx_data = WorkflowEventContextData(
-            detector=detector,
-            organization=organization,
-            environment=environment,
+        self.ctx_token = WorkflowEventContext.set(
+            WorkflowEventContextData(
+                detector=detector,
+                organization=organization,
+                environment=environment,
+            )
         )
-        self.ctx_token = WorkflowEventContext.set(ctx_data)
 
         # Reset context
         WorkflowEventContext.reset(self.ctx_token)
+        self.ctx_token = None
 
         ctx = WorkflowEventContext.get()
 
