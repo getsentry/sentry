@@ -99,14 +99,14 @@ describe('Number Cell Component', function () {
 
 describe('Type Cell Component', function () {
   it('renders', () => {
-    render(<TypeCell type="metric" />);
+    render(<TypeCell type="metric_issue" />);
 
     const text = screen.getByText('Metric');
     expect(text).toBeInTheDocument();
   });
 
   it('renders disabled', () => {
-    render(<TypeCell type="metric" disabled />);
+    render(<TypeCell type="metric_issue" disabled />);
 
     const text = screen.getByText('Metric');
     expect(text).toBeInTheDocument();
