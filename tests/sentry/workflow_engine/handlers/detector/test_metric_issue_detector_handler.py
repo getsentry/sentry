@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from sentry.eventstream.types import EventStreamEventType
-from sentry.incidents.grouptype import MetricIssueDetectorHandler
+from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
@@ -19,17 +19,24 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
 )
-from tests.sentry.workflow_engine.handlers.detector.test_base import BaseDetectorHandlerTest
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 @freeze_time()
-class TestEvaluateMetricDetector(BaseDetectorHandlerTest, BaseWorkflowTest):
+class TestEvaluateMetricDetector(BaseWorkflowTest):
     def setUp(self):
         super().setUp()
         self.detector_group_key = None
-        self.detector, self.critical_detector_trigger = self.create_detector_and_condition(
-            "handler_with_state"
+        self.detector = self.create_detector(
+            project=self.project,
+            workflow_condition_group=self.create_data_condition_group(),
+            type=MetricIssue.slug,
+        )
+        self.critical_detector_trigger = self.create_data_condition(
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.detector.workflow_condition_group,
         )
         self.warning_detector_trigger = self.create_data_condition(
             comparison=3,
@@ -148,8 +155,12 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest, BaseWorkflowTest):
         del evaluation_result.event_data["project_id"]
 
         event = self.store_event(data=evaluation_result.event_data, project_id=self.project.id)
-        occurrence, group_info = save_issue_occurrence(occurrence_data.to_dict(), event)
+
+        occurrence_dict = occurrence_data.to_dict()
+        occurrence_dict["event_id"] = event.event_id
+        occurrence, group_info = save_issue_occurrence(occurrence_dict, event)
         assert occurrence.group
+
         post_process_group(
             is_new=True,
             is_regression=False,
