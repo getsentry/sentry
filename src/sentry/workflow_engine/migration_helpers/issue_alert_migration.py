@@ -82,7 +82,7 @@ def ensure_default_error_detector(project: Project) -> Detector:
             detector, _ = Detector.objects.get_or_create(
                 type=ErrorGroupType.slug,
                 project=project,
-                defaults={"config": {}, "name": "Error Detector"},
+                defaults={"config": {}, "name": "Error Monitor"},
             )
             return detector
     except UnableToAcquireLock:
@@ -145,7 +145,7 @@ class IssueAlertMigrator:
             error_detector, _ = Detector.objects.get_or_create(
                 type=ErrorGroupType.slug,
                 project=self.project,
-                defaults={"config": {}, "name": "Error Detector"},
+                defaults={"config": {}, "name": "Error Monitor"},
             )
             _, created = AlertRuleDetector.objects.get_or_create(
                 detector=error_detector, rule_id=self.rule.id

@@ -19,7 +19,7 @@ def create_project_detectors(instance, created, **kwargs):
                 "organizations:workflow-engine-issue-alert-dual-write", instance.organization
             ):
                 Detector.objects.create(
-                    name="Error Detector", type=ErrorGroupType.slug, project=instance, config={}
+                    name="Error Monitor", type=ErrorGroupType.slug, project=instance, config={}
                 )
                 logger.info("project.detector-created", extra={"project_id": instance.id})
         except IntegrityError as e:
