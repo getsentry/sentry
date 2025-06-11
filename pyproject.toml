@@ -171,6 +171,7 @@ disable_error_code = [
 module = [
     "fixtures.safe_migrations_apps.*",
     "sentry.analytics.*",
+    "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.release_thresholds.health_checks.*",
