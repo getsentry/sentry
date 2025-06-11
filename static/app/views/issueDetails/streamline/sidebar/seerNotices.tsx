@@ -28,9 +28,6 @@ import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
-import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {GroupSearchViewCreatedBy, type GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -61,27 +58,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       addErrorMessage(t('Failed to create view'));
     },
   });
-  const {mutate: starExistingView} = useUpdateGroupSearchViewStarred({
-    onMutate: () => {
-      addLoadingMessage(t('Starring view...'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('View starred successfully'));
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to star view'));
-    },
-  });
   const detailedProject = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
-  });
-
-  // Fetch views created by others to check for existing identical views
-  const {data: otherViews = []} = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-    createdBy: GroupSearchViewCreatedBy.OTHERS,
-    limit: 100, // Get more views to check for matches
   });
 
   const isAutomationAllowed = organization.features.includes(
@@ -95,37 +74,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const nonGithubRepos = unreadableRepos.filter(
     repo => !repo.provider.includes('github')
   );
-
-  // Define the properties of the view we want to create/find
-  const targetViewProperties = {
-    name: 'Easy Fixes 🤖',
-    query: 'is:unresolved issue.seer_actionability:[high,super_high]',
-    querySort: IssueSortOptions.DATE,
-    projects: !organization.features.includes('global-views') ? [Number(project.id)] : [],
-    environments: [],
-    timeFilters: {
-      start: null,
-      end: null,
-      period: '7d',
-      utc: null,
-    },
-  };
-
-  // Check if an identical view already exists in the organization
-  const existingMatchingView = otherViews.find((view: GroupSearchView) => {
-    const projectsMatch = JSON.stringify(view.projects.sort()) === JSON.stringify(targetViewProperties.projects.sort());
-    const environmentsMatch = JSON.stringify(view.environments.sort()) === JSON.stringify(targetViewProperties.environments.sort());
-    const timeFiltersMatch = JSON.stringify(view.timeFilters) === JSON.stringify(targetViewProperties.timeFilters);
-
-    return (
-      view.name === targetViewProperties.name &&
-      view.query === targetViewProperties.query &&
-      view.querySort === targetViewProperties.querySort &&
-      projectsMatch &&
-      environmentsMatch &&
-      timeFiltersMatch
-    );
-  });
 
   // Onboarding conditions
   const needsGithubIntegration = !hasGithubIntegration;
@@ -168,35 +116,25 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteSteps > 0;
 
   const handleStarFixabilityView = () => {
-    if (existingMatchingView) {
-      // Star the existing view instead of creating a new one
-      starExistingView({
-        id: existingMatchingView.id,
-        starred: true,
-        view: existingMatchingView,
-      });
-    } else {
-      // Create a new view as before
-      let projects: number[] = [];
-      if (!organization.features.includes('global-views')) {
-        // org cannot have a view with multiple projects, so we'll just use the current project
-        projects = [Number(project.id)];
-      }
-      createIssueView({
-        name: 'Easy Fixes 🤖',
-        query: 'is:unresolved issue.seer_actionability:[high,super_high]',
-        querySort: IssueSortOptions.DATE,
-        projects,
-        environments: [],
-        timeFilters: {
-          start: null,
-          end: null,
-          period: '7d',
-          utc: null,
-        },
-        starred: true,
-      });
+    let projects: number[] = [];
+    if (!organization.features.includes('global-views')) {
+      // org cannot have a view with multiple projects, so we'll just use the current project
+      projects = [Number(project.id)];
     }
+    createIssueView({
+      name: 'Easy Fixes 🤖',
+      query: 'is:unresolved issue.seer_actionability:[high,super_high]',
+      querySort: IssueSortOptions.DATE,
+      projects,
+      environments: [],
+      timeFilters: {
+        start: null,
+        end: null,
+        period: '7d',
+        utc: null,
+      },
+      starred: true,
+    });
   };
 
   return (
