@@ -29,7 +29,6 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -46,23 +45,25 @@ import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {
+  AlertRuleOptions,
+  RequestDataFragment,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
-  MetricValues,
-  RuleAction,
+  getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
-  alertRuleConfig: Partial<RequestDataFragment>;
   projectName: string;
+  alertRule?: Partial<AlertRuleOptions>;
   platform?: Partial<OnboardingSelectedSDK>;
   team?: string;
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
-  alertRule?: Partial<RequestDataFragment>;
+  alertRule?: Partial<AlertRuleOptions>;
   notificationRule?: IssueAlertRule;
   team?: string;
 };
@@ -176,7 +177,7 @@ export function CreateProject() {
         projectName: createdProject.name ?? '',
         platform: createdProject.platform,
         team: createdProject.team ?? defaultTeam,
-        alertRuleConfig: createdProject.alertRule ?? {},
+        alertRule: createdProject.alertRule,
       };
     }
 
@@ -184,7 +185,6 @@ export function CreateProject() {
       projectName: '',
       platform: undefined,
       team: defaultTeam,
-      alertRuleConfig: {},
     };
   }, [autoFill, defaultTeam, createdProject]);
 
@@ -193,14 +193,19 @@ export function CreateProject() {
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
+  const alertRuleConfig = useMemo(
+    () => getRequestDataFragment(formData.alertRule),
+    [formData.alertRule]
+  );
+
   const missingValues = getMissingValues({
     isOrgMemberWithNoAccess,
     notificationProps,
     projectName: formData.projectName,
     team: formData.team,
-    shouldCreateCustomRule: formData.alertRuleConfig?.shouldCreateCustomRule,
-    shouldCreateRule: formData.alertRuleConfig?.shouldCreateRule,
-    conditions: formData.alertRuleConfig?.conditions,
+    shouldCreateCustomRule: alertRuleConfig.shouldCreateCustomRule,
+    shouldCreateRule: alertRuleConfig.shouldCreateRule,
+    conditions: alertRuleConfig.conditions,
   });
 
   const formErrorCount = [
@@ -242,7 +247,7 @@ export function CreateProject() {
       platform,
       projectName,
       team,
-      alertRuleConfig,
+      alertRule,
     }: {selectedFramework?: OnboardingSelectedSDK} & Omit<FormData, 'platform'> & {
         platform: OnboardingSelectedSDK;
       }) => {
@@ -268,9 +273,9 @@ export function CreateProject() {
 
         trackAnalytics('project_creation_page.created', {
           organization,
-          issue_alert: alertRuleConfig?.shouldCreateCustomRule
+          issue_alert: alertRuleConfig.shouldCreateCustomRule
             ? 'Custom'
-            : alertRuleConfig?.shouldCreateRule === false
+            : alertRuleConfig.shouldCreateRule === false
               ? 'No Rule'
               : 'Default',
           project_id: project.id,
@@ -292,9 +297,9 @@ export function CreateProject() {
           id: project.id,
           name: project.name,
           team: project.team?.slug,
-          alertRule: alertRuleConfig,
-          notificationRule,
           platform: selectedPlatform,
+          alertRule,
+          notificationRule,
         });
 
         navigate(
@@ -344,6 +349,7 @@ export function CreateProject() {
       api,
       createProjectAndRules,
       createNotificationAction,
+      alertRuleConfig,
     ]
   );
 
@@ -459,34 +465,17 @@ export function CreateProject() {
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
-            alertSetting={
-              formData.alertRuleConfig?.shouldCreateCustomRule
-                ? RuleAction.CUSTOMIZED_ALERTS
-                : formData.alertRuleConfig?.shouldCreateRule === false
-                  ? RuleAction.CREATE_ALERT_LATER
-                  : RuleAction.DEFAULT_ALERT
-            }
-            interval={
-              defined(formData.alertRuleConfig?.conditions?.[0]?.interval)
-                ? String(formData.alertRuleConfig?.conditions?.[0]?.interval)
-                : undefined
-            }
-            threshold={
-              defined(formData.alertRuleConfig?.conditions?.[0]?.value)
-                ? String(formData.alertRuleConfig?.conditions?.[0]?.value)
-                : undefined
-            }
-            metric={
-              formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
-                'EventFrequencyCondition'
-              )
-                ? MetricValues.ERRORS
-                : MetricValues.USERS
-            }
-            onChange={value => {
-              updateFormData('alertRuleConfig', value);
-            }}
+            alertSetting={formData.alertRule?.alertSetting}
+            interval={formData.alertRule?.interval}
+            metric={formData.alertRule?.metric}
+            threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
+            onFieldChange={(field, value) => {
+              updateFormData('alertRule', {
+                ...formData.alertRule,
+                [field]: value,
+              });
+            }}
           />
           <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
           <FormFieldGroup>

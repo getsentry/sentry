@@ -23,7 +23,6 @@ export default function TestsOnboardingPage() {
 
   return (
     <LayoutGap>
-      <p>Test Analytics Onboarding</p>
       <TestPreOnboardingPage />
       <OnboardingContainer>
         <IntroContainer>
@@ -61,6 +60,7 @@ const OnboardingContainer = styled('div')`
   padding: ${space(1.5)} ${space(4)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  max-width: 800px;
 `;
 
 const IntroContainer = styled('div')`

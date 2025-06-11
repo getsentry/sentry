@@ -8,20 +8,21 @@ import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/
 
 export default function CacheThroughputChartWidget(props: LoadableChartWidgetProps) {
   const search = MutableSearch.fromQueryObject(BASE_FILTERS);
+  const referrer = Referrer.LANDING_CACHE_THROUGHPUT_CHART;
   const {isPending, data, error} = useSpanMetricsSeries(
     {
       search,
       yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
-    Referrer.LANDING_CACHE_THROUGHPUT_CHART,
+    referrer,
     props.pageFilters
   );
 
   return (
     <InsightsLineChartWidget
       {...props}
-      search={search}
+      queryInfo={{search, referrer}}
       id="cacheThroughputChartWidget"
       title={getThroughputChartTitle('cache.get_item')}
       series={[data['epm()']]}

@@ -247,8 +247,8 @@ class ThreadedExecutor(Executor):
         task = PriorityTask(
             priority,
             (
-                sentry_sdk.Scope.get_isolation_scope(),
-                sentry_sdk.Scope.get_current_scope(),
+                sentry_sdk.get_isolation_scope(),
+                sentry_sdk.get_current_scope(),
                 callable,
                 future,
             ),

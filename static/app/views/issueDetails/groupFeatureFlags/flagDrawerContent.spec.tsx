@@ -42,7 +42,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search=""
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />
@@ -77,7 +76,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search=""
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />
@@ -99,7 +97,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search="zxf"
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />
@@ -125,7 +122,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search=""
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />
@@ -146,7 +142,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search=""
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />
@@ -170,7 +165,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search=""
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />
@@ -191,7 +185,6 @@ describe('GroupFeatureFlagsDrawerContent', function () {
         environments={[]}
         group={GroupFixture()}
         search=""
-        debugSuspectScores={false}
         orderBy={OrderBy.NEWEST}
         sortBy={SortBy.EVAL_ORDER}
       />

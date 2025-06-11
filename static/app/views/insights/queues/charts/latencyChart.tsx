@@ -68,7 +68,7 @@ export function LatencyChart({id, error, destination, referrer, pageFilters}: Pr
   return (
     <InsightsAreaChartWidget
       id={id}
-      search={search}
+      queryInfo={{search, referrer}}
       title={t('Average Duration')}
       series={[messageReceiveLatencySeries, data['avg(span.duration)']]}
       aliases={FIELD_ALIASES}

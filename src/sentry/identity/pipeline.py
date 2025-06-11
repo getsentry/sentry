@@ -19,7 +19,7 @@ from . import default_manager
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
 
-class IdentityProviderPipeline(Pipeline):
+class IdentityProviderPipeline(Pipeline[IdentityProvider]):
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
@@ -27,7 +27,7 @@ class IdentityProviderPipeline(Pipeline):
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
     def get_provider(
         self, provider_key: str, *, organization: RpcOrganization | None
-    ) -> PipelineProvider:
+    ) -> PipelineProvider[IdentityProvider]:
         if provider_key == "vsts" and features.has(
             "organizations:migrate-azure-devops-integration", organization
         ):

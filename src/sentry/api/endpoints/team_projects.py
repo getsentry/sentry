@@ -31,6 +31,7 @@ from sentry.models.team import Team
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
+    set_default_project_seer_scanner_automation,
 )
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -50,6 +51,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
         project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
     set_default_project_autofix_automation_tuning(organization, project)
+    set_default_project_seer_scanner_automation(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):

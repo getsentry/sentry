@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
+    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -1011,6 +1012,7 @@ CELERY_QUEUES_REGION = [
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
+    Queue("seer.seer_automation", routing_key="seer.seer_automation"),
 ]
 
 from celery.schedules import crontab
@@ -1512,6 +1514,11 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
         "task": "options:sentry.tasks.options.sync_options",
     },
 }
+
+TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {}
+
+if SILO_MODE == "CONTROL":
+    TASKWORKER_SCHEDULES = TASKWORKER_CONTROL_SCHEDULES
 
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
@@ -3167,6 +3174,10 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-ingest-errors-dlq": "default",
     "taskworker-ingest-transactions": "default",
     "taskworker-ingest-transactions-dlq": "default",
+    "taskworker-ingest-attachments": "default",
+    "taskworker-ingest-attachments-dlq": "default",
+    "taskworker-ingest-profiling": "default",
+    "taskworker-ingest-profiling-dlq": "default",
     "taskworker-internal": "default",
     "taskworker-internal-dlq": "default",
     "taskworker-limited": "default",
@@ -3690,6 +3701,7 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Base URL for Codecov API. Override if developing against a local instance
 # of Codecov.
+# Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
