@@ -5,6 +5,7 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
@@ -43,7 +44,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
-from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
 logger = logging.getLogger("sentry.api.authentication")
@@ -169,7 +169,7 @@ class QuietBasicAuthentication(BasicAuthentication):
 
         auth_token = AuthenticatedToken.from_token(request_auth)
         if auth_token and entity_id_tag:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
@@ -216,7 +216,7 @@ class RelayAuthentication(BasicAuthentication):
     def authenticate_credentials(
         self, relay_id: str, relay_sig: str, request=None
     ) -> tuple[AnonymousUser, None]:
-        Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+        sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
 
         if request is None:
             raise AuthenticationFailed("missing request")
@@ -511,7 +511,7 @@ class DSNAuthentication(StandardAuthentication):
         if not key.is_active:
             raise AuthenticationFailed("Invalid dsn")
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
         scope.set_tag("api_project_key", key.id)
 
@@ -547,6 +547,6 @@ class RpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        Scope.get_isolation_scope().set_tag("rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_tag("rpc_auth", True)
 
         return (AnonymousUser(), token)

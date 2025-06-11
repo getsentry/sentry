@@ -5,6 +5,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -24,7 +25,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_sdk import Scope, capture_exception
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -116,7 +116,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        Scope.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -164,21 +164,21 @@ class SeerRpcServiceEndpoint(Endpoint):
         try:
             result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise NotFound from e
         except SerializableFunctionValueException as e:
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise ParseError from e
         except ObjectDoesNotExist as e:
             # Let this fall through, this is normal.
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise NotFound from e
         except Exception as e:
             if in_test_environment():
                 raise
             if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
-            capture_exception()
+            sentry_sdk.capture_exception()
             raise ValidationError from e
         return Response(data=result)
 
