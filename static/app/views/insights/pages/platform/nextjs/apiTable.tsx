@@ -5,58 +5,58 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+import {
+  ErrorRateCell,
+  getErrorCellIssuesLink,
+} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
 import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 
+const getP95Threshold = (avg: number) => {
+  return {
+    error: avg * 3,
+    warning: avg * 2,
+  };
+};
+
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'messaging.destination.name', name: t('Job Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count()', name: t('Processed'), width: 124},
+  {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Requests'), width: 112},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
-  {
-    key: 'avg(messaging.message.receive.latency)',
-    name: t('Avg Time in Queue'),
-    width: 164,
-  },
-  {
-    key: 'avg_if(span.duration,span.op,queue.process)',
-    name: t('Avg Processing Time'),
-    width: 184,
-  },
+  {key: 'avg(span.duration)', name: t('AVG'), width: 90},
+  {key: 'p95(span.duration)', name: t('P95'), width: 90},
   {key: 'sum(span.duration)', name: t('Time Spent'), width: 120},
 ];
 
 const rightAlignColumns = new Set([
+  'avg(span.duration)',
   'count()',
   'failure_rate()',
+  'p95(span.duration)',
   'sum(span.duration)',
-  'avg(messaging.message.receive.latency)',
-  'avg_if(span.duration,span.op,queue.process)',
 ]);
 
-export function JobsTable() {
+export function ApiTable() {
   const tableDataRequest = useTableData({
-    query: 'span.op:queue.process',
+    query: 'transaction.op:http.server is_transaction:True',
     fields: [
-      'count()',
       'project.id',
-      'messaging.destination.name',
-      'avg(messaging.message.receive.latency)',
-      'avg_if(span.duration,span.op,queue.process)',
+      'transaction',
+      'avg(span.duration)',
+      'p95(span.duration)',
       'failure_rate()',
+      'count()',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
-    referrer: Referrer.PATHS_TABLE,
+    cursorParamName: 'cursor',
+    referrer: Referrer.API_TABLE,
   });
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
@@ -64,8 +64,8 @@ export function JobsTable() {
       <HeadSortCell
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'messaging.destination.name'}
-        cursorParamName="jobsCursor"
+        forceCellGrow={column.key === 'transaction'}
+        cursorParamName="cursor"
       >
         {column.name}
       </HeadSortCell>
@@ -78,20 +78,38 @@ export function JobsTable() {
       dataRow: (typeof tableDataRequest.data)[number]
     ) => {
       switch (column.key) {
-        case 'messaging.destination.name':
-          return <DestinationCell destination={dataRow['messaging.destination.name']} />;
+        case 'transaction':
+          return (
+            <TransactionCell
+              transaction={dataRow.transaction}
+              column={column}
+              dataRow={dataRow}
+              projectId={dataRow['project.id'].toString()}
+              targetView="backend"
+            />
+          );
+        case 'count()':
+          return <NumberCell value={dataRow['count()']} />;
         case 'failure_rate()':
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
+              issuesLink={getErrorCellIssuesLink({
+                projectId: dataRow['project.id'],
+                query: `transaction:"${dataRow.transaction}"`,
+              })}
             />
           );
-        case 'avg(messaging.message.receive.latency)':
-        case 'avg_if(span.duration,span.op,queue.process)':
-          return <DurationCell milliseconds={dataRow[column.key]} />;
-        case 'count()':
-          return <NumberCell value={dataRow['count()']} />;
+        case 'avg(span.duration)':
+          return <DurationCell milliseconds={dataRow['avg(span.duration)']} />;
+        case 'p95(span.duration)':
+          return (
+            <DurationCell
+              milliseconds={dataRow['p95(span.duration)']}
+              thresholds={getP95Threshold(dataRow['avg(span.duration)'])}
+            />
+          );
         case 'sum(span.duration)':
           return <TimeSpentCell total={dataRow['sum(span.duration)']} />;
         default:
@@ -112,27 +130,9 @@ export function JobsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="jobsCursor"
+      cursorParamName="cursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
-  );
-}
-
-function DestinationCell({destination}: {destination: string}) {
-  const moduleURL = useModuleURL('queue');
-  const {query} = useLocation();
-  return (
-    <Link
-      to={{
-        pathname: `${moduleURL}/destination/`,
-        query: {
-          ...query,
-          destination,
-        },
-      }}
-    >
-      {destination}
-    </Link>
   );
 }

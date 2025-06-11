@@ -15,7 +15,10 @@ import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
+import {
+  ErrorRateCell,
+  getErrorCellIssuesLink,
+} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
 import {UserCell} from 'sentry/views/insights/pages/platform/shared/table/UserCell';
@@ -39,12 +42,6 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'count_unique(user)', name: t('Users'), width: 90},
 ];
 
-interface PathsTableProps {
-  showHttpMethodColumn?: boolean;
-  showRouteController?: boolean;
-  showUsersColumn?: boolean;
-}
-
 const rightAlignColumns = new Set([
   'avg(span.duration)',
   'count_unique(user)',
@@ -54,25 +51,7 @@ const rightAlignColumns = new Set([
   'sum(span.duration)',
 ]);
 
-export function PathsTable({
-  showHttpMethodColumn = true,
-  showUsersColumn = true,
-  showRouteController = true,
-}: PathsTableProps) {
-  const getInitialColumnOrder = () => {
-    let columns = [...defaultColumnOrder];
-
-    if (!showHttpMethodColumn) {
-      columns = columns.filter(column => column.key !== 'http.request.method');
-    }
-
-    if (!showUsersColumn) {
-      columns = columns.filter(column => column.key !== 'count_unique(user)');
-    }
-
-    return columns;
-  };
-
+export function PathsTable() {
   const tableDataRequest = useTableDataWithController({
     query: 'transaction.op:http.server is_transaction:True',
     fields: [
@@ -83,11 +62,10 @@ export function PathsTable({
       'failure_rate()',
       'count()',
       'sum(span.duration)',
-      ...(showHttpMethodColumn ? ['http.request.method' as const] : []),
-      ...(showUsersColumn ? ['count_unique(user)' as const] : []),
+      'http.request.method',
+      'count_unique(user)',
     ],
     cursorParamName: 'pathsCursor',
-    fetchRouteController: showRouteController,
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -131,7 +109,16 @@ export function PathsTable({
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
         case 'failure_rate()':
-          return <ErrorRateCell errorRate={dataRow['failure_rate()']} />;
+          return (
+            <ErrorRateCell
+              errorRate={dataRow['failure_rate()']}
+              total={dataRow['count()']}
+              issuesLink={getErrorCellIssuesLink({
+                projectId: dataRow['project.id'],
+                query: `transaction:"${dataRow.transaction}"`,
+              })}
+            />
+          );
         case 'avg(span.duration)':
           return <DurationCell milliseconds={dataRow['avg(span.duration)']} />;
         case 'p95(span.duration)':
@@ -157,7 +144,7 @@ export function PathsTable({
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={getInitialColumnOrder}
+      initialColumnOrder={defaultColumnOrder}
       stickyHeader
       grid={{
         renderBodyCell,
