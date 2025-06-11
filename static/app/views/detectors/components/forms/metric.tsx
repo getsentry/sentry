@@ -1,4 +1,4 @@
-import {useContext, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -7,14 +7,9 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import Form from 'sentry/components/forms/form';
-import FormContext from 'sentry/components/forms/formContext';
-import type FormModel from 'sentry/components/forms/model';
-import Spinner from 'sentry/components/forms/spinner';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
@@ -32,50 +27,31 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metricFormData';
 
-type MetricDetectorKind = 'threshold' | 'change' | 'dynamic';
-
-export function MetricDetectorForm({model}: {model: FormModel}) {
+export function MetricDetectorForm() {
   return (
-    <Form hideFooter model={model}>
-      <ChartContainer>
-        <Spinner />
-      </ChartContainer>
-      <FormStack>
-        <DetectSection />
-        <PrioritizeSection />
-        <ResolveSection />
-        <AssignSection />
-        <AutomateSection />
-      </FormStack>
-    </Form>
+    <FormStack>
+      <DetectSection />
+      <PrioritizeSection />
+      <ResolveSection />
+      <AssignSection />
+      <AutomateSection />
+    </FormStack>
   );
 }
 
 function MonitorKind() {
-  const formContext = useContext(FormContext);
-
-  /**
-   * Reset other fields when kind changes
-   */
-  function handleChangeKind(kind: MetricDetectorKind) {
-    if (kind === 'threshold') {
-      formContext.form?.setValue('conditionGroup.conditions.0.type', 'above');
-    } else if (kind === 'change') {
-      formContext.form?.setValue('conditionGroup.conditions.0.type', 'higher');
-    } else if (kind === 'dynamic') {
-      formContext.form?.setValue('conditionGroup.conditions.0.type', 'above');
-    }
-  }
-
   return (
     <MonitorKindField
       label={t('...and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
-      name="kind"
+      name={METRIC_DETECTOR_FORM_FIELDS.kind}
       defaultValue="threshold"
-      onChange={handleChangeKind}
       choices={[
         [
           'threshold',
@@ -94,7 +70,7 @@ function MonitorKind() {
 }
 
 function ResolveSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
 
   return (
     <Container>
@@ -114,7 +90,7 @@ function ResolveSection() {
             inline={false}
             label={t('Close an incident when the value dips below:')}
             placeholder="0"
-            name="resolve_threshold"
+            name={METRIC_DETECTOR_FORM_FIELDS.resolveThreshold}
             suffix="s"
           />
         )}
@@ -151,7 +127,7 @@ function AssignSection() {
 }
 
 function PrioritizeSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   return (
     <Container>
       <Section
@@ -169,7 +145,7 @@ function PrioritizeSection() {
 }
 
 function DetectSection() {
-  const kind = useFormField<MetricDetectorKind>('kind')!;
+  const kind = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.kind);
   const aggregateOptions: Array<[string, string]> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return [aggregate, aggregate];
@@ -183,7 +159,7 @@ function DetectSection() {
         description={t('Sentry will check the following query:')}
       >
         <FirstRow>
-          <DetectColumn>
+          <Flex flex={1} gap={space(1)}>
             <VisualizeField
               placeholder={t('Metric')}
               flexibleControlStateSize
@@ -200,10 +176,10 @@ function DetectSection() {
               name="aggregate"
               choices={aggregateOptions}
             />
-          </DetectColumn>
-          <DetectColumn>
+          </Flex>
+          <Flex flex={1} gap={space(1)}>
             <FilterField />
-          </DetectColumn>
+          </Flex>
         </FirstRow>
         <MonitorKind />
         <Flex column>
@@ -212,23 +188,24 @@ function DetectSection() {
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <DirectionField
-                  name="conditionGroup.conditions.0.type"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
-                  defaultValue="above"
                   flexibleControlStateSize
                   choices={[
-                    ['above', t('Above')],
-                    ['below', t('Below')],
+                    ['gt', t('Above')],
+                    ['lte', t('Below')],
                   ]}
+                  required
                 />
                 <ThresholdField
                   flexibleControlStateSize
                   inline={false}
                   hideLabel
                   placeholder="0"
-                  name="conditionGroup.conditions.0.comparison"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   suffix="s"
+                  required
                 />
               </Flex>
             </Flex>
@@ -238,38 +215,39 @@ function DetectSection() {
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
-                  name="conditionGroup.conditions.0.comparison"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
                   placeholder="0"
                   hideLabel
                   inline
+                  required
                 />
                 <span>{t('percent')}</span>
                 <DirectionField
-                  name="conditionGroup.conditions.0.type"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
-                  defaultValue="higher"
                   flexibleControlStateSize
                   choices={[
-                    ['higher', t('higher')],
-                    ['lower', t('lower')],
+                    ['gt', t('higher')],
+                    ['lt', t('lower')],
                   ]}
+                  required
                 />
                 <span>{t('than the previous')}</span>
                 <StyledSelectField
-                  name="config.low_threshold.unit"
+                  name={METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo}
                   hideLabel
                   inline
-                  defaultValue="1 hour"
                   flexibleControlStateSize
                   choices={[
-                    ['5 minutes', '5 minutes'],
-                    ['15 minutes', '15 minutes'],
-                    ['1 hour', '1 hour'],
-                    ['1 day', '1 day'],
-                    ['1 week', '1 week'],
-                    ['1 month', '1 month'],
+                    [5 * 60, '5 minutes'],
+                    [15 * 60, '15 minutes'],
+                    [60 * 60, '1 hour'],
+                    [24 * 60 * 60, '1 day'],
+                    [7 * 24 * 60 * 60, '1 week'],
+                    [30 * 24 * 60 * 60, '1 month'],
                   ]}
+                  required
                 />
               </Flex>
             </Flex>
@@ -278,12 +256,11 @@ function DetectSection() {
             <Flex column>
               <SelectField
                 required
-                name="config.sensitivity"
+                name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
                 label={t('Level of responsiveness')}
                 help={t(
                   'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
                 )}
-                defaultValue={AlertRuleSensitivity.MEDIUM}
                 choices={[
                   [AlertRuleSensitivity.HIGH, t('High')],
                   [AlertRuleSensitivity.MEDIUM, t('Medium')],
@@ -292,12 +269,11 @@ function DetectSection() {
               />
               <SelectField
                 required
-                name="config.thresholdType"
+                name={METRIC_DETECTOR_FORM_FIELDS.thresholdType}
                 label={t('Direction of anomaly movement')}
                 help={t(
                   'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
                 )}
-                defaultValue={AlertRuleThresholdType.ABOVE_AND_BELOW}
                 choices={[
                   [AlertRuleThresholdType.ABOVE, t('Above')],
                   [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
@@ -324,11 +300,11 @@ function OwnerField() {
   );
 }
 
-const FormStack = styled(Flex)`
-  max-width: ${p => p.theme.breakpoints.xlarge};
+const FormStack = styled('div')`
+  display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding: ${space(4)};
+  gap: ${space(3)};
+  max-width: ${p => p.theme.breakpoints.xlarge};
 `;
 
 const FirstRow = styled('div')`
@@ -337,10 +313,6 @@ const FirstRow = styled('div')`
   gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
-
-function DetectColumn(props: React.ComponentProps<typeof Flex>) {
-  return <Flex flex={1} gap={space(1)} {...props} />;
-}
 
 const StyledSelectField = styled(SelectField)`
   width: 180px;
@@ -362,13 +334,6 @@ const VisualizeField = styled(SelectField)`
   padding-right: 0;
   margin-left: 0;
   border-bottom: none;
-`;
-
-const ChartContainer = styled('div')`
-  background: ${p => p.theme.background};
-  width: 100%;
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: 24px 32px 16px 32px;
 `;
 
 const AggregateField = styled(SelectField)`
