@@ -19,7 +19,7 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
-import packageJson from './package.json';
+import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
 
