@@ -14,6 +14,7 @@ import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
 import path from 'node:path';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
@@ -81,6 +82,8 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
+
+const require = createRequire(import.meta.url);
 
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
@@ -469,7 +472,7 @@ const appConfig: Configuration = {
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
-      'process/browser': import.meta.resolve('process/browser'),
+      'process/browser': require.resolve('process/browser'),
     },
 
     // Prefers local modules over node_modules
@@ -805,7 +808,7 @@ if (IS_PRODUCTION) {
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
-  const {codecovWebpackPlugin} = await import('@codecov/webpack-plugin');
+  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
   // defaulting to an empty string which in turn will fallback to env var or
   // determine merge commit sha from git
   const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
