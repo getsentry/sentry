@@ -23,6 +23,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.action import filter_recently_fired_actions
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
@@ -543,9 +544,9 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             },
         )
 
-    def test_basic__no_filter(self):
+    def test_basic__no_filter(self) -> None:
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action}
+        assert set(triggered_actions) == {self.action_group}
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -556,7 +557,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action}
+        assert set(triggered_actions) == {self.action_group}
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -612,8 +613,9 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )  # condition is not met
 
-        triggered_actions = evaluate_workflows_action_filters(
-            {self.workflow, workflow}, self.event_data
+        triggered_actions = filter_recently_fired_actions(
+            evaluate_workflows_action_filters({self.workflow, workflow}, self.event_data),
+            self.event_data,
         )
         assert set(triggered_actions) == {self.action}
 

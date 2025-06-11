@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, Never, NoReturn, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import NotFound
@@ -21,6 +21,10 @@ from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
+from sentry.integrations.pipeline_types import (
+    IntegrationPipelineProviderT,
+    IntegrationPipelineViewT,
+)
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
@@ -29,8 +33,6 @@ from sentry.organizations.services.organization import (
     RpcOrganizationSummary,
     organization_service,
 )
-from sentry.pipeline import PipelineProvider
-from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -182,7 +184,7 @@ class IntegrationData(TypedDict):
     provider: NotRequired[str]  # maybe unused ???
 
 
-class IntegrationProvider(PipelineProvider[Never], abc.ABC):
+class IntegrationProvider(IntegrationPipelineProviderT, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
 
@@ -297,7 +299,7 @@ class IntegrationProvider(PipelineProvider[Never], abc.ABC):
 
     def get_pipeline_views(
         self,
-    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
+    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
