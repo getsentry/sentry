@@ -143,7 +143,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
-            validate=lambda x: x in CONFIGURATIONS,
+            validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
         )
 
 
