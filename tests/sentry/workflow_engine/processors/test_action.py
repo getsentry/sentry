@@ -82,6 +82,33 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
 
+    def test_creates_workflow_fire_histories(self):
+        workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
+        action_group = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group,
+            action=self.action,
+        )  # shared action
+        self.create_workflow_data_condition_group(workflow, action_group)
+        status = WorkflowActionGroupStatus.objects.create(
+            workflow=workflow, action=self.action, group=self.group
+        )
+        status.update(date_updated=timezone.now() - timedelta(hours=1))
+
+        triggered_actions = filter_recently_fired_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+        assert set(triggered_actions) == {self.action}
+
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=workflow,
+                group=self.group,
+                event_id=self.group_event.event_id,
+            ).count()
+            == 1
+        )
+
 
 @freeze_time("2024-01-09")
 class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
