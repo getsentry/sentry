@@ -11,8 +11,9 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import ScoreCard, {
+import {
   Score,
+  ScoreCard,
   ScorePanel,
   ScoreWrapper,
   Title,
