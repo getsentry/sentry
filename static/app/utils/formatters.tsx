@@ -269,7 +269,9 @@ export function formatPercentRate(change: number) {
  * @param duration the duration in milliseconds to format
  * @param numLargestUnitsToShow the number of largest units to include in the output
  */
-export function formatTimeDuration(duration: number, numLargestUnitsToShow?: number) {
+export function formatTimeDuration(duration?: number, numLargestUnitsToShow?: number) {
+  if (duration === undefined) return 'N/A';
+
   const d = Math.floor(duration / DAY);
   const h = Math.floor((duration % DAY) / HOUR);
   const m = Math.floor((duration % HOUR) / MINUTE);
