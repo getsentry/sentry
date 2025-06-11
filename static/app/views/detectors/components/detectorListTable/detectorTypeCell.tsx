@@ -4,7 +4,7 @@ import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils';
 
-export type DetectorTypeCellProps = {
+type DetectorTypeCellProps = {
   type: DetectorType;
   className?: string;
   disabled?: boolean;

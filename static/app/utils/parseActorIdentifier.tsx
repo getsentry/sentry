@@ -1,4 +1,4 @@
-export type ParsedActorIdentifier = {
+type ParsedActorIdentifier = {
   id: string;
   type: 'user' | 'team';
 };
