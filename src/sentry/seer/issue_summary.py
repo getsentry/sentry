@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, quotas, ratelimits
+from sentry import eventstore, features, options, quotas, ratelimits
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
@@ -63,24 +63,28 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
 
         project = group.project
 
-        is_rate_limited = ratelimits.backend.is_limited(
-            project=project,
-            key="autofix.auto_triggered",
-            limit=20,
-            window=60 * 60,  # 1 hour
-        )
-        if is_rate_limited:
-            logger.warning(
-                "autofix.rate_limited",
-                extra={
-                    "group_id": group_id,
-                    "user_id": user_id,
-                    "organization_slug": group.organization.slug,
-                    "organization_id": group.organization.id,
-                    "project_id": project.id,
-                },
+        if not features.has("projects:unlimited-auto-triggered-autofix-runs", project):
+            limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
+            is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+                project=project,
+                key="autofix.auto_triggered",
+                limit=limit,
+                window=60 * 60,  # 1 hour
             )
-            return
+            if is_rate_limited:
+                sentry_sdk.set_tags(
+                    {
+                        "group_id": group_id,
+                        "user_id": user_id,
+                        "auto_run_source": auto_run_source,
+                        "auto_run_count": current,
+                        "org_slug": group.organization.slug,
+                        "org_id": group.organization.id,
+                        "project_id": project.id,
+                    }
+                )
+                logger.error("Autofix auto-trigger rate limit hit")
+                return
 
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
