@@ -8,6 +8,7 @@ from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, Never, NoReturn, NotRequired, TypedDict
 
+import sentry_sdk
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
@@ -46,7 +47,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
-from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -452,7 +452,7 @@ class IntegrationInstallation(abc.ABC):
                 raise Identity.DoesNotExist
         identity = identity_service.get_identity(filter={"id": org_integration.default_auth_id})
         if identity is None:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("integration_provider", self.model.get_provider().name)
             scope.set_tag("org_integration_id", org_integration.id)
             scope.set_tag("default_auth_id", org_integration.default_auth_id)
