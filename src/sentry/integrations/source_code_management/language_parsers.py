@@ -320,7 +320,7 @@ class CSharpParser(LanguageParser):
     ]
 
 
-PATCH_PARSERS: dict[str, SimpleLanguageParser | LanguageParser] = {
+PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
@@ -331,7 +331,7 @@ PATCH_PARSERS: dict[str, SimpleLanguageParser | LanguageParser] = {
 }
 
 # Beta parsers for experimental language support
-BETA_PATCH_PARSERS: dict[str, SimpleLanguageParser | LanguageParser] = {
+BETA_PATCH_PARSERS: dict[str, type[SimpleLanguageParser] | type[LanguageParser]] = {
     "cs": CSharpParser,
 }
 
