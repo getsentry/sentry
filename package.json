@@ -289,9 +289,6 @@
     ]
   },
   "packageManager": "pnpm@10.10.0",
-  "volta": {
-    "extends": ".volta.json"
-  },
   "prettier": {
     "bracketSpacing": false,
     "bracketSameLine": false,
