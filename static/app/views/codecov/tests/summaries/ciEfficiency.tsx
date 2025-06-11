@@ -37,8 +37,8 @@ function TotalTestsRunTimeTooltip() {
 }
 
 interface SlowestTestsTooltipProps {
-  slowestTests: number;
-  slowestTestsDuration: number;
+  slowestTests?: number;
+  slowestTestsDuration?: number;
 }
 
 function SlowestTestsTooltip({
@@ -67,10 +67,10 @@ const ToolTipTitle = styled('strong')`
 `;
 
 interface CIEfficiencyBodyProps {
-  slowestTests: number;
-  slowestTestsDuration: number;
-  totalTestsRunTime: number;
-  totalTestsRunTimeChange: number | null;
+  slowestTests?: number;
+  slowestTestsDuration?: number;
+  totalTestsRunTime?: number;
+  totalTestsRunTimeChange?: number | null;
 }
 
 function CIEfficiencyBody({

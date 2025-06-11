@@ -5,16 +5,20 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TestResultAggregate = {
+  flakeCount: number;
+  flakeCountPercentChange: number | null;
+  flakeRate: number;
+  flakeRatePercentChange: number | null;
   slowestTestsDuration: number;
-  slowestTestsDurationPercentChange: number;
+  slowestTestsDurationPercentChange: number | null;
   totalDuration: number;
-  totalDurationPercentChange: number;
+  totalDurationPercentChange: number | null;
   totalFails: number;
-  totalFailsPercentChange: number;
+  totalFailsPercentChange: number | null;
   totalSkips: number;
-  totalSkipsPercentChange: number;
+  totalSkipsPercentChange: number | null;
   totalSlowTests: number;
-  totalSlowTestsPercentChange: number;
+  totalSlowTestsPercentChange: number | null;
 };
 
 export function useTestResultsAggregates() {
@@ -44,10 +48,22 @@ export function useTestResultsAggregates() {
 
   const memoizedData = useMemo(() => {
     return {
-      totalTestsRunTime: (data?.totalDuration ?? 0) * 1000,
-      slowestTestsDuration: (data?.slowestTestsDuration ?? 0) * 1000,
-      slowestTests: data?.totalSlowTests ?? 0,
-      totalTestsRunTimeChange: data?.totalDurationPercentChange || null,
+      ciEfficiency: {
+        totalTestsRunTime: data && data.totalDuration * 1000,
+        slowestTestsDuration: data && data.slowestTestsDuration * 1000,
+        slowestTests: data?.totalSlowTests,
+        totalTestsRunTimeChange: data?.totalDurationPercentChange,
+      },
+      testPerformance: {
+        flakyTests: data?.flakeCount,
+        flakyTestsChange: data?.flakeCountPercentChange,
+        averageFlakeRate: data?.flakeRate,
+        averageFlakeRateChange: data?.flakeRatePercentChange,
+        cumulativeFailures: data?.totalFails,
+        cumulativeFailuresChange: data?.totalFailsPercentChange,
+        skippedTests: data?.totalSkips,
+        skippedTestsChange: data?.totalSkipsPercentChange,
+      },
     };
   }, [data]);
 
