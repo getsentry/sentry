@@ -172,7 +172,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def _ensure_process_alive(self) -> None:
         max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds")
         if not self.process.is_alive():
-            cause = "no_process"
+            exitcode = getattr(self.process, "exitcode", "unknown")
+            cause = f"no_process_{exitcode}"
         elif int(time.time()) - self.healthy_since.value > max_unhealthy_seconds:
             cause = "hang"
         else:
@@ -180,7 +181,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         metrics.incr("spans.buffer.flusher_unhealthy", tags={"cause": cause})
         if self.process_restarts > MAX_PROCESS_RESTARTS:
-            raise RuntimeError("flusher process crashed repeatedly, restarting consumer")
+            raise RuntimeError(f"flusher process crashed repeatedly ({cause}), restarting consumer")
 
         try:
             self.process.kill()
