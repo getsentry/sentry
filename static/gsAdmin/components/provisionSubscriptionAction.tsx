@@ -328,7 +328,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     isAm3DsPlan(this.state.data.plan) &&
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSpans'))
-      .every(([_, value]) => !!value) &&
+      .every(([_, value]) => value !== null || value !== undefined) &&
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
       .length >= 2;
 
@@ -336,7 +336,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
-      .every(([_, value]) => !!value) &&
+      .every(([_, value]) => value !== null && value !== undefined) &&
     Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
       .length >= 2;
 
