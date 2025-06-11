@@ -260,8 +260,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
-        actions = filter_recently_fired_actions(
-            evaluate_workflows_action_filters(triggered_workflows, event_data), event_data
+        actions_to_trigger = evaluate_workflows_action_filters(triggered_workflows, event_data), event_data
+        actions = filter_recently_fired_actions(actions_to_trigger, event_data)
         )
         metrics.incr(
             "workflow_engine.process_workflows.actions",
