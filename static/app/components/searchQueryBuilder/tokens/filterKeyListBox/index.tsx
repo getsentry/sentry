@@ -610,7 +610,7 @@ const SeerButtonWrapper = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.purple100};
   width: 100%;
 `;
 
