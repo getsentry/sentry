@@ -210,7 +210,18 @@ export function useSortedFilterKeyItems({
         value: 'raw-search',
         label: '',
         options:
-          replaceRawSearchKeys?.map(key => createFilterValueItem(key, inputValue)) ?? [],
+          replaceRawSearchKeys?.map(key => {
+            try {
+              return createFilterValueItem(
+                key,
+                inputValue?.includes(' ') ? `"${inputValue}"` : inputValue
+              );
+            } catch (error) {
+              console.log('why no work');
+              console.error(error);
+              return '';
+            }
+          }) ?? [],
         type: 'section',
       };
 
