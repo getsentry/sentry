@@ -31,7 +31,9 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
-from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
+from sentry.integrations.source_code_management.language_parsers import (
+    get_patch_parsers_for_organization,
+)
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
@@ -641,8 +643,7 @@ class OpenPRCommentWorkflow(ABC):
         if not len(projects):
             return []
 
-        patch_parsers = PATCH_PARSERS
-        # NOTE: if we are testing beta patch parsers, add check here
+        patch_parsers = get_patch_parsers_for_organization(projects[0].organization)
 
         # fetches the appropriate parser for formatting the snuba query given the file extension
         # the extension is never replaced in reverse codemapping

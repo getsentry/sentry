@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from sentry.integrations.source_code_management.language_parsers import (
+    CSharpParser,
     JavascriptParser,
     PHPParser,
     PythonParser,
@@ -806,4 +807,246 @@ class RubyParserTestCase(TestCase):
             "render_content_with_collection",
             "render_content_with_collection_2",
             "require_gems",
+        }
+
+
+class CSharpParserTestCase(TestCase):
+    def test_csharp_simple(self):
+        patch = """
+@@ -152,10 +152,6 @@ public void MethodOne()
+
+@@ -152,10 +152,6 @@ private static int MethodTwo(int x)
+
+@@ -152,10 +152,6 @@ protected virtual string MethodThree()
+
+@@ -152,10 +152,6 @@ internal async Task<string> MethodFour()
+
+@@ -152,10 +152,6 @@ public async Task MethodFive()
+
+@@ -152,10 +152,6 @@ static void MethodSix()
+
+@@ -152,10 +152,6 @@ public override bool MethodSeven()
+
+@@ -152,10 +152,6 @@ public abstract void MethodEight()
+
+@@ -152,10 +152,6 @@ public ClassName()
+
+@@ -152,10 +152,6 @@ static ClassName()
+
+@@ -152,10 +152,6 @@ ~ClassName()
+
+@@ -152,10 +152,6 @@ get { return _value; }
+
+@@ -152,10 +152,6 @@ set { _value = value; }
+
+@@ -152,10 +152,6 @@ public int Add(int x, int y) => x + y;
+
+@@ -152,10 +152,6 @@ void LocalFunction()
+
+@@ -152,10 +152,6 @@ async Task<string> AsyncLocalFunction()
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "MethodOne",
+            "MethodTwo",
+            "MethodThree",
+            "MethodFour",
+            "MethodFive",
+            "MethodSix",
+            "MethodSeven",
+            "MethodEight",
+            "ClassName",
+            "get",
+            "set",
+            "Add",
+            "LocalFunction",
+            "AsyncLocalFunction",
+        }
+
+    def test_csharp_operators(self):
+        patch = """
+@@ -152,10 +152,6 @@ public static ClassName operator+(ClassName a, ClassName b)
+
+@@ -152,10 +152,6 @@ public static bool operator==(ClassName a, ClassName b)
+
+@@ -152,10 +152,6 @@ public static implicit operator string(ClassName obj)
+
+@@ -152,10 +152,6 @@ public static explicit operator int(ClassName obj)
+
+@@ -152,10 +152,6 @@ public static ClassName operator++(ClassName obj)
+
+@@ -152,10 +152,6 @@ public static bool operator<(ClassName a, ClassName b)
+
+@@ -152,10 +152,6 @@ public static bool operator>(ClassName a, ClassName b)
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "+",
+            "==",
+            "implicit",
+            "explicit",
+            "++",
+            "<",
+            ">",
+        }
+
+    def test_csharp_generics_and_complex_types(self):
+        patch = """
+@@ -152,10 +152,6 @@ public List<T> GetItems<T>()
+
+@@ -152,10 +152,6 @@ public Dictionary<string, int> GetDictionary()
+
+@@ -152,10 +152,6 @@ public async Task<List<string>> GetStringsAsync()
+
+@@ -152,10 +152,6 @@ public T[] GetArray<T>(int size)
+
+@@ -152,10 +152,6 @@ public void ProcessItems(List<Dictionary<string, object>> items)
+
+@@ -152,10 +152,6 @@ public Func<int, bool> GetPredicate()
+
+@@ -152,10 +152,6 @@ public Action<string> GetAction()
+
+@@ -152,10 +152,6 @@ public int? GetNullableInt()
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "GetItems",
+            "GetDictionary",
+            "GetStringsAsync",
+            "GetArray",
+            "ProcessItems",
+            "GetPredicate",
+            "GetAction",
+            "GetNullableInt",
+        }
+
+    def test_csharp_expression_bodied_members(self):
+        patch = """
+@@ -152,10 +152,6 @@ public int Add(int x, int y) => x + y;
+
+@@ -152,10 +152,6 @@ public string FullName => $"{FirstName} {LastName}";
+
+@@ -152,10 +152,6 @@ public bool IsValid => !string.IsNullOrEmpty(Name);
+
+@@ -152,10 +152,6 @@ private static string FormatValue(object value) => value?.ToString() ?? "null";
+
+@@ -152,10 +152,6 @@ public async Task<string> GetDataAsync() => await LoadDataAsync();
+
+@@ -152,10 +152,6 @@ public override string ToString() => $"Object: {Name}";
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "Add",
+            "FullName",
+            "IsValid",
+            "FormatValue",
+            "GetDataAsync",
+            "ToString",
+        }
+
+    def test_csharp_real_world_example(self):
+        # Based on a typical C# class with various method types
+        patch = """
+@@ -73,9 +73,7 @@ public UserService(IUserRepository repository)
+
+@@ -87,7 +87,8 @@ public async Task<User> GetUserAsync(int id)
+
+@@ -95,6 +95,7 @@ public bool ValidateUser(User user)
+
+@@ -103,4 +107,23 @@ private void LogUserAction(string action)
+
+@@ -115,6 +118,13 @@ public static UserService CreateDefault()
+
+@@ -125,7 +125,7 @@ protected virtual void OnUserChanged(UserEventArgs e)
+
+@@ -135,8 +135,8 @@ public void Dispose()
+
+@@ -145,10 +145,10 @@ ~UserService()
+
+@@ -168,15 +168,15 @@ public int Count => _users.Count;
+
+@@ -180,18 +180,18 @@ public User this[int index] => _users[index];
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "UserService",
+            "GetUserAsync",
+            "ValidateUser",
+            "LogUserAction",
+            "CreateDefault",
+            "OnUserChanged",
+            "Dispose",
+            "Count",
+        }
+
+    def test_csharp_interface_implementations(self):
+        patch = """
+@@ -152,10 +152,6 @@ void IDisposable.Dispose()
+
+@@ -152,10 +152,6 @@ string IFormattable.ToString(string format, IFormatProvider provider)
+
+@@ -152,10 +152,6 @@ int IComparable<T>.CompareTo(T other)
+
+@@ -152,10 +152,6 @@ bool IEquatable<T>.Equals(T other)
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "Dispose",
+            "ToString",
+            "CompareTo",
+            "Equals",
+        }
+
+    def test_csharp_local_functions_and_nested(self):
+        patch = """
+@@ -152,10 +152,6 @@ void OuterMethod()
+{
+    void InnerFunction()
+    {
+        // local function inside method
+    }
+}
+
+@@ -165,15 +165,15 @@ static int Calculate(int x)
+
+@@ -175,18 +175,18 @@ async Task<string> ProcessDataAsync()
+
+@@ -185,20 +185,20 @@ T GenericLocalFunction<T>(T input)
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "OuterMethod",
+            "Calculate",
+            "ProcessDataAsync",
+            "GenericLocalFunction",
+        }
+
+    def test_csharp_edge_cases(self):
+        patch = """
+@@ -152,10 +152,6 @@ public unsafe void* GetPointer()
+
+@@ -152,10 +152,6 @@ public extern static void ExternalMethod();
+
+@@ -152,10 +152,6 @@ [Obsolete("Use NewMethod instead")]
+public void OldMethod()
+
+@@ -152,10 +152,6 @@ public partial void PartialMethod();
+
+@@ -152,10 +152,6 @@ public virtual async Task<IEnumerable<T>> ComplexMethod<T>()
+
+"""
+
+        assert CSharpParser.extract_functions_from_patch(patch) == {
+            "GetPointer",
+            "ExternalMethod",
+            "OldMethod",
+            "PartialMethod",
+            "ComplexMethod",
         }
