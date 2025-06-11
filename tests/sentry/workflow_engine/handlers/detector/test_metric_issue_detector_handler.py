@@ -1,12 +1,16 @@
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
+from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricIssueDetectorHandler
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition, DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
@@ -16,10 +20,11 @@ from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
 )
 from tests.sentry.workflow_engine.handlers.detector.test_base import BaseDetectorHandlerTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 @freeze_time()
-class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
+class TestEvaluateMetricDetector(BaseDetectorHandlerTest, BaseWorkflowTest):
     def setUp(self):
         super().setUp()
         self.detector_group_key = None
@@ -116,6 +121,45 @@ class TestEvaluateMetricDetector(BaseDetectorHandlerTest):
         assert occurrence.level == "error"
         assert occurrence.priority == self.critical_detector_trigger.condition_result
         assert occurrence.assignee == self.detector.created_by_id
+
+    @patch("sentry.workflow_engine.processors.workflow.process_workflows")
+    def test_occurrence_post_process(self, mock_process_workflows):
+        value = self.critical_detector_trigger.comparison + 1
+        packet = QuerySubscriptionUpdate(
+            entity="entity",
+            subscription_id=str(self.query_subscription.id),
+            values={"value": value},
+            timestamp=datetime.now(UTC),
+        )
+        data_packet = DataPacket[QuerySubscriptionUpdate](
+            source_id=str(self.query_subscription.id), packet=packet
+        )
+        result: dict[DetectorGroupKey, DetectorEvaluationResult] = self.handler.evaluate(
+            data_packet
+        )
+        evaluation_result: DetectorEvaluationResult = result[self.detector_group_key]
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+        occurrence_data: IssueOccurrence = evaluation_result.result
+
+        assert occurrence_data is not None
+
+        process_occurrence_data(occurrence_data.to_dict())
+        del evaluation_result.event_data["event_id"]
+        del evaluation_result.event_data["project_id"]
+
+        event = self.store_event(data=evaluation_result.event_data, project_id=self.project.id)
+        occurrence, group_info = save_issue_occurrence(occurrence_data.to_dict(), event)
+        assert occurrence.group
+        post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key="dummy",
+            group_id=occurrence.group_id,
+            project_id=self.project_id,
+            eventstream_type=EventStreamEventType.Generic.value,
+        )
+        assert mock_process_workflows.call_count == 1
 
     def test_warning_level(self):
         value = self.warning_detector_trigger.comparison + 1
