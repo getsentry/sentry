@@ -110,7 +110,11 @@ class PreprodArtifact(DefaultFieldsModel):
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
 
+    # ‼️ DO NOT USE ‼️ THIS IS BEING REMOVED -> `misc`
     extras: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+
+    # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
+    misc: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(null=True)
 
     class Meta:
         app_label = "preprod"
