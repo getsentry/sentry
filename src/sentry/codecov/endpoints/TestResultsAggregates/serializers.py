@@ -11,16 +11,16 @@ class TestResultAggregatesSerializer(serializers.Serializer):
     Serializer for test results aggregates response
     """
 
-    totalDuration = serializers.IntegerField()
-    totalDurationPercentChange = serializers.IntegerField()
-    slowestTestsDuration = serializers.IntegerField()
-    slowestTestsDurationPercentChange = serializers.IntegerField()
+    totalDuration = serializers.FloatField()
+    totalDurationPercentChange = serializers.FloatField()
+    slowestTestsDuration = serializers.FloatField()
+    slowestTestsDurationPercentChange = serializers.FloatField()
     totalSlowTests = serializers.IntegerField()
-    totalSlowTestsPercentChange = serializers.IntegerField()
+    totalSlowTestsPercentChange = serializers.FloatField()
     totalFails = serializers.IntegerField()
-    totalFailsPercentChange = serializers.IntegerField()
+    totalFailsPercentChange = serializers.FloatField()
     totalSkips = serializers.IntegerField()
-    totalSkipsPercentChange = serializers.IntegerField()
+    totalSkipsPercentChange = serializers.FloatField()
 
     def to_representation(self, graphql_response):
         """
