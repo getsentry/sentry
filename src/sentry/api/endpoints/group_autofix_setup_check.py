@@ -37,19 +37,20 @@ def get_autofix_integration_setup_problems(
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization.id, providers=["github"], limit=1
+        organization_id=organization.id, providers=["github"]
     )
 
-    organization_integration = organization_integrations[0] if organization_integrations else None
-    integration = organization_integration and integration_service.get_integration(
-        organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
-    )
-    installation = integration and integration.get_installation(organization_id=organization.id)
+    # Iterate through all organization integrations to find one with an active integration
+    for organization_integration in organization_integrations:
+        integration = integration_service.get_integration(
+            organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
+        )
+        if integration:
+            installation = integration.get_installation(organization_id=organization.id)
+            if installation:
+                return None
 
-    if not installation:
-        return "integration_missing"
-
-    return None
+    return "integration_missing"
 
 
 def get_repos_and_access(project: Project) -> list[dict]:
