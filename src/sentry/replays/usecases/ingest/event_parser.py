@@ -321,15 +321,15 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
     match event_type:
         case EventType.CLICK:
-            return f"User clicked on {event["data"]["payload"]['message']} at {timestamp}"
+            return f"User clicked on {event["data"]["payload"]["message"]} at {timestamp}"
         case EventType.DEAD_CLICK:
-            return f"User clicked on {event["data"]["payload"]['message']} but the triggered action was slow to complete at {timestamp}"
+            return f"User clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
         case EventType.RAGE_CLICK:
-            return f"User rage clicked on {event["data"]["payload"]['message']} but the triggered action was slow to complete at {timestamp}"
+            return f"User rage clicked on {event["data"]["payload"]["message"]} but the triggered action was slow to complete at {timestamp}"
         case EventType.NAVIGATION:
-            return f'User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}'
+            return f"User navigated to: {event["data"]["payload"]["data"]["to"]} at {timestamp}"
         case EventType.CONSOLE:
-            return f'Logged: {event["data"]["payload"]["message"]} at {timestamp}'
+            return f"Logged: {event["data"]["payload"]["message"]} at {timestamp}"
         case EventType.UI_BLUR:
             return f"User looked away from the tab at {timestamp}."
         case EventType.UI_FOCUS:
