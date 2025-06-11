@@ -236,6 +236,7 @@ export const REPLAY_LIST_FIELDS = [
 ];
 
 // Sync with REPLAY_LIST_FIELDS above
+// TODO: Account for is_archived
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'

@@ -84,7 +84,9 @@ export default function ReplayMetaData({
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
-          <ErrorCounts replayErrors={nonFeedbackErrors} replayRecord={replayRecord} />
+          replayRecord.is_archived ? null : (
+            <ErrorCounts replayErrors={nonFeedbackErrors} replayRecord={replayRecord} />
+          )
         ) : (
           <Placeholder width="20px" height="16px" />
         )}
@@ -92,7 +94,12 @@ export default function ReplayMetaData({
       <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
-          <ReplayViewers projectId={replayRecord.project_id} replayId={replayRecord.id} />
+          replayRecord.is_archived ? null : (
+            <ReplayViewers
+              projectId={replayRecord.project_id}
+              replayId={replayRecord.id}
+            />
+          )
         ) : (
           <Placeholder width="55px" height="27px" />
         )}

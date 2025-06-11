@@ -77,7 +77,12 @@ export default function ReplayPreviewPlayer({
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
-    if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
+    if (
+      !replayRecord.is_archived &&
+      !replayRecord.has_viewed &&
+      !isFetching &&
+      isPlaying
+    ) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
