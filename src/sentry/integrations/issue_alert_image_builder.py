@@ -17,12 +17,12 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
+from sentry.performance_issues.detectors import utils
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.performance_issues.detectors import utils
 from sentry.utils.services import build_instance_from_options_of_type
 
 logger = logging.getLogger("sentry.chartcuterie")

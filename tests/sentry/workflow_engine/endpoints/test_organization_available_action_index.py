@@ -29,7 +29,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-        self.registry = Registry[ActionHandler](enable_reverse_lookup=False)
+        self.registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_available_action_index.action_handler_registry",
             new=self.registry,
@@ -353,6 +353,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
                     "title": ANY,
@@ -367,6 +368,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
@@ -457,6 +459,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
                     "installationId": str(self.sentry_app_installation.id),
+                    "installationUuid": str(self.sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
                     "title": ANY,
@@ -471,6 +474,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "id": str(self.no_component_sentry_app.id),
                     "name": self.no_component_sentry_app.name,
                     "installationId": str(self.no_component_sentry_app_installation.id),
+                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
                     "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },

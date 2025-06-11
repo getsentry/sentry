@@ -13,6 +13,7 @@ import {
   useSetLogsPageParams,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
 
 const TOOLBAR_AGGREGATES = [
   {
@@ -55,7 +56,7 @@ const TOOLBAR_AGGREGATES = [
     label: t('min'),
     value: AggregationKey.MIN,
   },
-];
+] satisfies Array<{label: string; value: OurLogsAggregate}>;
 
 interface LogsToolbarProps {
   numberTags?: TagCollection;
@@ -70,6 +71,14 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const sortAscending = !sortBys.some(x => x.kind === 'desc');
   const setLogsPageParams = useSetLogsPageParams();
   const setLogsSortBys = useSetLogsSortBys();
+
+  const aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
+    label: prettifyTagKey(key),
+    value: key,
+  }));
+  if (aggregateFunction === 'count') {
+    aggregatableKeys.unshift({label: t('logs'), value: 'logs'});
+  }
 
   return (
     <Container>
@@ -93,16 +102,11 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
             value={aggregateFunction}
           />
           <Select
-            options={[
-              {label: t('logs'), value: 'logs'},
-              ...Object.keys(numberTags ?? {}).map(key => ({
-                label: prettifyTagKey(key),
-                value: key,
-              })),
-            ]}
+            options={aggregatableKeys}
             onChange={val =>
               setLogsPageParams({aggregateParam: val.value as string | undefined})
             }
+            searchable
             value={aggregateParam}
             disabled={aggregateFunction === 'count'}
           />
@@ -154,7 +158,6 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
               ])
             }
             value={sortBys[0]!.field}
-            searchable
             triggerProps={{style: {width: '100%'}}}
           />
           <Select

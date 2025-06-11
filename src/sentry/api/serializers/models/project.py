@@ -952,6 +952,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     tempestFetchDumps: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
+    seerScannerAutomation: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1102,6 +1103,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
             "autofixAutomationTuning": self.get_value_with_default(
                 attrs, "sentry:autofix_automation_tuning"
+            ),
+            "seerScannerAutomation": self.get_value_with_default(
+                attrs, "sentry:seer_scanner_automation"
             ),
         }
 

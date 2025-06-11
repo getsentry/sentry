@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -8,12 +8,13 @@ import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioFi
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import Form from 'sentry/components/forms/form';
+import FormContext from 'sentry/components/forms/formContext';
 import type FormModel from 'sentry/components/forms/model';
 import Spinner from 'sentry/components/forms/spinner';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
-import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd} from 'sentry/icons';
@@ -42,12 +43,53 @@ export function MetricDetectorForm({model}: {model: FormModel}) {
       </ChartContainer>
       <FormStack>
         <DetectSection />
-        <AssignSection />
         <PrioritizeSection />
         <ResolveSection />
+        <AssignSection />
         <AutomateSection />
       </FormStack>
     </Form>
+  );
+}
+
+function MonitorKind() {
+  const formContext = useContext(FormContext);
+
+  /**
+   * Reset other fields when kind changes
+   */
+  function handleChangeKind(kind: MetricDetectorKind) {
+    if (kind === 'threshold') {
+      formContext.form?.setValue('conditionGroup.conditions.0.type', 'above');
+    } else if (kind === 'change') {
+      formContext.form?.setValue('conditionGroup.conditions.0.type', 'higher');
+    } else if (kind === 'dynamic') {
+      formContext.form?.setValue('conditionGroup.conditions.0.type', 'above');
+    }
+  }
+
+  return (
+    <MonitorKindField
+      label={t('...and monitor for changes in the following way:')}
+      flexibleControlStateSize
+      inline={false}
+      name="kind"
+      defaultValue="threshold"
+      onChange={handleChangeKind}
+      choices={[
+        [
+          'threshold',
+          t('Threshold'),
+          t('Absolute-valued thresholds, for non-seasonal data.'),
+        ],
+        ['change', t('Change'), t('Percentage changes over defined time windows.')],
+        [
+          'dynamic',
+          t('Dynamic'),
+          t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
+        ],
+      ]}
+    />
   );
 }
 
@@ -120,7 +162,7 @@ function PrioritizeSection() {
             : t('Update issue priority when the following thresholds are met:')
         }
       >
-        {kind !== 'dynamic' && <PriorityControl name="prioritize" />}
+        {kind !== 'dynamic' && <PriorityControl />}
       </Section>
     </Container>
   );
@@ -163,40 +205,32 @@ function DetectSection() {
             <FilterField />
           </DetectColumn>
         </FirstRow>
-        <MonitorKindField
-          label={t('...and monitor for changes in the following way:')}
-          flexibleControlStateSize
-          inline={false}
-          name="kind"
-          defaultValue="threshold"
-          choices={[
-            [
-              'threshold',
-              t('Threshold'),
-              t('Absolute-valued thresholds, for non-seasonal data.'),
-            ],
-            ['change', t('Change'), t('Percentage changes over defined time windows.')],
-            [
-              'dynamic',
-              t('Dynamic'),
-              t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
-            ],
-          ]}
-        />
+        <MonitorKind />
         <Flex column>
           {(!kind || kind === 'threshold') && (
             <Flex column>
-              <MutedText>
-                {t('An issue will be created when query value exceeds:')}
-              </MutedText>
-              <ThresholdField
-                flexibleControlStateSize
-                inline={false}
-                hideLabel
-                placeholder="0"
-                name="config.low_threshold"
-                suffix="s"
-              />
+              <MutedText>{t('An issue will be created when query value is:')}</MutedText>
+              <Flex align="center" gap={space(1)}>
+                <DirectionField
+                  name="conditionGroup.conditions.0.type"
+                  hideLabel
+                  inline
+                  defaultValue="above"
+                  flexibleControlStateSize
+                  choices={[
+                    ['above', t('Above')],
+                    ['below', t('Below')],
+                  ]}
+                />
+                <ThresholdField
+                  flexibleControlStateSize
+                  inline={false}
+                  hideLabel
+                  placeholder="0"
+                  name="conditionGroup.conditions.0.comparison"
+                  suffix="s"
+                />
+              </Flex>
             </Flex>
           )}
           {kind === 'change' && (
@@ -204,14 +238,14 @@ function DetectSection() {
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
-                  name="config.low_threshold.change"
+                  name="conditionGroup.conditions.0.comparison"
                   placeholder="0"
                   hideLabel
                   inline
                 />
                 <span>{t('percent')}</span>
                 <DirectionField
-                  name="config.low_threshold.direction"
+                  name="conditionGroup.conditions.0.type"
                   hideLabel
                   inline
                   defaultValue="higher"

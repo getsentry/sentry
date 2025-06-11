@@ -489,6 +489,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
+  const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -756,7 +757,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                 >
                   {t('Take me to traces')}
                 </Button>
-              ) : (
+              ) : isEAPTraceEnabled ? null : (
                 <SampleButton
                   triggerText={t('Take me to an example')}
                   loadingMessage={t('Processing sample trace...')}
