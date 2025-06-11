@@ -419,6 +419,9 @@ function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
+  // stop the user from entering multiple wildcards by themselves
+  newValue = newValue.replace(/\*\*+/g, '*');
+
   return replaceQueryToken(query, token.value, newValue);
 }
 
