@@ -2,10 +2,6 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.db import models
-from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
-from django.db.models.fields.json import KeyTextTransform
-from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 
 from sentry import features
@@ -24,7 +20,6 @@ from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.rules.actions.services import PluginService
 from sentry.workflow_engine.models import (
     Action,
-    ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
@@ -39,41 +34,6 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
-
-
-def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
-    # Annotate the actions with the amount of time since the last update
-    statuses = ActionGroupStatus.objects.filter(group=group, action__in=actions)
-
-    check_workflow_frequency = Cast(
-        Coalesce(
-            KeyTextTransform(
-                "frequency",
-                F(
-                    "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
-                ),
-            ),
-            Value("0"),  # default 0
-        ),
-        output_field=IntegerField(),
-    )
-
-    frequency_in_minutes = ExpressionWrapper(
-        F("frequency") * timedelta(minutes=1),  # convert to timedelta
-        output_field=DurationField(),
-    )
-
-    time_since_last_update = ExpressionWrapper(
-        Value(now) - F("date_updated"), output_field=DurationField()
-    )
-
-    statuses = statuses.annotate(
-        frequency=check_workflow_frequency,
-        frequency_minutes=frequency_in_minutes,
-        difference=time_since_last_update,
-    )
-
-    return statuses
 
 
 def create_workflow_fire_histories(
