@@ -182,6 +182,8 @@ const CHART_MAP = {
     ),
   overviewRequestsChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewSlowNextjsSSRWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget'),
   overviewSlowQueriesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
