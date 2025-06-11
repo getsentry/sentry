@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+class DetectorException(Exception):
+    pass
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
