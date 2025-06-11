@@ -114,9 +114,7 @@ def evaluate_data_conditions(
         return ProcessedDataConditionGroup(logic_result=True, condition_results=[])
 
     for condition, value in conditions_to_evaluate:
-        evaluation_result = condition.evaluate_value(
-            value
-        )  # TODO maybe log here when we don't get one back? and which type of dc it is
+        evaluation_result = condition.evaluate_value(value)
         is_condition_triggered = evaluation_result is not None
 
         if is_condition_triggered:
