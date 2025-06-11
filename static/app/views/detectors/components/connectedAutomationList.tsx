@@ -16,7 +16,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDetectorQueriesByIds} from 'sentry/views/automations/hooks';
-import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
+import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 const AUTOMATIONS_PER_PAGE = 10;
@@ -139,7 +139,7 @@ const baseColumns = defineColumns<BaseAutomationData>({
   actionFilters: {
     Header: () => t('Actions'),
     Cell: ({row}) => {
-      const actions = useAutomationActions(row);
+      const actions = getAutomationActions(row);
       return <ActionCell actions={actions} />;
     },
   },

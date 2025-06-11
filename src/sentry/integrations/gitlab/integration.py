@@ -33,7 +33,9 @@ from sentry.integrations.source_code_management.commit_context import (
     PullRequestIssue,
     _open_pr_comment_log,
 )
-from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
+from sentry.integrations.source_code_management.language_parsers import (
+    get_patch_parsers_for_organization,
+)
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
@@ -344,7 +346,8 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         changed_lines_count = 0
         filtered_diffs = []
 
-        patch_parsers = PATCH_PARSERS
+        organization = Organization.objects.get_from_cache(id=repo.organization_id)
+        patch_parsers = get_patch_parsers_for_organization(organization)
 
         for diff in diffs:
             filename = diff["new_path"]

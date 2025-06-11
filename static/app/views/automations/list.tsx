@@ -51,7 +51,8 @@ function Actions() {
       <LinkButton
         to={`${makeAutomationBasePathname(organization.slug)}new/`}
         priority="primary"
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd />}
+        size="sm"
       >
         {t('Create Automation')}
       </LinkButton>

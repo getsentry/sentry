@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
+import ProjectCard from 'sentry/views/projectsDashboard/projectCard';
 
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');
@@ -12,7 +12,6 @@ describe('ProjectCard', function () {
   const createWrapper = () =>
     render(
       <ProjectCard
-        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 1],
@@ -25,7 +24,6 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
       />
     );
 
@@ -55,7 +53,6 @@ describe('ProjectCard', function () {
 
     render(
       <ProjectCard
-        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 1],
@@ -65,7 +62,6 @@ describe('ProjectCard', function () {
           latestDeploys,
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
       />
     );
 
@@ -92,7 +88,6 @@ describe('ProjectCard', function () {
   it('renders header link for errors', function () {
     render(
       <ProjectCard
-        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 3],
@@ -101,21 +96,21 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
       />
     );
 
     expect(screen.getByTestId('project-errors')).toBeInTheDocument();
     expect(screen.getByText('Errors: 6')).toBeInTheDocument();
 
-    // No transacions as the feature isn't set.
+    // No transactions as the feature isn't set.
     expect(screen.queryByTestId('project-transactions')).not.toBeInTheDocument();
   });
 
   it('renders header link for transactions', function () {
+    const organization = OrganizationFixture({features: ['performance-view']});
+
     render(
       <ProjectCard
-        organization={OrganizationFixture({features: ['performance-view']})}
         project={ProjectFixture({
           stats: [
             [1525042800, 3],
@@ -128,8 +123,8 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
-      />
+      />,
+      {organization}
     );
 
     expect(screen.getByTestId('project-errors')).toBeInTheDocument();
@@ -138,14 +133,7 @@ describe('ProjectCard', function () {
   });
 
   it('renders loading placeholder card if there are no stats', function () {
-    render(
-      <ProjectCard
-        organization={OrganizationFixture()}
-        project={ProjectFixture()}
-        hasProjectAccess={false}
-        api={new MockApiClient()}
-      />
-    );
+    render(<ProjectCard project={ProjectFixture()} hasProjectAccess={false} />);
 
     const chartContainer = screen.getByTestId('chart-container');
     expect(within(chartContainer).getByTestId('loading-placeholder')).toBeInTheDocument();
