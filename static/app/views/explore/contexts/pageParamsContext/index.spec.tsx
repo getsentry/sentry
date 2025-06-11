@@ -150,7 +150,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
@@ -174,7 +174,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
@@ -197,7 +197,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
@@ -220,7 +220,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
@@ -254,7 +254,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'desc'}],
@@ -292,7 +292,14 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'sdk.name', 'sdk.version', 'timestamp', 'span.op'],
+        fields: [
+          'id',
+          'sdk.name',
+          'sdk.version',
+          'timestamp',
+          'span.self_time',
+          'span.op',
+        ],
         mode: Mode.SAMPLES,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'desc'}],
@@ -318,7 +325,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: 'foo:bar',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
@@ -341,7 +348,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
         sortBys: [{field: 'id', kind: 'desc'}],
@@ -364,7 +371,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'desc'}],
@@ -397,7 +404,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'max(span.duration)', kind: 'desc'}],
@@ -434,7 +441,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
@@ -471,7 +478,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'sdk.name', kind: 'desc'}],
@@ -504,7 +511,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
@@ -558,7 +565,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual(
       expect.objectContaining({
         dataset: DiscoverDatasets.SPANS_EAP_RPC,
-        fields: ['id', 'timestamp'],
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
@@ -591,5 +598,148 @@ describe('PageParamsProvider', function () {
     renderTestComponent();
     act(() => setTitle('My Query'));
     expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
+  });
+
+  it('manages inserting and deleting a column when added/removed', function () {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.self_time)']},
+        {yAxes: ['avg(span.duration)']},
+        {yAxes: ['p50(span.self_time)']},
+        {yAxes: ['p75(span.duration)']},
+      ])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time'],
+      })
+    );
+  });
+
+  it('only deletes 1 managed columns when there are duplicates', function () {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() =>
+      setFields(['id', 'timestamp', 'span.self_time', 'span.duration', 'span.duration'])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration', 'span.duration'],
+      })
+    );
+
+    act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+  });
+
+  it('re-adds managed column if a new reference is found', function () {
+    renderTestComponent();
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() => setFields(['id', 'timestamp', 'span.self_time']));
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.self_time)']},
+        {yAxes: ['avg(span.duration)']},
+        {yAxes: ['p50(span.self_time)']},
+      ])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time'],
+      })
+    );
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.self_time)']},
+        {yAxes: ['avg(span.duration)']},
+        {yAxes: ['p50(span.duration)']},
+      ])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+  });
+
+  it('should not manage an existing column', function () {
+    renderTestComponent();
+
+    act(() => setFields(['id', 'timestamp', 'span.self_time', 'span.duration']));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() =>
+      setVisualizes([{yAxes: ['count(span.self_time)']}, {yAxes: ['avg(span.duration)']}])
+    );
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
+
+    act(() => setVisualizes([{yAxes: ['count(span.self_time)']}]));
+
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
+      })
+    );
   });
 });
