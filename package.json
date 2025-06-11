@@ -7,7 +7,6 @@
     "type": "git",
     "url": "git://github.com/getsentry/sentry.git"
   },
-  "type": "module",
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
     "@babel/core": "~7.26.10",
