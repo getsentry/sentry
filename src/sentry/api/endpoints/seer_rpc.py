@@ -67,13 +67,12 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
         )
 
     if not signature.startswith("rpc0:"):
+        logger.error("Seer RPC signature validation failed: invalid signature prefix")
         return False
 
     if not body:
         logger.error("Seer RPC signature validation failed: no body")
-        # TODO: For stability and backward compatibility, we are allowing all signatures
-        # while we deploy the fix to both services. But we are logging an error if it fails.
-        return True
+        return False
 
     try:
         # We aren't using the version bits currently.
@@ -85,17 +84,14 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
             computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
             is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
             if is_valid:
-                logger.info("Seer RPC signature validated")
                 return True
     except Exception:
         logger.exception("Seer RPC signature validation failed")
-        return True
+        return False
 
     logger.error("Seer RPC signature validation failed")
 
-    # TODO: For stability and backward compatibility, we are allowing all signatures
-    # while we deploy the fix to both services. But we are logging an error if it fails.
-    return True
+    return False
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
