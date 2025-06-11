@@ -678,23 +678,46 @@ class OpenPRCommentWorkflow(ABC):
         if not language_parser:
             return []
 
-        group_ids = list(
-            Group.objects.filter(
-                first_seen__gte=datetime.now(UTC) - timedelta(days=90),
-                last_seen__gte=datetime.now(UTC) - timedelta(days=14),
-                status=GroupStatus.UNRESOLVED,
-                project__in=projects,
-            )
-            .order_by("-times_seen")
-            .values_list("id", flat=True)
-        )[:OPEN_PR_MAX_RECENT_ISSUES]
         project_ids = [p.id for p in projects]
+        now = datetime.now()
+        latest_first_seen_date = now - timedelta(days=90)
+        latest_last_seen_date = now - timedelta(days=14)
+
+        # Create entities
+        events_entity = Entity("events", alias="events")
+        groupedmessages_entity = Entity("groupedmessages", alias="gm")
 
         multi_if = language_parser.generate_multi_if(function_names)
 
-        # fetch the count of events for each group_id
+        # Subquery to get filtered group IDs from groupedmessages
+        group_subquery = Query(
+            match=groupedmessages_entity,
+            select=[
+                Column("id", entity=groupedmessages_entity),
+            ],
+            where=[
+                Condition(Column("project_id", entity=groupedmessages_entity), Op.IN, project_ids),
+                Condition(
+                    Column("first_seen", entity=groupedmessages_entity),
+                    Op.GTE,
+                    latest_first_seen_date,
+                ),
+                Condition(
+                    Column("last_seen", entity=groupedmessages_entity),
+                    Op.GTE,
+                    latest_last_seen_date,
+                ),
+                Condition(
+                    Column("status", entity=groupedmessages_entity), Op.EQ, GroupStatus.UNRESOLVED
+                ),
+            ],
+            orderby=[OrderBy(Column("last_seen", entity=groupedmessages_entity), Direction.DESC)],
+            limit=OPEN_PR_MAX_RECENT_ISSUES,
+        )
+
+        # Main query using the subquery for group filtering
         subquery = (
-            Query(Entity("events"))
+            Query(events_entity)
             .set_select(
                 [
                     Column("title"),
@@ -719,9 +742,9 @@ class OpenPRCommentWorkflow(ABC):
             .set_where(
                 [
                     Condition(Column("project_id"), Op.IN, project_ids),
-                    Condition(Column("group_id"), Op.IN, group_ids),
-                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
-                    Condition(Column("timestamp"), Op.LT, datetime.now()),
+                    Condition(Column("group_id"), Op.IN, group_subquery),
+                    Condition(Column("timestamp"), Op.GTE, latest_last_seen_date),
+                    Condition(Column("timestamp"), Op.LT, now),
                     # NOTE: ideally this would follow suspect commit logic
                     BooleanCondition(
                         BooleanOp.OR,
