@@ -7,6 +7,7 @@
     "type": "git",
     "url": "git://github.com/getsentry/sentry.git"
   },
+  "type": "module",
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
     "@babel/core": "~7.26.10",
@@ -228,7 +229,13 @@
     "overrides": {
       "react-mentions>@babel/runtime": "7.26.10",
       "react-is": "19.1.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@sentry-internal/node-cpu-profiler",
+      "@sentry/cli",
+      "core-js",
+      "esbuild"
+    ]
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
@@ -261,7 +268,7 @@
     "build-chartcuterie-config": "node --experimental-strip-types config/build-chartcuterie.ts",
     "build-acceptance": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
     "build-production": "NODE_ENV=production rspack --mode production",
-    "build": "NODE_OPTIONS=--max-old-space-size=4096 rspack",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096 --experimental-transform-types' rspack --config ./rspack.config.ts",
     "build-js-loader": "node --experimental-transform-types scripts/build-js-loader.ts",
     "build-js-po": "node --experimental-strip-types build-utils/ts-extract-gettext.ts",
     "validate-api-examples": "pnpm run --dir api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
