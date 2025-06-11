@@ -35,8 +35,16 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project, replay_id: str) -> Response:
         """Return a collection of replay recording segments."""
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
+        if (
+            not features.has(
+                "organizations:session-replay", project.organization, actor=request.user
+            )
+            or not features.has(
+                "organizations:replay-ai-summaries", project.organization, actor=request.user
+            )
+            or not features.has(
+                "organizations:gen-ai-features", project.organization, actor=request.user
+            )
         ):
             return self.respond(status=404)
 
@@ -50,24 +58,16 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 
 @sentry_sdk.trace
 def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> bytes:
-    # Data is serialized into its final format and submitted to Seer for processing.
-    #
-    # Seer expects the request_data to be signed so we can't stream the data as we download it. We
-    # would need to collect the data, sign it, and then stream it. Which maybe there's some benefit
-    # to but the main benefit of streaming from GCS to Seer is long gone. I'm not making too much
-    # of a fuss about it right now because I think for this to work properly we'll probably have
-    # small segment ranges being requested anyway.
-    #
-    # Leaving it in the iterator form in the hopes one day we can stream it.
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments))})
 
-    # I have to deserialize this request so it can be automatically reserialized by the paginate
-    # method. This is less than ideal.
+    # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
+    # paginate method. This is less than ideal.
     return json.loads(make_seer_request(request_data).decode("utf-8"))
 
 
 def make_seer_request(request_data: str) -> bytes:
-    # Moving the Seer code to another function to make mocking easier :\
+    # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
+    # could stream the request data since the GCS download will (likely) dominate latency.
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs",
         data=request_data,
@@ -76,8 +76,6 @@ def make_seer_request(request_data: str) -> bytes:
             **sign_with_seer_secret(request_data.encode()),
         },
     )
-
-    # We're not streaming the response. Should we? The total size should be small.
     return response.content
 
 
