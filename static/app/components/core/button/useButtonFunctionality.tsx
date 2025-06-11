@@ -1,3 +1,4 @@
+// eslint-disable-next-line boundaries/element-types
 import HookStore from 'sentry/stores/hookStore';
 
 import type {

@@ -1,7 +1,9 @@
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
+// eslint-disable-next-line boundaries/element-types
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
 import type {

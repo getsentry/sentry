@@ -965,7 +965,7 @@ export default typescript.config([
         // --- stories ---
         {
           type: 'story-files',
-          pattern: 'static/**/*.stories.{ts,tsx}',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
           mode: 'full',
         },
         {

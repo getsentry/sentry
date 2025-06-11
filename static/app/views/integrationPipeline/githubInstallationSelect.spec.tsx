@@ -56,7 +56,6 @@ describe('GithubInstallationSelect', () => {
     // Select an installation
     await userEvent.click(screen.getByText('bufo-bot'));
 
-    screen.logTestingPlaygroundURL();
     // Install button should be enabled
     expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
