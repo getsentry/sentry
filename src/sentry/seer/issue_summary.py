@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, quotas
+from sentry import eventstore, features, options, quotas, ratelimits
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.autofix.utils import SeerAutomationSource, get_autofix_state
@@ -35,6 +35,12 @@ from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
+
+auto_run_source_map = {
+    SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
+    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
+    SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+}
 
 
 @instrumented_task(
@@ -261,43 +267,77 @@ def _run_automation(
     user: User | RpcUser | AnonymousUser,
     event: GroupEvent,
     source: SeerAutomationSource,
-):
-    if features.has(
+) -> None:
+    if not features.has(
         "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
     ):
-        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-            try:
-                issue_summary = _generate_fixability_score(group)
-            except Exception:
-                logger.exception("Error generating fixability score", extra={"group_id": group.id})
+        return
+
+    group_id = group.id
+    user_id = user.id if user else None
+    auto_run_source = auto_run_source_map.get(source, "unknown_source")
+    project = group.project
+    organization = group.organization
+
+    sentry_sdk.set_tags(
+        {
+            "group_id": group_id,
+            "user_id": user_id,
+            "auto_run_source": auto_run_source,
+            "org_slug": organization.slug,
+            "org_id": organization.id,
+            "project_id": project.id,
+        }
+    )
+
+    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+        try:
+            issue_summary = _generate_fixability_score(group)
+        except Exception:
+            logger.exception("Error generating fixability score", extra={"group_id": group_id})
+            return
+
+    if not issue_summary.scores:
+        return
+
+    if issue_summary.scores.fixability_score is None:
+        return
+
+    group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+
+    if _is_issue_fixable(group, issue_summary.scores.fixability_score):
+
+        # Rate limit auto-triggered autofix runs to prevent giant bills.
+        if not features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+            limit = options.get("seer.max_num_autofix_autotriggered_per_hour") or 20
+            is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
+                project=project,
+                key="autofix.auto_triggered",
+                limit=limit,
+                window=60 * 60,  # 1 hour
+            )
+            if is_rate_limited:
+                sentry_sdk.set_tags(
+                    {
+                        "auto_run_count": current,
+                        "auto_run_limit": limit,
+                    }
+                )
+                logger.error("Autofix auto-trigger rate limit hit")
                 return
 
-        if not issue_summary.scores:
-            return
+        with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
+            autofix_state = get_autofix_state(group_id=group_id)
 
-        if issue_summary.scores.fixability_score is None:
-            return
-
-        group.update(seer_fixability_score=issue_summary.scores.fixability_score)
-
-        if _is_issue_fixable(group, issue_summary.scores.fixability_score):
-            with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-                autofix_state = get_autofix_state(group_id=group.id)
-
-            if (
-                not autofix_state
-            ):  # Only trigger autofix if we don't have an autofix on this issue already.
-                auto_run_source_map = {
-                    SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
-                    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
-                    SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
-                }
-                _trigger_autofix_task.delay(
-                    group_id=group.id,
-                    event_id=event.event_id,
-                    user_id=user.id if user else None,
-                    auto_run_source=auto_run_source_map.get(source, "unknown_source"),
-                )
+        if (
+            not autofix_state
+        ):  # Only trigger autofix if we don't have an autofix on this issue already.
+            _trigger_autofix_task.delay(
+                group_id=group_id,
+                event_id=event.event_id,
+                user_id=user_id,
+                auto_run_source=auto_run_source,
+            )
 
 
 def _generate_summary(

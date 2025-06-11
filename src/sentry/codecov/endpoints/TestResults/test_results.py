@@ -50,7 +50,9 @@ class TestResultsEndpoint(CodecovEndpoint):
     def get(self, request: Request, owner: str, repository: str, **kwargs) -> Response:
         """Retrieves the list of test results for a given repository and owner. Also accepts a number of query parameters to filter the results."""
 
-        sort_by = request.query_params.get("sortBy", OrderingParameter.COMMITS_WHERE_FAIL.value)
+        sort_by = request.query_params.get(
+            "sortBy", f"-{OrderingParameter.COMMITS_WHERE_FAIL.value}"
+        )
 
         if sort_by and sort_by.startswith("-"):
             sort_by = sort_by[1:]

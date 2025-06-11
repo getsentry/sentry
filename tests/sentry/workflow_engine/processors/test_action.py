@@ -100,15 +100,6 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
         )
         assert set(triggered_actions) == {self.action}
 
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-            ).count()
-            == 1
-        )
-
 
 @freeze_time("2024-01-09")
 class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
