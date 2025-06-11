@@ -1,4 +1,4 @@
-from sentry.notifications.platform.providers.base import NotificationProvider
+from sentry.notifications.platform.provider import NotificationProvider
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.utils.registry import Registry
 
