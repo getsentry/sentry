@@ -6,6 +6,7 @@ import pytest
 from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule
 from sentry.testutils.cases import TestCase
@@ -14,6 +15,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
@@ -750,9 +752,32 @@ class TestDeleteWorkflow:
 
 
 class TestHandleActivityCreation(TestCase):
-    def test(self):
+    def test_note(self):
         with patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"
         ) as mock_process_workflows:
-            handle_activity_creation(self.activity)
-            mock_process_workflows.assert_called_once_with(WorkflowEventData(event=self.activity))
+            activity = Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.NOTE.value,
+                user_id=self.user.id,
+                data={},
+            )
+
+            handle_activity_creation(activity)
+            assert mock_process_workflows.called is False
+
+    def test_resolved(self):
+        with patch(
+            "sentry.workflow_engine.processors.workflow.process_workflows"
+        ) as mock_process_workflows:
+            activity = Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SET_RESOLVED.value,
+                user_id=self.user.id,
+                data={},
+            )
+
+            handle_activity_creation(activity)
+            mock_process_workflows.assert_called_once_with(WorkflowEventData(event=activity))

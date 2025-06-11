@@ -10,6 +10,8 @@ from sentry import buffer, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity, activity_creation_registry
 from sentry.models.environment import Environment
+from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
@@ -314,14 +316,20 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     return triggered_workflows
 
 
+supported_activity_types = [ActivityType.SET_RESOLVED.value]
+
+
 @activity_creation_registry.register("workflow_engine:process_workflows")
 def handle_activity_creation(activity: Activity) -> None:
+    if activity.type not in supported_activity_types:
+        # TODO - Only support activity types that we have triggers for
+        # For example, we don't want to process a workflow activity for DEPLOY
+        return
+
     workflow_event_data = WorkflowEventData(
         event=activity,
-        has_reappeared=None,
-        has_escalated=None,
-        workflow_id=None,
-        workflow_env=None,
+        has_reappeared=activity.group.substatus == GroupSubStatus.REGRESSED,
+        has_escalated=activity.group.substatus == GroupSubStatus.ESCALATING,
     )
 
     process_workflows(workflow_event_data)
