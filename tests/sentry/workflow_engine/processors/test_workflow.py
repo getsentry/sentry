@@ -656,17 +656,23 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash, mock_push_to_sorted_set
     ):
+        condition2 = self.create_data_condition(condition_group=self.create_data_condition_group())
+        condition3 = self.create_data_condition(condition_group=self.create_data_condition_group())
         enqueue_workflow(
             self.workflow,
-            [self.condition],
+            [self.condition, condition2, condition3],
             self.group_event,
             WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
         )
 
+        condition_group_ids = ",".join(
+            str(condition.condition_group_id)
+            for condition in [self.condition, condition2, condition3]
+        )
         mock_push_to_sorted_set.assert_called_once_with(
             model=Workflow,
             filters={"project_id": self.group_event.project_id},
-            field=f"{self.workflow.id}:{self.group_event.group_id}:{self.condition.condition_group_id}:workflow_trigger",
+            field=f"{self.workflow.id}:{self.group_event.group_id}:{condition_group_ids}:workflow_trigger",
             value=json.dumps(
                 {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
             ),
