@@ -9,9 +9,8 @@ from sentry import http, options
 from sentry.http import safe_urlopen
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
-from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 
@@ -123,7 +122,7 @@ class VSTSIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2CallbackView(OAuth2CallbackView):
-    def get_access_token(self, pipeline: Pipeline[IdentityProvider], code: str) -> Response:
+    def get_access_token(self, pipeline: IdentityPipelineT, code: str) -> Response:
         data = {
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
             "client_assertion": self.client_secret,
@@ -233,7 +232,7 @@ class VSTSOAuth2LoginView(OAuth2LoginView):
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
-    def get_access_token(self, pipeline: Pipeline[IdentityProvider], code: str) -> Response:
+    def get_access_token(self, pipeline: IdentityPipelineT, code: str) -> Response:
         data = self.get_token_params(
             code=code, redirect_uri=absolute_uri(pipeline.config.get("redirect_url"))
         )

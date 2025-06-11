@@ -29,9 +29,8 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
-from sentry.pipeline import Pipeline
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 from .base import Provider
@@ -285,7 +284,7 @@ class OAuth2CallbackView:
             "client_secret": self.client_secret,
         }
 
-    def get_access_token(self, pipeline: Pipeline[IdentityProvider], code: str) -> Response:
+    def get_access_token(self, pipeline: IdentityPipelineT, code: str) -> Response:
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
         verify_ssl = pipeline.config.get("verify_ssl", True)
         return safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
