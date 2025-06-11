@@ -78,6 +78,7 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
                         "user_id": user_id,
                         "auto_run_source": auto_run_source,
                         "auto_run_count": current,
+                        "auto_run_limit": limit,
                         "org_slug": group.organization.slug,
                         "org_id": group.organization.id,
                         "project_id": project.id,
