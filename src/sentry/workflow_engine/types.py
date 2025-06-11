@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.issues.status_change_message import StatusChangeMessage
+    from sentry.models.activity import Activity
     from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -59,7 +60,14 @@ class DetectorEvaluationResult:
 
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent
+    """
+    A WorkflowEventData instance is created by the issue platform in `post_process` after a detectors issue occurrence has been processed.
+
+    This class contains data the event from the issue platform, and additional information about the `Job` that it's running in.
+    TODO - @saponifi3d - add additional information about how this is used in `process_workflows`
+    """
+
+    event: GroupEvent | Activity
     group_state: GroupState | None = None
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
@@ -68,6 +76,13 @@ class WorkflowEventData:
 
 
 class ActionHandler:
+    """
+    This is the abstract base class for an action handler. It's used to define
+    the interface for actions, ensuring the `execute` method is implemented.
+
+    `execute` - This method invokes the action with the data for notification templates or for future implementation ideas (e.g., AutoFix).
+    """
+
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
 
