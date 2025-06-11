@@ -16,6 +16,7 @@ export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
     slug: 'my-monitor',
     status: 'active',
     owner: ActorFixture(),
+    isUpserting: false,
     config: {
       checkin_margin: 5,
       max_runtime: 10,
