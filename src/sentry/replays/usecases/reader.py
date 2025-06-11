@@ -262,8 +262,8 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
             yield b"[]"
         else:
             yield result[1]
-            if i < len(segments) - 1:
-                yield b","
+        if i < len(segments) - 1:
+            yield b","
     yield b"]"
 
 

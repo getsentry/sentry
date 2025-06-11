@@ -341,7 +341,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         organization={organization}
       />
       <IssuesTraceGrid
-        minHeight={traceState.preferences.drawer.sizes['trace grid height']}
         layout={traceState.preferences.layout}
         rowCount={
           props.tree.type === 'trace' && onLoadScrollStatus === 'success'
@@ -352,7 +351,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         <IssuesTraceContainer ref={containerRef}>
           <IssuesPointerDisabled>
             <Trace
-              metaQueryResults={props.meta}
               trace={props.tree}
               rerender={rerender}
               trace_id={props.traceSlug}

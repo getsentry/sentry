@@ -1,50 +1,12 @@
-import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-import pytest
 from django.urls import reverse
-from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
-
-
-def create_dummy_response(*args, **kwargs):
-    return ChatCompletion(
-        id="test",
-        choices=[
-            Choice(
-                index=0,
-                message=ChatCompletionMessage(
-                    content=("Summary: Test summary of feedback"),
-                    role="assistant",
-                ),
-                finish_reason="stop",
-            )
-        ],
-        created=int(time.time()),
-        model="gpt3.5-turbo",
-        object="chat.completion",
-    )
-
-
-@pytest.fixture(autouse=True)
-def llm_settings(set_sentry_option):
-    with (
-        set_sentry_option(
-            "llm.provider.options",
-            {"openai": {"models": ["gpt-4-turbo-1.0"], "options": {"api_key": "fake_api_key"}}},
-        ),
-        set_sentry_option(
-            "llm.usecases.options",
-            {"feedbacksummaries": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
-        ),
-    ):
-        yield
 
 
 def mock_feedback_event(project_id: int, dt: datetime | None = None):
@@ -113,10 +75,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.status_code == 403
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
-    def test_get_feedback_summary_basic(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    def test_get_feedback_summary_basic(self, mock_generate_summary):
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -131,10 +94,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["num_feedbacks_used"] == 15
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
-    def test_get_feedback_summary_with_date_filter(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    def test_get_feedback_summary_with_date_filter(self, mock_generate_summary):
         # 12 feedbacks that are created immediately
         for _ in range(12):
             event = mock_feedback_event(self.project1.id)
@@ -161,10 +125,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["num_feedbacks_used"] == 12
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
-    def test_get_feedback_summary_with_project_filter(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    def test_get_feedback_summary_with_project_filter(self, mock_generate_summary):
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -189,10 +154,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["num_feedbacks_used"] == 10
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
-    def test_get_feedback_summary_with_many_project_filter_as_list(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    def test_get_feedback_summary_with_many_project_filter_as_list(self, mock_generate_summary):
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -217,10 +183,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["num_feedbacks_used"] == 22
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
-    def test_get_feedback_summary_with_many_project_filter_separate(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    def test_get_feedback_summary_with_many_project_filter_separate(self, mock_generate_summary):
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
@@ -244,10 +211,11 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["num_feedbacks_used"] == 22
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
-    def test_get_feedback_summary_too_few_feedbacks(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
+    def test_get_feedback_summary_too_few_feedbacks(self, mock_generate_summary):
         for _ in range(9):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
@@ -260,14 +228,15 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["success"] is False
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
     @patch(
         "sentry.api.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
         1000,
     )
-    def test_get_feedback_summary_character_limit(self, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    def test_get_feedback_summary_character_limit(self, mock_generate_summary):
         # Create 9 older feedbacks with normal size, skipped due to the middle one exceeding the character limit
         for _ in range(9):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))

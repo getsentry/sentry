@@ -19,6 +19,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
@@ -32,7 +33,6 @@ from sentry.spans.consumers.process_segments.types import Span, UnprocessedSpan
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ def _create_models(segment: Span, project: Project) -> None:
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
 def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
-    if not options.get("standalone-spans.detect-performance-problems.enable"):
+    if not options.get("spans.process-segments.detect-performance-problems.enable"):
         return
 
     event_data = _build_shim_event_data(segment_span, spans)

@@ -42,7 +42,7 @@ def generate_summary(
     if response:
         summary = parse_response(response)
     else:
-        raise Exception("Invalid response from LLM")
+        raise ValueError("Invalid response from LLM")
 
     return summary
 
@@ -56,4 +56,4 @@ def parse_response(
         summary_text = re.sub(r"\s+", " ", raw_summary_text).strip()
         return summary_text
     else:
-        raise Exception("Error parsing AI feedback summary")
+        raise ValueError("Failed to parse AI feedback summary response")
