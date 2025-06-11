@@ -1,6 +1,5 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
@@ -29,7 +28,22 @@ def get_issues_related_to_exception_types(
     max_num_issues_per_exception_type: int = MAX_NUM_ISSUES_DEFAULT,
     num_days_ago: int = NUM_DAYS_AGO,
     run_id: int | None = None,
-) -> dict[str, list[dict[str, Any]]]:
+) -> dict[str, list[int]]:
+    """
+    Fetches issue ids with the given exception types.
+
+    Args:
+        organization_id: The organization id.
+        provider: The provider of the repository.
+        external_id: The external id of the repository.
+        exception_types: The exception types to fetch issues for.
+        max_num_issues_per_exception_type: The maximum number of issues to fetch per exception type.
+        num_days_ago: The number of days ago to fetch issues for.
+        run_id: The run id.
+
+    Returns:
+        A dictionary of exception types and their corresponding issue ids.
+    """
 
     try:
         repo = Repository.objects.get(
