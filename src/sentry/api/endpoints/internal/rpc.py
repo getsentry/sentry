@@ -53,7 +53,7 @@ class InternalRpcServiceEndpoint(Endpoint):
                 # from within the privileged RPC channel.
                 auth_context = AuthenticationContext.parse_obj(auth_context_json)
             except pydantic.ValidationError as e:
-                sentry_sdk._exception()
+                sentry_sdk.capture_exception()
                 raise ParseError from e
 
         try:
