@@ -55,6 +55,8 @@ EXCLUDED_KEYWORDS = [
     "PAGE",
 ]
 
+EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
+
 
 class SQLInjectionDetector(PerformanceDetector):
     type = DetectorType.SQL_INJECTION
@@ -194,7 +196,7 @@ class SQLInjectionDetector(PerformanceDetector):
             return True
         # Filter out events with packages known to internally escape inputs
         for package_name in packages.keys():
-            if package_name == "sequelize":
+            if package_name in EXCLUDED_PACKAGES:
                 return False
         return True
 
