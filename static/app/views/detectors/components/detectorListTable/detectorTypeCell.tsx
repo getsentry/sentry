@@ -2,18 +2,22 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {capitalize} from 'sentry/utils/string/capitalize';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils';
 
-export type TypeCellProps = {
+type DetectorTypeCellProps = {
   type: DetectorType;
   className?: string;
   disabled?: boolean;
 };
 
-export function TypeCell({type, disabled = false, className}: TypeCellProps) {
+export function DetectorTypeCell({
+  type,
+  disabled = false,
+  className,
+}: DetectorTypeCellProps) {
   return (
     <Type disabled={disabled} className={className}>
-      {capitalize(type)}
+      {getDetectorTypeLabel(type)}
     </Type>
   );
 }

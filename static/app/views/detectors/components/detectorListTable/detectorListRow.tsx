@@ -7,12 +7,12 @@ import Placeholder from 'sentry/components/placeholder';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
-import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
+import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListRowProps {
@@ -20,13 +20,14 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({
-  detector: {workflowIds, createdBy, id, projectId, name, disabled, type},
+  detector: {workflowIds, owner, id, projectId, name, disabled, type, createdBy},
 }: DetectorListRowProps) {
   const organization = useOrganization();
   const link = makeMonitorDetailsPathname(organization.slug, id);
   const issues: Group[] = [];
+
   return (
-    <RowWrapper disabled={disabled}>
+    <RowWrapper disabled={disabled} data-test-id="detector-list-row">
       <InteractionStateLayer />
       <CellWrapper>
         <StyledTitleCell
@@ -38,7 +39,7 @@ export function DetectorListRow({
         />
       </CellWrapper>
       <CellWrapper className="type">
-        <TypeCell type={type} />
+        <DetectorTypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
@@ -46,8 +47,8 @@ export function DetectorListRow({
           disabled={disabled}
         />
       </CellWrapper>
-      <CellWrapper className="creator">
-        <UserCell user={createdBy ?? 'sentry'} />
+      <CellWrapper className="assignee">
+        <DetectorAssigneeCell assignee={owner} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
         <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />
