@@ -262,11 +262,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["num_feedbacks_used"] == 12
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
     @patch("sentry.api.endpoints.organization_feedback_summary.cache")
-    def test_get_feedback_summary_cache_hit(self, mock_cache, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    def test_get_feedback_summary_cache_hit(self, mock_cache, mock_generate_summary):
         mock_cache.get.return_value = "Test cached summary of feedback"
 
         for _ in range(15):
@@ -275,7 +276,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
         assert response.data["success"] is True
         assert response.data["summary"] == "Test cached summary of feedback"
         assert response.data["num_feedbacks_used"] == 15
@@ -284,11 +287,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         mock_cache.set.assert_not_called()
 
     @django_db_all
-    @patch("sentry.llm.providers.openai.OpenAI")
+    @patch(
+        "sentry.api.endpoints.organization_feedback_summary.generate_summary",
+        return_value="Test summary of feedback",
+    )
     @patch("sentry.api.endpoints.organization_feedback_summary.cache")
-    def test_get_feedback_summary_cache_miss(self, mock_cache, mock_openai):
-        mock_openai.return_value.chat.completions.create = create_dummy_response
-
+    def test_get_feedback_summary_cache_miss(self, mock_cache, mock_generate_summary):
         mock_cache.get.return_value = None
 
         for _ in range(15):
@@ -297,7 +301,9 @@ class OrganizationFeedbackSummaryTest(APITestCase):
                 event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        response = self.get_success_response(self.org.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
         assert response.data["success"] is True
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["num_feedbacks_used"] == 15
