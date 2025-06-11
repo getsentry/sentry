@@ -27,7 +27,6 @@ from sentry.integrations.github.webhook import (
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
-from sentry.utils.sdk import Scope
 
 logger = logging.getLogger("sentry.webhooks")
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -152,7 +151,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         try:
             host = get_host(request=request)

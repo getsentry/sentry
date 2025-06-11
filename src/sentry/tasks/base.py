@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
+import sentry_sdk
 from celery import Task
 from django.conf import settings
 from django.db.models import Model
@@ -19,7 +20,6 @@ from sentry.taskworker.retry import retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
-from sentry.utils.sdk import Scope, capture_exception
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -175,7 +175,7 @@ def instrumented_task(
                     "jobs.queue_time", duration, instance=instance, unit="millisecond"
                 )
 
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("task_name", name)
             scope.set_tag("transaction_id", transaction_id)
 
@@ -247,12 +247,12 @@ def retry(
             except ignore:
                 return
             except ignore_and_capture:
-                capture_exception(level="info")
+                sentry_sdk.capture_exception(level="info")
                 return
             except exclude:
                 raise
             except on as exc:
-                capture_exception()
+                sentry_sdk.capture_exception()
                 retry_task(exc)
 
         return wrapped
