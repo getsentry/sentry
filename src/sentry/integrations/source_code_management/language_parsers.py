@@ -6,6 +6,7 @@ from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
+from sentry import features
 from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
 
 stackframe_function_name = lambda i: Function(
@@ -326,5 +327,22 @@ PATCH_PARSERS: dict[str, Any] = {
     "tsx": JavascriptParser,
     "php": PHPParser,
     "rb": RubyParser,
+}
+
+# Beta parsers for experimental language support
+BETA_PATCH_PARSERS: dict[str, Any] = {
     "cs": CSharpParser,
 }
+
+
+def get_patch_parsers_for_organization(organization=None):
+    """
+    Returns the appropriate patch parsers based on feature flags.
+    Falls back to the standard parsers if no organization is provided.
+    """
+    if organization and features.has("organizations:csharp-open-pr-comments", organization):
+        # Merge stable and beta parsers when feature flag is enabled
+        return {**PATCH_PARSERS, **BETA_PATCH_PARSERS}
+    else:
+        # Return only stable parsers when feature flag is disabled or no organization context
+        return {k: v for k, v in PATCH_PARSERS.items() if k not in BETA_PATCH_PARSERS}
