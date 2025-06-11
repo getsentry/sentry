@@ -114,6 +114,7 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.performance_issues.performance_detection import detect_performance_problems
 from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
@@ -150,7 +151,6 @@ from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 

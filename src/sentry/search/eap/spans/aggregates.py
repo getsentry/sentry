@@ -636,6 +636,17 @@ LOG_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
+    "count_unique": AggregateDefinition(
+        internal_function=Function.FUNCTION_UNIQ,
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
+        processor=count_processor,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={"string"},
+            )
+        ],
+    ),
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="number",

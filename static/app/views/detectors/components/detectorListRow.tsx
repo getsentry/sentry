@@ -101,6 +101,10 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   align-items: center;
   padding: ${space(2)};
 
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+
   ${p =>
     p.disabled &&
     css`
