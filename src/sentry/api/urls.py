@@ -2064,7 +2064,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/user-feedback/summary/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/feedback-summary/$",
         OrganizationFeedbackSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-user-feedback-summary",
     ),
