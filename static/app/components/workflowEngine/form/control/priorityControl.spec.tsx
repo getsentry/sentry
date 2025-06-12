@@ -4,14 +4,17 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {PriorityLevel} from 'sentry/types/group';
+import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metricFormData';
 
 describe('PriorityControl', function () {
   it('renders children', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: 'low',
+        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
+        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
+        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
+        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
     render(
@@ -28,9 +31,11 @@ describe('PriorityControl', function () {
   it('allows configuring priority', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: 'low',
+        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
+        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
+        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
+        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
     render(
@@ -44,19 +49,21 @@ describe('PriorityControl', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Low'}));
     await userEvent.click(await screen.findByRole('option', {name: 'High'}));
-    expect(formModel.getValue('conditionGroup.conditions.0.conditionResult')).toBe(
+    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel)).toBe(
       PriorityLevel.HIGH
     );
     // Check that the medium threshold is not visible
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('allows configuring medium threshold', async function () {
+  it('allows configuring medium and high thresholds', async function () {
     const formModel = new FormModel({
       initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: 'low',
+        [METRIC_DETECTOR_FORM_FIELDS.conditionType]: 'gt',
+        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '0',
+        [METRIC_DETECTOR_FORM_FIELDS.mediumThreshold]: '',
+        [METRIC_DETECTOR_FORM_FIELDS.highThreshold]: '',
       },
     });
     render(
@@ -65,25 +72,12 @@ describe('PriorityControl', function () {
       </Form>
     );
     const medium = await screen.findByTestId('priority-control-medium');
-    await userEvent.type(medium, '12');
-    expect(formModel.getValue('conditionGroup.conditions.1.comparison')).toBe('12');
-  });
+    await userEvent.type(medium, '4');
 
-  it('allows configuring high value', async function () {
-    const formModel = new FormModel({
-      initialData: {
-        'conditionGroup.conditions.0.type': 'above',
-        'conditionGroup.conditions.0.comparison': '0',
-        'conditionGroup.conditions.0.conditionResult': PriorityLevel.LOW,
-      },
-    });
-    render(
-      <Form model={formModel} hideFooter>
-        <PriorityControl />
-      </Form>
-    );
     const high = await screen.findByTestId('priority-control-high');
-    await userEvent.type(high, '12');
-    expect(formModel.getValue('conditionGroup.conditions.2.comparison')).toBe('12');
+    await userEvent.type(high, '5');
+
+    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold)).toBe('4');
+    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe('5');
   });
 });
