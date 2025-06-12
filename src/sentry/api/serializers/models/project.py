@@ -25,6 +25,7 @@ from sentry.digests import backend as digests
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     has_dynamic_sampling,
+    has_dynamic_sampling_minimum_sample_rate,
     is_project_mode_sampling,
 )
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
@@ -946,6 +947,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
+    dynamicSamplingMinimumSampleRate: bool
     eventProcessing: dict[str, bool]
     symbolSources: str
     isDynamicallySampled: bool
@@ -1007,6 +1009,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
+
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
                 sample_rate = obj.get_option("sentry:target_sample_rate")
@@ -1018,7 +1021,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-
         data: DetailedProjectResponse = {
             **base,
             "latestRelease": attrs["latest_release"],
@@ -1096,6 +1098,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
+            "dynamicSamplingMinimumSampleRate": self.get_value_with_default(
+                attrs, "sentry:dynamic_sampling_minimum_sample_rate"
+            ),
             "eventProcessing": {
                 "symbolicationDegraded": False,
             },
@@ -1114,6 +1119,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sentry:tempest_fetch_screenshots", False
             )
             data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
+
+        if has_dynamic_sampling_minimum_sample_rate(obj.organization, user):
+            data["dynamicSamplingMinimumSampleRate"] = bool(
+                obj.get_option("sentry:dynamic_sampling_minimum_sample_rate")
+            )
 
         return data
 
