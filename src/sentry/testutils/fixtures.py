@@ -57,7 +57,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class Fixtures:
@@ -627,7 +626,7 @@ class Fixtures:
         **kwargs,
     ):
         if condition_result is None:
-            condition_result = DetectorPriorityLevel.HIGH.name.lower()
+            condition_result = "high"  # Using DETECTOR_PRIORITY_LEVEL_STRING_MAP value
         if condition_group is None:
             condition_group = self.create_data_condition_group()
 

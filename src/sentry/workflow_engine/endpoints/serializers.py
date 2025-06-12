@@ -24,7 +24,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
+from sentry.workflow_engine.types import (
+    DETECTOR_PRIORITY_LEVEL_STRING_MAP,
+    ActionHandler,
+    DataConditionHandler,
+    DataSourceTypeHandler,
+)
 
 
 class ActionSerializerResponse(TypedDict):
@@ -180,7 +185,7 @@ class DataConditionSerializer(Serializer):
             "id": str(obj.id),
             "type": obj.type,
             "comparison": obj.comparison,
-            "conditionResult": obj.condition_result.name.lower(),
+            "conditionResult": DETECTOR_PRIORITY_LEVEL_STRING_MAP.get(obj.condition_result),
         }
 
 

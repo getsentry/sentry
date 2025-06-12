@@ -36,6 +36,15 @@ class DetectorPriorityLevel(IntEnum):
     HIGH = PriorityLevel.HIGH
 
 
+DETECTOR_PRIORITY_LEVEL_STRING_MAP = {
+    DetectorPriorityLevel.OK: "resolved",
+    DetectorPriorityLevel.LOW: "low",
+    DetectorPriorityLevel.MEDIUM: "medium",
+    DetectorPriorityLevel.HIGH: "high",
+}
+
+DETECTOR_PRIORITY_STRING_TO_ENUM = {v: k for k, v in DETECTOR_PRIORITY_LEVEL_STRING_MAP.items()}
+
 # The unique key used to identify a group within a DataPacket result.
 # For DataPackets that don't contain multiple values the key is just None.
 # This is stored in 'DetectorState.detector_group_key'

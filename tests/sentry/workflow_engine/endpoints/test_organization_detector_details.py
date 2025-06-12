@@ -28,7 +28,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DETECTOR_PRIORITY_LEVEL_STRING_MAP, DetectorPriorityLevel
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
@@ -140,7 +140,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                         "id": self.condition.id,
                         "comparison": 100,
                         "type": Condition.GREATER,
-                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                        "conditionResult": DETECTOR_PRIORITY_LEVEL_STRING_MAP[
+                            DetectorPriorityLevel.HIGH
+                        ],
                         "conditionGroupId": self.condition.condition_group.id,
                     },
                 ],
@@ -162,7 +164,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def assert_data_condition_updated(self, condition):
         assert condition.type == Condition.GREATER.value
         assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH.name.lower()
+        assert condition.condition_result == "high"
 
     def assert_snuba_query_updated(self, snuba_query):
         assert snuba_query.query == "updated query"
@@ -203,7 +205,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition_group_data = {
             "comparison": 50,
             "type": Condition.GREATER,
-            "conditionResult": DetectorPriorityLevel.MEDIUM.name.lower(),
+            "conditionResult": DETECTOR_PRIORITY_LEVEL_STRING_MAP[DetectorPriorityLevel.MEDIUM],
             "conditionGroupId": self.condition.condition_group.id,
         }
         data["conditionGroup"]["conditions"].append(condition_group_data)
@@ -229,7 +231,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition_group_data = {
             "comparison": "betterThan",
             "type": Condition.GREATER,
-            "conditionResult": DetectorPriorityLevel.MEDIUM.name.lower(),
+            "conditionResult": DETECTOR_PRIORITY_LEVEL_STRING_MAP[DetectorPriorityLevel.MEDIUM],
             "conditionGroupId": self.condition.condition_group.id,
         }
         data["conditionGroup"]["conditions"].append(condition_group_data)

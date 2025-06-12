@@ -18,6 +18,8 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import (
+    DETECTOR_PRIORITY_LEVEL_STRING_MAP,
+    DETECTOR_PRIORITY_STRING_TO_ENUM,
     DataConditionType,
     DetectorPriorityLevel,
     SnubaQueryDataSourceType,
@@ -52,13 +54,15 @@ class MetricAlertComparisonConditionValidator(
         return value
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
-        try:
-            result = DetectorPriorityLevel[value.upper()]
-        except (KeyError, AttributeError):
-            result = None
+        result = DETECTOR_PRIORITY_STRING_TO_ENUM.get(value.lower())
 
         if result not in self.supported_condition_results:
-            raise serializers.ValidationError("Unsupported condition result")
+            supported_results = [
+                DETECTOR_PRIORITY_LEVEL_STRING_MAP[k] for k in self.supported_condition_results
+            ]
+            raise serializers.ValidationError(
+                f"Unsupported condition result. Must be one of {', '.join(supported_results)}"
+            )
 
         return result
 

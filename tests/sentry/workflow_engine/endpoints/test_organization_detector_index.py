@@ -19,7 +19,7 @@ from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DETECTOR_PRIORITY_LEVEL_STRING_MAP, DetectorPriorityLevel
 
 
 class OrganizationDetectorIndexBaseTest(APITestCase):
@@ -293,7 +293,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
-                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                        "conditionResult": DETECTOR_PRIORITY_LEVEL_STRING_MAP[
+                            DetectorPriorityLevel.HIGH
+                        ],
                         "conditionGroupId": self.data_condition_group.id,
                     }
                 ],
@@ -412,7 +414,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH.name.lower()
+        assert condition.condition_result == "high"
 
         # Verify audit log
         mock_audit.assert_called_once_with(

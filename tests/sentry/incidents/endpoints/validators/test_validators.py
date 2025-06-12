@@ -31,7 +31,7 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
             data={
                 "type": Condition.GREATER,
                 "comparison": 100,
-                "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                "conditionResult": "high",
                 "conditionGroupId": self.data_condition_group.id,
             }
         )
@@ -83,13 +83,16 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
             data={
                 "type": Condition.GREATER,
                 "comparison": 100,
-                "condition_result": 25,
+                # Low is not supported
+                "condition_result": "low",
                 "condition_group_id": self.data_condition_group.id,
             }
         )
         assert not validator.is_valid()
         assert validator.errors.get("conditionResult") == [
-            ErrorDetail(string="Unsupported condition result", code="invalid")
+            ErrorDetail(
+                string="Unsupported condition result. Must be one of medium, high", code="invalid"
+            )
         ]
 
 
@@ -125,7 +128,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
-                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                        "conditionResult": "high",
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
@@ -186,7 +189,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH.name.lower()
+        assert condition.condition_result == "high"
 
         # Verify audit log
         mock_audit.assert_called_once_with(
@@ -218,19 +221,19 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
-                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                        "conditionResult": "high",
                         "conditionGroupId": self.data_condition_group.id,
                     },
                     {
                         "type": Condition.GREATER,
                         "comparison": 200,
-                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                        "conditionResult": "high",
                         "conditionGroupId": self.data_condition_group.id,
                     },
                     {
                         "type": Condition.GREATER,
                         "comparison": 300,
-                        "conditionResult": DetectorPriorityLevel.HIGH.name.lower(),
+                        "conditionResult": "high",
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
