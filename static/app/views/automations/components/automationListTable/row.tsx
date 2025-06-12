@@ -32,7 +32,7 @@ export function AutomationListRow({automation}: AutomationListRowProps) {
     projectId => ProjectsStore.getById(projectId)?.slug
   ) as string[];
   return (
-    <RowWrapper disabled={disabled}>
+    <RowWrapper disabled={disabled} data-test-id="automation-list-row">
       <InteractionStateLayer />
       <CellWrapper>
         <AutomationTitleCell
