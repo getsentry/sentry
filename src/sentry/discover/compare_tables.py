@@ -263,7 +263,7 @@ def compare_tables_for_dashboard_widget_queries(
             "reason": CompareTableResult.EAP_FAILED,
             "fields": fields,
             "widget_query": widget_query,
-            "mismatches": None,
+            "mismatches": fields,
             "query": query,
         }
     else:
