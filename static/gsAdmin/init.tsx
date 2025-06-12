@@ -13,8 +13,8 @@ import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {routes6} from 'admin/routes';
 
 export function init(config: Config) {
-  commonInitialization(config);
   initializeSdk(config);
+  commonInitialization(config);
 
   ConfigStore.set('getsentry.sendgridApiKey', window.__sendGridApiKey);
 }

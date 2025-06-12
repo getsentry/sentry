@@ -11,8 +11,8 @@ import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
 export function initializeApp(config: Config) {
-  commonInitialization(config);
   initializeSdk(config);
+  commonInitialization(config);
 
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.

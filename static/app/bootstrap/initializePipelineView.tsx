@@ -7,7 +7,6 @@ import {renderOnDomReady} from './renderOnDomReady';
 import {renderPipelineView} from './renderPipelineView';
 
 export function initializePipelineView(config: Config) {
-  commonInitialization(config);
   /**
    * XXX: Note we do not include routingInstrumentation because importing
    * `app/routes` significantly increases bundle size.
@@ -16,6 +15,8 @@ export function initializePipelineView(config: Config) {
    * `app/routes` to pass to `initializeSdk()`
    */
   initializeSdk(config);
+
+  commonInitialization(config);
 
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.
