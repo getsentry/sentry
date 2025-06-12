@@ -601,7 +601,7 @@ type MetricsStringFields =
   | MetricsFields.TIMESTAMP
   | MetricsFields.DEVICE_CLASS;
 
-export type MetricsResponse = {
+type MetricsResponseRaw = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
@@ -614,6 +614,7 @@ export type MetricsResponse = {
 } & {
   ['project.id']: number;
 };
+export type MetricsResponse = Flatten<MetricsResponseRaw>;
 
 enum DiscoverFields {
   ID = 'id',
