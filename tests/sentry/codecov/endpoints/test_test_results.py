@@ -26,7 +26,7 @@ class TestResultsEndpointTest(APITestCase):
         )
 
     @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
-    def test_get_returns_mock_response(self, mock_codecov_client_class):
+    def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
         mock_graphql_response = {
             "data": {
                 "owner": {
@@ -83,12 +83,34 @@ class TestResultsEndpointTest(APITestCase):
         url = self.reverse_url()
         response = self.client.get(url)
 
-        mock_codecov_client_class.assert_called_once_with(git_provider_org="codecov")
-        assert mock_codecov_client_instance.query.call_count == 1
+        mock_codecov_client_class.assert_called_once_with(git_provider_org="testowner")
+
+        # Verify the correct variables are passed to the GraphQL query
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "main",
+                "parameter": None,
+                "interval": "INTERVAL_30_DAY",
+                "flags": None,
+                "term": None,
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "DESC",
+                "parameter": "COMMITS_WHERE_FAIL",
+            },
+            "first": 20,
+            "last": None,
+        }
+
+        mock_codecov_client_instance.query.assert_called_once()
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+
         assert response.status_code == 200
-
         assert len(response.data["results"]) == 2
-
         assert response.data["pageInfo"]["endCursor"] == "cursor123"
         assert response.data["pageInfo"]["hasNextPage"] is False
         assert response.data["totalCount"] == 2
@@ -99,3 +121,122 @@ class TestResultsEndpointTest(APITestCase):
         assert (
             response_keys == serializer_fields
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
+
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_with_query_parameters(self, mock_codecov_client_class):
+        mock_graphql_response = {
+            "data": {
+                "owner": {
+                    "repository": {
+                        "__typename": "Repository",
+                        "testAnalytics": {
+                            "testResults": {
+                                "edges": [],
+                                "pageInfo": {"endCursor": None, "hasNextPage": False},
+                                "totalCount": 0,
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {
+            "branch": "develop",
+            "filterBy": "FLAKY_TESTS",
+            "sortBy": "-AVG_DURATION",
+            "interval": "INTERVAL_7_DAY",
+            "first": "10",
+        }
+        response = self.client.get(url, query_params)
+
+        # Verify the correct variables are passed with custom query parameters
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "develop",
+                "parameter": "FLAKY_TESTS",
+                "interval": "INTERVAL_7_DAY",
+                "flags": None,
+                "term": None,
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "DESC",
+                "parameter": "AVG_DURATION",
+            },
+            "first": 10,
+            "last": None,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200
+
+    @patch("sentry.codecov.endpoints.TestResults.test_results.CodecovApiClient")
+    def test_get_with_last_parameter(self, mock_codecov_client_class):
+        mock_graphql_response = {
+            "data": {
+                "owner": {
+                    "repository": {
+                        "__typename": "Repository",
+                        "testAnalytics": {
+                            "testResults": {
+                                "edges": [],
+                                "pageInfo": {"endCursor": None, "hasNextPage": False},
+                                "totalCount": 0,
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        mock_codecov_client_instance = Mock()
+        mock_response = Mock()
+        mock_response.json.return_value = mock_graphql_response
+        mock_codecov_client_instance.query.return_value = mock_response
+        mock_codecov_client_class.return_value = mock_codecov_client_instance
+
+        url = self.reverse_url()
+        query_params = {"last": "5"}
+        response = self.client.get(url, query_params)
+
+        # Verify the correct variables are passed with last parameter
+        expected_variables = {
+            "owner": "testowner",
+            "repo": "testrepo",
+            "filters": {
+                "branch": "main",
+                "parameter": None,
+                "interval": "INTERVAL_30_DAY",
+                "flags": None,
+                "term": None,
+                "test_suites": None,
+            },
+            "ordering": {
+                "direction": "DESC",
+                "parameter": "COMMITS_WHERE_FAIL",
+            },
+            "first": None,
+            "last": 5,
+        }
+
+        call_args = mock_codecov_client_instance.query.call_args
+        assert call_args[1]["variables"] == expected_variables
+        assert response.status_code == 200
+
+    def test_get_with_both_first_and_last_returns_bad_request(self):
+        """Test that providing both first and last parameters returns a 400 Bad Request error"""
+        url = self.reverse_url()
+        query_params = {"first": "10", "last": "5"}
+        response = self.client.get(url, query_params)
+
+        assert response.status_code == 400
+        assert response.data == {"details": "Cannot specify both `first` and `last`"}
