@@ -19,16 +19,16 @@ This number is global so that fetching issues and events is consistent.
 logger = logging.getLogger(__name__)
 
 
-def get_issues_related_to_exception_types(
+def get_issues_related_to_exception_type(
     *,
     organization_id: int,
     provider: str,
     external_id: str,
-    exception_types: list[str],
-    max_num_issues_per_exception_type: int = MAX_NUM_ISSUES_DEFAULT,
+    exception_type: str,
+    max_num_issues: int = MAX_NUM_ISSUES_DEFAULT,
     num_days_ago: int = NUM_DAYS_AGO,
     run_id: int | None = None,
-) -> dict[str, list[int]]:
+) -> list[int]:
     """
     Fetches issue ids with the given exception types.
 
@@ -36,8 +36,8 @@ def get_issues_related_to_exception_types(
         organization_id: The organization id.
         provider: The provider of the repository.
         external_id: The external id of the repository.
-        exception_types: The exception types to fetch issues for.
-        max_num_issues_per_exception_type: The maximum number of issues to fetch per exception type.
+        exception_type: The exception type to fetch issues for.
+        max_num_issues: The maximum number of issues to fetch.
         num_days_ago: The number of days ago to fetch issues for.
         run_id: The run id.
 
@@ -59,7 +59,7 @@ def get_issues_related_to_exception_types(
                 "run_id": run_id,
             },
         )
-        return {}
+        return []
 
     repo_id = repo.id
 
@@ -79,25 +79,24 @@ def get_issues_related_to_exception_types(
                 "external_id": external_id,
             },
         )
-        return {}
+        return []
 
-    # Get project ids from repo_project_path_configs
     project_ids = repo_project_path_configs.values_list("project_id", flat=True)
+    date_threshold = datetime.now(tz=UTC) - timedelta(days=num_days_ago)
 
-    result = {}
-    for exception_type in exception_types:
-        # Fetch issues without filtering on 'data'
-        issues = Group.objects.filter(
-            project_id__in=project_ids,
-            last_seen__gte=datetime.now(tz=UTC) - timedelta(days=num_days_ago),
-        ).order_by("last_seen")[:max_num_issues_per_exception_type]
+    # Fetch issues where the exception type is the given exception type
+    # Using raw SQL since data is GzippedDictField which can't be filtered with Django ORM
+    query = """
+        SELECT * FROM sentry_groupedmessage
+        WHERE project_id IN %s
+        AND last_seen >= %s
+        AND (data::json -> 'metadata' ->> 'type') = %s
+        ORDER BY last_seen
+        LIMIT %s
+    """
+    issues = Group.objects.raw(
+        query, [tuple(project_ids), date_threshold, exception_type, max_num_issues]
+    )
 
-        # Filter issues in Python based on 'metadata' field
-        filtered_issues = [
-            issue.id
-            for issue in issues
-            if issue.data.get("metadata", {}).get("type") == exception_type
-        ]
-        result[exception_type] = filtered_issues
-
-    return result
+    # Extract IDs from the returned Group objects
+    return [issue.id for issue in issues]

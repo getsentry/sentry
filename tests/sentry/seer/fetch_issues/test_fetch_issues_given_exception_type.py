@@ -1,6 +1,6 @@
 from sentry.models.group import Group
-from sentry.seer.fetch_issues.fetch_issues_given_exception_types import (
-    get_issues_related_to_exception_types,
+from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
+    get_issues_related_to_exception_type,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -36,22 +36,22 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         group = Group.objects.first()
 
         # Assert that KeyError matched the exception type
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError"],
+            exception_type="KeyError",
         )
-        assert group_ids == {"KeyError": [group.id]}
+        assert group_ids == [group.id]
 
         # Assert that ValueError did not match the exception type
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["ValueError"],
+            exception_type="ValueError",
         )
-        assert group_ids == {"ValueError": []}
+        assert group_ids == []
 
     def test_multiple_projects(self):
         release = self.create_release(project=self.project, version="1.0.0")
@@ -122,14 +122,14 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert Group.objects.count() == 3
 
         # Assert there's 2 Group objects from the results
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError"],
+            exception_type="KeyError",
         )
-        assert {group_1.id, group_2.id} == set(group_ids["KeyError"])
-        assert group_3.id not in group_ids["KeyError"]
+        assert {group_1.id, group_2.id} == set(group_ids)
+        assert group_3.id not in group_ids
 
     def test_last_seen_filter(self):
         release = self.create_release(project=self.project, version="1.0.0")
@@ -159,23 +159,23 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         group = Group.objects.first()
 
         # Assert that KeyError matched the exception type
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError"],
+            exception_type="KeyError",
         )
-        assert group_ids == {"KeyError": [group.id]}
+        assert group_ids == [group.id]
 
         # Assert that KeyError matched the exception type
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError"],
+            exception_type="KeyError",
             num_days_ago=9,
         )
-        assert group_ids == {"KeyError": []}
+        assert group_ids == []
 
     def test_multiple_exception_types(self):
         release = self.create_release(project=self.project, version="1.0.0")
@@ -217,22 +217,31 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert Group.objects.count() == 2
 
         # Assert that KeyError matched the exception type
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError", "ValueError"],
+            exception_type="KeyError",
         )
-        assert group_ids == {"KeyError": [group_1.id], "ValueError": [group_2.id]}
+        assert group_ids == [group_1.id]
+
+        # Assert that ValueError matched the exception type
+        group_ids = get_issues_related_to_exception_type(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1",
+            exception_type="ValueError",
+        )
+        assert group_ids == [group_2.id]
 
     def test_repo_does_not_exist(self):
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError"],
+            exception_type="KeyError",
         )
-        assert group_ids == {}
+        assert group_ids == []
 
     def test_repository_project_path_config_does_not_exist(self):
         self.create_repo(
@@ -242,10 +251,10 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
         )
 
-        group_ids = get_issues_related_to_exception_types(
+        group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1",
-            exception_types=["KeyError"],
+            exception_type="KeyError",
         )
-        assert group_ids == {}
+        assert group_ids == []
