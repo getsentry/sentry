@@ -297,7 +297,7 @@ const SummaryLinkPlaceholder = styled(Placeholder)`
   margin-bottom: ${space(0.5)};
 `;
 
-const TransactionsLink = styled('div')`
+const TransactionsLink = styled(Link)`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
