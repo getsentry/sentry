@@ -366,7 +366,7 @@ interface ItemProps extends LinkProps {
 
 const ChonkItem = chonkStyled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;

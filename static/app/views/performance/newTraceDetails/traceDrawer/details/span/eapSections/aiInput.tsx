@@ -18,14 +18,10 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-function renderUserMessage(content: any) {
-  return content
-    .filter((part: any) => part.type === 'text')
-    .map((part: any) => part.text)
-    .join('\n');
-}
-
-function renderAssistantMessage(content: any) {
+function renderTextMessages(content: any) {
+  if (!Array.isArray(content)) {
+    return content;
+  }
   return content
     .filter((part: any) => part.type === 'text')
     .map((part: any) => part.text)
@@ -39,24 +35,23 @@ function renderToolMessage(content: any) {
 function parseAIMessages(messages: string) {
   try {
     const array: any[] = JSON.parse(messages);
-
     return array
       .map((message: any) => {
         switch (message.role) {
           case 'system':
             return {
               role: 'system' as const,
-              content: message.content.toString(),
+              content: renderTextMessages(message.content),
             };
           case 'user':
             return {
               role: 'user' as const,
-              content: renderUserMessage(message.content),
+              content: renderTextMessages(message.content),
             };
           case 'assistant':
             return {
               role: 'assistant' as const,
-              content: renderAssistantMessage(message.content),
+              content: renderTextMessages(message.content),
             };
           case 'tool':
             return {
@@ -72,7 +67,10 @@ function parseAIMessages(messages: string) {
             return null;
         }
       })
-      .filter(message => message !== null);
+      .filter(
+        (message): message is Exclude<typeof message, null> =>
+          message !== null && Boolean(message.content)
+      );
   } catch (error) {
     Sentry.captureMessage('Error parsing ai.prompt.messages', {
       extra: {

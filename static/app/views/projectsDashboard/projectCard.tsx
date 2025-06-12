@@ -1,9 +1,8 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import type {Client} from 'sentry/api';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -11,8 +10,9 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import ScoreCard, {
+import {
   Score,
+  ScoreCard,
   ScorePanel,
   ScoreWrapper,
   Title,
@@ -21,14 +21,14 @@ import ScoreCard, {
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   getPerformanceBaseUrl,
@@ -43,271 +43,175 @@ import {
 import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 import ProjectChart from './projectChart';
 
-type Props = {
-  api: Client;
+interface ProjectCardProps {
   hasProjectAccess: boolean;
-  organization: Organization;
   project: Project;
-};
+}
 
-class ProjectCard extends Component<Props> {
-  componentDidMount() {
-    const {organization, project, api} = this.props;
+function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProps) {
+  const api = useApi();
+  const organization = useOrganization();
 
-    // fetch project stats
+  const statsProject = useLegacyStore(ProjectsStatsStore)[simpleProject.slug];
+  const project = statsProject ?? simpleProject;
+
+  const {stats, slug, transactionStats, sessionStats} = project;
+  const {hasHealthData, currentCrashFreeRate, previousCrashFreeRate} = sessionStats || {};
+
+  const hasPerformance = organization.features.includes('performance-view');
+
+  useEffect(() => {
     loadStatsForProject(api, project.id, {
       orgId: organization.slug,
       projectId: project.id,
       query: {
-        transactionStats: this.hasPerformance ? '1' : undefined,
+        transactionStats: hasPerformance ? '1' : undefined,
         dataset: DiscoverDatasets.METRICS_ENHANCED,
         sessionStats: '1',
       },
     });
-  }
+  }, [project, organization.slug, hasPerformance, api]);
 
-  get hasPerformance() {
-    return this.props.organization.features.includes('performance-view');
-  }
+  const crashFreeTrend =
+    defined(currentCrashFreeRate) && defined(previousCrashFreeRate)
+      ? round(
+          currentCrashFreeRate - previousCrashFreeRate,
+          currentCrashFreeRate > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
+        )
+      : undefined;
 
-  get crashFreeTrend() {
-    const {currentCrashFreeRate, previousCrashFreeRate} =
-      this.props.project.sessionStats || {};
-    if (!defined(currentCrashFreeRate) || !defined(previousCrashFreeRate)) {
-      return undefined;
-    }
+  const missingFeatureCard = (
+    <ScoreCard
+      title={t('Crash Free Sessions')}
+      score={
+        <MissingReleasesButtons
+          organization={organization}
+          health
+          platform={project.platform}
+        />
+      }
+    />
+  );
 
-    return round(
-      currentCrashFreeRate - previousCrashFreeRate,
-      currentCrashFreeRate > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
-    );
-  }
-
-  renderMissingFeatureCard() {
-    const {organization, project} = this.props;
-    return (
-      <ScoreCard
-        title={t('Crash Free Sessions')}
-        score={
-          <MissingReleasesButtons
-            organization={organization}
-            health
-            platform={project.platform}
-          />
-        }
-      />
-    );
-  }
-
-  renderTrend() {
-    const {currentCrashFreeRate} = this.props.project.sessionStats || {};
-
-    if (!defined(currentCrashFreeRate) || !defined(this.crashFreeTrend)) {
-      return null;
-    }
-
-    return (
+  const trendCard =
+    defined(currentCrashFreeRate) && defined(crashFreeTrend) ? (
       <div>
-        {this.crashFreeTrend >= 0 ? (
+        {crashFreeTrend >= 0 ? (
           <IconArrow direction="up" size="xs" />
         ) : (
           <IconArrow direction="down" size="xs" />
         )}
-        {`${formatAbbreviatedNumber(Math.abs(this.crashFreeTrend))}\u0025`}
+        {`${formatAbbreviatedNumber(Math.abs(crashFreeTrend))}\u0025`}
       </div>
-    );
-  }
+    ) : undefined;
 
-  render() {
-    const {organization, project, hasProjectAccess} = this.props;
-    const {stats, slug, transactionStats, sessionStats} = project;
-    const {hasHealthData, currentCrashFreeRate} = sessionStats || {};
-    const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
-    const totalTransactions =
-      transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
-    const zeroTransactions = totalTransactions === 0;
-    const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-    const domainView: DomainView | undefined = project
-      ? platformToDomainView([project], [parseInt(project.id, 10)])
-      : 'backend';
+  const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
+  const totalTransactions =
+    transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
+  const zeroTransactions = totalTransactions === 0;
+  const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
+  const domainView: DomainView | undefined = project
+    ? platformToDomainView([project], [parseInt(project.id, 10)])
+    : 'backend';
 
-    return (
-      <div data-test-id={slug}>
-        <StyledProjectCard>
-          <CardHeader>
-            <HeaderRow>
-              <StyledIdBadge
-                project={project}
-                avatarSize={32}
-                hideOverflow
-                disableLink={!hasProjectAccess}
-              />
-              <SettingsButton
-                borderless
-                size="zero"
-                icon={<IconSettings color="subText" />}
-                title={t('Settings')}
-                aria-label={t('Settings')}
-                to={`/settings/${organization.slug}/projects/${slug}/`}
-              />
-              <StyledBookmarkStar organization={organization} project={project} />
-            </HeaderRow>
-            <SummaryLinks data-test-id="summary-links">
-              {stats ? (
+  return (
+    <StyledProjectCard data-test-id={slug}>
+      <CardHeader>
+        <HeaderRow>
+          <StyledIdBadge
+            project={project}
+            avatarSize={32}
+            hideOverflow
+            disableLink={!hasProjectAccess}
+          />
+          <SettingsButton
+            borderless
+            size="zero"
+            icon={<IconSettings color="subText" />}
+            title={t('Settings')}
+            aria-label={t('Settings')}
+            to={`/settings/${organization.slug}/projects/${slug}/`}
+          />
+          <StyledBookmarkStar organization={organization} project={project} />
+        </HeaderRow>
+        <SummaryLinks data-test-id="summary-links">
+          {stats ? (
+            <Fragment>
+              <Link
+                data-test-id="project-errors"
+                to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
+              >
+                {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
+              </Link>
+              {hasPerformance && (
                 <Fragment>
-                  <Link
-                    data-test-id="project-errors"
-                    to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
+                  <em>|</em>
+                  <TransactionsLink
+                    data-test-id="project-transactions"
+                    to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
                   >
-                    {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
-                  </Link>
-                  {this.hasPerformance && (
-                    <Fragment>
-                      <em>|</em>
-                      <TransactionsLink
-                        data-test-id="project-transactions"
-                        to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
-                      >
-                        {t(
-                          'Transactions: %s',
-                          formatAbbreviatedNumber(totalTransactions)
-                        )}
-                        {zeroTransactions && (
-                          <QuestionTooltip
-                            title={t(
-                              'Click here to learn more about performance monitoring'
-                            )}
-                            position="top"
-                            size="xs"
-                          />
-                        )}
-                      </TransactionsLink>
-                    </Fragment>
-                  )}
+                    {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
+                    {zeroTransactions && (
+                      <QuestionTooltip
+                        title={t('Click here to learn more about performance monitoring')}
+                        position="top"
+                        size="xs"
+                      />
+                    )}
+                  </TransactionsLink>
                 </Fragment>
-              ) : (
-                <SummaryLinkPlaceholder />
               )}
-            </SummaryLinks>
-          </CardHeader>
-          <ChartContainer data-test-id="chart-container">
-            {stats ? (
-              <ProjectChart
-                firstEvent={hasFirstEvent}
-                stats={stats}
-                transactionStats={transactionStats}
-                project={project}
+            </Fragment>
+          ) : (
+            <SummaryLinkPlaceholder />
+          )}
+        </SummaryLinks>
+      </CardHeader>
+      <ChartContainer data-test-id="chart-container">
+        {stats ? (
+          <ProjectChart
+            firstEvent={hasFirstEvent}
+            stats={stats}
+            transactionStats={transactionStats}
+            project={project}
+          />
+        ) : (
+          <Placeholder height="150px" />
+        )}
+      </ChartContainer>
+      <FooterWrapper>
+        <ScoreCardWrapper>
+          {stats ? (
+            hasHealthData ? (
+              <ScoreCard
+                title={t('Crash Free Sessions')}
+                score={
+                  defined(currentCrashFreeRate)
+                    ? displayCrashFreePercent(currentCrashFreeRate)
+                    : '\u2014'
+                }
+                trend={trendCard}
+                trendStatus={
+                  crashFreeTrend ? (crashFreeTrend > 0 ? 'good' : 'bad') : undefined
+                }
               />
             ) : (
-              <Placeholder height="150px" />
-            )}
-          </ChartContainer>
-          <FooterWrapper>
-            <ScoreCardWrapper>
-              {stats ? (
-                hasHealthData ? (
-                  <ScoreCard
-                    title={t('Crash Free Sessions')}
-                    score={
-                      defined(currentCrashFreeRate)
-                        ? displayCrashFreePercent(currentCrashFreeRate)
-                        : '\u2014'
-                    }
-                    trend={this.renderTrend()}
-                    trendStatus={
-                      this.crashFreeTrend
-                        ? this.crashFreeTrend > 0
-                          ? 'good'
-                          : 'bad'
-                        : undefined
-                    }
-                  />
-                ) : (
-                  this.renderMissingFeatureCard()
-                )
-              ) : (
-                <Fragment>
-                  <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
-                  <FooterPlaceholder />
-                </Fragment>
-              )}
-            </ScoreCardWrapper>
-            <DeploysWrapper>
-              <ReleaseTitle>{t('Latest Deploys')}</ReleaseTitle>
-              {stats ? <Deploys project={project} shorten /> : <FooterPlaceholder />}
-            </DeploysWrapper>
-          </FooterWrapper>
-        </StyledProjectCard>
-      </div>
-    );
-  }
-}
-
-type ContainerProps = {
-  api: Client;
-  hasProjectAccess: boolean;
-  organization: Organization;
-  project: Project;
-};
-
-type ContainerState = {
-  projectDetails: Project | null;
-};
-
-class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
-  state = this.getInitialState();
-
-  getInitialState(): ContainerState {
-    const {project} = this.props;
-    const initialState = ProjectsStatsStore.getInitialState() || {};
-    return {
-      projectDetails: initialState[project.slug] || null,
-    };
-  }
-
-  componentWillUnmount() {
-    this.listeners.forEach(listener => {
-      if (typeof listener === 'function') {
-        listener();
-      }
-    });
-  }
-
-  listeners = [
-    ProjectsStatsStore.listen((itemsBySlug: any) => {
-      this.onProjectStatsStoreUpdate(itemsBySlug);
-    }, undefined),
-  ];
-
-  onProjectStatsStoreUpdate(itemsBySlug: (typeof ProjectsStatsStore)['itemsBySlug']) {
-    const {project} = this.props;
-
-    // Don't update state if we already have stats
-    if (!itemsBySlug[project.slug]) {
-      return;
-    }
-    if (itemsBySlug[project.slug] === this.state.projectDetails) {
-      return;
-    }
-
-    this.setState({
-      projectDetails: itemsBySlug[project.slug]!,
-    });
-  }
-
-  render() {
-    const {project, ...props} = this.props;
-    const {projectDetails} = this.state;
-    return (
-      <ProjectCard
-        {...props}
-        project={{
-          ...project,
-          ...projectDetails,
-        }}
-      />
-    );
-  }
+              missingFeatureCard
+            )
+          ) : (
+            <Fragment>
+              <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
+              <FooterPlaceholder />
+            </Fragment>
+          )}
+        </ScoreCardWrapper>
+        <DeploysWrapper>
+          <ReleaseTitle>{t('Latest Deploys')}</ReleaseTitle>
+          {stats ? <Deploys project={project} shorten /> : <FooterPlaceholder />}
+        </DeploysWrapper>
+      </FooterWrapper>
+    </StyledProjectCard>
+  );
 }
 
 const ChartContainer = styled('div')`
@@ -347,13 +251,14 @@ const HeaderRow = styled('div')`
 `;
 
 const StyledProjectCard = styled(Panel)`
-  min-height: 330px;
+  height: 100%;
   margin: 0;
 `;
 
 const FooterWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
+  margin-bottom: ${space(2)};
   div {
     border: none;
     box-shadow: none;
@@ -470,7 +375,7 @@ const TransactionsLink = styled(Link)`
 const SummaryLinkPlaceholder = styled(Placeholder)`
   height: 15px;
   width: 180px;
-  margin-top: ${space(0.75)};
+  margin-top: ${space(0.25)};
   margin-bottom: ${space(0.5)};
 `;
 
@@ -480,5 +385,4 @@ const FooterPlaceholder = styled(Placeholder)`
   margin-right: ${space(2)};
 `;
 
-export {ProjectCard};
-export default withOrganization(withApi(ProjectCardContainer));
+export default ProjectCard;
