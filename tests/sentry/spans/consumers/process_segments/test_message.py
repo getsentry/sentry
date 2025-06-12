@@ -95,7 +95,7 @@ class TestSpansTask(TestCase):
         assert child_tags["transaction"] == segment_tags["transaction"]
         assert child_tags["transaction.method"] == segment_tags["transaction.method"]
         assert child_tags["transaction.op"] == segment_tags["transaction.op"]
-        assert child_tags["user"] == segment_tags["user"]  # type: ignore[typeddict-item]
+        assert child_tags["user"] == segment_tags["user"]
 
     def test_enrich_spans_no_segment(self):
         spans = self.generate_basic_spans()
@@ -130,9 +130,9 @@ class TestSpansTask(TestCase):
     def test_n_plus_one_issue_detection(self, mock_eventstream):
         spans = self.generate_n_plus_one_spans()
         with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
-        ) as mock_released:
-            mock_released.return_value = True
+            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
+            return_value=True,
+        ):
             process_segment(spans)
 
         mock_eventstream.assert_called_once()

@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
     TraceItem,
 )
 
-from sentry.spans.consumers.process_segments.types import Span
+from sentry.spans.consumers.process_segments.enrichment import Span
 
 I64_MAX = 2**63 - 1
 
