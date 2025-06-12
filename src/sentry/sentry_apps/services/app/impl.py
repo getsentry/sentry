@@ -61,9 +61,7 @@ class DatabaseBackedAppService(AppService):
     def find_app_components(self, *, app_id: int) -> list[RpcSentryAppComponent]:
         return [
             serialize_sentry_app_component(c)
-            for c in SentryAppComponent.objects.get_from_cache()
-            .using_replica()
-            .filter(sentry_app_id=app_id)
+            for c in SentryAppComponent.objects.using_replica().filter(sentry_app_id=app_id)
         ]
 
     def get_sentry_app_by_id(self, *, id: int) -> RpcSentryApp | None:
