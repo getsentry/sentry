@@ -483,3 +483,29 @@ class DeletionFieldGoodDeleteSimpleLockTimeoutTest(BaseSafeMigrationTest):
                 "SET statement_timeout TO '0ms';",
                 "SET lock_timeout TO '0ms';",
             ]
+
+
+class LongIdentifierFieldTest(BaseSafeMigrationTest):
+    app = "bad_flow_long_identifier_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_long_field_name"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="PostgreSQL identifier .* is .* bytes long, which exceeds the 63-byte limit for column name.*",
+        ):
+            self.run_migration()
+
+
+class LongIdentifierIndexTest(BaseSafeMigrationTest):
+    app = "bad_flow_long_index_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_long_index_name"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="PostgreSQL identifier .* is .* bytes long, which exceeds the 63-byte limit for index name.*",
+        ):
+            self.run_migration()
