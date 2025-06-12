@@ -3,6 +3,7 @@ import {Component, Fragment} from 'react';
 import {Alert} from 'sentry/components/core/alert';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
+import ConfigStore from 'sentry/stores/configStore';
 
 import type {
   AdminConfirmParams,
@@ -10,13 +11,19 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
 
+type StartupsProgram = {
+  name: string;
+  type: string;
+  creditAmount: number;
+};
+
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
 };
 
 type State = {
   notes?: string;
-  programType?: string | null;
+  programId?: string | null;
 };
 
 /**
@@ -24,17 +31,30 @@ type State = {
  */
 class StartupsAction extends Component<Props, State> {
   state: State = {
-    programType: 'ycombinator', // Default to YCombinator
+    programId: undefined, // Will be set to first program in componentDidMount
     notes: '',
   };
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);
     this.props.disableConfirmButton(false);
+
+    // Set default to first available program
+    const programs = this.getStartupsPrograms();
+    const programIds = Object.keys(programs);
+    if (programIds.length > 0) {
+      this.setState({programId: programIds[0]});
+    }
   }
 
-  handleProgramTypeChange = (value: string | null) => {
-    this.setState({programType: value});
+  getStartupsPrograms = (): Record<string, StartupsProgram> => {
+    // Get startups programs from configuration
+    const config = ConfigStore.get('startupsPrograms') || {};
+    return config;
+  };
+
+  handleProgramChange = (value: string | null) => {
+    this.setState({programId: value});
   };
 
   handleNotesChange = (value: string) => {
@@ -42,37 +62,54 @@ class StartupsAction extends Component<Props, State> {
   };
 
   handleConfirm = (_params: AdminConfirmParams) => {
-    const {programType, notes} = this.state;
+    const {programId, notes} = this.state;
     const {onConfirm} = this.props;
 
     const data = {
       startupsProgram: true,
-      programType,
+      programId,
       notes,
     };
     onConfirm?.(data);
   };
 
-  getProgramDescription = (programType: string | null) => {
-    switch (programType) {
-      case 'ycombinator':
-        return '$50,001 in credits for YCombinator startups';
-      case 'other':
-        return '$5,000 in credits for qualifying startups';
-      default:
-        return '';
+  getProgramDescription = (programId: string | null) => {
+    if (!programId) {
+      return '';
     }
+
+    const programs = this.getStartupsPrograms();
+    const program = programs[programId];
+
+    if (!program) {
+      return '';
+    }
+
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(program.creditAmount);
+
+    return `${formattedAmount} in credits for ${program.name}`;
   };
 
   render() {
     const {subscription} = this.props;
-    const {programType, notes} = this.state;
+    const {programId, notes} = this.state;
 
     if (!subscription) {
       return null;
     }
 
-    const programDescription = programType ? this.getProgramDescription(programType) : '';
+    const programs = this.getStartupsPrograms();
+    const programChoices = Object.entries(programs).map(([id, program]) => [
+      id,
+      program.name,
+    ]);
+
+    const programDescription = programId ? this.getProgramDescription(programId) : '';
 
     return (
       <Fragment>
@@ -96,14 +133,11 @@ class StartupsAction extends Component<Props, State> {
           stacked
           flexibleControlStateSize
           label="Startups Program"
-          name="programType"
-          value={programType}
-          onChange={this.handleProgramTypeChange}
+          name="programId"
+          value={programId}
+          onChange={this.handleProgramChange}
           help="Select which startups program to enroll this customer in"
-          choices={[
-            ['ycombinator', 'YCombinator (Current)'],
-            ['other', 'Other'],
-          ]}
+          choices={programChoices}
         />
 
         <TextareaField
