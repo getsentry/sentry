@@ -19,7 +19,8 @@ from sentry.performance_issues.types import Span
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
 
-SQL_KEYWORDS = [
+# Keywords that are excluded from the detection
+EXCLUDED_KEYWORDS = [
     "SELECT",
     "WHERE",
     "AND",
@@ -48,7 +49,13 @@ SQL_KEYWORDS = [
     "DESC",
     "ASC",
     "NULL",
+    "ORDER",
+    "SORT",
+    "EXPAND",
+    "PAGE",
 ]
+
+EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
 
 
 class SQLInjectionDetector(PerformanceDetector):
@@ -97,7 +104,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 continue
             if query_key == query_value:
                 continue
-            if query_value.upper() in SQL_KEYWORDS or query_key.upper() in SQL_KEYWORDS:
+            if query_value.upper() in EXCLUDED_KEYWORDS or query_key.upper() in EXCLUDED_KEYWORDS:
                 continue
             valid_parameters.append(query_pair)
 
@@ -180,6 +187,17 @@ class SQLInjectionDetector(PerformanceDetector):
         if description[:6].upper() != "SELECT":
             return False
 
+        return True
+
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
+        packages = event.get("modules", {})
+        if not packages or not isinstance(packages, dict):
+            return True
+        # Filter out events with packages known to internally escape inputs
+        for package_name in packages.keys():
+            if package_name in EXCLUDED_PACKAGES:
+                return False
         return True
 
     def _fingerprint(self, description: str) -> str:

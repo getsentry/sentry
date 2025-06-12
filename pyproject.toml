@@ -377,6 +377,7 @@ module = [
     "sentry.snuba.metrics.extraction",
     "sentry.snuba.metrics.naming_layer.*",
     "sentry.snuba.query_subscriptions.*",
+    "sentry.spans.consumers.process_segments.*",
     "sentry.spans.grouping.*",
     "sentry.stacktraces.platform",
     "sentry.status_checks.*",
