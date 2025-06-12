@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import useResizable from 'sentry/utils/useResizable';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
@@ -25,16 +26,23 @@ export function SecondarySidebar() {
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
 
+  const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
+    'secondary-sidebar-width',
+    SECONDARY_SIDEBAR_WIDTH
+  );
+
   const {
     onMouseDown: handleStartResize,
     size,
     onDoubleClick,
   } = useResizable({
     ref: resizableContainerRef,
-    initialSize: SECONDARY_SIDEBAR_WIDTH,
+    initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
     maxWidth: SECONDARY_SIDEBAR_MAX_WIDTH,
-    sizeStorageKey: 'secondary-sidebar-width',
+    onResizeEnd: newWidth => {
+      setSecondarySidebarWidth(newWidth);
+    },
   });
 
   const {activePrimaryNavGroup} = useNavContext();

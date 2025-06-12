@@ -1,9 +1,9 @@
 import type {RefObject} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-export const RESIZABLE_DEFAULT_WIDTH = 200;
-export const RESIZABLE_MIN_WIDTH = 100;
-export const RESIZABLE_MAX_WIDTH = Infinity;
+const RESIZABLE_DEFAULT_WIDTH = 200;
+const RESIZABLE_MIN_WIDTH = 100;
+const RESIZABLE_MAX_WIDTH = Infinity;
 
 interface UseResizableOptions {
   /**
@@ -38,12 +38,6 @@ interface UseResizableOptions {
    * Triggered when the user starts dragging the resize handle.
    */
   onResizeStart?: () => void;
-
-  /**
-   * The local storage key used to persist the size of the container. If not provided,
-   * the size will not be persisted and the defaultWidth will be used.
-   */
-  sizeStorageKey?: string;
 }
 
 /**
@@ -51,14 +45,13 @@ interface UseResizableOptions {
  *
  * Currently only supports resizing width and not height.
  */
-export const useResizable = ({
+const useResizable = ({
   ref,
   initialSize = RESIZABLE_DEFAULT_WIDTH,
   maxWidth = RESIZABLE_MAX_WIDTH,
   minWidth = RESIZABLE_MIN_WIDTH,
   onResizeEnd,
   onResizeStart,
-  sizeStorageKey,
 }: UseResizableOptions): {
   /**
    * Whether the drag handle is held.
@@ -86,14 +79,9 @@ export const useResizable = ({
 
   useEffect(() => {
     if (ref.current) {
-      const storedSize = sizeStorageKey
-        ? parseInt(localStorage.getItem(sizeStorageKey) ?? '', 10)
-        : undefined;
-
-      ref.current.style.width = `${storedSize ?? initialSize}px`;
+      ref.current.style.width = `${initialSize}px`;
     }
-    console.log(ref.current?.style.width);
-  }, [ref, initialSize, sizeStorageKey]);
+  }, [ref, initialSize]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -139,10 +127,7 @@ export const useResizable = ({
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
     onResizeEnd?.(newSize);
-    if (sizeStorageKey) {
-      localStorage.setItem(sizeStorageKey, newSize.toString());
-    }
-  }, [onResizeEnd, ref, sizeStorageKey, initialSize]);
+  }, [onResizeEnd, ref, initialSize]);
 
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);

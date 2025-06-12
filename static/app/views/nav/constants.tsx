@@ -2,7 +2,7 @@ export const NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY = 'navigation-sidebar-is-co
 
 export const PRIMARY_SIDEBAR_WIDTH = 74;
 export const SECONDARY_SIDEBAR_WIDTH = 190;
-export const SECONDARY_SIDEBAR_MIN_WIDTH = 100;
+export const SECONDARY_SIDEBAR_MIN_WIDTH = 150;
 export const SECONDARY_SIDEBAR_MAX_WIDTH = 500;
 
 // Slightly delay closing the nav to prevent accidental dismissal
