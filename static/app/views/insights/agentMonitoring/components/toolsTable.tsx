@@ -30,9 +30,9 @@ import {
   AI_TOOL_NAME_ATTRIBUTE,
   getAIToolCallsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
+import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
@@ -92,7 +92,7 @@ export function ToolsTable() {
           : undefined,
       keepPreviousData: true,
     },
-    Referrer.QUERIES_CHART // TODO: add referrer
+    Referrer.TOOLS_TABLE
   );
 
   const tableData = useMemo(() => {

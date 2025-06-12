@@ -36,8 +36,8 @@ const AI_DESCRIPTIONS = [
   ...AI_TOOL_CALL_DESCRIPTIONS,
 ];
 
-export const AI_MODEL_ID_ATTRIBUTE = 'ai.model.id' as EAPSpanProperty;
-export const AI_TOOL_NAME_ATTRIBUTE = 'ai.toolCall.name' as EAPSpanProperty;
+export const AI_MODEL_ID_ATTRIBUTE = 'gen_ai.request.model' as EAPSpanProperty;
+export const AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name' as EAPSpanProperty;
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM =
   `sum(tags[gen_ai.usage.total_tokens,number])` as EAPSpanProperty;
@@ -52,6 +52,8 @@ export const legacyAttributeKeys = new Map<string, string[]>([
   ['gen_ai.usage.output_tokens', ['ai.completion_tokens.used']],
   ['gen_ai.usage.total_tokens', ['ai.total_tokens.used']],
   ['gen_ai.usage.total_cost', ['ai.total_cost.used']],
+  ['gen_ai.tool.input', ['ai.toolCall.args']],
+  ['gen_ai.tool.output', ['ai.toolCall.result']],
 ]);
 
 export function getIsAiSpan({
