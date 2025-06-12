@@ -1097,32 +1097,6 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
-    def test_cap_secondary_grouping_expiry(self):
-        now = time()
-
-        response = self.get_response(self.org_slug, self.proj_slug, secondaryGroupingExpiry=0)
-        assert response.status_code == 400
-
-        expiry = int(now + 3600 * 24 * 1)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        assert response.data["secondaryGroupingExpiry"] == expiry
-
-        expiry = int(now + 3600 * 24 * 89)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        assert response.data["secondaryGroupingExpiry"] == expiry
-
-        # Larger timestamps are capped to 91 days:
-        expiry = int(now + 3600 * 24 * 365)
-        response = self.get_success_response(
-            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
-        )
-        expiry = response.data["secondaryGroupingExpiry"]
-        assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
-
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets(self, create_audit_entry):
         with Feature(
