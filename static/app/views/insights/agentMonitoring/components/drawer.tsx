@@ -176,7 +176,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
                   dateSelection: normalizeDateTimeParams(selection),
                 })}
               >
-                View Full Trace
+                {t('View Full Trace')}
               </LinkButton>
             </HeaderContent>
           </StyledDrawerHeader>
