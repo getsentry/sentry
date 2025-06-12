@@ -1,14 +1,19 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
 import ApiForm from 'sentry/components/forms/apiForm';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import DateTimeField from 'sentry/components/forms/fields/dateTimeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
+import {IconRefresh} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {PromoCode} from 'admin/types';
+import {generatePromoCode} from 'admin/utils';
 
 const fieldProps = {
   stacked: true,
@@ -16,15 +21,88 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
+// Define proper interface for form data
+interface PromoCodeFormData {
+  code: string;
+  duration: string;
+  isTrialPromo: boolean;
+  maxClaims: string;
+  newOnly: boolean;
+  setExpiration: boolean;
+  amount?: string;
+  campaign?: string;
+  dateExpires?: string;
+  trialDays?: string;
+}
+
 type Props = ModalRenderProps & {
   onSubmit?: (promoCode: PromoCode) => void;
   promoCode?: PromoCode;
 };
 
+const CodeFieldContainer = styled('div')`
+  position: relative;
+`;
+
+const GenerateButton = styled(Button)`
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+`;
+
 function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Props) {
   const navigate = useNavigate();
   const [isDateToggleEnabled, setIsDateToggleEnabled] = useState(false);
   const [isTrialPromo, setIsTrialPromo] = useState(false);
+  const [initialFormData, setInitialFormData] = useState<PromoCodeFormData | null>(null);
+  const [currentCode, setCurrentCode] = useState<string>('');
+
+  // Generate a default code for new promo codes
+  useEffect(() => {
+    if (promoCode) {
+      const formData: PromoCodeFormData = {
+        code: promoCode.code,
+        campaign: promoCode.campaign || undefined,
+        duration: promoCode.duration || '1',
+        amount: promoCode.amount?.toString() || undefined,
+        trialDays: promoCode.trialDays?.toString() || undefined,
+        maxClaims: promoCode.maxClaims?.toString() || '',
+        isTrialPromo: Boolean(promoCode.trialDays),
+        newOnly: promoCode.newOnly || false,
+        setExpiration: Boolean(promoCode.dateExpires),
+        dateExpires: promoCode.dateExpires || undefined,
+      };
+      setInitialFormData(formData);
+      setCurrentCode(promoCode.code);
+    } else {
+      const defaultCode = generatePromoCode();
+      const formData: PromoCodeFormData = {
+        code: defaultCode,
+        duration: '1',
+        maxClaims: '',
+        isTrialPromo: false,
+        newOnly: false,
+        setExpiration: false,
+      };
+      setInitialFormData(formData);
+      setCurrentCode(defaultCode);
+    }
+  }, [promoCode]);
+
+  const handleGenerateCode = () => {
+    const newCode = generatePromoCode();
+    setCurrentCode(newCode);
+    if (initialFormData) {
+      setInitialFormData(prev => (prev ? {...prev, code: newCode} : null));
+    }
+  };
+
+  // Don't render until initial data is ready
+  if (!initialFormData) {
+    return null;
+  }
 
   return (
     <Fragment>
@@ -51,19 +129,34 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
               navigate(`/_admin/promocodes/${newCode.code}/`);
             }
           }}
-          initialData={promoCode || {duration: '1', setExpiration: false}}
+          initialData={initialFormData}
           submitLabel={promoCode ? 'Update' : 'Create'}
         >
-          <TextField
-            {...fieldProps}
-            disabled={!!promoCode}
-            name="code"
-            label="Code (ID)"
-            placeholder="e.g. mysecretcode79"
-            help="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
-            minLength={5}
-            required
-          />
+          <CodeFieldContainer>
+            <TextField
+              {...fieldProps}
+              disabled={!!promoCode}
+              name="code"
+              label="Code (ID)"
+              placeholder="e.g. mysecretcode79"
+              help="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
+              minLength={5}
+              value={currentCode}
+              onChange={setCurrentCode}
+              required
+            />
+            {!promoCode && (
+              <GenerateButton
+                size="xs"
+                type="button"
+                onClick={handleGenerateCode}
+                icon={<IconRefresh />}
+                aria-label="Generate new promo code"
+              >
+                Generate
+              </GenerateButton>
+            )}
+          </CodeFieldContainer>
           <TextField
             {...fieldProps}
             name="campaign"
@@ -71,22 +164,21 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
             placeholder="e.g. pycon"
             help="An optional campaign identifier for this promo code."
           />
-          <BooleanField
-            {...fieldProps}
-            name="isTrialPromo"
-            label="Create trial promo code?"
-            placeholder=""
-            onChange={() => setIsTrialPromo(!isTrialPromo)}
-          />
+          {React.createElement(BooleanField as any, {
+            ...fieldProps,
+            name: 'isTrialPromo',
+            label: 'Create trial promo code?',
+            placeholder: '',
+            onChange: () => setIsTrialPromo(!isTrialPromo),
+          })}
           {!isTrialPromo && (
             <div>
-              <SelectField
-                {...fieldProps}
-                name="duration"
-                label="Duration"
-                help="How many times will this promo be applied to their account?"
-                // TODO: make choices available on api endoint and retrieve when modal opens
-                choices={[
+              {React.createElement(SelectField as any, {
+                ...fieldProps,
+                name: 'duration',
+                label: 'Duration',
+                help: 'How many times will this promo be applied to their account?',
+                choices: [
                   ['1', 'Once'],
                   ['2', 'Two Months'],
                   ['3', 'Three Months'],
@@ -99,9 +191,9 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
                   ['10', 'Ten Months'],
                   ['11', 'Eleven Months'],
                   ['12', 'Twelve Months'],
-                ]}
-                required
-              />
+                ],
+                required: true,
+              })}
               <TextField
                 {...fieldProps}
                 name="amount"
@@ -127,28 +219,27 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
             help="The maximum number of accounts which can claim this code."
             required
           />
-          <BooleanField
-            {...fieldProps}
-            name="newOnly"
-            label="Only allow this code to be applied to new accounts."
-            placeholder=""
-          />
-          <BooleanField
-            {...fieldProps}
-            name="setExpiration"
-            label="Set an expiration date for the promo code?"
-            placeholder=""
-            onChange={() => setIsDateToggleEnabled(!isDateToggleEnabled)}
-          />
-          {isDateToggleEnabled && (
-            <DateTimeField
-              {...fieldProps}
-              name="dateExpires"
-              label="Date Expires"
-              help="Optional date the promotion will no longer be valid after."
-              readOnly={false}
-            />
-          )}
+          {React.createElement(BooleanField as any, {
+            ...fieldProps,
+            name: 'newOnly',
+            label: 'Only allow this code to be applied to new accounts.',
+            placeholder: '',
+          })}
+          {React.createElement(BooleanField as any, {
+            ...fieldProps,
+            name: 'setExpiration',
+            label: 'Set an expiration date for the promo code?',
+            placeholder: '',
+            onChange: () => setIsDateToggleEnabled(!isDateToggleEnabled),
+          })}
+          {isDateToggleEnabled &&
+            React.createElement(DateTimeField as any, {
+              ...fieldProps,
+              name: 'dateExpires',
+              label: 'Date Expires',
+              help: 'Optional date the promotion will no longer be valid after.',
+              readOnly: false,
+            })}
         </ApiForm>
       </Body>
     </Fragment>
