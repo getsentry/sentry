@@ -25,7 +25,7 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
-import {isSeer, sortCategories} from 'getsentry/utils/dataCategory';
+import {sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -48,14 +48,6 @@ type Props = {
   promotionData: PromotionData;
   subscription: Subscription;
 };
-
-/**
- * Determines whether to show all totals (including dropped rows) for given categories
- */
-function shouldShowAllTotals(categories: DataCategory[] | DataCategory): boolean {
-  const categoryArray = Array.isArray(categories) ? categories : [categories];
-  return !categoryArray.some(category => isSeer(category));
-}
 
 /**
  * Subscription overview page.
@@ -265,7 +257,6 @@ function Overview({location, subscription, promotionData}: Props) {
                 totals={categoryTotals}
                 eventTotals={eventTotals}
                 showEventBreakdown={showEventBreakdown}
-                showAllTotals={shouldShowAllTotals(category)}
                 reservedUnits={categoryHistory.reserved}
                 prepaidUnits={categoryHistory.prepaid}
                 freeUnits={categoryHistory.free}
@@ -286,11 +277,6 @@ function Overview({location, subscription, promotionData}: Props) {
         {subscription.reservedBudgets?.map(reservedBudget => {
           let softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null = null;
           let trueForward = false;
-
-          const budgetCategories = Object.keys(
-            reservedBudget.categories
-          ) as DataCategory[];
-          const showAllTotals = shouldShowAllTotals(budgetCategories);
 
           Object.keys(reservedBudget.categories).forEach(category => {
             const categoryHistory = subscription.categories[category as DataCategory];
@@ -315,7 +301,6 @@ function Overview({location, subscription, promotionData}: Props) {
               allTotalsByCategory={usageData.totals}
               softCapType={softCapType}
               trueForward={trueForward}
-              showAllTotals={showAllTotals}
             />
           );
         })}
@@ -331,7 +316,6 @@ function Overview({location, subscription, promotionData}: Props) {
               totals={categoryTotals}
               eventTotals={eventTotals}
               showEventBreakdown={showProductTrialEventBreakdown}
-              showAllTotals={shouldShowAllTotals(pt.category)}
               subscription={subscription}
               organization={organization}
               displayMode={displayMode}

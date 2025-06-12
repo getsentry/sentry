@@ -110,10 +110,6 @@ type UsageProps = {
    */
   reservedUnits?: number | null;
   /**
-   * Show all totals
-   */
-  showAllTotals?: boolean;
-  /**
    * Show event breakdown
    */
   showEventBreakdown?: boolean;
@@ -154,10 +150,6 @@ type CombinedUsageProps = {
    * The reserved spend if any
    */
   reservedSpend?: number | null;
-  /**
-   * Show all totals
-   */
-  showAllTotals?: boolean;
   /**
    * If soft cap is enabled, the type of soft cap in use: true forward or on-demand
    */
@@ -394,7 +386,6 @@ export function UsageTotals({
   eventTotals = {},
   trueForward = false,
   showEventBreakdown = false,
-  showAllTotals = true,
   disableTable,
   displayMode,
 }: UsageProps) {
@@ -779,7 +770,6 @@ export function UsageTotals({
             category={category}
             totals={total}
             subscription={subscription}
-            showAllTotals={showAllTotals}
           />
 
           {showEventBreakdown &&
@@ -792,7 +782,6 @@ export function UsageTotals({
                   totals={eventTotal}
                   subscription={subscription}
                   data-test-id={`event-breakdown-${key}`}
-                  showAllTotals={showAllTotals}
                 />
               );
             })}
@@ -809,7 +798,6 @@ export function CombinedUsageTotals({
   softCapType = null,
   allTotalsByCategory = {},
   trueForward = false,
-  showAllTotals = true,
 }: CombinedUsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
@@ -1283,9 +1271,6 @@ export function CombinedUsageTotals({
                 category={category as DataCategory}
                 totals={adjustedTotals}
                 subscription={subscription}
-                showAllTotals={
-                  apiName === ReservedBudgetCategoryType.SEER ? false : showAllTotals
-                }
               />
             );
           })}
