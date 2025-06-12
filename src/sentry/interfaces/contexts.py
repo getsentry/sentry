@@ -254,12 +254,28 @@ class Contexts(Interface):
 
     @classmethod
     def normalize_context(cls, alias, data):
-        ctx_type = data.get("type", alias)
+        unprocessed_ctx_type = data.get("type", alias)
+        
+        # Handle malformed type values to prevent TypeError when used as dict key
+        if isinstance(unprocessed_ctx_type, str):
+            final_ctx_type_key = unprocessed_ctx_type
+        elif isinstance(unprocessed_ctx_type, dict):
+            # If the type is a dictionary, attempt to extract an 'id' field.
+            id_val = unprocessed_ctx_type.get("id")
+            if isinstance(id_val, str):
+                final_ctx_type_key = id_val
+            else:
+                # If 'id' is not a string or not present, fallback to the alias.
+                final_ctx_type_key = alias
+        else:
+            # For other types (None, int, list, etc.), fallback to the alias
+            final_ctx_type_key = alias
+        
         try:
-            ctx_cls = context_types.get(ctx_type, DefaultContextType)
+            ctx_cls = context_types.get(final_ctx_type_key, DefaultContextType)
         except TypeError:
             # Debugging information for SENTRY-FOR-SENTRY-2NH2.
-            sentry_sdk.set_context("ctx_type", ctx_type)
+            sentry_sdk.set_context("ctx_type", unprocessed_ctx_type)
             raise
         return ctx_cls(alias, data)
 
