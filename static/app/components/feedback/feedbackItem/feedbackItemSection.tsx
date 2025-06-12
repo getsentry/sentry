@@ -67,7 +67,8 @@ const SectionTitle = styled('h3')`
   justify-content: space-between;
   position: relative;
 
-  padding: ${space(1)} ${space(0.5)};
+  padding: ${space(1)} ${space(0.75)};
+  margin-inline: -${space(1)} -${space(0.75)};
 `;
 
 const LeftAlignedContent = styled('div')`
