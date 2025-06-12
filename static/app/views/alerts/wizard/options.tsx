@@ -64,6 +64,16 @@ export type MetricAlertType = Exclude<
   'issues' | 'uptime_monitor' | 'crons_monitor'
 >;
 
+export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
+  'throughput',
+  'trans_duration',
+  'apdex',
+  'failure_rate',
+  'lcp',
+  'fid',
+  'cls',
+];
+
 export const DatasetMEPAlertQueryTypes: Record<
   Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   MEPAlertsQueryType
