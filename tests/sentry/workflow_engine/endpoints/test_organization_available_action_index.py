@@ -173,8 +173,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.org_integration.config = {"team_table": [self.og_team]}
             self.org_integration.save()
 
-    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def setup_sentry_apps(self, mock_sentry_app_component_preparer):
+    def setup_sentry_apps(self):
         @self.registry.register(Action.Type.SENTRY_APP)
         @dataclass(frozen=True)
         class SentryAppActionHandler(ActionHandler):
@@ -337,7 +336,8 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
-    def test_sentry_apps(self):
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_sentry_apps(self, mock_sentry_app_component_preparer):
         self.setup_sentry_apps()
 
         response = self.get_success_response(
@@ -397,7 +397,8 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
-    def test_actions_sorting(self):
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_actions_sorting(self, mock_sentry_app_component_preparer):
 
         self.setup_sentry_apps()
         self.setup_integrations()
