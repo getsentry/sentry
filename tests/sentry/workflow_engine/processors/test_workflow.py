@@ -16,6 +16,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
@@ -33,8 +34,8 @@ from sentry.workflow_engine.processors.workflow import (
     enqueue_workflow,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
-    handle_activity_creation,
     process_workflows,
+    workflow_issue_status_change,
 )
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -751,33 +752,60 @@ class TestDeleteWorkflow:
         assert not Workflow.objects.filter(id=workflow_id).exists()
 
 
+@patch("sentry.workflow_engine.processors.workflow.process_workflows")
 class TestHandleActivityCreation(TestCase):
-    def test_note(self):
-        with patch(
-            "sentry.workflow_engine.processors.workflow.process_workflows"
-        ) as mock_process_workflows:
-            activity = Activity.objects.create(
-                group=self.group,
-                project=self.project,
-                type=ActivityType.NOTE.value,
-                user_id=self.user.id,
-                data={},
-            )
+    """
+    Ensure the handler is configured, and we are only using support activities
+    """
 
-            handle_activity_creation(activity)
-            assert mock_process_workflows.called is False
+    def test_note(self, mock_process_workflows):
+        activity = Activity.objects.create(
+            group=self.group,
+            project=self.project,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={},
+        )
 
-    def test_resolved(self):
-        with patch(
-            "sentry.workflow_engine.processors.workflow.process_workflows"
-        ) as mock_process_workflows:
-            activity = Activity.objects.create(
-                group=self.group,
-                project=self.project,
-                type=ActivityType.SET_RESOLVED.value,
-                user_id=self.user.id,
-                data={},
-            )
+        workflow_issue_status_change(activity)
+        assert mock_process_workflows.called is False
 
-            handle_activity_creation(activity)
-            mock_process_workflows.assert_called_once_with(WorkflowEventData(event=activity))
+    def test_resolved(self, mock_process_workflows):
+        activity = Activity.objects.create(
+            group=self.group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+            data={},
+        )
+
+        workflow_issue_status_change(activity)
+
+        expected_result = WorkflowEventData(
+            event=activity,
+            has_reappeared=False,
+            has_escalated=False,
+        )
+
+        mock_process_workflows.assert_called_once_with(expected_result)
+
+    def test_has_reappeared(self, mock_process_workflows):
+        self.group.substatus = GroupSubStatus.REGRESSED
+        self.group.save()
+
+        activity = Activity.objects.create(
+            group=self.group,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+            data={},
+        )
+
+        workflow_issue_status_change(activity)
+
+        expected_data = WorkflowEventData(
+            event=activity,
+            has_reappeared=True,
+            has_escalated=False,
+        )
+        mock_process_workflows.assert_called_once_with(expected_data)

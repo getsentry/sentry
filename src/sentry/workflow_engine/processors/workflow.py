@@ -316,20 +316,26 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     return triggered_workflows
 
 
+# TODO - @saponifi3d - add support for more activity types
 supported_activity_types = [ActivityType.SET_RESOLVED.value]
 
 
 @activity_creation_registry.register("workflow_engine:process_workflows")
-def handle_activity_creation(activity: Activity) -> None:
+def workflow_issue_status_change(activity: Activity) -> None:
     if activity.type not in supported_activity_types:
         # TODO - Only support activity types that we have triggers for
         # For example, we don't want to process a workflow activity for DEPLOY
         return
 
+    has_reappeared = has_escalated = False
+    if activity.group is not None:
+        has_reappeared = activity.group.substatus == GroupSubStatus.REGRESSED
+        has_escalated = activity.group.substatus == GroupSubStatus.ESCALATING
+
     workflow_event_data = WorkflowEventData(
         event=activity,
-        has_reappeared=activity.group.substatus == GroupSubStatus.REGRESSED,
-        has_escalated=activity.group.substatus == GroupSubStatus.ESCALATING,
+        has_reappeared=has_reappeared,
+        has_escalated=has_escalated,
     )
 
     process_workflows(workflow_event_data)
