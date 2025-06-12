@@ -64,6 +64,7 @@ import refundVercelRequest from 'admin/components/refundVercelRequestModal';
 import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
+import StartupsAction from 'admin/components/startupsAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
@@ -410,6 +411,20 @@ export default function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
+          },
+          {
+            key: 'grantStartupsProgram',
+            name: 'Grant Startups Program Access',
+            help: 'Grant this customer access to the startups program with credits and welcome email.',
+            disabled: subscription.isPartner,
+            disabledReason: 'Partner accounts cannot be put on startups programs',
+            confirmModalOpts: {
+              renderModalSpecificContent: deps => (
+                <StartupsAction subscription={subscription} {...deps} />
+              ),
+            },
+            onAction: params => onUpdateMutation.mutate({...params}),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'allowGrace',

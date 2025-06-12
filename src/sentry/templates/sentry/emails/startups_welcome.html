@@ -1,0 +1,104 @@
+{% load sentry_helpers %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Sentry Startups Program</title>
+    <style>
+        body { margin: 0; padding: 20px; background-color: #f6f8fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #362D59 0%, #5B4E7C 100%); padding: 30px 20px; text-align: center; color: white; }
+        .logo { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+        .header-subtitle { font-size: 16px; opacity: 0.9; }
+        .content { padding: 40px 30px; }
+        .credit-highlight { background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center; border-left: 4px solid #2196F3; }
+        .credit-amount { font-size: 24px; font-weight: bold; color: #1565C0; margin-bottom: 8px; }
+        .credit-description { color: #424242; font-size: 14px; }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #362D59 0%, #5B4E7C 100%);
+            color: white;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(54,45,89,0.3);
+        }
+        .cta-button:hover { box-shadow: 0 4px 8px rgba(54,45,89,0.4); }
+        .steps { background-color: #F8F9FA; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .steps h3 { margin-top: 0; color: #362D59; }
+        .steps ol { padding-left: 20px; }
+        .steps li { margin-bottom: 8px; color: #424242; }
+        .resources { background-color: #F8F9FA; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .resources h3 { margin-top: 0; color: #362D59; }
+        .resources ul { padding-left: 20px; }
+        .resources li { margin-bottom: 8px; }
+        .resources a { color: #1976D2; text-decoration: none; }
+        .resources a:hover { text-decoration: underline; }
+        .footer { padding: 30px; text-align: center; background-color: #F8F9FA; color: #666; font-size: 12px; border-top: 1px solid #E0E0E0; }
+        h2 { color: #362D59; font-size: 24px; margin-bottom: 20px; }
+        p { color: #424242; line-height: 1.6; }
+        .signature { margin-top: 30px; font-weight: 600; color: #362D59; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 Sentry Startups Program</div>
+            <div class="header-subtitle">Powering the next generation of startups</div>
+        </div>
+
+        <div class="content">
+            <h2>Welcome to the Sentry Startups Program!</h2>
+
+            <p>We're excited to help {{ organization.name }} grow with powerful error monitoring and performance tracking that scales with your startup.</p>
+
+            <div class="credit-highlight">
+                <div class="credit-amount">🎉 ${{ credit_amount_formatted }} in Credits!</div>
+                <div class="credit-description">
+                    These credits can be used for error tracking, performance monitoring, release tracking, and all other Sentry features.
+                </div>
+            </div>
+
+            <div class="steps">
+                <h3>Getting Started:</h3>
+                <ol>
+                    <li>Set up your first project in the Sentry dashboard</li>
+                    <li>Integrate Sentry with your application using our SDKs</li>
+                    <li>Start monitoring errors and performance issues</li>
+                </ol>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="cta-button">
+                    Get Started Now
+                </a>
+            </div>
+
+            <div class="resources">
+                <h3>Helpful Resources:</h3>
+                <ul>
+                    <li><a href="https://docs.sentry.io">Documentation</a> - Complete guides and API reference</li>
+                    <li><a href="https://docs.sentry.io/quickstart/">Getting Started Guide</a> - Step-by-step setup instructions</li>
+                    <li><a href="https://sentry.io/for/startups/">Startup Resources</a> - Resources specifically for startups</li>
+                    <li><a href="https://discord.gg/sentry">Discord Community</a> - Connect with other developers</li>
+                </ul>
+            </div>
+
+            <p>If you have any questions, don't hesitate to reach out to our support team at <a href="mailto:support@sentry.io">support@sentry.io</a>.</p>
+
+            <div class="signature">
+                Happy building!<br>
+                The Sentry Team
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This email was sent because your organization "{{ organization.name }}" was enrolled in the Sentry Startups Program.</p>
+            <p>If you have questions about this email, please contact <a href="mailto:support@sentry.io">support@sentry.io</a></p>
+        </div>
+    </div>
+</body>
+</html>

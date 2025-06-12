@@ -1,0 +1,29 @@
+Hi there!
+
+Welcome to the Sentry Startups Program! We're excited to help your startup grow with powerful error monitoring and performance tracking.
+
+As part of the startups program, you've been granted ${{ credit_amount_formatted }} in credits to get you started. These credits can be used for:
+- Error tracking and monitoring
+- Performance monitoring
+- Release tracking
+- And all other Sentry features
+
+Getting Started:
+1. Set up your first project in the Sentry dashboard
+2. Integrate Sentry with your application using our SDKs
+3. Start monitoring errors and performance issues
+
+Visit your dashboard: {{ dashboard_url }}
+
+Resources:
+- Documentation: https://docs.sentry.io
+- Getting Started Guide: https://docs.sentry.io/quickstart/
+- Startup Resources: https://sentry.io/for/startups/
+
+If you have any questions, don't hesitate to reach out to our support team.
+
+Happy building!
+The Sentry Team
+
+---
+This email was sent because your organization "{{ organization.name }}" was enrolled in the Sentry Startups Program.
