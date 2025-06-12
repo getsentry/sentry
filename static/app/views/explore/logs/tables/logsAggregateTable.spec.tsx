@@ -141,10 +141,7 @@ describe('LogsAggregateTable', () => {
     expect(rows).toHaveLength(3);
     const expected = [
       ['Fetching the latest item id failed.', '17'],
-      [
-        'message.template": "/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-        '13',
-      ],
+      ['/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp', '13'],
       ['/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp', '12'],
     ];
     rows.forEach((row, i) => {
