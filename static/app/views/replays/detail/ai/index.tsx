@@ -6,7 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -19,20 +22,22 @@ interface SummaryResponse {
   summary: string;
 }
 
-function createAISummaryQueryKey(orgSlug: string, replayId: string): ApiQueryKey {
+function createAISummaryQueryKey(
+  orgSlug: string,
+  projectSlug: string | undefined,
+  replayId: string
+): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/replays/summary/`,
-    {
-      method: 'POST',
-      data: {
-        replayId,
-      },
-    },
+    `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/breadcrumbs/`,
   ];
 }
 
 export default function Ai({replayRecord}: Props) {
   const organization = useOrganization();
+  const {project: project_id} = useLocationQuery({
+    fields: {project: decodeScalar},
+  });
+  const project = useProjectFromId({project_id});
 
   const {
     data: summaryData,
@@ -40,10 +45,10 @@ export default function Ai({replayRecord}: Props) {
     isError,
     error,
   } = useApiQuery<SummaryResponse>(
-    createAISummaryQueryKey(organization.slug, replayRecord?.id ?? ''),
+    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      enabled: Boolean(replayRecord?.id),
+      enabled: Boolean(replayRecord?.id && project?.slug),
     }
   );
 
