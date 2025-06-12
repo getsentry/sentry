@@ -2,6 +2,7 @@ from typing import Any
 
 from django.utils import timezone
 
+from sentry.eventstore.models import GroupEvent
 from sentry.rules.age import AgeComparisonType, age_comparison_map
 from sentry.rules.filters.age_comparison import timeranges
 from sentry.workflow_engine.models.data_condition import Condition
@@ -31,6 +32,10 @@ class AgeComparisonConditionHandler(DataConditionHandler[WorkflowEventData]):
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         event = event_data.event
+        if not isinstance(event, GroupEvent) or event.group is None:
+            # If the event is not a GroupEvent, we cannot evaluate age comparison
+            return False
+
         first_seen = event.group.first_seen
         current_time = timezone.now()
         comparison_type = comparison["comparison_type"]

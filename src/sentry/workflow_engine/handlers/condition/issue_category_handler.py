@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -21,6 +22,10 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        if not isinstance(event_data.event, GroupEvent):
+            # The event is not a GroupEvent, so we cannot evaluate the issue category
+            return False
+
         group = event_data.event.group
 
         try:

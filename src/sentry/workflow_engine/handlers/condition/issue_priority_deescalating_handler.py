@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.eventstore.models import GroupEvent
 from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
@@ -14,6 +15,10 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        if not isinstance(event_data.event, GroupEvent):
+            # this condition only applies to group events
+            return False
+
         group = event_data.event.group
 
         # we will fire actions on de-escalation if the priority seen is >= the threshold

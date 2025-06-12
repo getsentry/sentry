@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.release import follows_semver_versioning_scheme
 from sentry.rules.age import AgeComparisonType, ModelAgeType
@@ -39,6 +40,8 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
         environment_name = comparison["environment"]
 
         event = event_data.event
+        if not isinstance(event, GroupEvent):
+            return False
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):
             order_type = LatestReleaseOrders.SEMVER

@@ -45,6 +45,11 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         event = event_data.event
         target_type = AssigneeTargetType(comparison.get("target_type"))
+
+        if event.group is None:
+            # If we don't have an event group, we cannot evaluate the assignees
+            return False
+
         assignees = AssignedToConditionHandler.get_assignees(event.group)
 
         if target_type == AssigneeTargetType.UNASSIGNED:

@@ -101,7 +101,7 @@ def evaluate_workflow_triggers(
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
-        if remaining_conditions:
+        if remaining_conditions and isinstance(event_data.event, GroupEvent):
             enqueue_workflow(
                 workflow,
                 remaining_conditions,
@@ -125,11 +125,16 @@ def evaluate_workflow_triggers(
         except Environment.DoesNotExist:
             return set()
 
+    event_id = (
+        event_data.event.id if isinstance(event_data.event, Activity) else event_data.event.event_id
+    )
+
     logger.info(
         "workflow_engine.process_workflows.triggered_workflows",
         extra={
             "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
+            "is_activity": isinstance(event_data.event, Activity),
+            "event_id": event_id,
             "event_data": asdict(event_data),
             "event_environment_id": environment.id,
             "triggered_workflows": [workflow.id for workflow in triggered_workflows],
