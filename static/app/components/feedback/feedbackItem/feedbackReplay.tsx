@@ -1,5 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import Placeholder from 'sentry/components/placeholder';
@@ -36,7 +36,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
 
   if (replayId && hasReplayId) {
     return (
-      <Section
+      <FeedbackItemSection
         collapsible
         icon={<IconPlay size="xs" />}
         sectionKey="replay"
@@ -49,33 +49,33 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
             replayId={replayId}
           />
         </ErrorBoundary>
-      </Section>
+      </FeedbackItemSection>
     );
   }
 
   if ((replayId && hasReplayId === undefined) || isFetchingSentOneReplay) {
     return (
-      <Section
+      <FeedbackItemSection
         collapsible
         icon={<IconPlay size="xs" />}
         sectionKey="replay"
         title={t('Linked Replay')}
       >
         <Placeholder />
-      </Section>
+      </FeedbackItemSection>
     );
   }
 
   if (!hasSentOneReplay && platformSupported) {
     return (
-      <Section
+      <FeedbackItemSection
         collapsible
         icon={<IconPlay size="xs" />}
         sectionKey="replay"
         title={t('Linked Replay')}
       >
         <ReplayInlineCTAPanel />
-      </Section>
+      </FeedbackItemSection>
     );
   }
 
