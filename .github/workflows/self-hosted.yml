@@ -90,8 +90,8 @@ jobs:
           outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
           push: false
           build-args: |
-              SOURCE_COMMIT=${{ github.sha }}
-              TARGETARCH=${{ matrix.platform }}
+            SOURCE_COMMIT=${{ github.sha }}
+            TARGETARCH=${{ matrix.platform }}
 
       - name: Upload Image
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
