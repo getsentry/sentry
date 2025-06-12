@@ -93,7 +93,7 @@ class IssueOccurrence:
     type: type[GroupType]
     detection_time: datetime
     level: str
-    culprit: str
+    culprit: str | None
     priority: int | None = None
     assignee: Actor | None = None
     # `initial_issue_priority` is deprecated, use `priority` instead
