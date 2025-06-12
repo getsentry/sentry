@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from typing import Any, ClassVar
 
@@ -16,9 +17,12 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowManager(BaseManager["Workflow"]):
@@ -103,8 +107,18 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return True, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
+        try:
+            group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
+        except DataConditionGroup.DoesNotExist:
+            # This isn't expected under normal conditions, but weird things can happen in the
+            # midst of deletions and migrations.
+            logger.exception(
+                "DataConditionGroup does not exist",
+                extra={"id": self.when_condition_group_id},
+            )
+            return False, []
         group_evaluation, remaining_conditions = process_data_condition_group(
-            self.when_condition_group_id, workflow_event_data
+            group, workflow_event_data
         )
         return group_evaluation.logic_result, remaining_conditions
 
