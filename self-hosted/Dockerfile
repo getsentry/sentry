@@ -14,39 +14,12 @@ RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 RUN : \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        gosu \
         libexpat1 \
+        tini \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ARG GOSU_VERSION=1.17
-ARG GOSU_SHA256_AMD64=bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3
-ARG GOSU_SHA256_ARM64=c3805a85d17f4454c23d7059bcb97e1ec1af272b90126e79ed002342de08389b
-ARG TINI_VERSION=0.19.0
-ARG TINI_SHA256_AMD64=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
-ARG TINI_SHA256_ARM64=07952557df20bfd2a95f9bef198b445e006171969499a1d361bd9e6f8e5e0e81
-
-ARG TARGETARCH
-SHELL ["/bin/bash", "-c"]
-
-RUN set -x \
-  && buildDeps=" \
-  wget \
-  " \
-  && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
-  && rm -rf /var/lib/apt/lists/* \
-  # grab gosu for easy step-down from root
-  && wget --quiet -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-${TARGETARCH}" \
-  && gosu_hash_var_name="GOSU_SHA256_$(echo $TARGETARCH | tr '[:lower:]' '[:upper:]')" \
-  && echo "${!gosu_hash_var_name} /usr/local/bin/gosu" | sha256sum --check --status \
-  && chmod +x /usr/local/bin/gosu \
-  # grab tini for signal processing and zombie killing
-  && wget --quiet -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-${TARGETARCH}" \
-  && tini_hash_var_name="TINI_SHA256_$(echo $TARGETARCH | tr '[:lower:]' '[:upper:]')" \
-  && echo "${!tini_hash_var_name} /usr/local/bin/tini" | sha256sum --check --status \
-  && chmod +x /usr/local/bin/tini \
-  && apt-get purge -y --auto-remove $buildDeps
-
-SHELL ["/bin/sh", "-c"]
 WORKDIR /usr/src/sentry
 
 ENV PATH=/.venv/bin:$PATH PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
