@@ -295,6 +295,6 @@ const StackedWidgetWrapper = styled('div')`
 const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 300px;
   gap: ${space(2)};
-  height: 300px;
 `;
