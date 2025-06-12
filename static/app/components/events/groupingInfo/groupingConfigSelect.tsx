@@ -1,10 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingError from 'sentry/components/loadingError';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {EventGroupingConfig} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -12,15 +10,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type GroupingConfigSelectProps = {
   configId: string;
-  eventConfigId: string;
   onSelect: (selection: any) => void;
 };
 
-export function GroupingConfigSelect({
-  configId,
-  eventConfigId,
-  onSelect,
-}: GroupingConfigSelectProps) {
+export function GroupingConfigSelect({configId, onSelect}: GroupingConfigSelectProps) {
   const organization = useOrganization();
   const {
     data: configs,
@@ -35,13 +28,10 @@ export function GroupingConfigSelect({
     () =>
       (configs ?? []).map(({id, hidden}) => ({
         value: id,
-        label: (
-          <GroupingConfigItem isHidden={hidden} isActive={id === eventConfigId}>
-            {id}
-          </GroupingConfigItem>
-        ),
+        textValue: id,
+        label: <GroupingConfigItem isHidden={hidden}>{id}</GroupingConfigItem>,
       })),
-    [configs, eventConfigId]
+    [configs]
   );
 
   if (isError) {
@@ -49,32 +39,24 @@ export function GroupingConfigSelect({
   }
 
   return (
-    <DropdownAutoComplete busy={isPending} onSelect={onSelect} items={options}>
-      {({isOpen}) => (
-        <Tooltip title={t('Click here to experiment with other grouping configs')}>
-          <StyledDropdownButton isOpen={isOpen} size="sm">
-            <GroupingConfigItem isActive={eventConfigId === configId}>
-              {configId}
-            </GroupingConfigItem>
-          </StyledDropdownButton>
-        </Tooltip>
-      )}
-    </DropdownAutoComplete>
+    <CompactSelect
+      triggerProps={{
+        title: t('Click here to experiment with other grouping configs'),
+      }}
+      triggerLabel={<GroupingConfigItem>{configId}</GroupingConfigItem>}
+      disabled={isPending}
+      size="sm"
+      value={configId}
+      onChange={onSelect}
+      options={options}
+      searchable
+    />
   );
 }
-
-const StyledDropdownButton = styled(DropdownButton)`
-  font-weight: inherit;
-`;
-
 const GroupingConfigItem = styled('span')<{
-  isActive?: boolean;
   isHidden?: boolean;
 }>`
   font-family: ${p => p.theme.text.familyMono};
   opacity: ${p => (p.isHidden ? 0.5 : null)};
-  font-weight: ${p => (p.isActive ? 'bold' : null)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
-
-export default GroupingConfigSelect;

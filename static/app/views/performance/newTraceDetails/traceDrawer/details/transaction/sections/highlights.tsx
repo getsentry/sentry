@@ -12,13 +12,13 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
+import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {TraceDrawerComponents} from '../../styles';
 
 type HighlightProps = {
   event: EventTransaction;
@@ -48,7 +48,7 @@ export function TransactionHighlights(props: HighlightProps) {
 
   const headerContent = (
     <HeaderContentWrapper>
-      <TextWrapper>{props.node.value.transaction}</TextWrapper>
+      <span>{props.node.value.transaction}</span>
       <CopyToClipboardButton
         borderless
         size="zero"
@@ -86,6 +86,12 @@ export function TransactionHighlights(props: HighlightProps) {
       avgDuration={avgDurationInSeconds}
       headerContent={headerContent}
       bodyContent={bodyContent}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization: props.organization,
+        attributes: props.event.contexts.trace?.data,
+        op: props.node.value['transaction.op'],
+        description: props.node.value.transaction,
+      })}
     />
   );
 }
@@ -100,13 +106,12 @@ const HeaderContentWrapper = styled('div')`
   align-items: center;
   width: 100%;
   justify-content: space-between;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  word-break: break-word;
+  line-height: 1.4;
 `;
 
 const BodyContentWrapper = styled('div')`
   padding: ${space(1)};
-`;
-
-const TextWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  ${p => p.theme.overflowEllipsis};
 `;

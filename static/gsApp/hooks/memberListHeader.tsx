@@ -21,7 +21,7 @@ type Props = {
 };
 
 function MemberListHeader({members, organization, subscription}: Props) {
-  const hasDisabledMembers = !!members.find(isMemberDisabledFromLimit);
+  const hasDisabledMembers = members.some(isMemberDisabledFromLimit);
   const {data: billingConfig} = useBillingConfig({organization, subscription});
 
   const getDefaultView = () => <PanelHeader>{t('Members')}</PanelHeader>;

@@ -6,7 +6,7 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 
 interface Props {
   onClose: SearchBarProps['onClose'];

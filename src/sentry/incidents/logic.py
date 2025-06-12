@@ -16,7 +16,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, features, options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
@@ -60,7 +60,7 @@ from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
-from sentry.search.events.fields import is_function, is_typed_numeric_tag, resolve_field
+from sentry.search.events.fields import is_function, resolve_field
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
@@ -404,17 +404,23 @@ def get_metric_issue_aggregates(
                 offset=0,
                 limit=1,
                 referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+                sampling_mode=None,
                 config=SearchResolverConfig(
                     auto_fields=True,
                 ),
             )
 
         except Exception:
+            entity_key = (
+                EntityKey.EAPItems
+                if options.get("alerts.spans.use-eap-items")
+                else EntityKey.EAPItemsSpan
+            )
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
                     "dataset": params.snuba_query.dataset,
-                    "entity": EntityKey.EAPSpans.value,
+                    "entity": entity_key.value,
                 },
             )
             raise
@@ -716,10 +722,12 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
                 action.alert_rule_trigger = trigger
                 action.save()
 
-    # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
-    tasks.auto_resolve_snapshot_incidents.apply_async(
-        kwargs={"alert_rule_id": alert_rule_snapshot.id}, countdown=3
-    )
+        transaction.on_commit(
+            lambda: tasks.auto_resolve_snapshot_incidents.apply_async(
+                kwargs={"alert_rule_id": alert_rule_snapshot.id},
+            ),
+            using=router.db_for_write(Incident),
+        )
 
 
 def update_alert_rule(
@@ -1147,8 +1155,6 @@ def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrig
 
 
 def _trigger_incident_triggers(incident: Incident) -> None:
-    from sentry.incidents.tasks import handle_trigger_action
-
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
     triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=list(triggers))
@@ -1159,16 +1165,30 @@ def _trigger_incident_triggers(incident: Incident) -> None:
 
         for action in actions:
             for project in incident.projects.all():
-                transaction.on_commit(
-                    handle_trigger_action.s(
-                        action_id=action.id,
-                        incident_id=incident.id,
-                        project_id=project.id,
-                        method="resolve",
-                        new_status=IncidentStatus.CLOSED.value,
-                    ).delay,
-                    router.db_for_write(AlertRuleTrigger),
+                _schedule_trigger_action(
+                    action_id=action.id,
+                    incident_id=incident.id,
+                    project_id=project.id,
+                    method="resolve",
+                    new_status=IncidentStatus.CLOSED.value,
                 )
+
+
+def _schedule_trigger_action(
+    action_id: int, incident_id: int, project_id: int, method: str, new_status: int
+) -> None:
+    from sentry.incidents.tasks import handle_trigger_action
+
+    transaction.on_commit(
+        lambda: handle_trigger_action.delay(
+            action_id=action_id,
+            incident_id=incident_id,
+            project_id=project_id,
+            method=method,
+            new_status=new_status,
+        ),
+        using=router.db_for_write(AlertRuleTrigger),
+    )
 
 
 def _sort_by_priority_list(triggers: Collection[AlertRuleTrigger]) -> list[AlertRuleTrigger]:
@@ -1738,6 +1758,7 @@ EAP_COLUMNS = [
 ]
 EAP_FUNCTIONS = [
     "count",
+    "count_unique",
     "avg",
     "p50",
     "p75",
@@ -1748,10 +1769,15 @@ EAP_FUNCTIONS = [
     "max",
     "min",
     "sum",
+    "epm",
+    "failure_rate",
+    "eps",
 ]
 
 
-def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
+def get_column_from_aggregate(
+    aggregate: str, allow_mri: bool, allow_eap: bool = False
+) -> str | None:
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
@@ -1763,7 +1789,7 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
         return None if match.group("columns") == "" else match.group("columns")
 
     # Skip additional validation for EAP queries. They don't exist in the old logic.
-    if match and match.group("function") in EAP_FUNCTIONS and match.group("columns") in EAP_COLUMNS:
+    if match and match.group("function") in EAP_FUNCTIONS and allow_eap:
         return match.group("columns")
 
     if allow_mri:
@@ -1802,7 +1828,7 @@ def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
-    column = get_column_from_aggregate(aggregate, allow_mri)
+    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     match = is_function(aggregate)
     function = match.group("function") if match else None
     return (
@@ -1815,15 +1841,14 @@ def check_aggregate_column_support(
             isinstance(function, str)
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
-        or (column in EAP_COLUMNS and allow_eap)
-        or (is_typed_numeric_tag(column) and allow_eap)
+        or allow_eap
     )
 
 
 def translate_aggregate_field(
-    aggregate: str, reverse: bool = False, allow_mri: bool = False
+    aggregate: str, reverse: bool = False, allow_mri: bool = False, allow_eap: bool = False
 ) -> str:
-    column = get_column_from_aggregate(aggregate, allow_mri)
+    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     if not reverse:
         if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
@@ -1838,7 +1863,6 @@ def translate_aggregate_field(
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
     organization: Organization,
-    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
@@ -1853,7 +1877,6 @@ def get_slack_actions_with_async_lookups(
                     context={
                         "organization": organization,
                         "access": SystemAccess(),
-                        "user": user,
                         "input_channel_id": action.get("inputChannelId"),
                         "installations": app_service.installations_for_organization(
                             organization_id=organization.id
@@ -1882,7 +1905,7 @@ def get_slack_channel_ids(
     user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
+    slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:

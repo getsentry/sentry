@@ -180,8 +180,6 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   );
 }
 
-export default UploadBackup;
-
 const StyledUploadIcon = styled(IconUpload)`
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};

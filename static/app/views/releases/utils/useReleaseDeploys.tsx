@@ -7,17 +7,18 @@ export function useReleaseDeploys({
   release,
   projectSlug,
 }: {
-  projectSlug: string;
+  projectSlug: string | undefined;
   release: string;
 }) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug});
+
   return useApiQuery<Deploy[]>(
     [
       `/organizations/${organization.slug}/releases/${encodeURIComponent(release)}/deploys/`,
       {
         query: {
-          project: project!.id, // Should be disabled if project is undefined
+          project: project?.id, // Should be disabled if project is undefined
         },
       },
     ],

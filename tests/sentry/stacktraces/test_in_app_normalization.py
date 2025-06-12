@@ -34,6 +34,32 @@ def make_event(stacktraces: list[Any]) -> dict[str, Any]:
     return {"exception": {"values": [{"stacktrace": stacktrace} for stacktrace in stacktraces]}}
 
 
+class NormalizeStacktracesFroGroupingTest(TestCase):
+    def test_sets_client_in_app(self):
+        event_data_with_client_values = make_event(
+            [
+                make_stacktrace(
+                    frame_0_in_app=True,
+                    frame_1_in_app=False,
+                )
+            ]
+        )
+
+        normalize_stacktraces_for_grouping(event_data_with_client_values)
+
+        frames = event_data_with_client_values["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["data"]["client_in_app"] is True
+        assert frames[1]["data"]["client_in_app"] is False
+
+        event_data_no_client_values = make_event([make_stacktrace()])
+
+        normalize_stacktraces_for_grouping(event_data_no_client_values)
+
+        frames = event_data_no_client_values["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["data"].get("client_in_app") is None
+        assert frames[1]["data"].get("client_in_app") is None
+
+
 class NormalizeInApptest(TestCase):
     def test_changes_in_app_None_into_in_app_False(self):
         event_data = make_event(

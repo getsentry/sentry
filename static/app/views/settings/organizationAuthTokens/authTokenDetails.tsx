@@ -51,10 +51,7 @@ type UpdateTokenQueryVariables = {
   name: string;
 };
 
-export const makeFetchOrgAuthTokenKey = ({
-  orgSlug,
-  tokenId,
-}: FetchOrgAuthTokenParameters) =>
+const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
   [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
 
 function AuthTokenDetailsForm({
@@ -185,7 +182,7 @@ function AuthTokenDetailsForm({
   );
 }
 
-export function OrganizationAuthTokensDetails({params, organization}: Props) {
+function OrganizationAuthTokensDetails({params, organization}: Props) {
   const {tokenId} = params;
 
   const {
@@ -202,8 +199,8 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Edit Auth Token')} />
-      <SettingsPageHeader title={t('Edit Auth Token')} />
+      <SentryDocumentTitle title={t('Edit Organization Token')} />
+      <SettingsPageHeader title={t('Edit Organization Token')} />
 
       <TextBlock>
         {t(
@@ -219,12 +216,12 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
         )}
       </TextBlock>
       <Panel>
-        <PanelHeader>{t('Auth Token Details')}</PanelHeader>
+        <PanelHeader>{t('Organization Token Details')}</PanelHeader>
 
         <PanelBody>
           {isError && (
             <LoadingError
-              message={t('Failed to load auth token.')}
+              message={t('Failed to load organization token.')}
               onRetry={refetchToken}
             />
           )}

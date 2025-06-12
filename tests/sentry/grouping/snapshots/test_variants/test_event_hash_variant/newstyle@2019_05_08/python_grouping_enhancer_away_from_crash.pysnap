@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:54.863257+00:00'
+created: '2025-05-12T23:41:58.488962+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.core.handlers.base"
             filename (module takes precedence)
@@ -19,7 +19,7 @@ app:
               "get_response"
             context-line*
               "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -28,7 +28,7 @@ app:
               "view"
             context-line*
               "return self.dispatch(request, *args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -37,7 +37,7 @@ app:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.views.decorators.csrf"
             filename (module takes precedence)
@@ -46,7 +46,7 @@ app:
               "wrapped_view"
             context-line*
               "return view_func(*args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -55,7 +55,7 @@ app:
               "bound_func"
             context-line*
               "return func(self, *args2, **kwargs2)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (marked in-app by the client but ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -64,7 +64,7 @@ app:
               "dispatch"
             context-line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -73,7 +73,7 @@ app:
               "dispatch"
             context-line*
               "return handler(request, *args, **kwargs)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -82,7 +82,7 @@ app:
               "post"
             context-line*
               "hook.handle(request)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
@@ -91,7 +91,7 @@ app:
               "handle"
             context-line*
               "email = request.POST['user']"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "django.utils.datastructures"
             filename (module takes precedence)

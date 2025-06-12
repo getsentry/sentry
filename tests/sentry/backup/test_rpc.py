@@ -12,7 +12,7 @@ from django.db import models
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.services.import_export import import_export_service
-from sentry.backup.services.import_export.impl import get_existing_import_chunk
+from sentry.backup.services.import_export.impl import fixup_array_fields, get_existing_import_chunk
 from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
@@ -54,8 +54,6 @@ class RpcImportRetryTests(TestCase):
         import_chunk_count = RegionImportChunk.objects.count()
 
         def verify_option_write():
-            nonlocal option_count, import_chunk_count, import_uuid
-
             result = import_export_service.import_by_model(
                 import_model_name="sentry.option",
                 scope=RpcImportScope.Global,
@@ -131,8 +129,6 @@ class RpcImportRetryTests(TestCase):
             import_chunk_count = ControlImportChunk.objects.count()
 
         def verify_control_option_write():
-            nonlocal control_option_count, import_chunk_count, import_uuid
-
             result = import_export_service.import_by_model(
                 import_model_name="sentry.controloption",
                 scope=RpcImportScope.Global,
@@ -505,3 +501,9 @@ class RpcExportErrorTests(TestCase):
 
         assert isinstance(result, RpcExportError)
         assert result.get_kind() == RpcExportErrorKind.UnspecifiedScope
+
+
+def test_fixup_array_fields() -> None:
+    before = '[{"model":"sentry.dashboardwidgetquery","fields":{"aggregates":"[\'a\',\'b\']"}}]'
+    expect = '[{"model":"sentry.dashboardwidgetquery","fields":{"aggregates":"[\\"a\\",\\"b\\"]"}}]'
+    assert fixup_array_fields(before) == expect

@@ -2,6 +2,9 @@ import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import SearchDropdown from 'sentry/components/deprecatedSmartSearchBar/searchDropdown';
+import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {getSearchGroupWithItemMarkedActive} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -16,10 +19,6 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import SearchDropdown from '../deprecatedSmartSearchBar/searchDropdown';
-import type {SearchGroup} from '../deprecatedSmartSearchBar/types';
-import {ItemType} from '../deprecatedSmartSearchBar/types';
 
 const TRANSACTION_SEARCH_PERIOD = '14d';
 

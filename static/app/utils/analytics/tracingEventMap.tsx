@@ -10,6 +10,21 @@ export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
+  'trace.explorer.ai_query_applied': {
+    group_by_count: number;
+    query: string;
+    visualize_count: number;
+  };
+  'trace.explorer.ai_query_interface': {
+    action: 'opened' | 'closed';
+  };
+  'trace.explorer.ai_query_rejected': {
+    natural_language_query: string;
+    num_queries_returned: number;
+  };
+  'trace.explorer.ai_query_submitted': {
+    natural_language_query: string;
+  };
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
@@ -22,6 +37,7 @@ export type TracingEventParameters = {
     result_length: number;
     result_missing_root: number;
     result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    sample_counts: number[];
     title: string;
     user_queries: string;
     user_queries_count: number;
@@ -35,6 +51,11 @@ export type TracingEventParameters = {
   };
   'trace.explorer.schema_hints_drawer': {
     drawer_open: boolean;
+  };
+  'trace.explorer.table_pagination': {
+    direction: string;
+    num_results: number;
+    type: 'samples' | 'traces' | 'aggregates';
   };
   'trace.load.empty_state': {
     source: TraceWaterFallSource;
@@ -130,6 +151,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
   'trace_explorer.compare_queries': Record<string, unknown>;
+  'trace_explorer.delete_query': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -139,8 +161,13 @@ export type TracingEventParameters = {
   };
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
-    save_type: 'alert' | 'dashboard' | 'saved_query' | 'update_query';
+    save_type: 'alert' | 'dashboard' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart';
+  };
+  'trace_explorer.save_query_modal': {
+    action: 'open' | 'submit';
+    save_type: 'save_new_query' | 'rename_query';
+    ui_source: 'toolbar' | 'table';
   };
   'trace_explorer.search_failure': {
     error: string;
@@ -156,24 +183,33 @@ export type TracingEventParameters = {
     project_platforms: string[];
     queries: string[];
   };
+  'trace_explorer.star_query': {
+    save_type: 'star_query' | 'unstar_query';
+    ui_source: 'table' | 'explorer';
+  };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
     source: 'trace explorer' | 'new explore';
   };
 };
 
-export type TracingEventKey = keyof TracingEventParameters;
+type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'compare_queries.add_query': 'Compare Queries: Add Query',
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
+  'trace.explorer.ai_query_applied': 'Trace Explorer: AI Query Applied',
+  'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
+  'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
+  'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
   'trace.explorer.schema_hints_drawer':
     'Improved Trace Explorer: Schema Hints Drawer Events',
+  'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
@@ -225,4 +261,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
   'trace_explorer.compare_queries': 'Trace Explorer: Compare',
+  'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
+  'trace_explorer.star_query': 'Trace Explorer: Star Query',
+  'trace_explorer.delete_query': 'Trace Explorer: Delete Query',
 };

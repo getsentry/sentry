@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/notifications/';
 
-export const fields: {[key: string]: Field} = {
+export const fields = {
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
     type: 'boolean',
@@ -17,4 +17,4 @@ export const fields: {[key: string]: Field} = {
     label: t("Claim Unassigned Issues I've Resolved"),
     help: t("You'll receive notifications about any changes that happen afterwards."),
   },
-};
+} satisfies Record<string, Field>;

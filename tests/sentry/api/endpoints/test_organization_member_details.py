@@ -158,6 +158,13 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert "emails" not in response.data["user"]
         assert "emails" not in response.data.get("serializedUser", {})
 
+    def test_does_not_serialize_placeholder_member(self):
+        invite = self.create_member_invite(organization=self.organization)
+        placeholder_om = invite.organization_member
+
+        response = self.get_error_response(self.organization.slug, placeholder_om.id)
+        assert response.data["detail"] == "The requested resource does not exist"
+
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
@@ -895,6 +902,13 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         mock_on_role_change.assert_not_called()
 
+    def test_cannot_edit_placeholder_member(self):
+        invite = self.create_member_invite(organization=self.organization)
+        placeholder_om = invite.organization_member
+
+        response = self.get_error_response(self.organization.slug, placeholder_om.id, role="member")
+        assert response.data["detail"] == "The requested resource does not exist"
+
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
@@ -1200,6 +1214,13 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         # only one is deleted which is the invite
         assert members_and_invites_count_after == members_and_invites_count_before - 1
         assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
+    def test_cannot_delete_placeholder_member(self):
+        invite = self.create_member_invite(organization=self.organization)
+        placeholder_om = invite.organization_member
+
+        response = self.get_error_response(self.organization.slug, placeholder_om.id)
+        assert response.data["detail"] == "The requested resource does not exist"
 
 
 class ResetOrganizationMember2faTest(APITestCase):

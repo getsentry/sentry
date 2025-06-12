@@ -1,4 +1,6 @@
-import { ANNUAL, MONTHLY } from 'getsentry/constants';
+import {DataCategory} from 'sentry/types/core';
+
+import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {CheckoutType, type Plan} from 'getsentry/types';
 
 // mm2 plans with data volume up to 500k
@@ -6,6 +8,9 @@ const MM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
 
+const MM2_CATEGORIES = [DataCategory.ERRORS];
+
+const BUDGET_TERM = 'on-demand';
 const MM2_PLANS: Record<string, Plan> = {
   mm2_a_100k: {
     isTestPlan: false,
@@ -15,9 +20,10 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_a_100k',
     name: 'Business',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
+    budgetTerm: BUDGET_TERM,
     hasOnDemandModes: false,
     trialPlan: null,
     maxMembers: null,
@@ -60,6 +66,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_100k_ac: {
     isTestPlan: false,
@@ -69,10 +76,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_a_100k_ac',
     name: 'Business',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -114,6 +122,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_100k_auf: {
     isTestPlan: false,
@@ -123,10 +132,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_a_100k_auf',
     name: 'Business',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -168,6 +178,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k: {
     isTestPlan: false,
@@ -177,10 +188,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_a_500k',
     name: 'Business',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -222,6 +234,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k_ac: {
     isTestPlan: false,
@@ -231,10 +244,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_a_500k_ac',
     name: 'Business',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -276,6 +290,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k_auf: {
     isTestPlan: false,
@@ -285,10 +300,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_a_500k_auf',
     name: 'Business',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -330,6 +346,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k: {
     isTestPlan: false,
@@ -339,10 +356,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_b_100k',
     name: 'Team',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -373,6 +391,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k_ac: {
     isTestPlan: false,
@@ -382,10 +401,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_b_100k_ac',
     name: 'Team',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -416,6 +436,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k_auf: {
     isTestPlan: false,
@@ -425,10 +446,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_b_100k_auf',
     name: 'Team',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -459,6 +481,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k: {
     isTestPlan: false,
@@ -468,10 +491,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_b_500k',
     name: 'Team',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -503,6 +527,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k_ac: {
     isTestPlan: false,
@@ -512,10 +537,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_b_500k_ac',
     name: 'Team',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -546,6 +572,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k_auf: {
     isTestPlan: false,
@@ -555,10 +582,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_b_500k_auf',
     name: 'Team',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -589,6 +617,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_f: {
     isTestPlan: false,
@@ -598,10 +627,11 @@ const MM2_PLANS: Record<string, Plan> = {
     id: 'mm2_f',
     name: 'Developer',
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-    categories: ['errors'],
-    checkoutCategories: ['errors'],
-    onDemandCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
+    onDemandCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'am1_t',
     maxMembers: 1,
     planCategories: {
@@ -623,6 +653,7 @@ const MM2_PLANS: Record<string, Plan> = {
     onDemandEventPrice: 0,
     retentionDays: 30,
     features: ['advanced-search'],
+    availableReservedBudgetTypes: {},
   },
   mm2_a: {
     id: 'mm2_a',
@@ -640,28 +671,28 @@ const MM2_PLANS: Record<string, Plan> = {
     features: [
       'advanced-search',
       'discover-basic',
-        "incidents",
-        "integrations-alert-rule",
-        "integrations-chat-unfurl",
-        "integrations-incident-management",
-        "integrations-issue-basic",
-        "integrations-issue-sync",
-        "sso-basic",
-        "weekly-reports",
-        "custom-inbound-filters",
-        "custom-symbol-sources",
-        "data-forwarding",
-        "discard-groups",
-        "dashboards-basic",
-        "discover-query",
-        "global-views",
-        "integrations-codeowners",
-        "integrations-event-hooks",
-        "integrations-stacktrace-link",
-        "rate-limits",
-        "relay",
-        "sso-saml2",
-        "extended-data-retention"
+      'incidents',
+      'integrations-alert-rule',
+      'integrations-chat-unfurl',
+      'integrations-incident-management',
+      'integrations-issue-basic',
+      'integrations-issue-sync',
+      'sso-basic',
+      'weekly-reports',
+      'custom-inbound-filters',
+      'custom-symbol-sources',
+      'data-forwarding',
+      'discard-groups',
+      'dashboards-basic',
+      'discover-query',
+      'global-views',
+      'integrations-codeowners',
+      'integrations-event-hooks',
+      'integrations-stacktrace-link',
+      'rate-limits',
+      'relay',
+      'sso-saml2',
+      'extended-data-retention',
     ],
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
@@ -669,11 +700,10 @@ const MM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 100000,
     allowAdditionalReservedEvents: true,
-    categories: ['errors'],
-    availableCategories: [
-    ],
-    onDemandCategories: ['errors'],
-    checkoutCategories: ['errors'],
+    categories: MM2_CATEGORIES,
+    availableCategories: [],
+    onDemandCategories: MM2_CATEGORIES,
+    checkoutCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
     planCategories: {
       errors: [
@@ -681,10 +711,12 @@ const MM2_PLANS: Record<string, Plan> = {
           events: 100000,
           price: 0,
         },
-        ]
+      ],
     },
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-},
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
+  },
 };
 
 export default MM2_PLANS;

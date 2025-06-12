@@ -35,7 +35,7 @@ class IssueActions extends DefaultIssueActions {
                   let val: any;
                   if (
                     field.choices &&
-                    !field.choices.find(c => c[0] === oldData[field.name])
+                    !field.choices.some(c => c[0] === oldData[field.name])
                   ) {
                     val = field.default;
                   } else {

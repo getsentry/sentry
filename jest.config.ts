@@ -39,13 +39,13 @@ if (!!JEST_TEST_BALANCER && !CI) {
   );
 }
 
-let JEST_TESTS;
+let JEST_TESTS: string[] | undefined;
 
 // prevents forkbomb as we don't want jest --listTests --json
 // to reexec itself here
 if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
-    const stdout = execFileSync('yarn', ['-s', 'jest', '--listTests', '--json'], {
+    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
       stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
@@ -99,12 +99,12 @@ function getTestsForGroup(
   const SUITE_P50_DURATION_MS = 1500;
 
   // First, iterate over all of the tests we have stats for.
-  for (const test in testStats) {
-    if (testStats[test] <= 0) {
+  Object.entries(testStats).forEach(([test, duration]) => {
+    if (duration <= 0) {
       throw new Error(`Test duration is <= 0 for ${test}`);
     }
-    tests.set(test, testStats[test]);
-  }
+    tests.set(test, duration);
+  });
   // Then, iterate over all of the remaining tests and assign them a default duration.
   for (const test of allTests) {
     if (tests.has(test)) {
@@ -139,7 +139,7 @@ function getTestsForGroup(
       // test that may exceed our target duration. For example, if target runtime for each group is
       // 10 seconds, we have currently accounted for 9 seconds, and the next test is 5 seconds, we
       // want to move that test to the next group so as to avoid a 40% imbalance.
-      const peek = testsSortedByPath[testsSortedByPath.length - 1];
+      const peek = testsSortedByPath[testsSortedByPath.length - 1]!;
       if (duration + peek[1] > targetDuration && peek[1] > 30_000) {
         break;
       }
@@ -147,7 +147,7 @@ function getTestsForGroup(
       if (!nextTest) {
         throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
       }
-      groups[group].push(nextTest[0]);
+      groups[group]!.push(nextTest[0]);
       duration += nextTest[1];
     }
   }
@@ -159,7 +159,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4].push(nextTest[0]);
+    groups[i % 4]!.push(nextTest[0]);
     i++;
   }
 
@@ -220,7 +220,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -231,8 +231,8 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|jpg|woff|mp4)$':
-      '<rootDir>/tests/js/sentry-test/importStyleMock.js',
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
@@ -240,12 +240,16 @@ const config: Config.InitialOptions = {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
-    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
-    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
+    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // Disabled @sentry/toolbar in tests. It depends on iframes and global
+    // window/cookies state.
+    '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
@@ -269,7 +273,7 @@ const config: Config.InitialOptions = {
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
-      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      ? `/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`
       : '/node_modules/',
   ],
 

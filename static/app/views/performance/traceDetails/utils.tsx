@@ -1,6 +1,5 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -15,15 +14,15 @@ import type {
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
   TraceViewSources,
-} from '../newTraceDetails/traceHeader/breadcrumbs';
+} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
@@ -33,7 +32,7 @@ function getBaseTraceUrl(
   source?: TraceViewSources,
   view?: DomainView
 ) {
-  const routesMap = prefersStackedNav()
+  const routesMap = prefersStackedNav(organization)
     ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
     : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
 
@@ -53,7 +52,7 @@ function getBaseTraceUrl(
         ? getPerformanceBaseUrl(organization.slug, view, true)
         : source && source in routesMap
           ? routesMap[source]
-          : 'traces'
+          : routesMap.traces
     }`
   );
 }
@@ -107,6 +106,7 @@ export function getTraceDetailsUrl({
       const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
       queryParams.node = path;
     }
+
     return {
       pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: {

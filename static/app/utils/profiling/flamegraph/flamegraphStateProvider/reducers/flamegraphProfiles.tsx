@@ -12,7 +12,7 @@ type SetRootNode = {
 
 type FlamegraphProfilesAction = SetProfilesThreadId | SetRootNode;
 
-export type FlamegraphProfiles = {
+type FlamegraphProfiles = {
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
 };

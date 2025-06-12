@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -16,6 +16,7 @@ import {
   parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -32,6 +33,7 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -95,7 +97,7 @@ export function SelectRow({
   field,
   index,
   hasColumnParameter,
-  columnOptions,
+  columnOptions: defaultColumnOptions,
   aggregateOptions,
   stringFields,
   error,
@@ -125,6 +127,23 @@ export function SelectRow({
       columnSelectRef.current?.querySelector('button')?.click();
     });
   }, []);
+
+  const [lockOptions, columnOptions] = useMemo(() => {
+    if (state.dataset === WidgetType.SPANS && field.kind === FieldValueKind.FUNCTION) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('spans'),
+            value: DEFAULT_VISUALIZATION_FIELD,
+            textValue: DEFAULT_VISUALIZATION_FIELD,
+          },
+        ];
+        return [true, options];
+      }
+    }
+
+    return [false, defaultColumnOptions];
+  }, [defaultColumnOptions, state.dataset, field]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -245,6 +264,7 @@ export function SelectRow({
               currentField.function[0] = parseAggregateFromValueKey(
                 dropdownSelection.value as string
               ) as AggregationKeyWithAlias;
+
               if (
                 selectedAggregate?.value.meta &&
                 'parameters' in selectedAggregate.value.meta
@@ -273,6 +293,7 @@ export function SelectRow({
                           option.value === currentField.function[1] && !option.disabled
                       )?.value
                     );
+
                   currentField.function[1] =
                     (isValidColumn
                       ? currentField.function[1]
@@ -423,6 +444,7 @@ export function SelectRow({
             triggerProps={{
               'aria-label': t('Column Selection'),
             }}
+            disabled={lockOptions}
           />
         </SelectWrapper>
       )}

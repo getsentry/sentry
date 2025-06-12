@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -12,14 +12,10 @@ import {
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixData,
-  type AutofixFeedback,
   type AutofixProgressItem,
-  type AutofixRepository,
-  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -35,10 +31,11 @@ interface StepProps {
   hasErroredStepBefore: boolean;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
-  repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
-  feedback?: AutofixFeedback;
+  isChangesFirstAppearance?: boolean;
+  isRootCauseFirstAppearance?: boolean;
+  isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   shouldCollapseByDefault?: boolean;
@@ -56,28 +53,28 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-export function Step({
+function Step({
   step,
   groupId,
   runId,
-  repos,
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
-  shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
-  feedback,
+  isRootCauseFirstAppearance,
+  isSolutionFirstAppearance,
+  isChangesFirstAppearance,
 }: StepProps) {
   return (
-    <StepCard>
+    <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
       <ContentWrapper>
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
             <Fragment>
               {hasErroredStepBefore && hasStepAbove && (
                 <StepMessage>
-                  {t('Autofix encountered an error. Restarting step from scratch...')}
+                  {t('Seer encountered an error. Restarting step from scratch...')}
                 </StepMessage>
               )}
               {step.type === AutofixStepType.DEFAULT && (
@@ -88,7 +85,6 @@ export function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
-                  shouldCollapseByDefault={shouldCollapseByDefault}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -99,10 +95,9 @@ export function Step({
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
-                  feedback={feedback}
+                  isRootCauseFirstAppearance={isRootCauseFirstAppearance}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -113,11 +108,10 @@ export function Step({
                   description={step.description}
                   solutionSelected={step.solution_selected}
                   customSolution={step.custom_solution}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  feedback={feedback}
+                  isSolutionFirstAppearance={isSolutionFirstAppearance}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -128,6 +122,7 @@ export function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
+                  isChangesFirstAppearance={isChangesFirstAppearance}
                 />
               )}
             </Fragment>
@@ -140,24 +135,17 @@ export function Step({
 
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
-  const repos = data.repositories;
+  const isMountedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (!steps?.length) {
     return null;
-  }
-
-  if (data.status === AutofixStatus.ERROR) {
-    const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
-    const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
-
-    return (
-      <ErrorContainer>
-        <StyledArrow direction="down" size="sm" />
-        <ErrorMessage>
-          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
-        </ErrorMessage>
-      </ErrorContainer>
-    );
   }
 
   const lastStep = steps[steps.length - 1];
@@ -167,8 +155,10 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
     '';
 
+  const isInitialMount = !isMountedRef.current;
+
   return (
-    <StepsContainer>
+    <div>
       {steps.map((step, index) => {
         const previousDefaultStepIndex = steps
           .slice(0, index)
@@ -208,7 +198,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               hasStepAbove
               groupId={groupId}
               runId={runId}
-              repos={repos}
               hasErroredStepBefore={previousStepErrored}
               shouldCollapseByDefault={
                 step.type === AutofixStepType.DEFAULT &&
@@ -219,21 +208,31 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
               }
               previousInsightCount={previousInsightCount}
-              feedback={data.feedback}
+              isRootCauseFirstAppearance={
+                step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && !isInitialMount
+              }
+              isSolutionFirstAppearance={
+                step.type === AutofixStepType.SOLUTION && !isInitialMount
+              }
+              isChangesFirstAppearance={
+                step.type === AutofixStepType.CHANGES && !isInitialMount
+              }
             />
           </div>
         );
       })}
-      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
-        <AutofixOutputStream
-          stream={lastStep!.output_stream ?? ''}
-          activeLog={activeLog}
-          groupId={groupId}
-          runId={runId}
-          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-        />
-      )}
-    </StepsContainer>
+      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
+        lastStep!.type !== AutofixStepType.CHANGES && (
+          <AutofixOutputStream
+            stream={lastStep!.output_stream ?? ''}
+            activeLog={activeLog}
+            groupId={groupId}
+            runId={runId}
+            responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+            autofixData={data}
+          />
+        )}
+    </div>
   );
 }
 
@@ -244,26 +243,6 @@ const StepMessage = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   justify-content: flex-start;
   text-align: left;
-`;
-
-const ErrorMessage = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-`;
-
-const StepsContainer = styled('div')``;
-
-const ErrorContainer = styled('div')`
-  margin-top: ${space(1)};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
-  opacity: 0.5;
 `;
 
 const StepCard = styled('div')`

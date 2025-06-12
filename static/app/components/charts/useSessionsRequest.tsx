@@ -6,13 +6,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export type SessionsRequestRenderProps = {
-  errored: boolean;
-  loading: boolean;
-  reloading: boolean;
-  response: SessionApiResponse | null;
-};
-
 type Props = {
   field: SessionFieldWithOperation[];
   end?: string;

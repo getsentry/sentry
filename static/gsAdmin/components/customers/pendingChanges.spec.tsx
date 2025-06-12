@@ -6,7 +6,9 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {DataCategory} from 'sentry/types/core';
 
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
@@ -168,7 +170,12 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
           enabled: true,
@@ -199,7 +206,59 @@ describe('PendingChanges', function () {
       'The following changes will take effect on Feb 16, 2022'
     );
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand of $100 → per-category on-demand (errors at $3, transactions at $2, and attachments at $1)'
+      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+    );
+  });
+
+  it('combines regular and on-demand changes', function () {
+    const subscription = SubscriptionFixture({
+      organization: OrganizationFixture(),
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 10000,
+        onDemandSpendUsed: 0,
+      },
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanFixture({
+          name: 'Team (Enterprise)',
+          contractInterval: 'annual',
+          billingInterval: 'annual',
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
+        }),
+        onDemandBudgets: {
+          enabled: true,
+          budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+          errorsBudget: 300,
+          transactionsBudget: 200,
+          replaysBudget: 0,
+          attachmentsBudget: 100,
+          budgets: {errors: 300, transactions: 200, replays: 0, attachments: 100},
+        },
+        onDemandMaxSpend: 50000,
+        effectiveDate: '2022-03-16',
+        onDemandEffectiveDate: '2022-03-16',
+      }),
+    });
+    const {container} = render(<PendingChanges subscription={subscription} />);
+
+    expect(container).toHaveTextContent(
+      'This account has pending changes to the subscription'
+    );
+    expect(container).toHaveTextContent(
+      'The following changes will take effect on Mar 16, 2022'
+    );
+    expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
+    expect(container).toHaveTextContent(
+      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+    );
+    expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
+      1
     );
   });
 
@@ -220,11 +279,11 @@ describe('PendingChanges', function () {
           contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: [
-            'errors',
-            'attachments',
-            'spans',
-            'replays',
-            'monitorSeats',
+            DataCategory.ERRORS,
+            DataCategory.ATTACHMENTS,
+            DataCategory.SPANS,
+            DataCategory.REPLAYS,
+            DataCategory.MONITOR_SEATS,
           ],
         }),
         reservedEvents: 50_000,
@@ -313,7 +372,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — $0.02000000 → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for accepted spans and stored spans → $50,000.00 for accepted spans and stored spans'
+      'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
     );
   });
 
@@ -361,7 +420,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — None → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — None → $50,000.00 for accepted spans and stored spans'
+      'Reserved budgets — None → $50,000.00 for spans budget'
     );
   });
 
@@ -398,7 +457,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for accepted spans and stored spans → None'
+      'Reserved budgets — $100,000.00 for spans budget → None'
     );
   });
 

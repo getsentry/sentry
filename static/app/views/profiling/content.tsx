@@ -2,12 +2,12 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -17,18 +17,15 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
-  ProfilingAM1OrMMXUpgrade,
+  ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
   ProfilingBetaAlertBanner,
-  ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
@@ -40,11 +37,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
+import {Onboarding} from 'sentry/views/profiling/onboarding';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
-import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
+import type {DataState} from './useLandingAnalytics';
+import {useLandingAnalytics} from './useLandingAnalytics';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
@@ -69,11 +69,39 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  useEffect(() => {
-    trackAnalytics('profiling_views.landing', {
-      organization,
-    });
-  }, [organization]);
+  const dispatchDataState = useLandingAnalytics();
+  const updateWidget1DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget1Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateWidget2DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget2Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateFlamegraphDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateTransactionsTableDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
 
   const showOnboardingPanel = useMemo(() => {
     return shouldShowProfilingOnboardingPanel(selection, projects);
@@ -83,6 +111,20 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
 
   const onTabChange = useCallback(
     (newTab: 'flamegraph' | 'transactions') => {
+      // make sure to reset the state of the tabs
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState: 'pending',
+      });
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState: 'pending',
+      });
+
+      trackAnalytics('profiling_views.landing.tab_change', {
+        organization,
+        tab: newTab,
+      });
       browserHistory.push({
         ...location,
         query: {
@@ -91,7 +133,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
         },
       });
     },
-    [location]
+    [dispatchDataState, location, organization]
   );
 
   return (
@@ -101,6 +143,10 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
+          <Feature features="continuous-profiling-beta-ui">
+            <ContinuousProfilingBetaAlertBanner organization={organization} />
+            <ContinuousProfilingBetaSDKAlertBanner />
+          </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
             <LayoutMain fullWidth>
@@ -112,7 +158,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                 </PageFilterBar>
               </ActionBar>
               {showOnboardingPanel ? (
-                <ProfilingOnboardingCTA />
+                <Onboarding />
               ) : (
                 <Fragment>
                   {organization.features.includes(
@@ -124,12 +170,14 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                         widgetHeight="410px"
                         defaultWidget="slowest functions"
                         storageKey="profiling-landing-widget-0"
+                        onDataState={updateWidget1DataState}
                       />
                       <LandingWidgetSelector
                         cursorName={RIGHT_WIDGET_CURSOR}
                         widgetHeight="410px"
                         defaultWidget="regressed functions"
                         storageKey="profiling-landing-widget-1"
+                        onDataState={updateWidget2DataState}
                       />
                     </WidgetsContainer>
                   )}
@@ -160,9 +208,13 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                     </Tabs>
                   </div>
                   {tab === 'flamegraph' ? (
-                    <FlamegraphTab />
+                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
                   ) : (
-                    <TransactionsTab location={location} selection={selection} />
+                    <TransactionsTab
+                      location={location}
+                      selection={selection}
+                      onDataState={updateTransactionsTableDataState}
+                    />
                   )}
                 </Fragment>
               )}
@@ -174,12 +226,16 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-interface TabbedContentProps {
+interface ProfilingTabProps {
+  onDataState?: (dataState: DataState) => void;
+}
+
+interface TabbedContentProps extends ProfilingTabProps {
   location: Location;
   selection: PageFilters;
 }
 
-function TransactionsTab({location, selection}: TabbedContentProps) {
+function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
   const query = decodeScalar(location.query.query, '');
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -215,6 +271,24 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
 
   const transactionsError =
     transactions.status === 'error' ? formatError(transactions.error) : '';
+
+  const hasData = (transactions.data?.data?.length || 0) > 0;
+  const isLoading = transactions.isPending;
+  const isError = transactions.isError;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasData) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasData, isLoading, isError]);
 
   return (
     <Fragment>
@@ -252,11 +326,11 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
   );
 }
 
-function FlamegraphTab() {
+function FlamegraphTab({onDataState}: ProfilingTabProps) {
   return (
     <LandingAggregateFlamegraphSizer>
       <LandingAggregateFlamegraphContainer>
-        <LandingAggregateFlamegraph />
+        <LandingAggregateFlamegraph onDataState={onDataState} />
       </LandingAggregateFlamegraphContainer>
     </LandingAggregateFlamegraphSizer>
   );
@@ -275,57 +349,6 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
     projects.filter(project => project.hasProfiles).map(project => project.id)
   );
   return selection.projects.every(project => !projectsWithProfiles.has(String(project)));
-}
-
-function ProfilingOnboardingCTA() {
-  const organization = useOrganization();
-  // Open the modal on demand
-  const onSetupProfilingClick = useCallback(() => {
-    trackAnalytics('profiling_views.onboarding', {
-      organization,
-    });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
-  }, [organization]);
-
-  return (
-    <Fragment>
-      <ProfilingOnboardingPanel
-        content={
-          // If user is on m2, show default
-          <ProfilingAM1OrMMXUpgrade
-            organization={organization}
-            fallback={
-              <Fragment>
-                <h3>{t('Function level insights')}</h3>
-                <p>
-                  {t(
-                    'Discover slow-to-execute or resource intensive functions within your application'
-                  )}
-                </p>
-              </Fragment>
-            }
-          />
-        }
-      >
-        <ProfilingUpgradeButton
-          data-test-id="profiling-upgrade"
-          organization={organization}
-          priority="primary"
-          onClick={onSetupProfilingClick}
-          fallback={
-            <Button onClick={onSetupProfilingClick} priority="primary">
-              {t('Set Up Profiling')}
-            </Button>
-          }
-        >
-          {t('Set Up Profiling')}
-        </ProfilingUpgradeButton>
-        <LinkButton href="https://docs.sentry.io/product/profiling/" external>
-          {t('Read Docs')}
-        </LinkButton>
-      </ProfilingOnboardingPanel>
-    </Fragment>
-  );
 }
 
 function ProfilingContentPageHeader() {

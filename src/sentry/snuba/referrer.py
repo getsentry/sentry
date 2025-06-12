@@ -112,10 +112,15 @@ class Referrer(StrEnum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+    API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
+        "api.insights.app-starts.mobile-startup-bar-chart"
+    )
     API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
+    API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
+    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
@@ -181,9 +186,16 @@ class Referrer(StrEnum):
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
+    API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE = "api.performance.browser.resources.main-table"
     API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR = (
         "api.performance.browser.resources.page-selector"
+    )
+    API_PERFORMANCE_BROWSER_RESOURCES_RESOURCE_SUMMARY_METRICS_RIBBON = (
+        "api.performance.browser.resources.resource-summary-metrics-ribbon"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROFILE_EXISTS = (
+        "api.performance.browser.web-vitals.profile-exists"
     )
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
@@ -392,6 +404,9 @@ class Referrer(StrEnum):
     API_PERFORMANCE_TRANSACTION_NAME_SEARCH_BAR = "api.performance.transaction-name-search-bar"
     API_PERFORMANCE_TRANSACTION_SPANS = "api.performance.transaction-spans"
     API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION = "api.performance.transaction-summary.duration"
+    API_PERFORMANCE_TRANSACTION_SUMMARY_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.transaction-summary.metrics-enhanced.primary"
+    )
     API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART_METRICS_ENHANCED = (
         "api.performance.transaction-summary.sidebar-chart.metrics-enhanced"
     )
@@ -414,6 +429,7 @@ class Referrer(StrEnum):
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
+    API_PROFILING_ONBOARDING = "profiling-onboarding"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
@@ -480,6 +496,9 @@ class Referrer(StrEnum):
     API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
     API_STARFISH_SPAN_SUMMARY_PAGE = "api.starfish.span-summary-page-metrics"
     API_STARFISH_SPAN_SUMMARY_PANEL = "api.starfish.span-summary-panel-metrics"
+    API_STARFISH_SPAN_SUMMARY_PANEL_SAMPLES_TABLE_AVG = (
+        "api.starfish.span-summary-panel-samples-table-avg"
+    )
     API_STARFISH_SPAN_SUMMARY_TRANSACTIONS = (
         "api.starfish.span-summary-panel-samples-table-transactions"
     )
@@ -529,14 +548,21 @@ class Referrer(StrEnum):
     )
     API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
     API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
+    API_EXPLORE_MULTI_QUERY_SPANS_TABLE = "api.explore.multi-query-spans-table"
     API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
     API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
+    API_LOGS_TAB_VIEW = "api.logs-tab.view"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
     API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
     API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+
+    # Performance AI Module
+    API_PERFORMANCE_AI_ANALYTICS_TOKEN_USAGE_CHART = (
+        "api.performance.ai-analytics.token-usage-chart"
+    )
 
     # Performance Mobile UI Module
     API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
@@ -638,6 +664,27 @@ class Referrer(StrEnum):
         "api.performance.span-summary-transaction-throughput-chart"
     )
 
+    # Performance Backend Laravel Overview Page
+    API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART = (
+        "api.performance.backend.overview.requests-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART = (
+        "api.performance.backend.overview.duration-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART = "api.performance.backend.overview.jobs-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PAGES_TABLE = "api.performance.backend.overview.pages-table"
+    API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART = (
+        "api.performance.backend.overview.queries-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART = "api.performance.backend.overview.cache-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE = "api.performance.backend.overview.paths-table"
+    API_PERFORMNACE_BACKEND_OVERVIEW_SLOW_SSR_CHART = (
+        "api.performance.backend.overview.slow-ssr-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
+        "api.performance.backend.overview.web-vitals-chart"
+    )
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -648,11 +695,17 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
+    API_TRACE_VIEW_SPAN_META = "api.trace-view.spans-meta"
+    API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
+    API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
+    API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
+    API_TRACE_VIEW_LOGS = "api.trace-view.logs"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
+    API_TRACE_VIEW_LINKED_TRACES = "api.trace-view.linked-traces"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -666,6 +719,7 @@ class Referrer(StrEnum):
         "api.trends.get-event-statsv2.timeseries.metrics-enhanced"
     )
     API_TRENDS_GET_PERCENTAGE_CHANGE = "api.trends.get-percentage-change"
+    API_UPTIME_CHECKS_GRID = "api.uptime-checks-grid"
     API_VROOM = "api.vroom"
     BACKFILL_PERF_ISSUE_EVENTS = "migration.backfill_perf_issue_events_issue_platform"
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
@@ -727,6 +781,7 @@ class Referrer(StrEnum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
+    GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"
@@ -737,6 +792,9 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+
+    INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
+
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"

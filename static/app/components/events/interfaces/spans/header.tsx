@@ -435,11 +435,7 @@ class TraceViewHeader extends Component<PropType, State> {
     const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target;
 
-      if (
-        target instanceof Element &&
-        target.getAttribute &&
-        target.getAttribute('data-ignore')
-      ) {
+      if (target instanceof Element && target.getAttribute?.('data-ignore')) {
         // ignore this event if we need to
         return;
       }
@@ -595,7 +591,10 @@ class ActualMinimap extends PureComponent<{
         case 'span_group_chain': {
           const {span} = payload;
 
-          const spanBarColor: string = pickBarColor(getSpanOperation(span));
+          const spanBarColor: string = pickBarColor(
+            getSpanOperation(span),
+            this.props.theme
+          );
 
           const bounds = generateBounds({
             startTimestamp: span.start_timestamp,
@@ -803,7 +802,7 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-export const HeaderContainer = styled('div')<{
+const HeaderContainer = styled('div')<{
   hasProfileMeasurementsChart: boolean;
   isEmbedded: boolean;
 }>`

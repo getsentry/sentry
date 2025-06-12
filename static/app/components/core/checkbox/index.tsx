@@ -20,7 +20,7 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export interface CheckboxProps
+interface CheckboxProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
   /**
    * Is the checkbox active? Supports 'indeterminate'
@@ -107,7 +107,7 @@ const NativeHiddenCheckbox = withChonk(
     & + * {
       box-shadow: ${p => p.theme.dropShadowMedium} inset;
       color: ${p => p.theme.textColor};
-      border: 1px solid ${p => p.theme.gray200};
+      border: 1px solid ${p => p.theme.border};
 
       svg {
         stroke: ${p => p.theme.white};

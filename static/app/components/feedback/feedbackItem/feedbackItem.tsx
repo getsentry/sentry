@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {Fragment, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -27,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
-  tags: Record<string, string>;
+  tags: Record<string, string | ReactNode>;
 }
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {

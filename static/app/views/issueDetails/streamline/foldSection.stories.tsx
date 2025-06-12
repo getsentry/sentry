@@ -4,11 +4,11 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
-export default storyBook('FoldSection', story => {
+export default Storybook.story('FoldSection', story => {
   story('Usage', () => (
     <Fragment>
       <CodeSnippet language="jsx">

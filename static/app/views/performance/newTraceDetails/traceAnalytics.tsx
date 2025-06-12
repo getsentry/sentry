@@ -10,7 +10,7 @@ import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 const trackTraceMetadata = (
   tree: TraceTree,
@@ -107,14 +107,24 @@ const trackViewEventJSON = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_event_json', {
     organization,
   });
-const trackViewContinuousProfile = (organization: Organization) =>
+const trackViewContinuousProfile = (organization: Organization) => {
   trackAnalytics('trace.trace_layout.view_continuous_profile', {
     organization,
   });
-const trackViewTransactionProfile = (organization: Organization) =>
+  trackAnalytics('profiling_views.go_to_flamegraph', {
+    organization,
+    source: 'performance.trace_view.details',
+  });
+};
+const trackViewTransactionProfile = (organization: Organization) => {
   trackAnalytics('trace.trace_layout.view_transaction_profile', {
     organization,
   });
+  trackAnalytics('profiling_views.go_to_flamegraph', {
+    organization,
+    source: 'performance.trace_view.details',
+  });
+};
 
 const trackTabPin = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.tab_pin', {

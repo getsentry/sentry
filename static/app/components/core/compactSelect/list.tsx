@@ -346,7 +346,7 @@ function List<Value extends SelectKey>({
   return (
     <Fragment>
       {grid ? (
-        <SelectFilterContext.Provider value={hiddenOptions}>
+        <SelectFilterContext value={hiddenOptions}>
           <GridList
             {...props}
             id={listId}
@@ -354,7 +354,7 @@ function List<Value extends SelectKey>({
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
           />
-        </SelectFilterContext.Provider>
+        </SelectFilterContext>
       ) : (
         <ListBox
           {...props}
@@ -369,7 +369,6 @@ function List<Value extends SelectKey>({
           keyDownHandler={keyDownHandler}
         />
       )}
-
       {multiple &&
         sections.map(
           section =>

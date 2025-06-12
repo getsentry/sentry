@@ -16,7 +16,7 @@ import {
   FlamegraphTooltipTimelineInfo,
 } from './flamegraphTooltip';
 
-export interface FlamegraphChartTooltipProps {
+interface FlamegraphChartTooltipProps {
   chart: FlamegraphChart;
   chartCanvas: FlamegraphCanvas;
   chartRenderer: FlamegraphChartRenderer;

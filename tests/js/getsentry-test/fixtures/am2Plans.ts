@@ -1,17 +1,35 @@
+import {
+  SEER_TIERS,
+  SEER_TIERS_ANNUAL,
+  SEER_TIERS_DEVELOPER,
+  SEER_TIERS_TRIAL_OR_ENTERPRISE,
+} from 'getsentry-test/fixtures/am3Plans';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
+
+import type {DataCategory} from 'sentry/types/core';
+
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {CheckoutType} from 'getsentry/types';
+import {CheckoutType, ReservedBudgetCategoryType} from 'getsentry/types';
 
-const AM2_CATEGORIES = [
+const AM2_CHECKOUT_CATEGORIES = [
   'errors',
   'transactions',
   'replays',
   'attachments',
   'monitorSeats',
+  'uptime',
+] as DataCategory[];
+
+const AM2_ONDEMAND_CATEGORIES = [
+  ...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
-  'uptime',
-];
+  'seerAutofix',
+  'seerScanner',
+] as DataCategory[];
+
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -19,9 +37,18 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   replays: {singular: 'replay', plural: 'replays'},
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
-  profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
+  profileDuration: {
+    plural: 'continuous profile hours',
+    singular: 'continuous profile hour',
+  },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+};
+
+const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
+  [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
 const AM2_FREE_FEATURES = [
@@ -50,6 +77,7 @@ const AM2_TEAM_FEATURES = [
   'sso-basic',
   'weekly-reports',
   'on-demand-metrics-prefill',
+  'seer-billing',
 ];
 
 const AM2_BUSINESS_FEATURES = [
@@ -81,6 +109,8 @@ const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
   feature => feature !== 'sso-saml2' && feature !== 'baa'
 );
 
+const BUDGET_TERM = 'on-demand';
+
 // TODO: Update with correct pricing and structure
 const AM2_PLANS: Record<string, Plan> = {
   am2_business: {
@@ -105,9 +135,9 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -115,186 +145,223 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 50000,
           unitPrice: 0.089,
           price: 0,
+          onDemandPrice: 0.1157,
         },
         {
           events: 100000,
-          unitPrice: 0.05,
+          unitPrice: 0.089,
           price: 4500,
+          onDemandPrice: 0.1157,
         },
         {
           events: 200000,
           unitPrice: 0.05,
           price: 9500,
+          onDemandPrice: 0.065,
         },
         {
           events: 300000,
           unitPrice: 0.05,
           price: 14500,
+          onDemandPrice: 0.065,
         },
         {
           events: 400000,
           unitPrice: 0.05,
           price: 19500,
+          onDemandPrice: 0.065,
         },
         {
           events: 500000,
-          unitPrice: 0.03,
+          unitPrice: 0.05,
           price: 24500,
+          onDemandPrice: 0.065,
         },
         {
           events: 1000000,
           unitPrice: 0.03,
           price: 39500,
+          onDemandPrice: 0.039,
         },
         {
           events: 1500000,
           unitPrice: 0.03,
           price: 54500,
+          onDemandPrice: 0.039,
         },
         {
           events: 2000000,
           unitPrice: 0.03,
           price: 69500,
+          onDemandPrice: 0.039,
         },
         {
           events: 3000000,
           unitPrice: 0.03,
           price: 99500,
+          onDemandPrice: 0.039,
         },
         {
           events: 4000000,
           unitPrice: 0.03,
           price: 129500,
+          onDemandPrice: 0.039,
         },
         {
           events: 5000000,
           unitPrice: 0.03,
           price: 159500,
+          onDemandPrice: 0.039,
         },
         {
           events: 6000000,
           unitPrice: 0.03,
           price: 189500,
+          onDemandPrice: 0.039,
         },
         {
           events: 7000000,
           unitPrice: 0.03,
           price: 219500,
+          onDemandPrice: 0.039,
         },
         {
           events: 8000000,
           unitPrice: 0.03,
           price: 249500,
+          onDemandPrice: 0.039,
         },
         {
           events: 9000000,
           unitPrice: 0.03,
           price: 279500,
+          onDemandPrice: 0.039,
         },
         {
           events: 10000000,
-          unitPrice: 0.0251,
+          unitPrice: 0.03,
           price: 309500,
+          onDemandPrice: 0.039,
         },
         {
           events: 11000000,
           unitPrice: 0.0251,
           price: 334500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 12000000,
           unitPrice: 0.0251,
           price: 359500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 13000000,
           unitPrice: 0.0251,
           price: 384500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 14000000,
           unitPrice: 0.0251,
           price: 409500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 15000000,
           unitPrice: 0.0251,
           price: 434500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 16000000,
           unitPrice: 0.0251,
           price: 459500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 17000000,
           unitPrice: 0.0251,
           price: 484500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 18000000,
           unitPrice: 0.0251,
           price: 509500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 19000000,
           unitPrice: 0.0251,
           price: 534500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 20000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0251,
           price: 559500,
+          onDemandPrice: 0.03263,
         },
         {
           events: 21000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 573900,
+          onDemandPrice: 0.01872,
         },
         {
           events: 22000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 588300,
+          onDemandPrice: 0.01872,
         },
         {
           events: 23000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 602700,
+          onDemandPrice: 0.01872,
         },
         {
           events: 24000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 617100,
+          onDemandPrice: 0.01872,
         },
         {
           events: 25000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 631500,
+          onDemandPrice: 0.01872,
         },
         {
           events: 30000000,
+          unitPrice: 0.0144,
           price: 703500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872,
         },
         {
           events: 35000000,
+          unitPrice: 0.0144,
           price: 775500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872,
         },
         {
           events: 40000000,
+          unitPrice: 0.0144,
           price: 847500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872,
         },
         {
           events: 45000000,
+          unitPrice: 0.0144,
           price: 919500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872,
         },
         {
           events: 50000000,
+          unitPrice: 0.0144,
           price: 991500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872,
         },
       ],
       transactions: [
@@ -761,7 +828,10 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_f: {
     id: 'am2_f',
@@ -785,9 +855,9 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -846,7 +916,10 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_DEVELOPER,
     },
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team: {
     id: 'am2_team',
@@ -870,9 +943,9 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -880,186 +953,223 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 50000,
           unitPrice: 0.029,
           price: 0,
+          onDemandPrice: 0.0377,
         },
         {
           events: 100000,
-          unitPrice: 0.0175,
+          unitPrice: 0.029,
           price: 1500,
+          onDemandPrice: 0.0377,
         },
         {
           events: 200000,
           unitPrice: 0.0175,
           price: 3200,
+          onDemandPrice: 0.02275,
         },
         {
           events: 300000,
           unitPrice: 0.0175,
           price: 5000,
+          onDemandPrice: 0.02275,
         },
         {
           events: 400000,
           unitPrice: 0.0175,
           price: 6700,
+          onDemandPrice: 0.02275,
         },
         {
           events: 500000,
-          unitPrice: 0.015,
+          unitPrice: 0.0175,
           price: 8500,
+          onDemandPrice: 0.02275,
         },
         {
           events: 1000000,
           unitPrice: 0.015,
           price: 16000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 1500000,
           unitPrice: 0.015,
           price: 23500,
+          onDemandPrice: 0.0195,
         },
         {
           events: 2000000,
           unitPrice: 0.015,
           price: 31000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 3000000,
           unitPrice: 0.015,
           price: 46000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 4000000,
           unitPrice: 0.015,
           price: 61000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 5000000,
           unitPrice: 0.015,
           price: 76000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 6000000,
           unitPrice: 0.015,
           price: 91000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 7000000,
           unitPrice: 0.015,
           price: 106000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 8000000,
           unitPrice: 0.015,
           price: 121000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 9000000,
           unitPrice: 0.015,
           price: 136000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 10000000,
-          unitPrice: 0.013,
+          unitPrice: 0.015,
           price: 151000,
+          onDemandPrice: 0.0195,
         },
         {
           events: 11000000,
           unitPrice: 0.013,
           price: 164000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 12000000,
           unitPrice: 0.013,
           price: 177000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 13000000,
           unitPrice: 0.013,
           price: 190000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 14000000,
           unitPrice: 0.013,
           price: 203000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 15000000,
           unitPrice: 0.013,
           price: 216000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 16000000,
-          price: 229000,
           unitPrice: 0.013,
+          price: 229000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 17000000,
-          price: 242000,
           unitPrice: 0.013,
+          price: 242000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 18000000,
-          price: 255000,
           unitPrice: 0.013,
+          price: 255000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 19000000,
-          price: 268000,
           unitPrice: 0.013,
+          price: 268000,
+          onDemandPrice: 0.0169,
         },
         {
           events: 20000000,
+          unitPrice: 0.013,
           price: 281000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0169,
         },
         {
           events: 21000000,
+          unitPrice: 0.012,
           price: 293000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 22000000,
+          unitPrice: 0.012,
           price: 305000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 23000000,
+          unitPrice: 0.012,
           price: 317000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 24000000,
+          unitPrice: 0.012,
           price: 329000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 25000000,
+          unitPrice: 0.012,
           price: 341000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 30000000,
+          unitPrice: 0.012,
           price: 401000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 35000000,
+          unitPrice: 0.012,
           price: 461000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 40000000,
+          unitPrice: 0.012,
           price: 521000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 45000000,
+          unitPrice: 0.012,
           price: 581000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
         {
           events: 50000000,
+          unitPrice: 0.012,
           price: 641000,
-          unitPrice: 0.011,
+          onDemandPrice: 0.0156,
         },
       ],
       transactions: [
@@ -1526,7 +1636,11 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+
+      ...SEER_TIERS,
     },
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_t: {
     id: 'am2_t',
@@ -1550,9 +1664,9 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -1611,7 +1725,10 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team_auf: {
     id: 'am2_team_auf',
@@ -1635,10 +1752,12 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
     planCategories: {
       errors: [
         {
@@ -2291,6 +2410,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
   },
   am2_business_auf: {
@@ -2315,10 +2435,11 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2971,7 +3092,9 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_sponsored: {
     // NOTE: being deprecated
@@ -2995,9 +3118,9 @@ const AM2_PLANS: Record<string, Plan> = {
     reservedMinimum: 5000000,
     allowAdditionalReservedEvents: false,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
@@ -3010,6 +3133,8 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   am2_sponsored_team_auf: {
     id: 'am2_sponsored_team_auf',
@@ -3032,9 +3157,9 @@ const AM2_PLANS: Record<string, Plan> = {
     reservedMinimum: 50_000,
     allowAdditionalReservedEvents: false,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
@@ -3047,6 +3172,8 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
   am2_business_bundle: {
     id: 'am2_business_bundle',
@@ -3069,10 +3196,11 @@ const AM2_PLANS: Record<string, Plan> = {
     reservedMinimum: 500000,
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -3536,7 +3664,9 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_249_bundle: {
     id: 'am2_business_249_bundle',
@@ -3560,10 +3690,11 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4076,7 +4207,9 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team_bundle: {
     id: 'am2_team_bundle',
@@ -4100,10 +4233,11 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4631,7 +4765,9 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_ent_auf: {
     id: 'am2_business_ent_auf',
@@ -4655,10 +4791,11 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: true,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4717,6 +4854,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_ent: {
     id: 'am2_business_ent',
@@ -4740,10 +4878,11 @@ const AM2_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: true,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4801,7 +4940,9 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
 };
 

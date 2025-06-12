@@ -1,4 +1,5 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -31,6 +32,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -45,6 +47,14 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
+
+  if (token.filter === FilterType.HAS) {
+    return (
+      <FilterValueSingleTruncatedValue>
+        {prettifyTagKey(token.value.text)}
+      </FilterValueSingleTruncatedValue>
+    );
+  }
 
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
@@ -135,6 +145,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           onCommit={() => {
             setIsEditing(false);
             onActiveChange(false);
+            dispatch({type: 'COMMIT_QUERY'});
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
@@ -169,7 +180,9 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
-      onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      onClick={() => {
+        dispatch({type: 'DELETE_TOKEN', token});
+      }}
       disabled={disabled}
       {...filterButtonProps}
     >
@@ -285,15 +298,15 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   ${p =>
     p.state === 'invalid'
-      ? `
-      border-color: ${p.theme.red200};
-      background-color: ${p.theme.red100};
-    `
+      ? css`
+          border-color: ${p.theme.red200};
+          background-color: ${p.theme.red100};
+        `
       : p.state === 'warning'
-        ? `
-      border-color: ${p.theme.gray300};
-      background-color: ${p.theme.gray100};
-    `
+        ? css`
+            border-color: ${p.theme.gray300};
+            background-color: ${p.theme.gray100};
+          `
         : ''}
 
   &[aria-selected='true'] {

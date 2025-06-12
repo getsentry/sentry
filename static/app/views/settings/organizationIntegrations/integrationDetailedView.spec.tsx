@@ -1,5 +1,7 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
+import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -88,11 +90,27 @@ describe('IntegrationDetailedView', function () {
       match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
       body: [GitHubIntegrationFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'gitlab'})],
+      body: {
+        providers: [GitLabIntegrationProviderFixture()],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'gitlab', includeConfig: 0})],
+      body: [GitLabIntegrationFixture()],
+    });
   });
 
   it('shows integration name, status, and install button', async function () {
     const router = RouterFixture({params: {integrationSlug: 'bitbucket'}});
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
@@ -104,7 +122,11 @@ describe('IntegrationDetailedView', function () {
       params: {integrationSlug: 'bitbucket'},
       location: {query: {tab: 'configurations'}},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByTestId('integration-name')).toHaveTextContent(
@@ -119,10 +141,17 @@ describe('IntegrationDetailedView', function () {
       location: {query: {tab: 'configurations'}},
     });
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
-    render(<IntegrationDetailedView />, {organization: lowerAccessOrganization, router});
+    render(<IntegrationDetailedView />, {
+      organization: lowerAccessOrganization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Configure'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('allows members to configure github/gitlab', async function () {
@@ -131,7 +160,11 @@ describe('IntegrationDetailedView', function () {
       location: {query: {tab: 'configurations'}},
     });
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
-    render(<IntegrationDetailedView />, {organization: lowerAccessOrganization, router});
+    render(<IntegrationDetailedView />, {
+      organization: lowerAccessOrganization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
@@ -141,7 +174,11 @@ describe('IntegrationDetailedView', function () {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('features')).toBeInTheDocument();
   });
@@ -155,7 +192,11 @@ describe('IntegrationDetailedView', function () {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('features'));
@@ -173,7 +214,11 @@ describe('IntegrationDetailedView', function () {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('features'));
@@ -218,6 +263,38 @@ describe('IntegrationDetailedView', function () {
         ENDPOINT,
         expect.objectContaining({
           data: {githubNudgeInvite: true},
+        })
+      );
+    });
+  });
+
+  it('can enable gitlab features', async function () {
+    const router = RouterFixture({
+      params: {integrationSlug: 'gitlab'},
+    });
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('features'));
+
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {gitlabPRBot: true},
         })
       );
     });

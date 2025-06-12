@@ -1,43 +1,71 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {EventAttachments} from 'sentry/components/events/eventAttachments';
+import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import type {SpanProfileDetailsProps} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {
   SpanProfileDetails,
   useSpanProfileDetails,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
-import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
-import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {Tooltip} from 'sentry/components/tooltip';
+import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   LogsPageDataProvider,
-  useLogsPageData,
+  useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
+import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
+import {
+  findSpanAttributeValue,
+  getProfileMeta,
+  getTraceAttributesTreeActions,
+  sortAttributes,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {
+  isEAPSpanNode,
+  isEAPTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
-import {TraceDrawerComponents} from '.././styles';
-import {IssueList} from '../issues/issues';
-import {getProfileMeta} from '../utils';
-
+import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
@@ -50,26 +78,11 @@ function SpanNodeDetailHeader({
   node,
   organization,
   onTabScrollToNode,
-  project,
 }: {
   node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
-  project: Project | undefined;
 }) {
-  const hasNewTraceUi = useHasTraceNewUi();
-
-  if (!hasNewTraceUi && !isEAPSpanNode(node)) {
-    return (
-      <LegacySpanNodeDetailHeader
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        project={project}
-      />
-    );
-  }
-
   const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
   return (
     <TraceDrawerComponents.HeaderContainer>
@@ -91,45 +104,6 @@ function SpanNodeDetailHeader({
   );
 }
 
-function LegacySpanNodeDetailHeader({
-  node,
-  organization,
-  onTabScrollToNode,
-  project,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
-  organization: Organization;
-  project: Project | undefined;
-}) {
-  const span = node.value;
-
-  return (
-    <TraceDrawerComponents.LegacyHeaderContainer>
-      <TraceDrawerComponents.Title>
-        <Tooltip title={node.event?.projectSlug}>
-          <ProjectBadge
-            project={project ? project : {slug: node.event?.projectSlug ?? ''}}
-            avatarSize={30}
-            hideName
-          />
-        </Tooltip>
-        <TraceDrawerComponents.LegacyTitleText>
-          <div>{t('span')}</div>
-          <TraceDrawerComponents.TitleOp
-            text={getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
-          />
-        </TraceDrawerComponents.LegacyTitleText>
-      </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.NodeActions
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-      />
-    </TraceDrawerComponents.LegacyHeaderContainer>
-  );
-}
-
 function SpanSections({
   node,
   organization,
@@ -142,22 +116,11 @@ function SpanSections({
   organization: Organization;
   project: Project | undefined;
 }) {
-  const hasTraceNewUi = useHasTraceNewUi();
-
-  if (!hasTraceNewUi) {
-    return (
-      <LegacySpanSections
-        node={node}
-        organization={organization}
-        location={location}
-        onParentClick={onParentClick}
-      />
-    );
-  }
+  const theme = useTheme();
 
   const hasSpanSpecificData =
     hasSpanHTTPInfo(node.value) ||
-    hasSpanKeys(node) ||
+    hasSpanKeys(node, theme) ||
     hasSpanTags(node.value) ||
     hasSpanMeasurements(node.value);
 
@@ -176,7 +139,7 @@ function SpanSections({
           disableCollapsePersistence
         >
           <TraceDrawerComponents.SectionCardGroup>
-            {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+            {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags node={node} /> : null}
             {hasSpanMeasurements(node.value) ? (
@@ -190,36 +153,27 @@ function SpanSections({
 }
 
 function LogDetails() {
-  const {logsData} = useLogsPageData();
-  if (!logsData.data?.length) {
+  const logsQueryResult = useLogsPageDataQueryResult();
+  const hasInfiniteFeature = useOrganization().features.includes(
+    'ourlogs-infinite-scroll'
+  );
+  const scrollContainer = useRef<HTMLDivElement>(null);
+  if (!logsQueryResult?.data?.length) {
     return null;
   }
-  return <LogsTable tableData={logsData} showHeader={false} />;
-}
-
-function LegacySpanSections({
-  node,
-  organization,
-  location,
-  onParentClick,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-}) {
   return (
-    <TraceDrawerComponents.SectionCardGroup>
-      <GeneralInfo
-        node={node}
-        organization={organization}
-        location={location}
-        onParentClick={onParentClick}
-      />
-      {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-      {hasSpanTags(node.value) ? <Tags node={node} /> : null}
-      {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
-    </TraceDrawerComponents.SectionCardGroup>
+    <FoldSection
+      ref={scrollContainer}
+      sectionKey={SectionKey.LOGS}
+      title={t('Logs')}
+      disableCollapsePersistence
+    >
+      {hasInfiniteFeature ? (
+        <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+      ) : (
+        <LogsTable showHeader={false} />
+      )}
+    </FoldSection>
   );
 }
 
@@ -232,18 +186,9 @@ function ProfileDetails({
   event: Readonly<EventTransaction>;
   organization: Organization;
   project: Project | undefined;
-  span: Readonly<SpanType>;
+  span: Readonly<SpanProfileDetailsProps['span']>;
 }) {
-  const hasNewTraceUi = useHasTraceNewUi();
   const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
-
-  if (!hasNewTraceUi) {
-    return (
-      <div>
-        <SpanProfileDetails span={span} event={event} />;
-      </div>
-    );
-  }
 
   if (!defined(profile) || frames.length === 0) {
     return null;
@@ -266,51 +211,36 @@ const EmbededContentWrapper = styled('div')`
   margin-top: ${space(0.5)};
 `;
 
-export function SpanNodeDetails({
-  node,
-  organization,
-  onTabScrollToNode,
-  onParentClick,
-  traceId,
-}: TraceTreeNodeDetailsProps<
-  TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
->) {
+export function SpanNodeDetails(
+  props: TraceTreeNodeDetailsProps<
+    TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+  >
+) {
+  const {node, organization, onTabScrollToNode, onParentClick} = props;
   const location = useLocation();
-  const hasNewTraceUi = useHasTraceNewUi();
+  const theme = useTheme();
   const {projects} = useProjects();
   const issues = useMemo(() => {
-    return [...node.errors, ...node.performance_issues];
-  }, [node.errors, node.performance_issues]);
+    return [...node.errors, ...node.occurrences];
+  }, [node.errors, node.occurrences]);
 
-  const project = projects.find(proj => proj.slug === node.event?.projectSlug);
+  const project = projects.find(
+    proj => proj.slug === (node.value.project_slug ?? node.event?.projectSlug)
+  );
   const profileMeta = getProfileMeta(node.event) || '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   if (isEAPSpanNode(node)) {
     return (
-      <TraceDrawerComponents.DetailContainer>
-        <SpanNodeDetailHeader
-          node={node}
-          organization={organization}
-          project={project}
-          onTabScrollToNode={onTabScrollToNode}
-        />
-        <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
-          <LogsPageParamsProvider
-            isOnEmbeddedView
-            limitToTraceId={traceId}
-            limitToSpanId={node.value.event_id}
-            limitToProjectIds={[node.value.project_id]}
-            analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-          >
-            <LogsPageDataProvider>
-              <LogDetails />
-              <div>TO DO: EAP Span Details</div>
-            </LogsPageDataProvider>
-          </LogsPageParamsProvider>
-        </TraceDrawerComponents.BodyContainer>
-      </TraceDrawerComponents.DetailContainer>
+      <EAPSpanNodeDetails
+        {...props}
+        node={node}
+        project={project}
+        issues={issues}
+        location={location}
+        theme={theme}
+      />
     );
   }
 
@@ -319,10 +249,9 @@ export function SpanNodeDetails({
       <SpanNodeDetailHeader
         node={node}
         organization={organization}
-        project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+      <TraceDrawerComponents.BodyContainer>
         {node.event?.projectSlug ? (
           <ProfilesProvider
             orgSlug={organization.slug}
@@ -346,6 +275,8 @@ export function SpanNodeDetails({
                     organization={organization}
                     location={location}
                   />
+                  <AIInputSection node={node} />
+                  <AIOutputSection node={node} />
                   <SpanSections
                     node={node}
                     project={project}
@@ -358,7 +289,11 @@ export function SpanNodeDetails({
                       organization={organization}
                       project={project}
                       event={node.event!}
-                      span={node.value}
+                      span={{
+                        span_id: node.value.span_id,
+                        start_timestamp: node.value.start_timestamp,
+                        end_timestamp: node.value.timestamp,
+                      }}
                     />
                   ) : null}
                 </ProfileGroupProvider>
@@ -370,3 +305,274 @@ export function SpanNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+function useAvgSpanDuration(
+  span: TraceTree.EAPSpan,
+  location: Location
+): number | undefined {
+  const dataset = useExploreDataset();
+
+  const eventView = useMemo(() => {
+    const search = new MutableSearch('');
+
+    search.addFilterValue('span.op', span.op);
+    search.addFilterValue('span.description', span.description ?? '');
+
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'Trace View - Span Avg Duration',
+      fields: ['avg(span.duration)'],
+      query: search.formatString(),
+      projects: [span.project_id],
+      version: 2,
+      range: '24h',
+      dataset,
+    };
+
+    return EventView.fromNewQueryWithLocation(discoverQuery, location);
+  }, [span, location, dataset]);
+
+  const result = useSpansQueryWithoutPageFilters({
+    enabled: !!span.description && !!span.op,
+    eventView,
+    initialData: [],
+    referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
+    trackResponseAnalytics: false,
+  });
+
+  return result.data?.[0]?.['avg(span.duration)'];
+}
+
+type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<
+  TraceTreeNode<TraceTree.EAPSpan>
+> & {
+  issues: TraceTree.TraceIssue[];
+  location: Location;
+  project: Project | undefined;
+  theme: Theme;
+};
+
+function EAPSpanNodeDetails({
+  node,
+  organization,
+  onTabScrollToNode,
+  project,
+  issues,
+  location,
+  traceId,
+  theme,
+}: EAPSpanNodeDetailsProps) {
+  const {
+    data: traceItemData,
+    isPending: isTraceItemPending,
+    isError: isTraceItemError,
+  } = useTraceItemDetails({
+    traceItemId: node.value.event_id,
+    projectId: node.value.project_id.toString(),
+    traceId,
+    traceItemType: TraceItemDataset.SPANS,
+    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    enabled: true,
+  });
+
+  const {
+    data: eventTransaction,
+    isLoading: isEventTransactionLoading,
+    isError: isEventTransactionError,
+  } = useTransaction({
+    event_id: node.value.transaction_id,
+    project_slug: node.value.project_slug,
+    organization,
+  });
+
+  const avgSpanDuration = useAvgSpanDuration(node.value, location);
+
+  const traceState = useTraceState();
+
+  if (isTraceItemPending || isEventTransactionLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isTraceItemError || isEventTransactionError) {
+    return <LoadingError message={t('Failed to fetch span details')} />;
+  }
+
+  const attributes = traceItemData?.attributes;
+  const columnCount =
+    traceState.preferences.layout === 'drawer left' ||
+    traceState.preferences.layout === 'drawer right'
+      ? 1
+      : undefined;
+
+  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
+
+  return (
+    <TraceDrawerComponents.DetailContainer>
+      <SpanNodeDetailHeader
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+      />
+      <TraceDrawerComponents.BodyContainer>
+        <ProfilesProvider
+          orgSlug={organization.slug}
+          projectSlug={node.value.project_slug}
+          profileMeta={profileMeta}
+        >
+          <ProfileContext.Consumer>
+            {profiles => (
+              <ProfileGroupProvider
+                type="flamechart"
+                input={profiles?.type === 'resolved' ? profiles.data : null}
+                traceID={profileId || ''}
+              >
+                <LogsPageParamsProvider
+                  isTableFrozen
+                  limitToTraceId={traceId}
+                  limitToSpanId={node.value.event_id}
+                  limitToProjectIds={[node.value.project_id]}
+                  analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+                >
+                  <LogsPageDataProvider>
+                    {issues.length > 0 ? (
+                      <IssueList
+                        organization={organization}
+                        issues={issues}
+                        node={node}
+                      />
+                    ) : null}
+                    <EAPSpanDescription
+                      node={node}
+                      project={project}
+                      organization={organization}
+                      location={location}
+                      attributes={attributes}
+                      avgSpanDuration={avgSpanDuration}
+                    />
+                    <AIInputSection node={node} attributes={attributes} />
+                    <AIOutputSection node={node} attributes={attributes} />
+                    <FoldSection
+                      sectionKey={SectionKey.SPAN_ATTRIBUTES}
+                      title={
+                        <SectionTitleWithQuestionTooltip
+                          title={t('Attributes')}
+                          tooltipText={t(
+                            'These attributes are indexed and can be queried in the Trace Explorer.'
+                          )}
+                        />
+                      }
+                      disableCollapsePersistence
+                    >
+                      <AttributesTree
+                        columnCount={columnCount}
+                        attributes={sortAttributes(attributes)}
+                        rendererExtra={{
+                          theme,
+                          location,
+                          organization,
+                        }}
+                        getCustomActions={getTraceAttributesTreeActions({
+                          location,
+                          organization,
+                          projectIds: findSpanAttributeValue(attributes, 'project_id'),
+                        })}
+                      />
+                    </FoldSection>
+
+                    {isTransaction ? (
+                      <FoldSection
+                        sectionKey={SectionKey.CONTEXTS}
+                        title={
+                          <SectionTitleWithQuestionTooltip
+                            title={t('Contexts')}
+                            tooltipText={t(
+                              "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
+                            )}
+                          />
+                        }
+                        disableCollapsePersistence
+                      >
+                        <Request event={eventTransaction} />
+                      </FoldSection>
+                    ) : null}
+
+                    <LogDetails />
+
+                    {isTransaction && organization.features.includes('profiling') ? (
+                      <ProfileDetails
+                        organization={organization}
+                        project={project}
+                        event={eventTransaction}
+                        span={{
+                          span_id: node.value.event_id,
+                          start_timestamp: node.value.start_timestamp,
+                          end_timestamp: node.value.end_timestamp,
+                        }}
+                      />
+                    ) : null}
+
+                    {isTransaction ? (
+                      <ReplayPreview
+                        event={eventTransaction}
+                        organization={organization}
+                      />
+                    ) : null}
+
+                    {isTransaction && project ? (
+                      <EventAttachments
+                        event={eventTransaction}
+                        project={project}
+                        group={undefined}
+                      />
+                    ) : null}
+
+                    {isTransaction && project ? (
+                      <EventViewHierarchy
+                        event={eventTransaction}
+                        project={project}
+                        disableCollapsePersistence
+                      />
+                    ) : null}
+
+                    {isTransaction && eventTransaction.projectSlug ? (
+                      <EventRRWebIntegration
+                        event={eventTransaction}
+                        orgId={organization.slug}
+                        projectSlug={eventTransaction.projectSlug}
+                        disableCollapsePersistence
+                      />
+                    ) : null}
+                  </LogsPageDataProvider>
+                </LogsPageParamsProvider>
+              </ProfileGroupProvider>
+            )}
+          </ProfileContext.Consumer>
+        </ProfilesProvider>
+      </TraceDrawerComponents.BodyContainer>
+    </TraceDrawerComponents.DetailContainer>
+  );
+}
+
+function SectionTitleWithQuestionTooltip({
+  title,
+  tooltipText,
+}: {
+  title: string;
+  tooltipText: string;
+}) {
+  return (
+    <Flex>
+      <div>{title}</div>
+      <QuestionTooltip title={tooltipText} size="sm" />
+    </Flex>
+  );
+}
+
+const Flex = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;

@@ -8,6 +8,7 @@ from typing import Any
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
@@ -32,7 +33,8 @@ from .integration_utils import (
     get_installation,
 )
 from .stacktraces import get_frames_to_process
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
+from .utils.repository import create_repository
 
 logger = logging.getLogger(__name__)
 
@@ -65,13 +67,13 @@ def process_event(
         "event_id": event_id,
     }
 
-    event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
+    event = fetch_event(project_id, event_id, group_id, extra)
     if event is None:
-        logger.error("Event not found.", extra=extra)
         return [], []
 
     platform = event.platform
     assert platform is not None
+    set_tag("platform", platform)
 
     platform_config = PlatformConfig(platform)
     if not platform_config.is_supported():
@@ -96,6 +98,26 @@ def process_event(
         pass
 
     return code_mappings, in_app_stack_trace_rules
+
+
+def fetch_event(
+    project_id: int, event_id: str, group_id: int, extra: dict[str, Any]
+) -> GroupEvent | Event | None:
+    event: GroupEvent | Event | None = None
+    try:
+        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
+        if event is None:
+            metrics.incr(
+                key=f"{METRIC_PREFIX}.failure", tags={"reason": "event_not_found"}, sample_rate=1.0
+            )
+    except Exception:
+        logger.exception("Error fetching event.", extra=extra)
+        metrics.incr(
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "event_fetching_exception"},
+            sample_rate=1.0,
+        )
+    return event
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -200,29 +222,6 @@ def create_configurations(
     # We return this to allow tests running in dry-run mode to assert
     # what would have been created.
     return code_mappings, in_app_stack_trace_rules
-
-
-def create_repository(
-    repo_name: str, org_integration: RpcOrganizationIntegration, tags: Mapping[str, str | bool]
-) -> Repository | None:
-    organization_id = org_integration.organization_id
-    created = False
-    repository = (
-        Repository.objects.filter(name=repo_name, organization_id=organization_id)
-        .order_by("-date_added")
-        .first()
-    )
-    if not repository:
-        if not tags["dry_run"]:
-            repository, created = Repository.objects.get_or_create(
-                name=repo_name,
-                organization_id=organization_id,
-                integration_id=org_integration.integration_id,
-            )
-        if created or tags["dry_run"]:
-            metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
-
-    return repository
 
 
 def create_code_mapping(

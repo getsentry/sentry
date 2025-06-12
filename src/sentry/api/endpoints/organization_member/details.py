@@ -16,11 +16,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
-from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import (
-    ROLE_CHOICES,
-    OrganizationMemberRequestSerializer,
-)
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
+from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -39,6 +36,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
+from sentry.users.models.user import User
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -76,22 +74,6 @@ Configures the team role of the member. The two roles are:
 """
 
 
-class RelaxedMemberPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PUT": ["member:invite", "member:write", "member:admin"],
-        # DELETE checks for role comparison as you can either remove a member
-        # with a lower access role, or yourself, without having the req. scope
-        "DELETE": ["member:read", "member:write", "member:admin"],
-    }
-
-    # Allow deletions to happen for disabled members so they can remove themselves
-    # allowing other methods should be fine as well even if we don't strictly need to allow them
-    def is_member_disabled_from_limit(self, request: Request, organization):
-        return False
-
-
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
@@ -105,14 +87,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request: Request,
+        request_user: User,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         try:
             return super()._get_member(
-                request, organization, member_id, invite_status=InviteStatus.APPROVED
+                request_user, organization, member_id, invite_status=InviteStatus.APPROVED
             )
         except ValueError:
             raise OrganizationMember.DoesNotExist()
@@ -467,7 +449,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Remove an organization member.
         """
-
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):

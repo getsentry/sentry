@@ -9,11 +9,12 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     billingInterval: 'monthly',
     categories: [],
     checkoutCategories: [],
+    availableReservedBudgetTypes: {},
     contractInterval: 'monthly',
     description: '',
     features: [],
     hasOnDemandModes: false,
-    id: 'am2_f',
+    id: 'am3_f',
     isTestPlan: false,
     maxMembers: 1,
     name: 'Developer',
@@ -45,6 +46,7 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     trialPlan: null,
     userSelectable: true,
     categoryDisplayNames: {},
+    budgetTerm: 'pay-as-you-go',
     ...fields,
   };
 }

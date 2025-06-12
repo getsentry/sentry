@@ -15,8 +15,7 @@ import {
 } from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-
-import {AlertStripedTable} from '../styles';
+import {AlertStripedTable} from 'getsentry/views/subscriptionPage/styles';
 
 import PlanMigrationRow from './planMigrationRow';
 
@@ -112,6 +111,7 @@ function PlanMigrationTable({subscription, migration}: Props) {
             )}
             hasCredits={hasErrorCredits}
           />
+          {/* TODO(data categories): check if this can be parsed */}
           {isAM3Migration
             ? nextPlan.reserved.spans && (
                 <PlanMigrationRow
@@ -252,7 +252,7 @@ function getNextDataCategoryValue(
   category: DataCategoryExact,
   subscription: Subscription
 ) {
-  const key = DATA_CATEGORY_INFO[category].plural;
+  const key = DATA_CATEGORY_INFO[category].plural as DataCategory;
   if (
     isAM3Migration &&
     subscription.planDetails.categories.includes(key) &&

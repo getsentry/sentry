@@ -1,15 +1,17 @@
 import type {Client} from 'sentry/api';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
+  isEAPErrorNode,
+  isEAPSpanNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {CollapsedNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceCollapsedNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import type {TraceTreeNode} from './traceTreeNode';
@@ -44,6 +46,7 @@ export class IssuesTraceTree extends TraceTree {
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       replay: ReplayRecord | null;
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): IssuesTraceTree {
     const tree = super.FromTrace(trace, options);
@@ -54,7 +57,7 @@ export class IssuesTraceTree extends TraceTree {
 
   static ExpandToEvent(
     tree: IssuesTraceTree,
-    eventId: string,
+    event: Event,
     options: {
       api: Client;
       organization: Organization;
@@ -62,22 +65,26 @@ export class IssuesTraceTree extends TraceTree {
     }
   ): Promise<void> {
     const node = TraceTree.Find(tree.root, n => {
-      if (isTraceErrorNode(n)) {
-        return n.value.event_id === eventId;
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
+        return n.value.event_id === event.eventID;
       }
-      if (isTransactionNode(n)) {
-        if (n.value.event_id === eventId) {
+      if (isTransactionNode(n) || isEAPSpanNode(n)) {
+        if (n.value.event_id === event.eventID) {
           return true;
         }
 
         for (const e of n.errors) {
-          if (e.event_id === eventId) {
+          if (e.event_id === event.eventID) {
             return true;
           }
         }
 
-        for (const p of n.performance_issues) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurrences) {
+          if (isTransactionNode(n)) {
+            if (o.event_id === event.eventID) {
+              return true;
+            }
+          } else if (o.event_id === event.occurrence?.id) {
             return true;
           }
         }
@@ -85,8 +92,14 @@ export class IssuesTraceTree extends TraceTree {
       return false;
     });
 
-    if (node && isTransactionNode(node)) {
-      return tree.zoom(node, true, options).then(() => {});
+    if (node) {
+      if (isTransactionNode(node)) {
+        return tree.zoom(node, true, options).then(() => {});
+      }
+
+      if (isEAPSpanNode(node)) {
+        tree.expand(node, true);
+      }
     }
 
     return Promise.resolve();
@@ -106,7 +119,9 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction = TraceTree.ParentTransaction(node);
+      const parentTransaction = isEAPSpanNode(node)
+        ? TraceTree.ParentEAPTransaction(node)
+        : TraceTree.ParentTransaction(node);
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }

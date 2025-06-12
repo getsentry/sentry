@@ -1,6 +1,6 @@
-import threading
 from datetime import datetime
 
+import pytest
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic, Value
@@ -8,16 +8,8 @@ from arroyo.types import Message, Partition, Topic, Value
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
 
-class FakeProcess(threading.Thread):
-    """
-    Pretend this is multiprocessing.Process
-    """
-
-    def terminate(self):
-        pass
-
-
-def test_basic(monkeypatch, request):
+@pytest.mark.django_db
+def test_basic(monkeypatch):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
 
@@ -28,7 +20,6 @@ def test_basic(monkeypatch, request):
         max_batch_size=10,
         max_batch_time=10,
         num_processes=1,
-        max_flush_segments=10,
         input_block_size=None,
         output_block_size=None,
         produce_to_pipe=messages.append,
@@ -61,11 +52,6 @@ def test_basic(monkeypatch, request):
         )
     )
 
-    @request.addfinalizer
-    def _():
-        step.join()
-        fac.shutdown()
-
     step.poll()
     fac._flusher.current_drift.value = 9000  # "advance" our "clock"
 
@@ -76,6 +62,9 @@ def test_basic(monkeypatch, request):
     assert rapidjson.loads(msg.value) == {
         "spans": [
             {
+                "data": {
+                    "__sentry_internal_span_buffer_outcome": "different",
+                },
                 "is_segment": True,
                 "project_id": 12,
                 "segment_id": "aaaaaaaaaaaaaaaa",

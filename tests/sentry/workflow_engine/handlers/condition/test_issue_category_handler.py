@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from jsonschema import ValidationError
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -19,7 +19,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -57,11 +57,11 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
     def test_valid_input_values(self):
         self.dc.update(comparison={"value": 1})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
         self.dc.update(comparison={"value": str(GroupCategory.ERROR.value)})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
         self.dc.update(comparison={"value": GroupCategory.ERROR.value})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_fail_on_invalid_data(self):
         data_cases = [
@@ -74,7 +74,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
         for data_case in data_cases:
             self.dc.update(comparison=data_case)
-            self.assert_does_not_pass(self.dc, self.job)
+            self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_group_event(self):
         assert self.event.group is not None
@@ -89,3 +89,15 @@ class TestIssueCategoryCondition(ConditionTestCase):
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event))
+
+    def test_category_v2(self):
+        perf_group, perf_event, perf_group_event = self.create_group_event(
+            group_type_id=PerformanceNPlusOneGroupType.type_id
+        )
+
+        # N+1 DB query issue should pass for 'PERFORMANCE' (deprecated) as well as 'DB_QUERY' (category_v2)
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value})
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event))
+
+        self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
+        self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event))

@@ -2,10 +2,9 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from unittest import mock
+from unittest import TestCase, mock
 
 from sentry.ratelimits.concurrent import DEFAULT_MAX_TTL_SECONDS, ConcurrentRateLimiter
-from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
 

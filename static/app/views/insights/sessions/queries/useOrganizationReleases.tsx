@@ -1,30 +1,24 @@
-import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function useOrganizationReleases({
-  dateRange,
   filters,
+  pageFilters,
 }: {
   filters: string[];
-  dateRange?: Pick<PageFiltersStringified, 'start' | 'end' | 'statsPeriod'>;
+  pageFilters?: PageFilters;
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection: defaultPageFilters} = usePageFilters();
 
-  const locationWithoutWidth = {
-    ...location,
-    query: {
-      ...location.query,
-      ...dateRange,
-      width: undefined,
-    },
-  };
-
-  let finalizedQuery;
+  let finalizedQuery: string | undefined;
   const hasFinalized = filters.includes('Finalized');
   const hasNotFinalized = filters.includes('Not Finalized');
 
@@ -37,13 +31,13 @@ export default function useOrganizationReleases({
     finalizedQuery = undefined;
   }
 
-  let status;
-  const hasActive = filters.includes('Active');
+  let status: 'open' | 'archived' | undefined;
+  const hasOpen = filters.includes('Open');
   const hasArchived = filters.includes('Archived');
 
-  if (hasActive && !hasArchived) {
+  if (hasOpen && !hasArchived) {
     status = 'open';
-  } else if (!hasActive && hasArchived) {
+  } else if (!hasOpen && hasArchived) {
     status = 'archived';
   } else {
     // if both or neither are selected, it's the same as not selecting any
@@ -64,13 +58,18 @@ export default function useOrganizationReleases({
     ? `${FieldKey.RELEASE_STAGE}:[${stages.join(',')}]`
     : undefined;
 
+  const queryString = [stage, finalizedQuery, location.query.query]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
   const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          query: [stage, finalizedQuery].filter(Boolean).join(' '),
-          ...locationWithoutWidth.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          query: queryString,
           adoptionStages: 1,
           health: 1,
           per_page: 10,
@@ -78,24 +77,16 @@ export default function useOrganizationReleases({
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+    }
   );
 
   const releaseData =
     isPending || !data
       ? []
-      : data.map((release, index, releases) => {
+      : data.map(release => {
           const projSlug = release.projects[0]?.slug;
-          const currentDate = new Date(release.dateCreated);
-
-          const previousDate =
-            index < releases.length - 1
-              ? new Date(releases[index + 1]?.dateCreated ?? 0)
-              : null;
-
-          const lifespan = previousDate
-            ? Math.floor(currentDate.getTime() - previousDate.getTime())
-            : undefined;
 
           return {
             project: release.projects[0]!,
@@ -109,7 +100,7 @@ export default function useOrganizationReleases({
             error_count: release.projects[0]?.newGroups ?? 0,
             project_id: release.projects[0]?.id ?? 0,
             adoption: release.projects[0]?.healthData?.adoption ?? 0,
-            lifespan,
+            status: release.status,
           };
         });
 

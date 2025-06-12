@@ -12,7 +12,6 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -21,8 +20,11 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import type {Monitor, MonitorEnvironment, MonitorStat} from '../types';
+import type {
+  Monitor,
+  MonitorEnvironment,
+  MonitorStat,
+} from 'sentry/views/insights/crons/types';
 
 type Props = {
   monitor: Monitor;
@@ -161,7 +163,7 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
               useShortDate
               series={[duration]}
               height={height}
-              colors={[CHART_PALETTE[CHART_PALETTE.length - 1]![0]]}
+              colors={[theme.chart.getColorPalette(theme.chart.colors.length - 1)[0]]}
               yAxis={getYAxisOptions('duration')}
               grid={{
                 top: 6,
@@ -183,5 +185,3 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
 const StyledHeaderTitle = styled(HeaderTitle)`
   margin-bottom: ${space(1)};
 `;
-
-export default MonitorStats;

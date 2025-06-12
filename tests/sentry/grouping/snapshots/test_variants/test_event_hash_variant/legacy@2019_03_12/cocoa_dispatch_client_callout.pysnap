@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:33:38.326987+00:00'
+created: '2025-04-29T22:29:14.124783+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app (logentry takes precedence)
       threads
         stacktrace
-          frame
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "unicorn"
           frame (non app frame)
@@ -37,13 +37,13 @@ app:
           frame
             function (function name is not used if module or filename are available)
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "FudgeLogTaggedError"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "thunk for closure"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "SentrySetupInteractor.setupSentry"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -52,7 +52,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function (function name is not used if module or filename are available)
               "_dispatch_client_callout"
-          frame
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "thunk for closure"
 --------------------------------------------------------------------------

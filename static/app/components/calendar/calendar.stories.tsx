@@ -3,18 +3,17 @@ import type {Range} from 'react-date-range';
 
 import {DatePicker, DateRangePicker} from 'sentry/components/calendar';
 import ExternalLink from 'sentry/components/links/externalLink';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('Calendar', story => {
+export default Storybook.story('Calendar', story => {
   story('DatePicker', () => {
     const [selected, setSelected] = useState<Date | undefined>(undefined);
     return (
       <Fragment>
         <p>
-          The most common props to set are <JSXProperty name="date" value={Date} /> with{' '}
-          <JSXProperty name="onChange" value={Function} />.
+          The most common props to set are{' '}
+          <Storybook.JSXProperty name="date" value={Date} /> with{' '}
+          <Storybook.JSXProperty name="onChange" value={Function} />.
         </p>
         <p>
           Under the hook we're using{' '}
@@ -34,10 +33,10 @@ export default storyBook('Calendar', story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="DateRangePicker" /> accepts{' '}
-          <JSXProperty name="startDate" value={Date} />,{' '}
-          <JSXProperty name="endDate" value={Date} /> along with{' '}
-          <JSXProperty name="onChange" value={Function} /> which accepts a{' '}
+          <Storybook.JSXNode name="DateRangePicker" /> accepts{' '}
+          <Storybook.JSXProperty name="startDate" value={Date} />,{' '}
+          <Storybook.JSXProperty name="endDate" value={Date} /> along with{' '}
+          <Storybook.JSXProperty name="onChange" value={Function} /> which accepts a{' '}
           <code>Range</code>.
         </p>
         <p>

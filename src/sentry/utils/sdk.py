@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import sys
+import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -18,7 +19,7 @@ from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
-from sentry_sdk.types import Event, Hint
+from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -38,8 +39,6 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
-    "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -109,7 +108,7 @@ def is_current_event_safe():
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
     """
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # Scope was explicitly marked as unsafe
     if scope._tags.get(UNSAFE_TAG):
@@ -136,7 +135,7 @@ def set_current_event_project(project_id):
     relevant to event processing, or that task may crash ingesting
     sentry-internal errors, causing infinite recursion.
     """
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     scope.set_tag("processing_event_for_project", project_id)
     scope.set_tag("project", project_id)
@@ -204,9 +203,7 @@ def traces_sampler(sampling_context):
 
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
-        "spans.process.process_message": options.get(
-            "standalone-spans.profile-process-messages.rate"
-        )
+        "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
     if "transaction_context" in sampling_context:
         transaction_name = sampling_context["transaction_context"].get("name")
@@ -239,12 +236,15 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         num_of_spans = len(event["spans"])
 
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
-    if not event["measurements"]:
-        event["measurements"] = {}
-    event["measurements"]["num_of_spans"] = {
-        "value": num_of_spans,
-        "unit": None,
-    }
+
+    # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
+    data = typing.cast(
+        dict[str, object],
+        event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {}),
+    )
+    data["num_of_spans"] = num_of_spans
+
     return event
 
 
@@ -255,6 +255,12 @@ def before_send(event: Event, _: Hint) -> Event | None:
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
     return event
+
+
+def before_send_log(log: Log, _: Hint) -> Log | None:
+    if in_random_rollout("ourlogs.sentry-emit-rollout"):
+        return log
+    return None
 
 
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
@@ -279,6 +285,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
+    sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -287,6 +294,8 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
+        before_send_log=before_send_log,
+        enable_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -328,9 +337,10 @@ def configure_sdk():
         sentry_saas_transport = None
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            continuous_profiling_auto_start=True,
+        sdk_options["profile_session_sample_rate"] = float(
+            settings.SENTRY_PROFILES_SAMPLE_RATE or 0
         )
+        sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
@@ -475,10 +485,10 @@ def configure_sdk():
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set
             # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None),
+            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )
@@ -496,7 +506,7 @@ def check_tag_for_scope_bleed(
     # force the string version to prevent false positives
     expected_value = str(expected_value)
 
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     current_value = scope._tags.get(tag_key)
 
@@ -572,7 +582,7 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
-    scope = sentry_sdk.Scope.get_current_scope()
+    scope = sentry_sdk.get_current_scope()
     transaction_from_request = get_transaction_name_from_request(request)
 
     if (
@@ -617,7 +627,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.start_span(op="other", name="bind_organization_context"):
@@ -666,7 +676,7 @@ def bind_ambiguous_org_context(
             f"... ({len(orgs) - (_AMBIGUOUS_ORG_CUTOFF - 1)} more)"
         ]
 
-    scope = Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     # It's possible we've already set the org context with one of the orgs in our list,
     # somewhere we could narrow it down to one org. In that case, we don't want to overwrite
@@ -687,13 +697,10 @@ def bind_ambiguous_org_context(
     )
 
 
-def set_measurement(measurement_name, value, unit=None):
-    try:
-        transaction = sentry_sdk.Scope.get_current_scope().transaction
-        if transaction is not None:
-            transaction.set_measurement(measurement_name, value, unit)
-    except Exception:
-        pass
+def set_span_attribute(data_name, value):
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(
@@ -732,6 +739,5 @@ __all__ = (
     "patch_transport_for_instrumentation",
     "isolation_scope",
     "set_current_event_project",
-    "set_measurement",
     "traces_sampler",
 )

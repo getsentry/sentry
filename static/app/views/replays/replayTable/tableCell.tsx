@@ -5,21 +5,21 @@ import type {Location} from 'history';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
-import PlatformIcon from 'sentry/components/replays/platformIcon';
+import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   IconCalendar,
   IconCursorArrow,
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconNot,
   IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -27,7 +27,6 @@ import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -35,6 +34,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -54,10 +54,12 @@ function generateAction({
   value,
   edit,
   location,
+  navigate,
 }: {
   edit: EditType;
   key: string;
   location: Location<ReplayListLocationQuery>;
+  navigate: ReturnType<typeof useNavigate>;
   value: string;
 }) {
   const search = new MutableSearch(decodeScalar(location.query.query) || '');
@@ -66,7 +68,7 @@ function generateAction({
     edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
 
   const onAction = () => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -88,6 +90,8 @@ function OSBrowserDropdownFilter({
   version: string | null;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
+  const navigate = useNavigate();
+
   return (
     <DropdownMenu
       items={[
@@ -108,6 +112,7 @@ function OSBrowserDropdownFilter({
                       value: name ?? '',
                       edit: 'set',
                       location,
+                      navigate,
                     }),
                   },
                   {
@@ -118,6 +123,7 @@ function OSBrowserDropdownFilter({
                       value: name ?? '',
                       edit: 'remove',
                       location,
+                      navigate,
                     }),
                   },
                 ],
@@ -141,6 +147,7 @@ function OSBrowserDropdownFilter({
                       value: version ?? '',
                       edit: 'set',
                       location,
+                      navigate,
                     }),
                   },
                   {
@@ -151,6 +158,7 @@ function OSBrowserDropdownFilter({
                       value: version ?? '',
                       edit: 'remove',
                       location,
+                      navigate,
                     }),
                   },
                 ],
@@ -193,6 +201,8 @@ function NumericDropdownFilter({
   triggerOverlay?: boolean;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
+  const navigate = useNavigate();
+
   return (
     <DropdownMenu
       items={[
@@ -204,6 +214,7 @@ function NumericDropdownFilter({
             value: formatter(val),
             edit: 'set',
             location,
+            navigate,
           }),
         },
         {
@@ -214,6 +225,7 @@ function NumericDropdownFilter({
             value: '>' + formatter(val),
             edit: 'set',
             location,
+            navigate,
           }),
         },
         {
@@ -224,6 +236,7 @@ function NumericDropdownFilter({
             value: '<' + formatter(val),
             edit: 'set',
             location,
+            navigate,
           }),
         },
         {
@@ -234,6 +247,7 @@ function NumericDropdownFilter({
             value: formatter(val),
             edit: 'remove',
             location,
+            navigate,
           }),
         },
       ]}
@@ -304,6 +318,9 @@ export function ReplayCell({
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
+
+  const location = useLocation();
+  const isIssuesReplayList = location.pathname.includes('issues');
 
   const replayDetailsPathname = makeReplaysPathname({
     path: `/${replay.id}/`,
@@ -390,13 +407,21 @@ export function ReplayCell({
             {replay.is_archived ? (
               replay.user.display_name || t('Anonymous User')
             ) : (
-              <MainLink
-                to={detailsTab()}
+              <DisplayNameLink
+                to={
+                  isIssuesReplayList
+                    ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
+                      {
+                        pathname: location.pathname,
+                        query: location.query,
+                      }
+                    : detailsTab()
+                }
                 onClick={trackNavigationEvent}
                 data-has-viewed={replay.has_viewed}
               >
                 {replay.user.display_name || t('Anonymous User')}
-              </MainLink>
+              </DisplayNameLink>
             )}
           </Row>
           <Row gap={0.5}>{subText}</Row>
@@ -428,7 +453,7 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
   ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : '')}
 `;
 
-const MainLink = styled(Link)`
+const DisplayNameLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
@@ -454,6 +479,7 @@ export function TransactionCell({
   replay,
 }: Props & {organization: Organization}) {
   const location = useLocation();
+  const theme = useTheme();
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -466,7 +492,7 @@ export function TransactionCell({
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location},
+          {organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>
@@ -475,7 +501,7 @@ export function TransactionCell({
 }
 
 export function OSCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.os ?? {};
+  const {name, version} = replay.os;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
@@ -486,7 +512,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -502,18 +528,27 @@ export function OSCell({replay, showDropdownFilters}: Props) {
 }
 
 export function BrowserCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.browser ?? {};
+  const {name, version} = replay.browser;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
   }
+
+  if (name === null && version === null) {
+    return (
+      <Item>
+        {/* <Tag icon={<IconNot />} /> */}
+        <IconNot size="xs" color="gray300" />
+      </Item>
+    );
+  }
   return (
     <Item>
       <Container>
         <Tooltip title={`${name} ${version}`}>
-          <PlatformIcon
+          <ReplayPlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -624,10 +659,12 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
 }
 
 export function ActivityCell({replay, showDropdownFilters}: Props) {
+  const theme = useTheme();
   if (replay.is_archived) {
     return <Item isArchived />;
   }
-  const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
+  const colors = theme.chart.getColorPalette(0);
+  const scoreBarPalette = new Array(10).fill([colors[0]]);
   return (
     <Item>
       <Container>

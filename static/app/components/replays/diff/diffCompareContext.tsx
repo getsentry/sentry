@@ -22,7 +22,7 @@ type ContextType = {
   setRightOffsetMs: Dispatch<SetStateAction<number>>;
 };
 
-const context = createContext<ContextType>({
+const Context = createContext<ContextType>({
   frameOrEvent: {} as Event,
   replay: ReplayReader.factory({
     attachments: [],
@@ -39,7 +39,7 @@ const context = createContext<ContextType>({
 });
 
 export function useDiffCompareContext() {
-  return useContext(context);
+  return useContext(Context);
 }
 
 interface Props {
@@ -65,7 +65,7 @@ export function DiffCompareContextProvider({
   const rightTimestampMs = startTimestampMs + rightOffsetMs;
 
   return (
-    <context.Provider
+    <Context
       value={{
         frameOrEvent,
         leftOffsetMs,
@@ -78,6 +78,6 @@ export function DiffCompareContextProvider({
       }}
     >
       {children}
-    </context.Provider>
+    </Context>
   );
 }

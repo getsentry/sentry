@@ -16,8 +16,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
@@ -35,6 +36,7 @@ import {
   type DocsParams,
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
@@ -58,9 +60,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -260,7 +265,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }
 
   return (
-    <Fragment>
+    <PerformanceOnboardingContainer>
       {noPerformanceSupport && (
         <UnsupportedAlert projectSlug={project.slug} featureName="Performance" />
       )}
@@ -302,9 +307,13 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
           )}
         </FeatureTourModal>
       </LegacyOnboardingPanel>
-    </Fragment>
+    </PerformanceOnboardingContainer>
   );
 }
+
+const PerformanceOnboardingContainer = styled('div')`
+  grid-column: 1/-1;
+`;
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -475,9 +484,12 @@ function OnboardingPanel({
 
 export function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
+  const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -489,6 +501,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
     projSlug: project.slug,
     productType: 'performance',
   });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
 
   const doesNotSupportPerformance = project.platform
     ? withoutPerformanceSupport.has(project.platform)
@@ -595,8 +610,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
     isProfilingSelected: false,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     newOrg: false,
@@ -623,14 +638,27 @@ export function Onboarding({organization, project}: OnboardingProps) {
         setReceived(true);
       }}
     >
-      {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      {({firstIssue}) =>
+        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
+      }
     </EventWaiter>
   );
 
   return (
     <OnboardingPanel project={project}>
       <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
-      <GuidedSteps>
+      <GuidedSteps
+        initialStep={decodeInteger(location.query.guidedStep)}
+        onStepChange={step => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              guidedStep: step,
+            },
+          });
+        }}
+      >
         <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
           <div>
             <div>
@@ -709,14 +737,36 @@ export function Onboarding({organization, project}: OnboardingProps) {
             </div>
             <GuidedSteps.ButtonWrapper>
               <GuidedSteps.BackButton size="md" />
-              <SampleButton
-                triggerText={t('Take me to an example')}
-                loadingMessage={t('Processing sample trace...')}
-                errorMessage={t('Failed to create sample trace')}
-                organization={organization}
-                project={project}
-                api={api}
-              />
+              {received ? (
+                <Button
+                  priority="primary"
+                  onClick={() => {
+                    navigate(
+                      {
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          guidedStep: undefined,
+                          table: Tab.TRACE,
+                        },
+                      },
+                      {replace: true}
+                    );
+                    window.location.reload();
+                  }}
+                >
+                  {t('Take me to traces')}
+                </Button>
+              ) : isEAPTraceEnabled ? null : (
+                <SampleButton
+                  triggerText={t('Take me to an example')}
+                  loadingMessage={t('Processing sample trace...')}
+                  errorMessage={t('Failed to create sample trace')}
+                  organization={organization}
+                  project={project}
+                  api={api}
+                />
+              )}
             </GuidedSteps.ButtonWrapper>
           </GuidedSteps.Step>
         ) : (

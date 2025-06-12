@@ -15,7 +15,7 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.snuba import discover, errors, spans_eap, transactions
+from sentry.snuba import discover, errors, spans_rpc, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
@@ -527,7 +527,7 @@ class UnfurlTest(TestCase):
             link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == spans_eap
+        assert dataset == spans_rpc
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):

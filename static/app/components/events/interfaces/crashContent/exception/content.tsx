@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
@@ -11,7 +12,6 @@ import {
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
@@ -29,16 +29,16 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
+  newestFirst: boolean;
   projectSlug: Project['slug'];
   type: StackType;
+  values: ExceptionType['values'];
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
-} & Pick<ExceptionType, 'values'> &
-  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
+} & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
-type CollapsedExceptionMap = {[exceptionId: number]: boolean};
+type CollapsedExceptionMap = Record<number, boolean>;
 
 const useCollapsedExceptions = (values?: ExceptionValue[]) => {
   const [collapsedExceptions, setCollapsedSections] = useState<CollapsedExceptionMap>(

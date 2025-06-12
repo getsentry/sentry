@@ -23,6 +23,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
   const openIssueActivityDrawer = useCallback(() => {
     openDrawer(() => <ActivityDrawer group={group} project={project} />, {
       ariaLabel: t('Issue Activity'),
+      drawerKey: 'issue-activity-drawer',
       shouldCloseOnInteractOutside: () => false,
       onClose: () => {
         navigate(
@@ -33,11 +34,11 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
               filter: undefined,
             },
           },
-          {replace: true}
+          {preventScrollReset: true}
         );
       },
       shouldCloseOnLocationChange: newLocation => {
-        return !newLocation.pathname.includes('/activity/');
+        return !newLocation.pathname.includes('/activity');
       },
     });
   }, [openDrawer, baseUrl, navigate, location.query, group, project]);

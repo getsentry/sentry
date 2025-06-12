@@ -3,18 +3,16 @@ import styled from '@emotion/styled';
 import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
-
-import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
 interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
   desynced: boolean;
   environments: string[];
   ready: boolean;
   value: string[];
-  ref?: React.Ref<HTMLButtonElement>;
 }
 
 export function EnvironmentPageFilterTrigger({
@@ -22,7 +20,6 @@ export function EnvironmentPageFilterTrigger({
   environments,
   ready,
   desynced,
-  ref: forwardedRef,
   ...props
 }: EnvironmentPageFilterTriggerProps) {
   const isAllEnvironmentsSelected =
@@ -42,11 +39,7 @@ export function EnvironmentPageFilterTrigger({
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
 
   return (
-    <DropdownButton
-      {...props}
-      ref={forwardedRef}
-      data-test-id="page-filter-environment-selector"
-    >
+    <DropdownButton {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}

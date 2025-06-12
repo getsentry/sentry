@@ -4,9 +4,10 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   createablePlatforms,
@@ -50,6 +51,7 @@ interface PlatformPickerProps {
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
+  loading?: boolean;
   modal?: boolean;
   navClassName?: string;
   noAutoFilter?: boolean;
@@ -79,6 +81,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     category: this.props.defaultCategory ?? categoryList[0]!.id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
+
+  componentDidUpdate(prevProps: Readonly<PlatformPickerProps>): void {
+    if (this.props.defaultCategory !== prevProps.defaultCategory) {
+      this.setState({category: this.props.defaultCategory ?? categoryList[0]!.id});
+    }
+  }
 
   get platformList() {
     const {category} = this.state;
@@ -156,6 +164,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       listProps,
       listClassName,
       navClassName,
+      loading = false,
       showFilterBar = true,
     } = this.props;
     const {filter, category} = this.state;
@@ -194,25 +203,27 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
         <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => {
             return (
-              <PlatformCard
-                visibleSelection={this.props.visibleSelection}
-                data-test-id={`platform-${platform.id}`}
-                key={platform.id}
-                platform={platform}
-                selected={this.props.platform === platform.id}
-                onClear={(e: React.MouseEvent) => {
-                  setPlatform(null);
-                  e.stopPropagation();
-                }}
-                onClick={() => {
-                  trackAnalytics('growth.select_platform', {
-                    platform_id: platform.id,
-                    source: this.props.source,
-                    organization: this.props.organization ?? null,
-                  });
-                  setPlatform({...platform, category});
-                }}
-              />
+              <div key={platform.id} style={{position: 'relative'}}>
+                <TransparentLoadingMask visible={loading} />
+                <PlatformCard
+                  visibleSelection={this.props.visibleSelection}
+                  data-test-id={`platform-${platform.id}`}
+                  platform={platform}
+                  selected={this.props.platform === platform.id}
+                  onClear={(e: React.MouseEvent) => {
+                    setPlatform(null);
+                    e.stopPropagation();
+                  }}
+                  onClick={() => {
+                    trackAnalytics('growth.select_platform', {
+                      platform_id: platform.id,
+                      source: this.props.source,
+                      organization: this.props.organization ?? null,
+                    });
+                    setPlatform({...platform, category});
+                  }}
+                />
+              </div>
             );
           })}
         </PlatformList>
@@ -272,7 +283,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -289,6 +300,12 @@ const ClearButton = styled(Button)`
   border-radius: 50%;
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
+`;
+
+const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
+  ${p => !p.visible && 'display: none;'};
+  opacity: 0.4;
+  z-index: 1;
 `;
 
 const PlatformCard = styled(
@@ -320,7 +337,7 @@ const PlatformCard = styled(
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  cursor: pointer;
+  cursor: ${p => (p.loading ? 'default' : 'pointer')};
 
   ${p =>
     p.selected &&

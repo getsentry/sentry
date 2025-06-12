@@ -9,7 +9,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledMemberView', function () {
   it('click triggers request member', async function () {
-    const {router, routerProps} = initializeOrg();
+    const {routerProps} = initializeOrg();
     const organization = OrganizationFixture();
     const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
@@ -20,7 +20,12 @@ describe('DisabledMemberView', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/?detailed=0&include_feature_flags=1`,
+      url: `/organizations/${organization.slug}/`,
+      method: 'GET',
+      query: {
+        detailed: '0',
+        include_feature_flags: '1',
+      },
       body: organization,
     });
 
@@ -29,11 +34,10 @@ describe('DisabledMemberView', function () {
       method: 'POST',
     });
 
-    render(<DisabledMemberView {...routerProps} params={{orgId: organization.slug}} />, {
-      router,
-    });
+    render(<DisabledMemberView {...routerProps} params={{orgId: organization.slug}} />);
 
-    await userEvent.click(await screen.findByText('Request Upgrade'));
+    await screen.findByText('Request Upgrade');
+    await userEvent.click(screen.getByText('Request Upgrade'));
     expect(requestMock).toHaveBeenCalled();
   });
 });

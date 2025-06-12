@@ -8,8 +8,6 @@ import threading
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from django.http.request import HttpRequest
-
 from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
@@ -33,12 +31,11 @@ def resolve_callable[CallableT: Callable[..., object]](value: str | CallableT) -
 
 
 class Context:
-    def __init__(self, request: HttpRequest | None, backends: dict[type[Service | None], Service]):
-        self.request = request
+    def __init__(self, backends: dict[type[Service | None], Service]):
         self.backends = backends
 
     def copy(self) -> Context:
-        return Context(self.request, self.backends.copy())
+        return Context(self.backends.copy())
 
 
 Selector = Callable[
@@ -171,9 +168,7 @@ class Delegator:
             # state, we are entering the delegator for the first time and need
             # to create a new context.
             if context is None:
-                from sentry.app import env  # avoids a circular import
-
-                context = Context(env.request, {})
+                context = Context({})
 
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.

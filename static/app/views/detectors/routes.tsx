@@ -11,7 +11,7 @@ export const detectorRoutes = (
         component={make(() => import('sentry/views/detectors/new-settings'))}
       />
     </Route>
-    <Route path=":monitorId/">
+    <Route path=":detectorId/">
       <IndexRoute component={make(() => import('sentry/views/detectors/detail'))} />
       <Route path="edit/" component={make(() => import('sentry/views/detectors/edit'))} />
     </Route>

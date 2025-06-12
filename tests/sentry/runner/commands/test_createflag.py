@@ -1,6 +1,8 @@
+from datetime import date
+
 from flagpole import Feature
-from flagpole.conditions import ConditionOperatorKind
-from sentry.runner.commands.createflag import createflag
+from flagpole.conditions import ConditionOperatorKind, EqualsCondition, InCondition, Segment
+from sentry.runner.commands.createflag import createflag, createissueflag
 from sentry.testutils.cases import CliTestCase
 
 
@@ -30,12 +32,13 @@ class TestCreateFlag(CliTestCase):
         assert parsed_feature.owner == "Test Owner"
 
     def test_no_conditions_in_segment(self):
-        cli_input = ["y", "New segment", "50", "n"]
+        cli_input = ["y", "New segment", "50", "n", "n"]
         rv = self.invoke(
             "--name=new flag",
             "--scope=organizations",
             "--owner=Test Owner",
             input="\n".join(cli_input),
+            catch_exceptions=False,
         )
         assert rv.exit_code == 0
         parsed_feature = self.convert_output_to_feature(rv.output)
@@ -88,3 +91,142 @@ class TestCreateFlag(CliTestCase):
 
             assert condition.property == condition_tuple[0]
             assert condition.operator == condition_tuple[1]
+
+
+class TestCreateIssueFlag(CliTestCase):
+    command = createissueflag
+
+    def convert_output_to_features(self, output: str) -> list[Feature]:
+        split_output = output.split("=== GENERATED YAML ===\n")
+        assert len(split_output) == 2
+        return Feature.from_bulk_yaml(split_output[1])
+
+    def test_invalid_slug(self):
+        rv = self.invoke(
+            "--slug=bad",
+            "--owner=Test Owner",
+        )
+        assert rv.output.startswith("Error: Invalid GroupType slug. Valid grouptypes:")
+
+    def test_valid_slug(self):
+        rv = self.invoke(
+            "--slug=uptime_domain_failure",
+            "--owner=Test Owner",
+        )
+        assert rv.exit_code == 0, rv.output
+        assert self.convert_output_to_features(rv.output) == [
+            Feature(
+                name="feature.organizations:issue-uptime-domain-failure-visible",
+                owner="Test Owner",
+                enabled=True,
+                segments=[
+                    Segment(
+                        name="LA",
+                        conditions=[
+                            InCondition(
+                                property="organization_slug",
+                                value=[
+                                    "sentry",
+                                    "codecov",
+                                    "sentry",
+                                    "sentry-eu",
+                                    "sentry-sdks",
+                                    "sentry-st",
+                                ],
+                                operator="in",
+                            )
+                        ],
+                        rollout=0,
+                    ),
+                    Segment(
+                        name="EA",
+                        conditions=[
+                            EqualsCondition(
+                                property="organization_is-early-adopter",
+                                value=True,
+                                operator="equals",
+                            )
+                        ],
+                        rollout=0,
+                    ),
+                    Segment(name="GA", conditions=[], rollout=0),
+                ],
+                created_at=date.today().isoformat(),
+            ),
+            Feature(
+                name="feature.organizations:issue-uptime-domain-failure-ingest",
+                owner="Test Owner",
+                enabled=True,
+                segments=[
+                    Segment(
+                        name="LA",
+                        conditions=[
+                            InCondition(
+                                property="organization_slug",
+                                value=[
+                                    "sentry",
+                                    "codecov",
+                                    "sentry",
+                                    "sentry-eu",
+                                    "sentry-sdks",
+                                    "sentry-st",
+                                ],
+                                operator="in",
+                            )
+                        ],
+                        rollout=0,
+                    ),
+                    Segment(
+                        name="EA",
+                        conditions=[
+                            EqualsCondition(
+                                property="organization_is-early-adopter",
+                                value=True,
+                                operator="equals",
+                            )
+                        ],
+                        rollout=0,
+                    ),
+                    Segment(name="GA", conditions=[], rollout=0),
+                ],
+                created_at=date.today().isoformat(),
+            ),
+            Feature(
+                name="feature.organizations:issue-uptime-domain-failure-post-process-group",
+                owner="Test Owner",
+                enabled=True,
+                segments=[
+                    Segment(
+                        name="LA",
+                        conditions=[
+                            InCondition(
+                                property="organization_slug",
+                                value=[
+                                    "sentry",
+                                    "codecov",
+                                    "sentry",
+                                    "sentry-eu",
+                                    "sentry-sdks",
+                                    "sentry-st",
+                                ],
+                                operator="in",
+                            )
+                        ],
+                        rollout=0,
+                    ),
+                    Segment(
+                        name="EA",
+                        conditions=[
+                            EqualsCondition(
+                                property="organization_is-early-adopter",
+                                value=True,
+                                operator="equals",
+                            )
+                        ],
+                        rollout=0,
+                    ),
+                    Segment(name="GA", conditions=[], rollout=0),
+                ],
+                created_at=date.today().isoformat(),
+            ),
+        ]

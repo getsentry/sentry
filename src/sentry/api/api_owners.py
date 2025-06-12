@@ -9,6 +9,7 @@ class ApiOwner(Enum):
 
     ALERTS_NOTIFICATIONS = "alerts-notifications"
     BILLING = "revenue"
+    CODECOV = "codecov"
     CRONS = "crons"
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"
@@ -16,7 +17,7 @@ class ApiOwner(Enum):
     FLAG = "replay-backend"
     HYBRID_CLOUD = "hybrid-cloud"
     INTEGRATIONS = "product-owners-settings-integrations"
-    ISSUES = "issues"
+    ISSUES = "issue-workflow"
     ML_AI = "machine-learning-ai"
     OWNERS_INGEST = "ingest"
     OWNERS_SNUBA = "owners-snuba"
@@ -28,3 +29,4 @@ class ApiOwner(Enum):
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
     GDX = "gdx"
+    EMERGE_TOOLS = "emerge-tools"

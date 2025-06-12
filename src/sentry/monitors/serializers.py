@@ -159,6 +159,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
+    isUpserting: bool
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
@@ -245,6 +246,7 @@ class MonitorSerializer(Serializer):
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
+            "isUpserting": obj.is_upserting,
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
@@ -274,8 +276,12 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     id: str
     environment: str
     status: str
-    duration: int
+    duration: int | None
     dateCreated: datetime
+    dateAdded: datetime
+    dateUpdated: datetime
+    dateInProgress: datetime | None
+    dateClock: datetime
     expectedTime: datetime
     monitorConfig: MonitorConfigSerializerResponse
 
@@ -341,7 +347,11 @@ class MonitorCheckInSerializer(Serializer):
             "environment": attrs["environment_name"],
             "status": obj.get_status_display(),
             "duration": obj.duration,
-            "dateCreated": obj.date_added,
+            "dateCreated": obj.date_created,
+            "dateAdded": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "dateClock": obj.date_clock,
+            "dateInProgress": obj.date_in_progress,
             "expectedTime": obj.expected_time,
             "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }

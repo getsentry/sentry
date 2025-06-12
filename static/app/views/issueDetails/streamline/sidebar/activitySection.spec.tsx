@@ -35,7 +35,6 @@ describe('StreamlinedActivitySection', function () {
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
         user,
-        project,
       },
     ],
     project,
@@ -46,6 +45,7 @@ describe('StreamlinedActivitySection', function () {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    localStorage.clear();
   });
 
   it('renders the input with a comment button', async function () {
@@ -143,7 +143,6 @@ describe('StreamlinedActivitySection', function () {
           data: {text: 'Group Test'},
           dateCreated: '2020-01-01T00:00:00',
           user,
-          project,
         },
       ],
       project,
@@ -190,7 +189,6 @@ describe('StreamlinedActivitySection', function () {
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
           user: UserFixture({id: '2'}),
-          project,
         },
       ],
       project,
@@ -275,7 +273,6 @@ describe('StreamlinedActivitySection', function () {
       data: {text: 'Resolved'},
       dateCreated: '2020-01-01T00:00:00',
       user,
-      project,
     });
 
     const updatedActivityGroup = GroupFixture({

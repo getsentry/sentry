@@ -173,7 +173,7 @@ function hasProfile(event: Event) {
  * Function to determine if an event has source maps
  * by ensuring that every inApp frame has a valid sourcemap
  */
-export function eventHasSourceMaps(event: Event) {
+function eventHasSourceMaps(event: Event) {
   const inAppFrames = getExceptionFrames(event, true);
 
   // the map field tells us if it's sourcemapped
@@ -185,7 +185,7 @@ export function eventHasSourceMaps(event: Event) {
  * goes through symbolicator and has in-app frames, it looks for at least one in-app frame
  * to be successfully symbolicated. Otherwise falls back to checking for `rawStacktrace` field presence.
  */
-export function eventIsSymbolicated(event: Event) {
+function eventIsSymbolicated(event: Event) {
   const frames = getAllFrames(event, false);
   const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
 
@@ -221,7 +221,7 @@ export function eventIsSymbolicated(event: Event) {
 /**
  * Function to determine if an event has source context
  */
-export function eventHasSourceContext(event: Event) {
+function eventHasSourceContext(event: Event) {
   const frames = getAllFrames(event, false);
 
   return frames.some(frame => defined(frame.context) && !!frame.context.length);
@@ -230,7 +230,7 @@ export function eventHasSourceContext(event: Event) {
 /**
  * Function to determine if an event has local variables
  */
-export function eventHasLocalVariables(event: Event) {
+function eventHasLocalVariables(event: Event) {
   const frames = getAllFrames(event, false);
 
   return frames.some(frame => defined(frame.vars));
@@ -239,7 +239,7 @@ export function eventHasLocalVariables(event: Event) {
 /**
  * Function to get status about how many frames have source maps
  */
-export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
+function getFrameBreakdownOfSourcemaps(event?: Event | null) {
   if (!event) {
     // return undefined if there is no event
     return {};
@@ -271,7 +271,7 @@ function getExceptionFrames(event: Event, inAppOnly: boolean) {
 /**
  * Returns all entries of type 'exception' of this event
  */
-export function getExceptionEntries(event: Event) {
+function getExceptionEntries(event: Event) {
   return (event.entries?.filter(entry => entry.type === EntryType.EXCEPTION) ||
     []) as EntryException[];
 }
@@ -346,14 +346,14 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
-export function eventHasExceptionGroup(event: Event) {
+function eventHasExceptionGroup(event: Event) {
   const exceptionEntries = getExceptionEntries(event);
   return exceptionEntries.some(entry =>
     entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
   );
 }
 
-export function eventExceptionGroupHeight(event: Event) {
+function eventExceptionGroupHeight(event: Event) {
   try {
     const exceptionEntry = getExceptionEntries(event)[0];
 
@@ -368,7 +368,7 @@ export function eventExceptionGroupHeight(event: Event) {
   }
 }
 
-export function eventExceptionGroupWidth(event: Event) {
+function eventExceptionGroupWidth(event: Event) {
   try {
     const exceptionEntry = getExceptionEntries(event)[0];
 
@@ -383,7 +383,7 @@ export function eventExceptionGroupWidth(event: Event) {
   }
 }
 
-export function eventHasGraphQlRequest(event: Event) {
+function eventHasGraphQlRequest(event: Event) {
   const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
     | EntryRequest
     | undefined;

@@ -29,8 +29,8 @@ from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.spans.utils import translate_internal_to_public_alias
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
@@ -41,7 +41,7 @@ from sentry.utils import snuba_rpc
 
 
 def as_tag_key(name: str, type: Literal["string", "number"]):
-    key = translate_internal_to_public_alias(name, type)
+    key = translate_internal_to_public_alias(name, type, SupportedTraceItemType.SPANS)
 
     if key is not None:
         name = key

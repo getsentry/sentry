@@ -28,13 +28,14 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
+import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
 
 export type PlanContent = {
   description: React.ReactNode;
-  features: {[key: string]: React.ReactNode};
+  features: Record<string, React.ReactNode>;
   hasMoreLink?: boolean;
 };
 
@@ -134,7 +135,6 @@ function PlanSelect({
   onCompleteStep,
 }: StepProps) {
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
-
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
@@ -230,6 +230,7 @@ function PlanSelect({
                   : undefined
               }
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
+              shouldShowEventPrice
             />
           );
         })}
@@ -328,6 +329,9 @@ function PlanSelect({
         organization={organization}
       />
       {isActive && renderBody()}
+      {isActive && (
+        <ProductSelect activePlan={activePlan} formData={formData} onUpdate={onUpdate} />
+      )}
       {isActive && renderFooter()}
     </Panel>
   );

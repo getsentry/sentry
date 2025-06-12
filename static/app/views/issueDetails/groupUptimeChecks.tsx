@@ -9,11 +9,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGrid';
 import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
+import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useUptimeIssueAlertId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-
-import {useUptimeRule} from '../insights/uptime/utils/useUptimeRule';
 
 export default function GroupUptimeChecks() {
   const organization = useOrganization();

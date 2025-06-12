@@ -19,7 +19,7 @@ const OPEN_STYLES = {
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
-  left: {opacity: 0, x: -200, y: 0},
+  left: {opacity: 0, x: '-100%', y: 0},
 };
 
 type SlideOverPanelProps = {
@@ -90,12 +90,10 @@ const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
-})<
-  {
-    panelWidth?: string;
-    slidePosition?: 'right' | 'bottom' | 'left';
-  } & React.HTMLAttributes<HTMLDivElement>
->`
+})<{
+  panelWidth?: string;
+  slidePosition?: 'right' | 'bottom' | 'left';
+}>`
   position: fixed;
 
   top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};

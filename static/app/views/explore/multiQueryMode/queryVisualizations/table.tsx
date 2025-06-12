@@ -1,13 +1,13 @@
 import {Fragment, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -19,8 +19,8 @@ import {
   fieldAlignment,
   parseFunction,
   prettifyParsedFunction,
-  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBody,
@@ -84,6 +84,7 @@ function AggregatesTable({
   query: queryParts,
   index,
 }: AggregateTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const queries = useReadQueriesFromLocation();
 
@@ -105,11 +106,11 @@ function AggregatesTable({
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -240,7 +241,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {

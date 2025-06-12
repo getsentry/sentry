@@ -6,8 +6,8 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
 
 import ResultTable from 'admin/components/resultTable';
@@ -20,22 +20,14 @@ export interface BillingPlansResponse {
   not_live: string[];
 }
 
-interface Plans {
-  [planTierId: string]: PlanTier;
-}
+type Plans = Record<string, PlanTier>;
 
-interface PlanTier {
-  [planName: string]: PlanDetails;
-}
+type PlanTier = Record<string, PlanDetails>;
 
 interface PlanDetails {
-  data_categories_disabled: string[];
-  price_tiers: {
-    [dataCategory: string]: PriceTier[];
-  };
-  pricing: {
-    [platform: string]: Price;
-  };
+  data_categories_disabled: DataCategory[];
+  price_tiers: Partial<Record<DataCategory, PriceTier[]>>;
+  pricing: Record<string, Price>;
 }
 
 interface Price {
@@ -240,8 +232,9 @@ function TableOfContents({plans}: {plans: Plans}) {
                           <ul>
                             {Object.entries(planDetails.price_tiers).map(
                               ([dataCategory]) => {
-                                const dataCategoryFormatted =
-                                  formatDataCategory(dataCategory);
+                                const dataCategoryFormatted = formatDataCategory(
+                                  dataCategory as DataCategory
+                                );
                                 const dataCategoryId = `${planTypeId}-${dataCategoryFormatted}`;
                                 return (
                                   <li key={dataCategoryId}>
@@ -315,9 +308,7 @@ function PlanDetailsSection({
         <h3 id={planTypeId} style={{margin: 0}}>
           {planTierIdFormatted} {planNameFormatted} Plan
         </h3>
-        <Badge type={notLive ? 'warning' : 'new'}>
-          {notLive ? t('NOT LIVE') : t('LIVE')}
-        </Badge>
+        <Badge type={notLive ? 'warning' : 'new'}>{notLive ? 'NOT LIVE' : 'LIVE'}</Badge>
       </div>
 
       {/* Pricing Table */}
@@ -325,7 +316,9 @@ function PlanDetailsSection({
       <PricingTable pricing={planDetails.pricing} />
 
       {/* Price Tiers Tables */}
-      {Object.entries(planDetails.price_tiers).map(([dataCategory, tiers]) => (
+      {(
+        Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
+      ).map(([dataCategory, tiers]) => (
         <PriceTiersTable
           key={dataCategory}
           planTierIdFormatted={planTierIdFormatted}
@@ -340,7 +333,7 @@ function PlanDetailsSection({
   );
 }
 
-function PricingTable({pricing}: {pricing: {[platform: string]: Price}}) {
+function PricingTable({pricing}: {pricing: Record<string, Price>}) {
   return (
     <Panel>
       <StyledResultTable>
@@ -373,8 +366,8 @@ function PriceTiersTable({
   notLive,
   data_categories_disabled,
 }: {
-  dataCategory: string;
-  data_categories_disabled: string[];
+  dataCategory: DataCategory;
+  data_categories_disabled: DataCategory[];
   planNameFormatted: string;
   planTierIdFormatted: string;
   tiers: PriceTier[];
@@ -385,7 +378,7 @@ function PriceTiersTable({
 
   const disabled = data_categories_disabled.includes(dataCategory);
 
-  const badgeText = notLive ? t('NOT LIVE') : disabled ? t('DISABLED') : t('LIVE');
+  const badgeText = notLive ? 'NOT LIVE' : disabled ? 'DISABLED' : 'LIVE';
   const badgeType = notLive || disabled ? 'warning' : 'new';
 
   return (
@@ -460,7 +453,7 @@ function formatPlanName(planType: string): string {
   return planType.charAt(0).toUpperCase() + planType.slice(1);
 }
 
-function formatDataCategory(dataCategory: string): string {
+function formatDataCategory(dataCategory: DataCategory): string {
   // Capitalize the first letter of each word
   return capitalizeWords(dataCategory);
 }

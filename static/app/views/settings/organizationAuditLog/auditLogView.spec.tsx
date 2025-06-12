@@ -32,9 +32,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('renders', async function () {
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
     expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -53,17 +51,13 @@ describe('OrganizationAuditLog', function () {
       body: {rows: [], options: AuditLogsApiEventNamesFixture()},
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
@@ -79,9 +73,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     await userEvent.click(screen.getByText('Select Action:'));
 
@@ -122,9 +114,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

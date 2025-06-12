@@ -6,7 +6,7 @@ import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -16,20 +16,20 @@ import {usePerformanceUsageStats} from 'getsentry/hooks/performance/usePerforman
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-const DATE_FORMAT = 'MMM DD, YYYY';
-
 // Returns the beggining of statsPeriod formatted like "Jan 1, 2022"
 // or absolute date range formatted like "Jan 1, 2022 - Jan 2, 2022"
 function getFormattedDateTime(dateTime: PageFilters['datetime']): string | null {
   const {start, end, period} = dateTime;
+  const format = getFormat({dateOnly: true, year: true});
+
   if (period) {
     const periodToHours = parsePeriodToHours(period);
     const periodStartDate = new Date(Date.now() - periodToHours * 60 * 60 * 1000);
-    return getFormattedDate(periodStartDate, DATE_FORMAT);
+    return getFormattedDate(periodStartDate, format);
   }
 
   if (start && end) {
-    return `${getFormattedDate(new Date(start), DATE_FORMAT)} - ${getFormattedDate(new Date(end), DATE_FORMAT)}`;
+    return `${getFormattedDate(new Date(start), format)} - ${getFormattedDate(new Date(end), format)}`;
   }
 
   return null;
@@ -84,21 +84,14 @@ function useQuotaExceededAlertMessage(
 
   if (!formattedDateRange) {
     return subscription?.onDemandBudgets?.enabled
-      ? ['am1', 'am2'].includes(subscription.planTier)
-        ? tct(
-            'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your on-demand budget].',
-            {
-              periodRenewalDate,
-              billingPageLink,
-            }
-          )
-        : tct(
-            'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your pay-as-you-go budget].',
-            {
-              periodRenewalDate,
-              billingPageLink,
-            }
-          )
+      ? tct(
+          'You’ve exceeded your [budgetType] budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your [budgetType] budget].',
+          {
+            budgetType: subscription.planDetails.budgetTerm,
+            periodRenewalDate,
+            billingPageLink,
+          }
+        )
       : tct(
           'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].',
           {
@@ -110,49 +103,30 @@ function useQuotaExceededAlertMessage(
 
   const {period} = selection.datetime;
   return subscription?.onDemandBudgets?.enabled
-    ? ['am1', 'am2'].includes(subscription.planTier)
-      ? tct(
-          'You’ve exceeded your on-demand budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
-          {
-            periodRenewalDate,
-            rest: period
-              ? tct(
-                  'If you need more, [billingPageLink: increase your on-demand budget] or adjust your date range prior to [formattedDateRange].',
-                  {
-                    billingPageLink,
-                    formattedDateRange,
-                  }
-                )
-              : tct(
-                  'If you need more, [billingPageLink: increase your on-demand budget] or adjust your date range before or after [formattedDateRange].',
-                  {
-                    billingPageLink,
-                    formattedDateRange,
-                  }
-                ),
-          }
-        )
-      : tct(
-          'You’ve exceeded your pay-as-you-go budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
-          {
-            periodRenewalDate,
-            rest: period
-              ? tct(
-                  'If you need more, [billingPageLink: increase your pay-as-you-go budget] or adjust your date range prior to [formattedDateRange].',
-                  {
-                    billingPageLink,
-                    formattedDateRange,
-                  }
-                )
-              : tct(
-                  'If you need more, [billingPageLink: increase your pay-as-you-go budget] or adjust your date range before or after [formattedDateRange].',
-                  {
-                    billingPageLink,
-                    formattedDateRange,
-                  }
-                ),
-          }
-        )
+    ? tct(
+        'You’ve exceeded your [budgetType] budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
+        {
+          budgetType: subscription.planDetails.budgetTerm,
+          periodRenewalDate,
+          rest: period
+            ? tct(
+                'If you need more, [billingPageLink: increase your [budgetType] budget] or adjust your date range prior to [formattedDateRange].',
+                {
+                  billingPageLink,
+                  budgetType: subscription.planDetails.budgetTerm,
+                  formattedDateRange,
+                }
+              )
+            : tct(
+                'If you need more, [billingPageLink: increase your [budgetType] budget] or adjust your date range before or after [formattedDateRange].',
+                {
+                  billingPageLink,
+                  budgetType: subscription.planDetails.budgetTerm,
+                  formattedDateRange,
+                }
+              ),
+        }
+      )
     : tct(
         'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
         {

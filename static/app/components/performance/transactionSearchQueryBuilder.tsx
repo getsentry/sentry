@@ -140,6 +140,7 @@ export function TransactionSearchQueryBuilder({
       recentSearches={SavedSearchType.EVENT}
       filterKeyMenuWidth={filterKeyMenuWidth}
       trailingItems={trailingItems}
+      searchOnChange={organization.features.includes('ui-search-on-change')}
     />
   );
 }

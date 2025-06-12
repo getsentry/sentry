@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 
-export function useRovingTabIndex(items: any[]) {
+function useRovingTabIndex(items: any[]) {
   const [tabIndex, setTabIndex] = useState<number | null>(null);
 
   const onKeyDown = useCallback(

@@ -18,9 +18,15 @@ import type {
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
-
-import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
-import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
+import {
+  getReleaseBounds,
+  getReleaseParams,
+  isMobileRelease,
+} from 'sentry/views/releases/utils';
+import {
+  commonTermsDescription,
+  SessionTerm,
+} from 'sentry/views/releases/utils/sessionTerm';
 
 type CommitsByRepository = Record<string, Commit[]>;
 

@@ -1,14 +1,17 @@
 import {
   BannerWrapper,
   FeatureFlagCTAContent,
-} from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
-import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
+} from 'sentry/components/events/featureFlags/cta/featureFlagInlineCTA';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
 import {useDrawerContentContext} from 'sentry/components/globalDrawer/components';
+import type {PlatformKey} from 'sentry/types/project';
 
-export default function FlagDrawerCTA() {
-  const {activateSidebar} = useFeatureFlagOnboarding({
-    analyticsSurface: 'issue_details.flags_drawer',
-  });
+export default function FlagDrawerCTA({
+  projectPlatform,
+}: {
+  projectPlatform?: PlatformKey;
+}) {
+  const {activateSidebar} = useFeatureFlagOnboarding({projectPlatform});
   const {onClose: closeDrawer} = useDrawerContentContext();
 
   function handleSetupButtonClick(e: any) {

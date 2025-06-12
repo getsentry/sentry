@@ -2,7 +2,6 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
@@ -16,7 +15,7 @@ import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
-  onFavorite: (isFavorited: boolean) => void;
+  onFavorite: (isFavorited: boolean) => Promise<void>;
   renderWidgets: () => React.ReactNode;
   title: string;
   to: LinkProps['to'];
@@ -87,30 +86,28 @@ function DashboardCard({
       </CardLink>
 
       <ContextMenuWrapper>
-        <Feature features="dashboards-favourite">
-          <StyledButton
-            icon={
-              <IconStar
-                isSolid={favorited}
-                color={favorited ? 'yellow300' : 'gray300'}
-                size="sm"
-                aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-              />
+        <StyledButton
+          icon={
+            <IconStar
+              isSolid={favorited}
+              color={favorited ? 'yellow300' : 'gray300'}
+              size="sm"
+              aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            />
+          }
+          size="zero"
+          borderless
+          aria-label={t('Dashboards Favorite')}
+          onClick={async () => {
+            try {
+              setFavorited(!favorited);
+              await onFavorite(!favorited);
+            } catch (error) {
+              // If the api call fails, revert the state
+              setFavorited(favorited);
             }
-            size="zero"
-            borderless
-            aria-label={t('Dashboards Favorite')}
-            onClick={async () => {
-              try {
-                setFavorited(!favorited);
-                await onFavorite(!favorited);
-              } catch (error) {
-                // If the api call fails, revert the state
-                setFavorited(favorited);
-              }
-            }}
-          />
-        </Feature>
+          }}
+        />
         {renderContextMenu?.()}
       </ContextMenuWrapper>
     </CardWithoutMargin>
@@ -209,6 +206,7 @@ const ContextMenuWrapper = styled('div')`
   right: ${space(2)};
   bottom: ${space(1)};
   display: flex;
+  ${p => (p.theme.isChonk ? `gap: ${space(0.5)};` : '')}
 `;
 
 const StyledButton = styled(Button)`

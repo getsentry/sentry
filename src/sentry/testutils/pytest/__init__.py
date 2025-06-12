@@ -9,4 +9,5 @@ pytest_plugins = [
     "sentry.testutils.pytest.metrics",
     "sentry.testutils.pytest.stale_database_reads",
     "sentry.testutils.pytest.json_report_reruns",
+    "sentry.testutils.pytest.show_flaky_failures",
 ]

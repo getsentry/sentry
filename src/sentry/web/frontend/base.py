@@ -234,11 +234,22 @@ class OrganizationMixin:
     def is_not_2fa_compliant(
         self, request: HttpRequest, organization: RpcOrganization | Organization
     ) -> bool:
-        return (
-            organization.flags.require_2fa
-            and (not request.user.is_authenticated or not request.user.has_2fa())
-            and not is_active_superuser(request)
-        )
+        if not organization.flags.require_2fa:
+            return False
+
+        if request.user.is_authenticated and request.user.has_2fa():
+            return False
+
+        if request.user.is_authenticated and request.user.is_sentry_app:
+            return False
+
+        if request.user.is_anonymous:
+            return False
+
+        if is_active_superuser(request):
+            return False
+
+        return True
 
     def is_member_disabled_from_limit(
         self, request: HttpRequest, organization: RpcUserOrganizationContext | RpcOrganization

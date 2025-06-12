@@ -1,6 +1,7 @@
 import secrets
 from base64 import b64decode, b64encode
 from datetime import datetime
+from typing import Any
 
 from sentry import options
 from sentry.utils import hashlib, json
@@ -13,7 +14,7 @@ class SystemUrlPrefixMissingException(Exception):
     pass
 
 
-def generate_token(org_slug: str, region_url: str):
+def generate_token(org_slug: str, region_url: str) -> str:
     sentry_url = options.get("system.url-prefix")
 
     if sentry_url is None:
@@ -33,7 +34,7 @@ def generate_token(org_slug: str, region_url: str):
     return f"{SENTRY_ORG_AUTH_TOKEN_PREFIX}{payload_encoded}_{secret}"
 
 
-def parse_token(token: str):
+def parse_token(token: str) -> dict[str, Any] | None:
     if not token.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX) or token.count("_") != 2:
         return None
 
@@ -49,9 +50,9 @@ def parse_token(token: str):
         return None
 
 
-def base64_encode_str(str):
-    return b64encode(str.encode("ascii")).decode("ascii")
+def base64_encode_str(s: str) -> str:
+    return b64encode(s.encode("ascii")).decode("ascii")
 
 
-def hash_token(token: str):
+def hash_token(token: str) -> str:
     return hashlib.sha256_text(token).hexdigest()

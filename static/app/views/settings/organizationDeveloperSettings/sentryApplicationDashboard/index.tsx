@@ -24,9 +24,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import RequestLog from './requestLog';
 
 type Interactions = {
-  componentInteractions: {
-    [key: string]: Array<[number, number]>;
-  };
+  componentInteractions: Record<string, Array<[number, number]>>;
   views: Array<[number, number]>;
 };
 
@@ -230,9 +228,7 @@ function SentryApplicationDashboard() {
 export default SentryApplicationDashboard;
 
 type InteractionsChartProps = {
-  data: {
-    [key: string]: Array<[number, number]>;
-  };
+  data: Record<string, Array<[number, number]>>;
 };
 function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(

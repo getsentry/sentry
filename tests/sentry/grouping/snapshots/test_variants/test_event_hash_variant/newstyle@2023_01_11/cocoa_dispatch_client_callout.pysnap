@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:33:57.364760+00:00'
+created: '2025-05-12T23:40:58.548136+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,49 +10,49 @@ app:
     app*
       threads*
         stacktrace*
-          frame*
-            function*
-              "unicorn"
-          frame (marked out of app by stack trace rule (category:system -app))
-            function*
-              "UIApplicationMain"
-          frame (non app frame)
-            function*
-              "-[UIApplication _run]"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_main_queue_drain"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_client_callout"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_block_async_invoke2"
-          frame (non app frame)
-            function*
-              "-[NSBlockOperation main]"
-          frame (non app frame)
-            function*
-              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
           frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
-              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame*
+              "unicorn"
+          frame (marked out of app by the client)
             function*
-              "FudgeLogTaggedError"
-          frame (ignored by stack trace rule (category:internals -group))
+              "UIApplicationMain"
+          frame (marked out of app by the client)
             function*
-              "closure"
-          frame*
+              "-[UIApplication _run]"
+          frame (marked out of app by the client)
             function*
-              "SentrySetupInteractor.setupSentry"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_lane_barrier_sync_invoke_and_complete"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by the client)
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (marked out of app by the client)
+            function*
+              "_dispatch_block_async_invoke2"
+          frame (marked out of app by the client)
+            function*
+              "-[NSBlockOperation main]"
+          frame (marked out of app by the client)
+            function*
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame* (marked in-app by the client)
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            function*
+              "FudgeLogTaggedError"
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
+          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame (marked out of app by the client)
+            function*
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (marked out of app by the client)
+            function*
+              "_dispatch_client_callout"
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by stack trace rule (category:internals -group))
             function*
               "closure"
 --------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 from django.urls import reverse
@@ -7,20 +8,20 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = [
-        "organizations:trace-spans-format",
-        "organizations:performance-file-io-main-thread-detector",
-        "organizations:performance-slow-db-issue",
-    ]
+    FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.data["contexts"]["trace"]["span_id"], message
         assert result["start_timestamp"] == event_data.data["start_timestamp"], message
         assert result["project_slug"] == event_data.project.slug, message
+        assert result["sdk_name"] == event_data.data["sdk"]["name"], message
+        assert result["transaction_id"] == event_data.event_id, message
 
     def get_transaction_children(self, event):
         """Assumes that the test setup only gives each event 1 txn child"""
@@ -41,6 +42,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(root["children"]) == 5
         transaction_children = self.get_transaction_children(root)
         assert len(transaction_children) == 3
+        assert (
+            root["measurements"]["measurements.lcp"]
+            == self.root_event.data["measurements"]["lcp"]["value"]
+        )
+        assert (
+            root["measurements"]["measurements.fcp"]
+            == self.root_event.data["measurements"]["fcp"]["value"]
+        )
         self.assert_performance_issues(root)
 
         for i, gen1 in enumerate(transaction_children):
@@ -99,7 +108,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -111,7 +120,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
             response = self.client_get(
-                data={"project": self.project.id},
+                data={"project": self.project.id, "timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -120,7 +129,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_errors_data(self):
         self.load_trace(is_eap=True)
-        start, _ = self.get_start_end_from_day_ago(1000)
+        _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
             timestamp=start,
@@ -135,7 +144,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -148,12 +157,13 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["project_slug"] == self.gen1_project.slug
         assert error_event["level"] == "error"
         assert error_event["issue_id"] == error.group_id
+        assert error_event["start_timestamp"] == error_data["timestamp"]
 
     def test_with_performance_issues(self):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -168,3 +178,26 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["description"] == "File IO on Main Thread"
         assert error_event["project_slug"] == self.project.slug
         assert error_event["level"] == "info"
+
+    def test_with_only_errors(self):
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": "a" * 16,
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        assert data[0]["event_id"] == error.event_id

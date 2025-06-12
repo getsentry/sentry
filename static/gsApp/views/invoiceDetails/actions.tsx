@@ -6,7 +6,8 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -83,6 +84,10 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
     }
   }, [invoice, organization, reloadInvoice, location.query.referrer]);
 
+  const isSelfServePartner =
+    'isSelfServePartner' in invoice.customer && invoice.customer.isSelfServePartner;
+  const showPayNowButton = !invoice.isPaid && !invoice.isClosed && !isSelfServePartner;
+
   return (
     <Fragment>
       <ActionContainer className="no-print">
@@ -95,7 +100,7 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
               </StyledButton>
             </Fragment>
           )}
-          {!invoice.isPaid && !invoice.isClosed && (
+          {showPayNowButton && (
             <StyledButton
               priority="primary"
               onClick={handlePayNow}

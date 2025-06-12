@@ -1,9 +1,9 @@
 import {Flex} from 'sentry/components/container/flex';
 import {Badge} from 'sentry/components/core/badge';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 

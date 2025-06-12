@@ -217,6 +217,7 @@ function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions)
 /**
  * Check if the API response says project has been renamed.  If so, redirect
  * user to new project slug
+ * @public used in __mocks__/api.tsx with jest.requireActual
  */
 // TODO(ts): refine this type later
 export function hasProjectBeenRenamed(response: ResponseMeta) {
@@ -628,10 +629,9 @@ export class Client {
               });
             }
 
-            const shouldSkipErrorHandler =
-              globalErrorHandlers
-                .map(handler => handler(responseMeta, options))
-                .filter(Boolean).length > 0;
+            const shouldSkipErrorHandler = globalErrorHandlers
+              .map(handler => handler(responseMeta, options))
+              .some(Boolean);
 
             if (!shouldSkipErrorHandler) {
               errorHandler(responseMeta, statusText, errorReason);
@@ -730,7 +730,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     hostname = '';
   }
 
-  // When running as yarn dev-ui we can't spread requests across domains because
+  // When running as pnpm dev-ui we can't spread requests across domains because
   // of CORS. Instead we extract the subdomain from the hostname
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.

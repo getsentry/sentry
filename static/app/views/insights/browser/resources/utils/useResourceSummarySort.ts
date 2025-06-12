@@ -12,11 +12,11 @@ type Query = {
 
 const SORTABLE_FIELDS = [
   `avg(${SPAN_SELF_TIME})`,
-  'spm()',
+  'epm()',
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
 ] as const;
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 

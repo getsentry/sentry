@@ -7,9 +7,16 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
+import type {
+  BillingConfig,
+  Plan,
+  Promotion,
+  ReservedBudgetCategoryType,
+  Subscription,
+} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
@@ -64,14 +71,45 @@ class CheckoutOverview extends Component<Props> {
     }
   };
 
+  renderProducts = () => {
+    const {formData, activePlan} = this.props;
+
+    return Object.entries(formData.selectedProducts ?? {}).map(([apiName, product]) => {
+      const productInfo =
+        activePlan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
+      if (!productInfo || !product.enabled) {
+        return null;
+      }
+      const price = utils.displayPrice({
+        cents: utils.getReservedPriceForReservedBudgetCategory({
+          plan: activePlan,
+          reservedBudgetCategory: productInfo.apiName,
+        }),
+      });
+      return (
+        <DetailItem
+          key={productInfo.apiName}
+          data-test-id={`${productInfo.apiName}-reserved`}
+        >
+          <DetailTitle>
+            {toTitleCase(productInfo.productCheckoutName, {
+              allowInnerUpperCase: true,
+            })}
+          </DetailTitle>
+          <DetailPrice>
+            {price}/{this.shortInterval}
+          </DetailPrice>
+        </DetailItem>
+      );
+    });
+  };
+
   renderDataOptions = () => {
     const {formData, activePlan} = this.props;
 
     return activePlan.checkoutCategories.map(category => {
       const eventBucket = utils.getBucket({
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         events: formData.reserved[category],
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         buckets: activePlan.planCategories[category],
       });
       const price = utils.displayPrice({cents: eventBucket.price});
@@ -79,7 +117,12 @@ class CheckoutOverview extends Component<Props> {
       return (
         <DetailItem key={category} data-test-id={category}>
           <div>
-            <DetailTitle>{getPlanCategoryName({plan: activePlan, category})}</DetailTitle>
+            <DetailTitle>
+              {getPlanCategoryName({
+                plan: activePlan,
+                category,
+              })}
+            </DetailTitle>
             {
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               formatReservedWithUnits(formData.reserved[category], category)
@@ -140,15 +183,16 @@ class CheckoutOverview extends Component<Props> {
       );
     } else if (onDemandBudget) {
       activePlan.onDemandCategories.forEach(category => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (onDemandBudget.budgets[category]) {
           details.push(
             <Fragment key={`${category}-per-category-ondemand`}>
-              {getPlanCategoryName({plan: activePlan, category})}
+              {getPlanCategoryName({
+                plan: activePlan,
+                category,
+              })}
               <OnDemandPrice>
                 {tct('up to [onDemandPrice]/mo', {
                   onDemandPrice: utils.displayPrice({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudget.budgets[category],
                   }),
                 })}
@@ -219,6 +263,7 @@ class CheckoutOverview extends Component<Props> {
             )}
           </PriceContainer>
         </DetailItem>
+        {this.renderProducts()}
         {this.renderDataOptions()}
         {this.renderOnDemand()}
       </Fragment>

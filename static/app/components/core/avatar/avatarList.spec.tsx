@@ -69,7 +69,7 @@ describe('AvatarList', () => {
     expect(screen.getByText(users[3]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.getByText(users[4]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.queryByText(users[5]!.name.charAt(0))).not.toBeInTheDocument();
-    expect(screen.getByTestId('avatarList-collapsedavatars')).toBeInTheDocument();
+    expect(screen.getByTestId('avatarList-collapsedavatars')).toHaveTextContent('+2');
   });
 
   it('renders with team avatars', () => {

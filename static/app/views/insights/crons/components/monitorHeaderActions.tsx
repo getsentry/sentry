@@ -1,8 +1,9 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Link from 'sentry/components/links/link';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
@@ -13,8 +14,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-
-import type {Monitor} from '../types';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 import {StatusToggleButton} from './statusToggleButton';
 
@@ -40,7 +40,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgSlug}/insights/backend/crons/`,
+        pathname: `/organizations/${orgSlug}/insights/crons/`,
         query: endpointOptions.query,
       })
     );

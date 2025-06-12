@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {
   SelectOption,
   SelectOptionOrSection,
@@ -16,6 +16,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
@@ -31,12 +32,10 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
-
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps
+interface ProjectPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<number>,
@@ -278,7 +277,7 @@ export function ProjectPageFilter({
               to={
                 makeProjectsPathname({
                   path: `/${project.slug}/`,
-                  orgSlug: organization.slug,
+                  organization,
                 }) + `?project=${project.id}`
               }
               visible={isFocused}
@@ -304,7 +303,7 @@ export function ProjectPageFilter({
             />
           </Fragment>
         ),
-      };
+      } satisfies SelectOptionOrSection<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
@@ -346,12 +345,11 @@ export function ProjectPageFilter({
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions
-      .slice(0, 25)
-      .reduce(
-        (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-        0
-      );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce(
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
+      0
+    );
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.
@@ -388,6 +386,7 @@ export function ProjectPageFilter({
     <HybridFilter
       {...selectProps}
       searchable
+      checkboxPosition="trailing"
       multiple={allowMultiple}
       options={options}
       value={value}
@@ -439,7 +438,7 @@ export function ProjectPageFilter({
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
   const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard || !powerHovercard.contains(target);
+  return !powerHovercard?.contains(target);
 }
 
 function checkboxWrapper(

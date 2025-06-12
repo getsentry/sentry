@@ -12,7 +12,11 @@ function SpansSearchBar({
   widgetQuery,
   onSearch,
   portalTarget,
-}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch' | 'portalTarget'>) {
+  onClose,
+}: Pick<
+  WidgetBuilderSearchBarProps,
+  'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
+>) {
   const {
     selection: {projects},
   } = usePageFilters();
@@ -28,6 +32,9 @@ function SpansSearchBar({
       searchSource="dashboards"
       projects={projects}
       portalTarget={portalTarget}
+      onChange={(query, state) => {
+        onClose?.(query, {validSearch: state.queryIsValid});
+      }}
     />
   );
 }

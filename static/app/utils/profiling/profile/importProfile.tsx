@@ -3,8 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import type {Image} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
-
-import type {Frame} from '../frame';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import {
   isEventedProfile,
   isJSProfile,
@@ -14,7 +13,7 @@ import {
   isSentryContinuousProfile,
   isSentryContinuousProfileChunk,
   isSentrySampledProfile,
-} from '../guards/profile';
+} from 'sentry/utils/profiling/guards/profile';
 
 import {ContinuousProfile, minTimestampInChunk} from './continuousProfile';
 import {EventedProfile} from './eventedProfile';
@@ -30,7 +29,7 @@ import {
   wrapWithSpan,
 } from './utils';
 
-export interface ImportOptions {
+interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
   activeThreadId?: string | null;
@@ -221,7 +220,7 @@ function importSentrySampledProfile(
   };
 }
 
-export function importSchema(
+function importSchema(
   input: Readonly<Profiling.Schema>,
   traceID: string,
   options: ImportOptions
@@ -441,7 +440,7 @@ export function importAndroidContinuousProfileChunk(
   };
 }
 
-export function importSentryContinuousProfileChunk(
+function importSentryContinuousProfileChunk(
   input: Readonly<Profiling.SentryContinousProfileChunk>,
   traceID: string,
   options: ImportOptions

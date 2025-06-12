@@ -4,7 +4,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -40,11 +39,13 @@ describe('EventOrGroupHeader', function () {
     jest.useRealTimers();
   });
 
-  const {organization, router} = initializeOrg();
+  const {router} = initializeOrg();
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      render(<EventOrGroupHeader data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        deprecatedRouterMocks: true,
+      });
     });
 
     it('renders with `type = csp`', function () {
@@ -55,7 +56,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -71,7 +75,10 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -83,30 +90,13 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
-    });
-
-    it('renders location', function () {
-      render(
-        <EventOrGroupHeader
-          data={{
-            ...group,
-            metadata: {
-              filename: 'path/to/file.swift',
-            },
-            platform: 'swift',
-            type: EventOrGroupType.ERROR,
-          }}
-          {...router}
-        />
-      );
-
-      expect(
-        screen.getByText(textWithMarkupMatcher('in path/to/file.swift'))
-      ).toBeInTheDocument();
     });
 
     it('preloads group on hover', async function () {
@@ -117,7 +107,7 @@ describe('EventOrGroupHeader', function () {
       });
 
       render(<EventOrGroupHeader data={group} {...router} />, {
-        organization: {...organization, features: ['issue-stream-table-layout']},
+        deprecatedRouterMocks: true,
       });
 
       const groupLink = screen.getByRole('link');
@@ -141,7 +131,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           })}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -153,7 +146,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -169,7 +165,10 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -185,7 +184,10 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
     });
 
@@ -208,6 +210,8 @@ describe('EventOrGroupHeader', function () {
               },
             },
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -233,6 +237,8 @@ describe('EventOrGroupHeader', function () {
               query: {},
             },
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -263,7 +269,10 @@ describe('EventOrGroupHeader', function () {
           isTombstone: true,
         }}
         {...router}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();

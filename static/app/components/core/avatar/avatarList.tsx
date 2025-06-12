@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
@@ -38,7 +38,11 @@ export function CollapsedAvatars({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
+    return (
+      <Tag ref={ref} data-test-id="avatarList-collapsedavatars">
+        {children}
+      </Tag>
+    );
   }
   return (
     <CollapsedAvatarsCicle
@@ -98,7 +102,7 @@ function AvatarList({
               size={avatarSize}
               data-test-id="avatarList-collapsedavatars"
             >
-              {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+              {numCollapsedAvatars < 99 && '+'}
               {numCollapsedAvatars}
             </CollapsedAvatars>
           </Tooltip>
@@ -152,7 +156,7 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-export const AvatarListWrapper = styled('div')`
+const AvatarListWrapper = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: row-reverse;
@@ -198,30 +202,4 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   height: ${p => p.size}px;
   border-radius: 50%;
   ${AvatarStyle};
-`;
-
-const CollapsedAvatarPill = styled('div')`
-  ${AvatarStyle};
-
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
-  height: 24px;
-  padding: 0 ${space(1)};
-  background-color: ${p => p.theme.surface400};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 24px;
-
-  ${AvatarListWrapper}:hover & {
-    background-color: ${p => p.theme.surface100};
-    cursor: pointer;
-  }
-`;
-
-const Plus = styled('span')`
-  font-size: 10px;
-  margin-left: 1px;
-  margin-right: -1px;
 `;

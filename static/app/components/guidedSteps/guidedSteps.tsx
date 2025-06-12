@@ -10,15 +10,19 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {type BaseButtonProps, Button} from 'sentry/components/core/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;
   className?: string;
+  initialStep?: number;
   onStepChange?: (step: number) => void;
 };
 
@@ -40,7 +44,7 @@ interface StepProps {
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
-type RegisteredSteps = {[key: string]: {stepNumber: number; isCompleted?: boolean}};
+type RegisteredSteps = Record<string, {stepNumber: number; isCompleted?: boolean}>;
 
 const GuidedStepsContext = createContext<GuidedStepsContextState>({
   advanceToNextIncompleteStep: () => {},
@@ -56,11 +60,12 @@ export function useGuidedStepsContext() {
 }
 
 function useGuidedStepsContentValue({
+  initialStep,
   onStepChange,
-}: Pick<GuidedStepsProps, 'onStepChange'>): GuidedStepsContextState {
+}: Pick<GuidedStepsProps, 'onStepChange' | 'initialStep'>): GuidedStepsContextState {
   const registeredStepsRef = useRef<RegisteredSteps>({});
   const [totalSteps, setTotalSteps] = useState<number>(0);
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 1);
 
   // Steps are registered on initial render to determine the step order and which step to start on.
   // This allows Steps to be wrapped in other components, but does require that they exist on first
@@ -96,10 +101,14 @@ function useGuidedStepsContentValue({
   }, [getFirstIncompleteStep]);
 
   // On initial load, set the current step to the first incomplete step
+  // if the initial step is not defined.
   useEffect(() => {
+    if (defined(initialStep)) {
+      return;
+    }
     const firstIncompleteStep = getFirstIncompleteStep();
     setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep]);
+  }, [getFirstIncompleteStep, initialStep]);
 
   const handleSetCurrentStep = useCallback(
     (step: number) => {
@@ -164,7 +173,7 @@ function Step(props: StepProps) {
   );
 }
 
-function BackButton({children, ...props}: BaseButtonProps) {
+function BackButton(props: Partial<ButtonProps>) {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   if (currentStep === 1) {
@@ -173,12 +182,12 @@ function BackButton({children, ...props}: BaseButtonProps) {
 
   return (
     <Button size="sm" onClick={() => setCurrentStep(currentStep - 1)} {...props}>
-      {children ?? t('Back')}
+      {t('Back')}
     </Button>
   );
 }
 
-function NextButton({children, ...props}: BaseButtonProps) {
+function NextButton(props: Partial<ButtonProps>) {
   const {currentStep, setCurrentStep, totalSteps} = useGuidedStepsContext();
 
   if (currentStep >= totalSteps) {
@@ -187,7 +196,7 @@ function NextButton({children, ...props}: BaseButtonProps) {
 
   return (
     <Button size="sm" onClick={() => setCurrentStep(currentStep + 1)} {...props}>
-      {children ?? t('Next')}
+      {t('Next')}
     </Button>
   );
 }
@@ -202,19 +211,25 @@ function StepButtons({children}: {children?: React.ReactNode}) {
   );
 }
 
-export function GuidedSteps({className, children, onStepChange}: GuidedStepsProps) {
-  const value = useGuidedStepsContentValue({onStepChange});
+export function GuidedSteps({
+  className,
+  children,
+  onStepChange,
+  initialStep,
+}: GuidedStepsProps) {
+  const value = useGuidedStepsContentValue({onStepChange, initialStep});
 
   return (
-    <GuidedStepsContext.Provider value={value}>
+    <GuidedStepsContext value={value}>
       <StepsWrapper className={className}>{children}</StepsWrapper>
-    </GuidedStepsContext.Provider>
+    </GuidedStepsContext>
   );
 }
 
 const StepButtonsWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: ${space(1)};
   margin-top: ${space(1.5)};
 `;
@@ -254,8 +269,22 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   width: 34px;
   line-height: 34px;
   border-radius: 50%;
-  background: ${p => (p.isActive ? p.theme.purple300 : p.theme.gray100)};
-  color: ${p => (p.isActive ? p.theme.white : p.theme.subText)};
+  background: ${p =>
+    p.isActive
+      ? isChonkTheme(p.theme)
+        ? p.theme.tokens.graphics.accent
+        : p.theme.purple300
+      : isChonkTheme(p.theme)
+        ? p.theme.tokens.graphics.muted
+        : p.theme.gray100};
+  color: ${p =>
+    p.isActive
+      ? isChonkTheme(p.theme)
+        ? p.theme.white
+        : p.theme.white
+      : isChonkTheme(p.theme)
+        ? p.theme.white
+        : p.theme.subText};
   border: 4px solid ${p => p.theme.background};
 `;
 

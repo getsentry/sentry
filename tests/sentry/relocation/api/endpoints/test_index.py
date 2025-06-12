@@ -351,7 +351,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
-        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+        uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -416,7 +416,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
-        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+        uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -471,7 +471,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
 
         assert uploading_start_mock.call_count == 1
-        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+        uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -563,7 +563,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data["scheduledPauseAtStep"] is None
 
         assert uploading_start_mock.call_count == 1
-        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+        uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -627,7 +627,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
-        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+        uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -689,7 +689,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
-        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+        uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -805,7 +805,7 @@ class PostRelocationsTest(APITestCase):
             assert RelocationFile.objects.count() == relocation_file_count + 1
             assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == expected
             assert uploading_start_mock.call_count == 1
-            uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+            uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
 
             assert analytics_record_mock.call_count == 1
             analytics_record_mock.assert_called_with(

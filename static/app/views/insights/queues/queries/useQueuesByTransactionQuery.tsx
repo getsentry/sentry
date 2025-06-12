@@ -30,7 +30,8 @@ export function useQueuesByTransactionQuery({
   if (destination) {
     mutableSearch.addFilterValue('messaging.destination.name', destination);
   }
-  const response = useSpanMetrics(
+
+  return useSpanMetrics(
     {
       search: mutableSearch,
       fields: [
@@ -45,7 +46,6 @@ export function useQueuesByTransactionQuery({
         'avg_if(span.duration,span.op,queue.process)',
         'avg(messaging.message.receive.latency)',
         'trace_status_rate(ok)',
-        'time_spent_percentage(app,span.duration)',
       ],
       enabled,
       sorts: sort ? [sort] : [],
@@ -54,6 +54,4 @@ export function useQueuesByTransactionQuery({
     },
     referrer
   );
-
-  return response;
 }

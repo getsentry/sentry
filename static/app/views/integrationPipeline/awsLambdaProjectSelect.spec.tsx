@@ -8,11 +8,8 @@ import AwsLambdaProjectSelect from 'sentry/views/integrationPipeline/awsLambdaPr
 
 describe('AwsLambdaProjectSelect', () => {
   let projects: Project[];
-  let windowAssignMock: jest.Mock;
 
   beforeEach(() => {
-    windowAssignMock = jest.fn();
-    window.location.assign = windowAssignMock;
     projects = [
       ProjectFixture(),
       ProjectFixture({id: '53', name: 'My Proj', slug: 'my-proj'}),
@@ -25,7 +22,7 @@ describe('AwsLambdaProjectSelect', () => {
     await selectEvent.select(screen.getByRole('textbox'), 'my-proj');
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    expect(windowAssignMock).toHaveBeenCalledWith(
+    expect(window.location.assign).toHaveBeenCalledWith(
       `${window.location.origin}/extensions/aws_lambda/setup/?projectId=53`
     );
   });

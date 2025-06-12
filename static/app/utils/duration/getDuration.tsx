@@ -1,5 +1,4 @@
 import {t, tn} from 'sentry/locale';
-
 import {
   DAY,
   HOUR,
@@ -10,7 +9,7 @@ import {
   SECOND,
   WEEK,
   YEAR,
-} from '../formatters';
+} from 'sentry/utils/formatters';
 
 function roundWithFixed(
   value: number,

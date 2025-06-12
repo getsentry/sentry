@@ -1,13 +1,13 @@
 import {Fragment, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -35,10 +35,12 @@ import {
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
+  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -49,14 +51,15 @@ interface AggregatesTableProps {
 }
 
 export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
 
-  const topEvents = useTopEvents();
-  const groupBys = useExploreGroupBys();
-
   const {result, eventView, fields} = aggregatesTableResult;
 
+  const topEvents = useTopEvents();
+  const groupBys = useExploreGroupBys();
+  const visualizes = useExploreVisualizes();
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
@@ -76,11 +79,16 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'aggregates',
+    result.data?.length ?? 0
+  );
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -158,7 +166,13 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              const target = viewSamplesTarget(location, query, groupBys, row, {
+              const target = viewSamplesTarget({
+                location,
+                query,
+                groupBys,
+                visualizes,
+                sorts,
+                row,
                 projects,
               });
               return (
@@ -197,7 +211,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={result.pageLinks} />
+      <Pagination
+        pageLinks={result.pageLinks}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }

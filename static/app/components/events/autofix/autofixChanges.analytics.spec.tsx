@@ -1,4 +1,5 @@
 import {AutofixCodebaseChangeData} from 'sentry-fixture/autofixCodebaseChangeData';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -7,8 +8,13 @@ import {Button} from 'sentry/components/core/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {
   type AutofixChangesStep,
+  AutofixStatus,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {
+  useAutofixData,
+  useAutofixRepos,
+} from 'sentry/components/events/autofix/useAutofix';
 
 jest.mock('sentry/components/core/button', () => ({
   Button: jest.fn(props => {
@@ -20,6 +26,8 @@ jest.mock('sentry/components/core/button', () => ({
   }),
 }));
 
+jest.mock('sentry/components/events/autofix/useAutofix');
+
 const mockButton = Button as jest.MockedFunction<typeof Button>;
 
 describe('AutofixChanges', () => {
@@ -30,22 +38,68 @@ describe('AutofixChanges', () => {
       type: AutofixStepType.CHANGES,
       changes: [AutofixCodebaseChangeData()],
     }) as AutofixChangesStep,
-  };
+  } satisfies React.ComponentProps<typeof AutofixChanges>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockButton.mockClear();
+    jest.mocked(useAutofixRepos).mockReset();
+    jest.mocked(useAutofixData).mockReset();
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [],
+      codebases: {},
+    });
+    jest.mocked(useAutofixData).mockReturnValue({
+      data: {
+        request: {
+          repos: [],
+        },
+        codebases: {},
+        last_triggered_at: '2024-01-01T00:00:00Z',
+        run_id: '456',
+        status: AutofixStatus.COMPLETED,
+      },
+      isPending: false,
+    });
   });
 
   it('passes correct analytics props for Create PR button when write access is enabled', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/autofix/update/',
+      method: 'POST',
+      body: {ok: true},
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: '100',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {
+        '100': {
+          repo_external_id: '100',
+          is_readable: true,
+          is_writeable: true,
         },
       },
     });
@@ -67,13 +121,38 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create PR Setup button when write access is not enabled', () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
         githubWriteIntegration: {
-          repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
+          ok: true,
+          repos: [{ok: false, owner: 'owner', name: 'hello-world', provider: 'github'}],
+        },
+      }),
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
+        },
+      ],
+      codebases: {
+        'repo-123': {
+          repo_external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
         },
       },
     });
@@ -97,13 +176,44 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create Branch button when write access is enabled', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
         githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+          ok: true,
+          repos: [{ok: true, owner: 'owner', name: 'hello-world', provider: 'github'}],
+        },
+      }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/autofix/update/',
+      method: 'POST',
+      body: {ok: true},
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: '100',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {
+        '100': {
+          repo_external_id: '100',
+          is_readable: true,
+          is_writeable: true,
         },
       },
     });
@@ -126,13 +236,38 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create Branch Setup button when write access is not enabled', () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
         githubWriteIntegration: {
-          repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
+          ok: true,
+          repos: [{ok: false, owner: 'owner', name: 'hello-world', provider: 'github'}],
+        },
+      }),
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
+        },
+      ],
+      codebases: {
+        'repo-123': {
+          repo_external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
         },
       },
     });

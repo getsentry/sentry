@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -10,9 +11,7 @@ import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Flex} from 'sentry/components/container/flex';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -87,7 +86,7 @@ function AddMemberDropdown({
 }) {
   const [memberQuery, setMemberQuery] = useState('');
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
-  const {data: orgMembers = [], isLoading: isOrgMembersLoading} = useApiQuery<Member[]>(
+  const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
     [
       `/organizations/${organization.slug}/members/`,
       {
@@ -96,6 +95,7 @@ function AddMemberDropdown({
     ],
     {
       staleTime: 30_000,
+      placeholderData: keepPreviousData,
     }
   );
 
@@ -106,7 +106,7 @@ function AddMemberDropdown({
 
   const isDropdownDisabled = team.flags['idp:provisioned'];
 
-  const addTeamMember = (selection: Item) => {
+  const addTeamMember = (selection: SelectOption<string>) => {
     const orgMember = orgMembers.find(member => member.id === selection.value);
     if (orgMember === undefined) {
       return;
@@ -117,47 +117,44 @@ function AddMemberDropdown({
     onAddMember({orgMember});
   };
 
-  /**
-   * We perform an API request to support orgs with > 100 members (since that's the max API returns)
-   */
-  const handleMemberFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMemberQuery(e.target.value);
-  };
-
   const items = useMemo(() => {
     const existingMembers = new Set(teamMembers.map(member => member.id));
     return (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
-      .map(m => ({
-        searchKey: `${m.name} ${m.email}`,
-        value: m.id,
-        label: (
-          <StyledUserListElement>
-            <UserAvatar
-              user={{
-                id: m.user?.id ?? m.id,
-                name: m.user?.name ?? m.name,
-                email: m.user?.email ?? m.email,
-                avatar: m.user?.avatar ?? undefined,
-                avatarUrl: m.user?.avatarUrl ?? undefined,
-                type: 'user',
-              }}
-              title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
-              size={24}
-              className="avatar"
-            />
-            <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-          </StyledUserListElement>
-        ),
-      }));
+      .map(
+        m =>
+          ({
+            textValue: `${m.name} ${m.email}`,
+            value: m.id,
+            label: (
+              <StyledUserListElement>
+                <UserAvatar
+                  user={{
+                    id: m.user?.id ?? m.id,
+                    name: m.user?.name ?? m.name,
+                    email: m.user?.email ?? m.email,
+                    avatar: m.user?.avatar ?? undefined,
+                    avatarUrl: m.user?.avatarUrl ?? undefined,
+                    type: 'user',
+                  }}
+                  title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
+                  size={24}
+                  className="avatar"
+                />
+                <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+              </StyledUserListElement>
+            ),
+          }) satisfies SelectOption<string>
+      );
   }, [teamMembers, orgMembers]);
 
   return (
-    <DropdownAutoComplete
-      closeOnSelect={false}
-      items={items}
-      alignMenu="right"
-      onSelect={
+    <CompactSelect
+      size="xs"
+      menuWidth={250}
+      options={items}
+      onClose={() => setMemberQuery('')}
+      onChange={
         canAddMembers
           ? addTeamMember
           : selection =>
@@ -167,36 +164,29 @@ function AddMemberDropdown({
                 memberId: selection.value,
               })
       }
-      menuHeader={
-        <StyledMembersLabel>
-          {t('Members')}
-          <StyledCreateMemberLink
-            to=""
-            onClick={() => openInviteMembersModal({source: 'teams'})}
-            data-test-id="invite-member"
-          >
-            {t('Invite Member')}
-          </StyledCreateMemberLink>
-        </StyledMembersLabel>
-      }
-      emptyMessage={t('No members')}
-      onChange={handleMemberFilterChange}
-      onClose={() => setMemberQuery('')}
-      disabled={isDropdownDisabled}
-      data-test-id="add-member-menu"
-      busy={isOrgMembersLoading}
-    >
-      {({isOpen}) => (
-        <DropdownButton
-          isOpen={isOpen}
-          size="xs"
-          data-test-id="add-member"
-          disabled={isDropdownDisabled}
+      menuHeaderTrailingItems={
+        <StyledCreateMemberLink
+          to=""
+          onClick={() => openInviteMembersModal({source: 'teams'})}
+          data-test-id="invite-member"
         >
-          {t('Add Member')}
-        </DropdownButton>
-      )}
-    </DropdownAutoComplete>
+          {t('Invite Member')}
+        </StyledCreateMemberLink>
+      }
+      data-test-id="add-member-menu"
+      disabled={isDropdownDisabled}
+      menuTitle={t('Members')}
+      triggerLabel={t('Add Member')}
+      searchPlaceholder={t('Search Members')}
+      emptyMessage={t('No members')}
+      loading={isOrgMembersFetching}
+      searchable
+      disableSearchFilter
+      /**
+       * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+       */
+      onSearch={setMemberQuery}
+    />
   );
 }
 
@@ -414,14 +404,6 @@ const StyledUserListElement = styled('div')`
 const StyledNameOrEmail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.theme.overflowEllipsis};
-`;
-
-const StyledMembersLabel = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  padding: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  text-transform: uppercase;
 `;
 
 const StyledCreateMemberLink = styled(Link)`

@@ -60,6 +60,9 @@ class BroadcastDetailsEndpoint(Endpoint):
         return self._serialize_response(request, broadcast)
 
     def put(self, request: Request, broadcast_id) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         broadcast = self._get_broadcast(request, broadcast_id)
         validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():

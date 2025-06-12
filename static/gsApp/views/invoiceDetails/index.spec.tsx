@@ -10,6 +10,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
@@ -86,6 +87,37 @@ describe('InvoiceDetails', function () {
     expect(screen.getByText('Oct 21, 2021')).toBeInTheDocument();
     expect(screen.getByText('Sep 20, 2021')).toBeInTheDocument();
     expect(screen.getByText('$89.00 USD')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Your subscription will automatically renew on or about the same day each month and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly on-demand fees. You may cancel your subscription at any time /
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders disclaimer with annual billing', async function () {
+    const annualInvoice = InvoiceFixture(
+      {
+        customer: SubscriptionFixture({
+          organization,
+          billingInterval: 'annual',
+          planDetails: PlanFixture({budgetTerm: 'pay-as-you-go'}),
+        }),
+      },
+      organization
+    );
+    const mockapi = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${annualInvoice.id}/`,
+      method: 'GET',
+      body: annualInvoice,
+    });
+    render(<InvoiceDetails {...routerProps} params={params} />);
+    await waitFor(() => expect(mockapi).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(
+        /Your subscription will automatically renew on or about the same day each year and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly pay-as-you-go fees. You may cancel your subscription at any time /
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders credit applied', async function () {
@@ -116,6 +148,52 @@ describe('InvoiceDetails', function () {
     expect(
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
+  });
+
+  it('renders without pay now for self serve partner', async function () {
+    router.location = {
+      ...router.location,
+      query: {referrer: 'billing-failure'},
+    };
+
+    const pastDueInvoice = InvoiceFixture(
+      {
+        amount: 8900,
+        isClosed: false,
+        isPaid: false,
+        items: [
+          {
+            type: InvoiceItemType.SUBSCRIPTION,
+            description: 'Subscription to Business',
+            amount: 8900,
+            periodEnd: '2021-10-21',
+            periodStart: '2021-09-21',
+            data: {},
+          },
+        ],
+      },
+      organization
+    );
+
+    pastDueInvoice.customer = SubscriptionFixture({
+      organization,
+      isSelfServePartner: true,
+    });
+
+    const pastDueParams = {invoiceGuid: pastDueInvoice.id};
+    const mockapiInvoice = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${pastDueInvoice.id}/`,
+      method: 'GET',
+      body: pastDueInvoice,
+    });
+
+    render(<InvoiceDetails {...routerProps} params={pastDueParams} />);
+
+    await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
+
+    expect(screen.getByText(/Invoice Details/)).toBeInTheDocument();
+    expect(screen.getByText(/AWAITING PAYMENT/)).toBeInTheDocument();
+    expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
 
   it('sends a request to email the invoice', async function () {
@@ -150,11 +228,6 @@ describe('InvoiceDetails', function () {
   });
 
   it('renders with open pay now with billing failure referrer', async function () {
-    router.location = {
-      ...router.location,
-      query: {referrer: 'billing-failure'},
-    };
-
     const pastDueInvoice = InvoiceFixture(
       {
         amount: 8900,
@@ -187,7 +260,13 @@ describe('InvoiceDetails', function () {
 
     renderGlobalModal();
     render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${pastDueInvoice.id}/`,
+          query: {referrer: 'billing-failure'},
+        },
+        route: `/organizations/${organization.slug}/invoices/:invoiceGuid/`,
+      },
     });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());

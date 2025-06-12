@@ -12,8 +12,7 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {
-  OrganizationFeatureFlagsChangeTracking,
+import OrganizationFeatureFlagsChangeTracking, {
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 

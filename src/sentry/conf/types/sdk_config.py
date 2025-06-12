@@ -16,7 +16,7 @@ class SdkConfig(TypedDict):
     auto_enabling_integrations: bool
     keep_alive: NotRequired[bool]
     spotlight: NotRequired[str | bool | None]
-
+    add_full_stack: NotRequired[bool]
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
@@ -24,6 +24,8 @@ class SdkConfig(TypedDict):
     profiles_sample_rate: NotRequired[float]
     profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
+    profile_session_sample_rate: NotRequired[float]
+    profile_lifecycle: NotRequired[Literal["manual", "trace"]]
     enable_db_query_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
     _experiments: NotRequired[Any]  # TODO

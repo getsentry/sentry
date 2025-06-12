@@ -6,16 +6,10 @@ import {explodeSlug} from 'sentry/utils';
 
 export interface TeamAvatarProps extends BaseAvatarProps {
   team: Team | undefined;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
-export function TeamAvatar({
-  ref,
-  team,
-  tooltip: tooltipProp,
-  ...props
-}: TeamAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+export function TeamAvatar({ref, team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
   if (!team) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
     return null;

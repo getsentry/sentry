@@ -27,7 +27,7 @@ from .utils import parse_team_params
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (IncidentPermission,)
 

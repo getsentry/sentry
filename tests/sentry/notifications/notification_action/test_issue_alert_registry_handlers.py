@@ -33,6 +33,7 @@ from sentry.testutils.helpers.data_blobs import (
     JIRA_SERVER_ACTION_DATA_BLOBS,
     WEBHOOK_ACTION_DATA_BLOBS,
 )
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
@@ -47,7 +48,7 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def pop_keys_from_data_blob(data_blob: dict, action_type: Action.Type) -> dict:
+def pop_keys_from_data_blob(data_blob: dict, action_type: str) -> dict:
     """
     Remove standard action fields from each dictionary in the data blob.
 
@@ -73,6 +74,10 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
         self.workflow = self.create_workflow(environment=self.environment)
+        self.rule = self.create_project_rule(project=self.project)
+        self.alert_rule_workflow = self.create_alert_rule_workflow(
+            workflow=self.workflow, rule_id=self.rule.id
+        )
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
@@ -80,7 +85,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, workflow_id=self.workflow.id
+        )
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -101,11 +108,53 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         handler = TestHandler()
         with pytest.raises(ValueError):
-            handler.create_rule_instance_from_action(self.action, self.detector, self.job)
+            handler.create_rule_instance_from_action(self.action, self.detector, self.event_data)
+
+    def test_create_rule_instance_from_action_missing_workflow_id_raises_value_error(self):
+        job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        with pytest.raises(ValueError):
+            self.handler.create_rule_instance_from_action(self.action, self.detector, job)
+
+    def test_create_rule_instance_from_action_missing_rule_raises_value_error(self):
+        job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        alert_rule = self.create_alert_rule(projects=[self.project], organization=self.organization)
+        self.create_alert_rule_workflow(workflow=self.workflow, alert_rule_id=alert_rule.id)
+        with pytest.raises(ValueError):
+            self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        rule = self.handler.create_rule_instance_from_action(self.action, self.detector, self.job)
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
+
+        assert isinstance(rule, Rule)
+        assert rule.id == self.action.id
+        assert rule.project == self.detector.project
+        assert rule.environment_id is not None
+        assert self.workflow.environment is not None
+        assert rule.environment_id == self.workflow.environment.id
+        assert rule.label == rule.label
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "legacy_rule_id": self.rule.id,
+                }
+            ],
+        }
+        assert rule.status == ObjectStatus.ACTIVE
+        assert rule.source == RuleSource.ISSUE
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_create_rule_instance_from_action_with_workflow_engine_ui_feature_flag(self):
+        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
 
         assert isinstance(rule, Rule)
         assert rule.id == self.action.id
@@ -121,6 +170,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
+                    "workflow_id": self.workflow.id,
                 }
             ]
         }
@@ -130,7 +180,39 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.create_workflow()
-        job = WorkflowEventData(event=self.group_event, workflow_env=None)
+        job = WorkflowEventData(
+            event=self.group_event, workflow_env=None, workflow_id=self.workflow.id
+        )
+        rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
+
+        assert isinstance(rule, Rule)
+        assert rule.id == self.action.id
+        assert rule.project == self.detector.project
+        assert rule.environment_id is None
+        assert rule.label == rule.label
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "legacy_rule_id": self.rule.id,
+                }
+            ],
+        }
+        assert rule.status == ObjectStatus.ACTIVE
+        assert rule.source == RuleSource.ISSUE
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_create_rule_instance_from_action_no_environment_with_workflow_engine_ui_feature_flag(
+        self,
+    ):
+        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+        self.create_workflow()
+        job = WorkflowEventData(
+            event=self.group_event, workflow_env=None, workflow_id=self.workflow.id
+        )
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)
@@ -145,6 +227,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
+                    "workflow_id": self.workflow.id,
                 }
             ]
         }
@@ -165,15 +248,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         mock_futures = [mock.Mock()]
         mock_activate_downstream_actions.return_value = {"some_key": (mock_callback, mock_futures)}
 
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.job.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY, self.event_data.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_called_once_with(mock_callback, self.job.event, mock_futures)
+        mock_safe_execute.assert_called_once_with(
+            mock_callback, self.event_data.event, mock_futures
+        )
 
 
 class TestDiscordIssueAlertHandler(BaseWorkflowTest):
@@ -594,6 +679,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
@@ -614,6 +700,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
@@ -640,6 +727,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": self.sentry_app_installation.uuid,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
@@ -660,6 +748,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": self.sentry_app_installation2.uuid,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
@@ -680,7 +769,11 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            config={"target_identifier": target_id},
+            config={
+                "target_identifier": target_id,
+                "target_type": ActionTarget.SENTRY_APP.value,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
         )
 
         # sentry app with no settings
@@ -695,7 +788,11 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            config={"target_identifier": target_id},
+            config={
+                "target_identifier": target_id,
+                "target_type": ActionTarget.SENTRY_APP.value,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
 

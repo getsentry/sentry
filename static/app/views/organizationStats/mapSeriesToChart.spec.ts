@@ -1,3 +1,5 @@
+import {DataCategory} from 'sentry/types/core';
+
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 
@@ -98,7 +100,7 @@ describe('mapSeriesToChart func', function () {
       orgStats: mockSeries,
       chartDateInterval: '1h',
       chartDateUtc: true,
-      dataCategory: 'transactions',
+      dataCategory: DataCategory.TRANSACTIONS,
       endpointQuery: {},
     });
 
@@ -210,11 +212,148 @@ describe('mapSeriesToChart func', function () {
       },
       chartDateInterval: '1h',
       chartDateUtc: true,
-      dataCategory: 'transactions',
+      dataCategory: DataCategory.TRANSACTIONS,
       endpointQuery: {},
     });
 
     // sums up rate limited, abuse, and cardinality limited
     expect(mappedSeries.cardStats.rateLimited).toBe('11');
+  });
+
+  it('should correctly sum up the profile chunks', function () {
+    const mappedSeries = mapSeriesToChart({
+      orgStats: {
+        start: '2021-01-01T00:00:00Z',
+        end: '2021-01-07T00:00:00Z',
+        intervals: ['2021-01-01T00:00:00Z', '2021-01-02T00:00:00Z'],
+        groups: [
+          {
+            by: {
+              outcome: 'invalid',
+              reason: 'bad',
+              category: 'profile_chunk',
+            },
+            totals: {
+              'sum(quantity)': 10,
+            },
+            series: {
+              'sum(quantity)': [1, 2],
+            },
+          },
+          {
+            by: {
+              outcome: 'accepted',
+              reason: 'good',
+              category: 'profile_chunk',
+            },
+            totals: {
+              'sum(quantity)': 10,
+            },
+            series: {
+              'sum(quantity)': [3, 4],
+            },
+          },
+          {
+            by: {
+              outcome: 'accepted',
+              reason: 'good',
+              category: 'profile_duration',
+            },
+            totals: {
+              'sum(quantity)': 10,
+            },
+            series: {
+              'sum(quantity)': [1, 2],
+            },
+          },
+        ],
+      },
+      chartDateInterval: '1h',
+      chartDateUtc: true,
+      dataCategory: DataCategory.PROFILE_DURATION,
+      endpointQuery: {},
+    });
+
+    // multiplies dropped profile chunks by 9000
+    expect(mappedSeries.chartStats.invalid).toEqual([
+      {value: ['Jan 1 12:00 AM - 1:00 AM (+00:00)', 9000]},
+      {value: ['Jan 2 12:00 AM - 1:00 AM (+00:00)', 18000]},
+    ]);
+
+    // does not add accepted profile chunks to accepted profile duration
+    expect(mappedSeries.chartStats.accepted).toEqual([
+      {value: ['Jan 1 12:00 AM - 1:00 AM (+00:00)', 1]},
+      {value: ['Jan 2 12:00 AM - 1:00 AM (+00:00)', 2]},
+    ]);
+  });
+
+  it('should correctly sum up the profiles', function () {
+    const groups = [
+      {
+        by: {
+          outcome: 'invalid',
+          reason: 'bad',
+          category: 'profile',
+        },
+        totals: {
+          'sum(quantity)': 10,
+        },
+        series: {
+          'sum(quantity)': [1, 2],
+        },
+      },
+      {
+        by: {
+          outcome: 'accepted',
+          reason: 'good',
+          category: 'profile',
+        },
+        totals: {
+          'sum(quantity)': 10,
+        },
+        series: {
+          'sum(quantity)': [3, 4],
+        },
+      },
+      {
+        by: {
+          outcome: 'accepted',
+          reason: 'good',
+          category: 'profile_duration',
+        },
+        totals: {
+          'sum(quantity)': 10,
+        },
+        series: {
+          'sum(quantity)': [1, 2],
+        },
+      },
+    ];
+
+    const mappedSeries = mapSeriesToChart({
+      orgStats: {
+        start: '2021-01-01T00:00:00Z',
+        end: '2021-01-07T00:00:00Z',
+        intervals: ['2021-01-01T00:00:00Z', '2021-01-02T00:00:00Z'],
+        groups,
+      },
+      chartDateInterval: '1h',
+      chartDateUtc: true,
+      dataCategory: DataCategory.PROFILE_DURATION,
+      shouldEstimateDroppedProfiles: true,
+      endpointQuery: {},
+    });
+
+    // multiplies dropped profiles by 9000
+    expect(mappedSeries.chartStats.invalid).toEqual([
+      {value: ['Jan 1 12:00 AM - 1:00 AM (+00:00)', 9000]},
+      {value: ['Jan 2 12:00 AM - 1:00 AM (+00:00)', 18000]},
+    ]);
+
+    // does not add accepted profiles to accepted profile duration
+    expect(mappedSeries.chartStats.accepted).toEqual([
+      {value: ['Jan 1 12:00 AM - 1:00 AM (+00:00)', 1]},
+      {value: ['Jan 2 12:00 AM - 1:00 AM (+00:00)', 2]},
+    ]);
   });
 });

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
@@ -7,8 +8,9 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
@@ -21,11 +23,11 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
 from sentry.types.activity import ActivityType
-from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context
 
 
 @region_silo_endpoint
-class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectReleasesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
@@ -51,7 +53,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         """
         query = request.GET.get("query")
         try:
-            environment = self._get_environment_from_request(request, project.organization_id)
+            environment = get_environment(request, project.organization_id)
         except Environment.DoesNotExist:
             queryset = Release.objects.none()
             environment = None
@@ -116,7 +118,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             data=request.data, context={"organization": project.organization}
         )
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         if serializer.is_valid():
             result = serializer.validated_data

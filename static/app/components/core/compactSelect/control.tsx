@@ -48,7 +48,7 @@ function nextFrameCallback(cb: () => void) {
   }
 }
 
-export interface SelectContextValue {
+interface SelectContextValue {
   overlayIsOpen: boolean;
   /**
    * Function to be called once when a list is initialized, to register its state in
@@ -105,6 +105,7 @@ export interface ControlProps
       | 'onInteractOutside'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'strategy'
     > {
   children?: React.ReactNode;
   className?: string;
@@ -232,6 +233,7 @@ export function Control({
   flipOptions,
   disabled,
   position = 'bottom-start',
+  strategy = 'absolute',
   offset,
   hideOptions,
   menuTitle,
@@ -327,11 +329,14 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
+    strategy,
     onOpenChange: open => {
       onOpenChange?.(open);
 
       nextFrameCallback(() => {
         if (open) {
+          // Force a overlay update, as sometimes the overlay is misaligned when opened
+          updateOverlay?.();
           // Focus on search box if present
           if (searchable) {
             searchRef.current?.focus();
@@ -504,8 +509,9 @@ export function Control({
   }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
 
   const theme = useTheme();
+
   return (
-    <SelectContext.Provider value={contextValue}>
+    <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
           trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
@@ -541,7 +547,7 @@ export function Control({
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} mini />}
+                    {loading && <StyledLoadingIndicator size={12} />}
                     {typeof menuHeaderTrailingItems === 'function'
                       ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                       : menuHeaderTrailingItems}
@@ -580,7 +586,7 @@ export function Control({
           </StyledOverlay>
         </StyledPositionWrapper>
       </ControlWrap>
-    </SelectContext.Provider>
+    </SelectContext>
   );
 }
 
@@ -641,9 +647,7 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${space(0.5)} 0 ${space(1)};
-    height: 12px;
-    width: 12px;
+    margin: 0;
   }
 `;
 
@@ -694,9 +698,10 @@ const StyledOverlay = styled(Overlay, {
 
 const StyledPositionWrapper = styled(PositionWrapper, {
   shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean}>`
+})<{visible?: boolean; zIndex?: number}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p?.zIndex};
 `;
 
 const OptionsWrap = styled('div')`

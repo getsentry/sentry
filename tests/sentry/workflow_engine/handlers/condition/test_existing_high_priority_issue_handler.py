@@ -17,7 +17,7 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowEventData(
+        self.event_data = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 {
@@ -65,26 +65,26 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_group_state_is_new(self):
-        assert self.job.group_state
-        self.job.group_state["is_new"] = True
-        self.assert_does_not_pass(self.dc, self.job)
+        assert self.event_data.group_state
+        self.event_data.group_state["is_new"] = True
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_is_escalating(self):
-        self.job = replace(self.job, has_reappeared=False, has_escalated=True)
-        self.assert_passes(self.dc, self.job)
+        self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=True)
+        self.assert_passes(self.dc, self.event_data)
 
-        self.job = replace(self.job, has_reappeared=True, has_escalated=False)
-        self.assert_passes(self.dc, self.job)
+        self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=False)
+        self.assert_passes(self.dc, self.event_data)
 
-        self.job = replace(self.job, has_reappeared=False, has_escalated=False)
-        self.assert_does_not_pass(self.dc, self.job)
+        self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=False)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_priority(self):
         self.group_event.group.priority = PriorityLevel.LOW
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.group_event.group.priority = PriorityLevel.MEDIUM
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

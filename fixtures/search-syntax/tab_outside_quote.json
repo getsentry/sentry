@@ -10,7 +10,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "a", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "a",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""},
       {"quoted": false, "type": "freeText", "value": "\trelease", "invalid": null},

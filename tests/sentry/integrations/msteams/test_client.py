@@ -8,6 +8,7 @@ from django.test import override_settings
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -81,6 +82,15 @@ class MsTeamsClientTest(TestCase):
                 "expires_at": self.expires_at + 86399 - 60 * 5,
                 "service_url": "https://smba.trafficmanager.net/amer/",
             }
+
+    @responses.activate
+    def test_token_refreshes_with_integration_not_found(self):
+        self.integration.delete()
+        with patch("time.time") as mock_time:
+            mock_time.return_value = self.expires_at
+            # accessing the property should refresh the token
+            with pytest.raises(IntegrationError):
+                self.msteams_client.access_token
 
     @responses.activate
     def test_no_token_refresh(self):

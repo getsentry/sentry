@@ -4,10 +4,9 @@ import type {
   ColorChannels,
   FlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {upperBound} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
-
-import {upperBound} from '../gl/utils';
 
 export type UIFramesRendererConstructor = new (
   canvas: HTMLCanvasElement,

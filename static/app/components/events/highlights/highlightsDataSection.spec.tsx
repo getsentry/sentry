@@ -2,7 +2,13 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
@@ -56,16 +62,10 @@ describe('HighlightsDataSection', function () {
       />,
       {organization}
     );
-    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add Highlights'})).toBeInTheDocument();
-    const viewAllButton = screen.getByRole('button', {name: 'View All'});
-    await userEvent.click(viewAllButton);
-    expect(analyticsSpy).toHaveBeenCalledWith(
-      'highlights.issue_details.view_all_clicked',
-      expect.anything()
-    );
     const editButton = screen.getByRole('button', {name: 'Edit'});
     await userEvent.click(editButton);
     expect(analyticsSpy).toHaveBeenCalledWith(
@@ -90,7 +90,7 @@ describe('HighlightsDataSection', function () {
     render(<HighlightsDataSection event={event} project={project} />, {
       organization,
     });
-    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     for (const tagKey of highlightTags) {
       const row = screen
@@ -102,9 +102,11 @@ describe('HighlightsDataSection', function () {
         const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
-        expect(
-          await screen.findByLabelText('Search issues with this tag value')
-        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.getByLabelText('Search issues with this tag value')
+          ).toBeInTheDocument();
+        });
         expect(
           screen.queryByLabelText('Add to event highlights')
         ).not.toBeInTheDocument();

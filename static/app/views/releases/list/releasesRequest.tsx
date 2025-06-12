@@ -24,19 +24,12 @@ import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-
-import {getCrashFreePercent} from '../utils';
+import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 function omitIgnoredProps(props: Props) {
-  return omit(props, [
-    'api',
-    'organization',
-    'children',
-    'selection.datetime.utc',
-    'location',
-  ]);
+  return omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 }
 
 function getInterval(datetimeObj: DateTimeObject) {
@@ -56,7 +49,7 @@ function getInterval(datetimeObj: DateTimeObject) {
   // TODO(sessions): sub-hour session resolution is still not possible
   return '1h';
 }
-export function reduceTimeSeriesGroups(
+function reduceTimeSeriesGroups(
   acc: number[],
   group: SessionApiResponse['groups'][number],
   field: 'count_unique(user)' | 'sum(session)'

@@ -4,13 +4,14 @@ import {type Theme, useTheme} from '@emotion/react';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import KeyValueData, {
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('KeyValueData', story => {
+export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
       import KeyValueData from 'sentry/components/keyValueData';

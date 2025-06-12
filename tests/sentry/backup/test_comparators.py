@@ -291,12 +291,12 @@ def test_good_auto_suffix_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData()
-    assert left["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData()
+    assert left["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData.SCRUBBED_DATA
+    assert left["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData()
-    assert right["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData()
+    assert right["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData.SCRUBBED_DATA
+    assert right["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData.SCRUBBED_DATA
 
 
 def test_good_datetime_equality_comparator():
@@ -970,10 +970,10 @@ def test_good_foreign_key_comparator_scrubbed():
     right = deepcopy(left)
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData()
+    assert left["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData()
+    assert right["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData.SCRUBBED_DATA
 
 
 def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
@@ -1171,11 +1171,11 @@ def test_good_ignored_comparator_scrubbed():
     right = deepcopy(left)
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
+    assert left["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData.SCRUBBED_DATA
     assert left["scrubbed"].get("IgnoredComparator::other_field") is None
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
+    assert right["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData.SCRUBBED_DATA
     assert right["scrubbed"].get("IgnoredComparator::other_field") is None
 
 
@@ -1271,10 +1271,10 @@ def test_good_secret_hex_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+    assert left["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+    assert right["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData.SCRUBBED_DATA
 
 
 def test_good_subscription_id_comparator():
@@ -1406,10 +1406,16 @@ def test_good_subscription_id_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
+    assert (
+        left["scrubbed"]["SubscriptionIDComparator::subscription_id_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
+    assert (
+        right["scrubbed"]["SubscriptionIDComparator::subscription_id_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
 
 def test_good_unordered_list_comparator():
@@ -1520,10 +1526,16 @@ def test_good_unordered_list_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["UnorderedListComparator::unordered_list_field"] is ScrubbedData()
+    assert (
+        left["scrubbed"]["UnorderedListComparator::unordered_list_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["UnorderedListComparator::unordered_list_field"] is ScrubbedData()
+    assert (
+        right["scrubbed"]["UnorderedListComparator::unordered_list_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
 
 def test_good_uuid4_comparator():
@@ -1625,10 +1637,10 @@ def test_good_uuid4_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
+    assert left["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
+    assert right["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData.SCRUBBED_DATA
 
 
 def test_good_user_password_obfuscating_comparator_claimed_user():

@@ -252,6 +252,8 @@ declare namespace Profiling {
 
   type BaseTransactionProfileReference = {
     profile_id: string;
+    end?: number;
+    start?: number;
   };
 
   type BaseContinuousProfileReference = {

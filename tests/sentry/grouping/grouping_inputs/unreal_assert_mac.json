@@ -10,19 +10,12 @@
             {
               "function": "_pthread_start",
               "symbol": "_pthread_start",
-              "package": "/usr/lib/system/libsystem_pthread.dylib",
-              "data": {
-                "category": "threadbase"
-              }
+              "package": "/usr/lib/system/libsystem_pthread.dylib"
             },
             {
               "function": "__NSThread__start__",
               "symbol": "__NSThread__start__",
-              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
-              "data": {
-                "orig_in_app": 0,
-                "category": "internals"
-              }
+              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
             },
             {
               "function": "-[FCocoaGameThread main]",
@@ -146,10 +139,7 @@
               "function": "ProcessLocalFunction::lambda::operator()",
               "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const",
               "symbol": "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv",
-              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
-              "data": {
-                "category": "indirection"
-              }
+              "package": "/Users/username/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground"
             },
             {
               "function": "ProcessScriptFunction<T>",

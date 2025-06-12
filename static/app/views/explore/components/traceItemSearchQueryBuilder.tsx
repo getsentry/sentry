@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -7,19 +7,19 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useTraceItemAttributeValues} from 'sentry/views/explore/hooks/useTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-import {useTraceItemAttributeValues} from '../hooks/useTraceItemAttributeValues';
-import {TraceItemDataset} from '../types';
-
-export type TraceItemSearchQueryBuilderProps = {
-  itemType: TraceItemDataset.LOGS; // This should include TraceItemDataset.SPANS etc.
+type TraceItemSearchQueryBuilderProps = {
+  itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
-export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
@@ -48,11 +48,80 @@ function getTraceItemFieldDefinitionFunction(
   };
 }
 
+export function useSearchQueryBuilderProps({
+  itemType,
+  numberAttributes,
+  stringAttributes,
+  initialQuery,
+  searchSource,
+  getFilterTokenWarning,
+  onBlur,
+  onChange,
+  onSearch,
+  portalTarget,
+  projects,
+  supportedAggregates = [],
+}: TraceItemSearchQueryBuilderProps) {
+  const organization = useOrganization();
+  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const functionTags = useFunctionTags(itemType, supportedAggregates);
+  const filterKeySections = useFilterKeySections(itemType, stringAttributes);
+  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
+
+  const getTraceItemAttributeValues = useTraceItemAttributeValues({
+    traceItemType: itemType,
+    attributeKey: '',
+    enabled: true,
+    type: 'string',
+    projectIds: projects,
+  });
+
+  const getSuggestedFilterKey = useCallback(
+    (key: string) => {
+      // prioritize exact matches first
+      if (filterTags.hasOwnProperty(key)) {
+        return key;
+      }
+
+      // try to see if there's numeric attribute by the same name
+      const explicitNumberTag = `tags[${key},number]`;
+      if (filterTags.hasOwnProperty(explicitNumberTag)) {
+        return explicitNumberTag;
+      }
+
+      // give up, and fall back to the default behaviour
+      return null;
+    },
+    [filterTags]
+  );
+
+  return {
+    searchOnChange: organization.features.includes('ui-search-on-change'),
+    placeholder: placeholderText,
+    filterKeys: filterTags,
+    initialQuery,
+    fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
+    onSearch,
+    onChange,
+    onBlur,
+    getFilterTokenWarning,
+    searchSource,
+    filterKeySections,
+    getSuggestedFilterKey,
+    getTagValues: getTraceItemAttributeValues,
+    disallowUnsupportedFilters: true,
+    recentSearches: itemTypeToRecentSearches(itemType),
+    showUnsubmittedIndicator: true,
+    portalTarget,
+  };
+}
+
 /**
  * This component should replace EAPSpansSearchQueryBuilder in the future,
  * once spans support has been added to the trace-items attribute endpoints.
  */
 export function TraceItemSearchQueryBuilder({
+  autoFocus,
   initialQuery,
   numberAttributes,
   searchSource,
@@ -61,51 +130,40 @@ export function TraceItemSearchQueryBuilder({
   datetime: _datetime,
   getFilterTokenWarning,
   onBlur,
+  onChange,
   onSearch,
   portalTarget,
-  projects: _projects,
+  projects,
   supportedAggregates = [],
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
-  const functionTags = useFunctionTags(itemType, supportedAggregates);
-  const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
-
-  const getTraceItemAttributeValues = useTraceItemAttributeValues({
-    traceItemType: itemType,
-    attributeKey: '', // Empty as we're only using the callback function
-    enabled: true,
-    type: 'string', // Only string attributes are supported for now
+  const searchQueryBuilderProps = useSearchQueryBuilderProps({
+    itemType,
+    numberAttributes,
+    stringAttributes,
+    initialQuery,
+    searchSource,
+    getFilterTokenWarning,
+    onBlur,
+    onChange,
+    onSearch,
+    portalTarget,
+    projects,
+    supportedAggregates,
   });
 
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      filterKeys={filterTags}
-      initialQuery={initialQuery}
-      fieldDefinitionGetter={getTraceItemFieldDefinitionFunction(itemType, filterTags)}
-      onSearch={onSearch}
-      onBlur={onBlur}
-      getFilterTokenWarning={getFilterTokenWarning}
-      searchSource={searchSource}
-      filterKeySections={filterKeySections}
-      getTagValues={getTraceItemAttributeValues}
-      disallowUnsupportedFilters
-      recentSearches={itemTypeToRecentSearches(itemType)}
-      showUnsubmittedIndicator
-      portalTarget={portalTarget}
-    />
-  );
+  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(
   itemType: TraceItemDataset,
   supportedAggregates?: AggregationKey[]
 ) {
-  if (itemType === TraceItemDataset.SPANS) {
-    return getFunctionTags(supportedAggregates);
-  }
-  return {};
+  return useMemo(() => {
+    if (itemType === TraceItemDataset.SPANS) {
+      return getFunctionTags(supportedAggregates);
+    }
+    return {};
+  }, [itemType, supportedAggregates]);
 }
 
 function useFilterTags(
@@ -119,7 +177,10 @@ function useFilterTags(
       ...numberAttributes,
       ...stringAttributes,
     };
-    tags.has = getHasTag({...stringAttributes});
+    tags.has = getHasTag({
+      ...numberAttributes,
+      ...stringAttributes,
+    });
     return tags;
   }, [numberAttributes, stringAttributes, functionTags]);
 }
@@ -144,7 +205,7 @@ function useFilterKeySections(
         label: 'Custom Tags',
         children: Object.keys(stringAttributes).filter(key => !predefined.has(key)),
       },
-    ];
+    ].filter(section => section.children.length);
   }, [stringAttributes, itemType]);
 }
 

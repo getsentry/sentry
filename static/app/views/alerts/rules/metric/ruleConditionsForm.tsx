@@ -2,7 +2,6 @@ import {Fragment, PureComponent} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -43,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDisplayName} from 'sentry/utils/environment';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -61,6 +59,7 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -68,29 +67,17 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {
-  SpanTagsContext,
-  SpanTagsProvider,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
-import {getProjectOptions} from '../utils';
-
-import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
-
-const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: t('1 minute'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
-  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
-  [TimeWindow.ONE_HOUR]: t('1 hour'),
-  [TimeWindow.TWO_HOURS]: t('2 hours'),
-  [TimeWindow.FOUR_HOURS]: t('4 hours'),
-  [TimeWindow.ONE_DAY]: t('24 hours'),
-};
+import {
+  DEFAULT_AGGREGATE,
+  DEFAULT_TRANSACTION_AGGREGATE,
+  getTimeWindowOptions,
+} from './constants';
+import {AlertRuleComparisonType, Dataset, Datasource} from './types';
 
 type Props = {
   aggregate: string;
@@ -250,48 +237,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     return values.filter(({name}) => defined(name)).map(({name}) => name);
   };
 
-  get timeWindowOptions() {
-    let options: Record<string, string> = TIME_WINDOW_MAP;
-
-    if (isCrashFreeAlert(this.props.dataset)) {
-      options = pick(TIME_WINDOW_MAP, [
-        // TimeWindow.THIRTY_MINUTES, leaving this option out until we figure out the sub-hour session resolution chart limitations
-        TimeWindow.ONE_HOUR,
-        TimeWindow.TWO_HOURS,
-        TimeWindow.FOUR_HOURS,
-        TimeWindow.ONE_DAY,
-      ]);
-    }
-
-    if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
-      options = pick(TIME_WINDOW_MAP, [
-        TimeWindow.FIFTEEN_MINUTES,
-        TimeWindow.THIRTY_MINUTES,
-        TimeWindow.ONE_HOUR,
-      ]);
-    }
-
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      options = pick(TIME_WINDOW_MAP, [
-        TimeWindow.FIVE_MINUTES,
-        TimeWindow.TEN_MINUTES,
-        TimeWindow.FIFTEEN_MINUTES,
-        TimeWindow.THIRTY_MINUTES,
-        TimeWindow.ONE_HOUR,
-        TimeWindow.TWO_HOURS,
-        TimeWindow.FOUR_HOURS,
-        TimeWindow.ONE_DAY,
-      ]);
-    }
-
-    return Object.entries(options).map(([value, label]) => ({
-      value: parseInt(value, 10),
-      label: tct('[timeWindow] interval', {
-        timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
-      }),
-    }));
-  }
-
   get searchPlaceholder() {
     switch (this.props.dataset) {
       case Dataset.ERRORS:
@@ -306,12 +251,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get selectControlStyles() {
     return {
-      control: (provided: {[x: string]: string | number | boolean}) => ({
+      control: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         minWidth: 200,
         maxWidth: 300,
       }),
-      container: (provided: {[x: string]: string | number | boolean}) => ({
+      container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         margin: `${space(0.5)}`,
       }),
@@ -454,8 +399,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);
@@ -483,8 +427,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, timeWindow, disabled, alertType, project, onTimeWindowChange} =
-      this.props;
+    const {
+      organization,
+      timeWindow,
+      disabled,
+      alertType,
+      project,
+      dataset,
+      comparisonType,
+      onTimeWindowChange,
+    } = this.props;
 
     return (
       <Fragment>
@@ -513,7 +465,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Select
             name="timeWindow"
             styles={this.selectControlStyles}
-            options={this.timeWindowOptions}
+            options={getTimeWindowOptions(dataset, comparisonType)}
             isDisabled={disabled}
             value={timeWindow}
             onChange={({value}: any) => onTimeWindowChange(value)}
@@ -567,11 +519,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            <SpanTagsProvider
-              dataset={DiscoverDatasets.SPANS_EAP}
+            <TraceItemAttributeProvider
+              projects={[project]}
+              traceItemType={TraceItemDataset.SPANS}
               enabled={
-                organization.features.includes('alerts-eap') &&
-                alertType === 'eap_metrics'
+                organization.features.includes('visibility-explore-view') &&
+                isEapAlertType(alertType)
               }
             >
               {isExtrapolatedChartData && (
@@ -631,26 +584,21 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
-                    return alertType === 'eap_metrics' ? (
-                      <SpanTagsContext.Consumer>
-                        {tags => (
-                          <EAPSpanSearchQueryBuilder
-                            numberTags={tags?.number ?? {}}
-                            stringTags={tags?.string ?? {}}
-                            initialQuery={value ?? ''}
-                            searchSource="alerts"
-                            onSearch={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onChange(query, {});
-                            }}
-                            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-                            projects={[parseInt(project.id, 10)]}
-                          />
-                        )}
-                      </SpanTagsContext.Consumer>
+                    return isEapAlertType(alertType) ? (
+                      <EAPSpanSearchQueryBuilderWithContext
+                        initialQuery={value ?? ''}
+                        onSearch={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
+                          onChange(query, {});
+                        }}
+                        project={project}
+                      />
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
+                          searchOnChange={organization.features.includes(
+                            'ui-search-on-change'
+                          )}
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
                           placeholder={this.searchPlaceholder}
@@ -755,12 +703,38 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                 </FormField>
               </FormRow>
-            </SpanTagsProvider>
+            </TraceItemAttributeProvider>
           </Fragment>
         )}
       </Fragment>
     );
   }
+}
+
+interface EAPSpanSearchQueryBuilderWithContextProps {
+  initialQuery: string;
+  onSearch: (query: string, isQueryValid: any) => void;
+  project: Project;
+}
+
+function EAPSpanSearchQueryBuilderWithContext({
+  initialQuery,
+  onSearch,
+  project,
+}: EAPSpanSearchQueryBuilderWithContextProps) {
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
+  return (
+    <EAPSpanSearchQueryBuilder
+      numberTags={numberTags}
+      stringTags={stringTags}
+      initialQuery={initialQuery}
+      searchSource="alerts"
+      onSearch={onSearch}
+      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+      projects={[parseInt(project.id, 10)]}
+    />
+  );
 }
 
 const StyledListTitle = styled('div')`

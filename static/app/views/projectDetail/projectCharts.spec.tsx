@@ -32,7 +32,6 @@ function renderProjectCharts(
       hasTransactions
       location={router.location}
       organization={organization}
-      router={router}
       visibleCharts={['chart1', 'chart2']}
       project={project}
     />

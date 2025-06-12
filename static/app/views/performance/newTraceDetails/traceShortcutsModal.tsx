@@ -1,35 +1,11 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
-
-import {traceAnalytics} from './traceAnalytics';
-import {useHasTraceNewUi} from './useHasTraceNewUi';
-
-export function TraceShortcuts() {
-  const hasTraceNewUi = useHasTraceNewUi();
-  const organization = useOrganization();
-  const onOpenShortcutsClick = useCallback(() => {
-    traceAnalytics.trackViewShortcuts(organization);
-    openModal(props => <TraceShortcutsModal {...props} />);
-  }, [organization]);
-
-  if (hasTraceNewUi) {
-    return null;
-  }
-
-  return (
-    <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
-      Shortcuts
-    </Button>
-  );
-}
 
 const KEYBOARD_SHORTCUTS: Array<[string, string]> = [
   ['\u2191 / \u2193', t('Navigate up or down')],

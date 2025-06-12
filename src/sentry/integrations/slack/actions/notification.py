@@ -27,14 +27,7 @@ from sentry.integrations.repository.notification_action import (
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
-from sentry.integrations.slack.metrics import (
-    SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-    SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
-)
+from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
@@ -116,7 +109,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         lifecycle: EventLifecycle,
         new_notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ),
+        ) | None,
     ) -> str | None:
         """Send a message to Slack and handle any errors."""
         try:
@@ -137,21 +130,25 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     level="info",
                 )
 
-            new_notification_message_object.message_identifier = message_identifier
+            if new_notification_message_object:
+                new_notification_message_object.message_identifier = message_identifier
+
             return message_identifier
         except SlackApiError as e:
             # Record the error code and details from the exception
-            new_notification_message_object.error_code = e.response.status_code
-            new_notification_message_object.error_details = {
-                "msg": str(e),
-                "data": e.response.data,
-                "url": e.response.api_url,
-            }
+            if new_notification_message_object:
+                new_notification_message_object.error_code = e.response.status_code
+                new_notification_message_object.error_details = {
+                    "msg": str(e),
+                    "data": e.response.data,
+                    "url": e.response.api_url,
+                }
 
             log_params: dict[str, str | int] = {
                 "error": str(e),
                 "project_id": event.project_id,
                 "event_id": event.event_id,
+                "integration_id": client.integration_id,
             }
 
             lifecycle.add_extras(log_params)
@@ -239,12 +236,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         tags: set,
         integration: RpcIntegration,
         channel: str,
-        notification_uuid: str | None,
+        notification_uuid: str | None = None,
         notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ),
-        save_notification_method: Callable | None,
-        thread_ts: str | None,
+        ) | None = None,
+        save_notification_method: Callable | None = None,
+        thread_ts: str | None = None,
     ) -> None:
         """Common logic for sending Slack notifications."""
         rules = [f.rule for f in futures]
@@ -370,6 +367,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             return
 
+        if str(action_id) == "-1":
+            self._send_notification(
+                event=event,
+                futures=futures,
+                tags=tags,
+                integration=integration,
+                channel=channel,
+            )
+
         try:
             action = Action.objects.get(id=action_id)
         except Action.DoesNotExist:
@@ -464,59 +470,18 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         key = f"slack:{integration.id}:{channel}"
 
-        metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
-        if features.has(
-            "organizations:workflow-engine-notification-action", self.project.organization
-        ):
+        metrics.incr(
+            "notifications.sent",
+            instance="slack.notification",
+            tags={
+                "issue_type": event.group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
+        if features.has("organizations:workflow-engine-trigger-actions", self.project.organization):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)
-
-    def send_confirmation_notification(
-        self, rule: Rule, new: bool, changed: dict[str, Any] | None = None
-    ):
-        integration = self.get_integration()
-        if not integration:
-            # Integration removed, rule still active.
-            return
-
-        channel = self.get_option("channel_id")
-        blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
-        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
-        client = SlackSdkClient(integration_id=integration.id)
-
-        try:
-            client.chat_postMessage(
-                blocks=json_blocks,
-                text=blocks.get("text"),
-                channel=channel,
-                unfurl_links=False,
-                unfurl_media=False,
-            )
-            metrics.incr(
-                SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"action": "send_confirmation"},
-            )
-        except SlackApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "slack.issue_alert.confirmation.fail",
-                extra=log_params,
-            )
-            metrics.incr(
-                SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={
-                    "action": "send_confirmation",
-                    "ok": e.response.get("ok", False),
-                    "status": e.response.status_code,
-                },
-            )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()

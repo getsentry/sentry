@@ -70,11 +70,6 @@ type Props = {
 };
 
 /**
- * Normalized props for feature configuration objects
- */
-export type FeatureProps = Omit<Props, 'children' | 'config' | 'organization'>;
-
-/**
  * Common props passed to children and disabled render handlers.
  */
 type FeatureRenderProps = {
@@ -95,7 +90,7 @@ interface RenderDisabledProps extends FeatureRenderProps {
   renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
 }
 
-export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
+type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
 interface ChildRenderProps extends FeatureRenderProps {
   renderDisabled?: boolean | ((props: any) => React.ReactNode);

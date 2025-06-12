@@ -38,7 +38,6 @@ const defaultProps = {
   withPagination: true,
   useFilteredStats: true,
   useTintRow: true,
-  narrowGroups: false,
 };
 
 export type GroupListColumn =
@@ -198,6 +197,7 @@ class GroupList extends Component<Props, State> {
   };
 
   getGroupListEndpoint() {
+    // TODO: Split up the query parameters and the URL. This will make it much easier to mock the endpoint.
     const {organization, endpointPath, queryParams} = this.props;
     const path = endpointPath ?? `/organizations/${organization.slug}/issues/`;
     const queryParameters = queryParams ?? this.getQueryParams();
@@ -252,7 +252,6 @@ class GroupList extends Component<Props, State> {
     const {
       canSelectGroups,
       withChart,
-      organization,
       withColumns = ['graph', 'event', 'users', 'assignee'],
       renderEmptyMessage,
       renderErrorMessage,
@@ -262,7 +261,6 @@ class GroupList extends Component<Props, State> {
       customStatsPeriod,
       queryParams,
       queryFilterDescription,
-      narrowGroups,
       source,
       query,
     } = this.props;
@@ -270,9 +268,8 @@ class GroupList extends Component<Props, State> {
 
     const columns: GroupListColumn[] = [
       ...withColumns,
-      ...(organization.features.includes('issue-stream-table-layout')
-        ? ['firstSeen' as const, 'lastSeen' as const]
-        : []),
+      'firstSeen' as const,
+      'lastSeen' as const,
     ];
 
     if (error) {
@@ -306,11 +303,7 @@ class GroupList extends Component<Props, State> {
     return (
       <Fragment>
         <PanelContainer>
-          <GroupListHeader
-            withChart={!!withChart}
-            narrowGroups={narrowGroups}
-            withColumns={columns}
-          />
+          <GroupListHeader withChart={!!withChart} withColumns={columns} />
           <PanelBody>
             {loading
               ? [
@@ -340,7 +333,6 @@ class GroupList extends Component<Props, State> {
                       customStatsPeriod={customStatsPeriod}
                       statsPeriod={statsPeriod}
                       queryFilterDescription={queryFilterDescription}
-                      narrowGroups={narrowGroups}
                       source={source}
                       query={query}
                     />
@@ -355,8 +347,6 @@ class GroupList extends Component<Props, State> {
     );
   }
 }
-
-export {GroupList};
 
 export default withOrganization(withApi(withSentryRouter(GroupList)));
 

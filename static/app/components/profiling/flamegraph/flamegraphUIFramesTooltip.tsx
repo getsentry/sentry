@@ -17,7 +17,7 @@ import {
   FlamegraphTooltipTimelineInfo,
 } from './flamegraphTooltip';
 
-export interface FlamegraphUIFramesTooltipProps {
+interface FlamegraphUIFramesTooltipProps {
   configSpaceCursor: vec2;
   hoveredNode: UIFrames['frames'];
   uiFrames: UIFrames;

@@ -22,7 +22,6 @@ class ReplayRecordingSegment(Model):
     class Meta:
         app_label = "replays"
         db_table = "replays_replayrecordingsegment"
-        indexes = (models.Index(fields=("replay_id", "segment_id")),)
         unique_together = (
             ("project_id", "replay_id", "file_id"),
             ("project_id", "replay_id", "segment_id"),

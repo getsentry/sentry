@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
@@ -17,7 +16,6 @@ import type {IssueConfigField} from 'sentry/types/integrations';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/actionCreators/onboardingTasks');
 
 const defaultIssueConfig = [
   {
@@ -48,7 +46,6 @@ const defaultIssueConfig = [
 
 describe('ProjectAlerts -> TicketRuleModal', function () {
   const organization = OrganizationFixture();
-  const router = RouterFixture();
   const onSubmitAction = jest.fn();
   const closeModal = jest.fn();
   const [
@@ -102,7 +99,9 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         instance={{...props.data, integration: 1}}
         onSubmitAction={onSubmitAction}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     return wrapper;

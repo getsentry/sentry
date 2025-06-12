@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
+import type {Event, EventTransaction, Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError as TraceErrorType,
@@ -13,25 +13,23 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
-import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {isRootEvent} from '../../traceDetails/utils';
-import {getTraceQueryParams} from '../traceApi/useTrace';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
   isBrowserRequestSpan,
   isCollapsedNode,
+  isEAPError,
+  isEAPErrorNode,
+  isEAPSpan,
   isEAPSpanNode,
   isEAPTraceNode,
   isEAPTransaction,
   isEAPTransactionNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
+  isNonTransactionEAPSpanNode,
   isPageloadTransactionNode,
   isParentAutogroupedNode,
   isRootNode,
@@ -42,7 +40,15 @@ import {
   isTraceNode,
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  collectTraceMeasurements,
+  type RENDERABLE_MEASUREMENTS,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import {MissingInstrumentationNode} from './missingInstrumentationNode';
@@ -51,7 +57,7 @@ import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 import {TraceTreeNode} from './traceTreeNode';
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 /**
  *
@@ -125,14 +131,11 @@ export declare namespace TraceTree {
     ['trace timeline change']: (view: [number, number]) => void;
   }
 
-  type EAPSpan = {
-    children: EAPSpan[];
-    duration: number;
-    end_timestamp: number;
+  type EAPError = {
     event_id: string;
-    is_transaction: boolean;
-    op: string;
-    parent_span_id: string;
+    event_type: 'error';
+    issue_id: number;
+    level: Level;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
@@ -140,7 +143,38 @@ export declare namespace TraceTree {
     description?: string;
   };
 
-  type EAPTrace = EAPSpan[];
+  type EAPOccurrence = {
+    event_id: string;
+    event_type: 'occurrence';
+    issue_id: number;
+    level: Level;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    description?: string;
+  };
+
+  type EAPSpan = {
+    children: EAPSpan[];
+    duration: number;
+    end_timestamp: number;
+    errors: EAPError[];
+    event_id: string;
+    is_transaction: boolean;
+    occurrences: EAPOccurrence[];
+    op: string;
+    parent_span_id: string;
+    profile_id: string;
+    profiler_id: string;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    transaction_id: string;
+    description?: string;
+    measurements?: Record<string, number>;
+  };
 
   // Raw node values
   interface Span extends RawSpanType {
@@ -152,9 +186,22 @@ export declare namespace TraceTree {
     sdk_name: string;
   }
 
+  type EAPTrace = Array<EAPSpan | EAPError>;
+
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
+
+  // Represents events that we get from the trace endpoints and render an individual row for in the trace waterfall, on load.
+  // This excludes spans as they are rendered on-demand as the user zooms in.
+  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError;
+
   type TraceError = TraceErrorType;
+  type TraceErrorIssue = TraceError | EAPError;
+
   type TracePerformanceIssue = TracePerformanceIssueType;
+  type TraceOccurrence = TracePerformanceIssue | EAPOccurrence;
+
+  type TraceIssue = TraceErrorIssue | TraceOccurrence;
+
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
     slug: string;
@@ -166,6 +213,7 @@ export declare namespace TraceTree {
     | Trace
     | Transaction
     | TraceError
+    | EAPError
     | Span
     | EAPSpan
     | MissingInstrumentationSpan
@@ -184,14 +232,21 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutogroup extends Span {
+
+  interface BaseAutogroup {
+    op: string;
+    span_id: string;
+    description?: string;
+  }
+
+  interface SiblingAutogroup extends BaseAutogroup {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutogroup extends Span {
+  interface ChildrenAutogroup extends BaseAutogroup {
     autogrouped_by: {
       op: string;
     };
@@ -213,13 +268,18 @@ export declare namespace TraceTree {
     spans?: number;
   };
 
+  type OpsBreakdown = Array<{
+    count: number;
+    op: string;
+  }>;
+
   type Indicator = {
     duration: number;
     label: string;
     measurement: Measurement;
     poor: boolean;
     start: number;
-    type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+    type: keyof typeof RENDERABLE_MEASUREMENTS;
     score?: number;
   };
 
@@ -253,10 +313,13 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  }
-): Promise<TraceSplitResults<TraceTree.Transaction>> {
+  },
+  type: 'eap' | 'non-eap'
+): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    type === 'eap'
+      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
+      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -298,11 +361,31 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return t;
   }
 
+  static ApplyPreferences(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    options: {
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    }
+  ): void {
+    if (options?.preferences?.missing_instrumentation) {
+      TraceTree.DetectMissingInstrumentation(root);
+    }
+
+    if (options?.preferences?.autogroup.parent) {
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+    }
+
+    if (options?.preferences?.autogroup.sibling) {
+      TraceTree.AutogroupSiblingSpanNodes(root);
+    }
+  }
+
   static FromTrace(
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
       replay: ReplayRecord | null;
+      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): TraceTree {
     const tree = new TraceTree();
@@ -316,13 +399,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
+      value:
+        | TraceTree.Transaction
+        | TraceTree.TraceError
+        | TraceTree.EAPSpan
+        | TraceTree.EAPError
     ) {
       tree.projects.set(value.project_id, {
         slug: value.project_slug,
       });
 
-      let parentNode;
+      let parentNode: TraceTreeNode<TraceTree.NodeValue>;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
         // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior
@@ -382,17 +469,62 @@ export class TraceTree extends TraceTreeEventDispatcher {
       traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, c.space[0]);
       traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, c.space[0] + c.space[1]);
 
-      if (isTransactionNode(c)) {
-        for (const error of c.value.errors) {
-          traceNode.errors.add(error);
+      if (isTransactionNode(c) || isEAPSpanNode(c)) {
+        let closestEAPTransaction: TraceTreeNode<TraceTree.EAPSpan> | null = null;
+
+        if (isNonTransactionEAPSpanNode(c)) {
+          closestEAPTransaction = TraceTree.ParentEAPTransaction(c);
         }
 
-        for (const performanceIssue of c.value.performance_issues) {
-          traceNode.performance_issues.add(performanceIssue);
+        for (const error of c.value.errors) {
+          traceNode.errors.add(error);
+
+          // Propagate errors to the closest EAP transaction for visibility in the initially collapsed
+          // eap-transactions only view, on load
+          if (closestEAPTransaction) {
+            closestEAPTransaction.errors.add(error);
+          }
+        }
+
+        let occurences: TraceTree.TraceOccurrence[] = [];
+        if ('performance_issues' in c.value) {
+          occurences = c.value.performance_issues;
+        } else if ('occurrences' in c.value) {
+          occurences = c.value.occurrences as TraceTree.TraceOccurrence[];
+        }
+
+        for (const occurence of occurences) {
+          traceNode.occurrences.add(occurence);
+
+          // Propagate occurences to the closest EAP transaction for visibility in the initially collapsed
+          // eap-transactions only view, on load
+          if (closestEAPTransaction) {
+            closestEAPTransaction.occurrences.add(occurence);
+          }
+        }
+
+        function updateAncestorOpsBreakdown(
+          node: TraceTreeNode<TraceTree.EAPSpan>,
+          op: string
+        ) {
+          let current = node.parent;
+          while (current) {
+            const existing = current.eapSpanOpsBreakdown.find(b => b.op === op);
+            if (existing) {
+              existing.count++;
+            } else {
+              current.eapSpanOpsBreakdown.push({op, count: 1});
+            }
+            current = current.parent;
+          }
+        }
+
+        if (isEAPSpanNode(c)) {
+          updateAncestorOpsBreakdown(c, c.value.op);
         }
       }
 
-      if (isTraceErrorNode(c)) {
+      if (isTraceErrorNode(c) || isEAPErrorNode(c)) {
         traceNode.errors.add(c.value);
       }
 
@@ -403,6 +535,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (c.value && 'measurements' in c.value) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
+            tree,
             c,
             c.space[0],
             c.value.measurements,
@@ -463,7 +596,29 @@ export class TraceTree extends TraceTreeEventDispatcher {
     traceNode.space = [space[0]!, space[1]!];
 
     tree.indicators.sort((a, b) => a.start - b.start);
+
+    if (isEAPTraceNode(traceNode)) {
+      TraceTree.ApplyPreferences(tree.root, options);
+    }
+
     return tree;
+  }
+
+  static ReparentSSRUnderBrowserRequestSpan(
+    node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+  ): void {
+    if (isBrowserRequestSpan(node.value)) {
+      const serverRequestHandler = node.parent?.children.find(n =>
+        isServerRequestHandlerTransactionNode(n)
+      );
+
+      if (serverRequestHandler?.reparent_reason === 'pageload server handler') {
+        serverRequestHandler.parent!.children =
+          serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+        node.children.push(serverRequestHandler);
+        serverRequestHandler.parent = node;
+      }
+    }
   }
 
   static FromSpans(
@@ -559,25 +714,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.value,
           node
         )) {
-          c.performance_issues.add(performanceIssue);
+          c.occurrences.add(performanceIssue);
         }
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
           c.errors.add(error);
         }
-        if (isBrowserRequestSpan(c.value)) {
-          const serverRequestHandler = c.parent?.children.find(n =>
-            isServerRequestHandlerTransactionNode(n)
-          );
-          if (serverRequestHandler) {
-            serverRequestHandler.parent!.children =
-              serverRequestHandler.parent!.children.filter(
-                n => n !== serverRequestHandler
-              );
-            c.children.push(serverRequestHandler);
-            serverRequestHandler.parent = c;
-          }
-        }
+
+        TraceTree.ReparentSSRUnderBrowserRequestSpan(c);
       }
+
       c.children.sort(traceChronologicalSort);
     });
 
@@ -608,8 +753,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       baseTraceNode.errors.add(error);
     }
 
-    for (const performanceIssue of additionalTraceNode.performance_issues) {
-      baseTraceNode.performance_issues.add(performanceIssue);
+    for (const occurence of additionalTraceNode.occurrences) {
+      baseTraceNode.occurrences.add(occurence);
     }
 
     for (const profile of additionalTraceNode.profiles) {
@@ -629,6 +774,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       ) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
+            tree,
             node,
             baseTraceNode.space[0],
             node.value.measurements,
@@ -697,18 +843,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (
         previous &&
         child &&
-        isSpanNode(previous) &&
-        isSpanNode(child) &&
+        ((isSpanNode(previous) && isSpanNode(child)) ||
+          (isNonTransactionEAPSpanNode(previous) &&
+            isNonTransactionEAPSpanNode(child))) &&
         shouldAddMissingInstrumentationSpan(child.event?.sdk?.name ?? '') &&
         shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name ?? '') &&
         child.space[0] - previous.space[0] - previous.space[1] >=
           TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
       ) {
+        const previousEndTimestamp = isSpanNode(previous)
+          ? previous.value.timestamp
+          : previous.value.end_timestamp;
         const node = new MissingInstrumentationNode(
           child.parent!,
           {
             type: 'missing_instrumentation',
-            start_timestamp: previous.value.timestamp,
+            start_timestamp: previousEndTimestamp,
             timestamp: child.value.start_timestamp,
           },
           {
@@ -771,7 +921,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (!isSpanNode(node) || node.children.length > 1) {
+      if (
+        (!isSpanNode(node) && !isNonTransactionEAPSpanNode(node)) ||
+        node.children.length > 1
+      ) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -782,8 +935,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let tail = node;
       let groupMatchCount = 0;
 
-      let errors: TraceErrorType[] = [];
-      let performance_issues: TraceTree.TracePerformanceIssue[] = [];
+      let errors: TraceTree.TraceErrorIssue[] = [];
+      let occurences: TraceTree.TraceOccurrence[] = [];
 
       let start = head.space[0];
       let end = head.space[0] + head.space[1];
@@ -791,7 +944,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       while (
         tail &&
         tail.children.length === 1 &&
-        isSpanNode(tail.children[0]!) &&
+        (isSpanNode(tail.children[0]!) ||
+          isNonTransactionEAPSpanNode(tail.children[0]!)) &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
@@ -800,9 +954,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         end = Math.max(end, tail.space[0] + tail.space[1]);
 
         errors = errors.concat(Array.from(tail.errors));
-        performance_issues = performance_issues.concat(
-          Array.from(tail.performance_issues)
-        );
+        occurences = occurences.concat(Array.from(tail.occurrences));
 
         groupMatchCount++;
         tail = tail.children[0];
@@ -815,10 +967,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
+      const spanId = isNonTransactionEAPSpanNode(head)
+        ? head.value.event_id
+        : head.value.span_id;
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
-          ...head.value,
+          span_id: spanId,
+          op: head.value.op ?? '',
+          description: head.value.description,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? (head.value.op ?? '') : '',
           },
@@ -852,14 +1009,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
       errors = errors.concat(Array.from(tail.errors));
-      performance_issues = performance_issues.concat(Array.from(tail.performance_issues));
+      occurences = occurences.concat(Array.from(tail.occurrences));
 
       start = Math.min(start, tail.space[0]);
       end = Math.max(end, tail.space[0] + tail.space[1]);
 
       autoGroupedNode.space = [start, end - start];
       autoGroupedNode.errors = new Set(errors);
-      autoGroupedNode.performance_issues = new Set(performance_issues);
+      autoGroupedNode.occurrences = new Set(occurences);
 
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
@@ -925,18 +1082,25 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       while (index < node.children.length) {
         // Skip until we find a span candidate
-        if (!isSpanNode(node.children[index]!)) {
+        if (
+          !isSpanNode(node.children[index]!) &&
+          !isNonTransactionEAPSpanNode(node.children[index]!)
+        ) {
           index++;
           matchCount = 0;
           continue;
         }
 
-        const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
-        const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
+        const current = node.children[index] as
+          | TraceTreeNode<TraceTree.Span>
+          | TraceTreeNode<TraceTree.EAPSpan>;
+        const next = node.children[index + 1] as
+          | TraceTreeNode<TraceTree.Span>
+          | TraceTreeNode<TraceTree.EAPSpan>;
 
         if (
           next &&
-          isSpanNode(next) &&
+          (isSpanNode(next) || isNonTransactionEAPSpanNode(next)) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           // skip `op: default` spans as `default` is added to op-less spans
@@ -956,7 +1120,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
-              ...current.value,
+              span_id: isNonTransactionEAPSpanNode(current)
+                ? current.value.event_id
+                : current.value.span_id,
+              op: current.value.op ?? '',
+              description: current.value.description,
               autogrouped_by: {
                 op: current.value.op ?? '',
                 description: current.value.description ?? '',
@@ -990,8 +1158,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 autoGroupedNode.errors.add(error);
               }
 
-              for (const performanceIssue of child.performance_issues) {
-                autoGroupedNode.performance_issues.add(performanceIssue);
+              for (const occurence of child.occurrences) {
+                autoGroupedNode.occurrences.add(occurence);
               }
             }
 
@@ -1250,11 +1418,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (type === 'ag' && isAutogroupedNode(node)) {
         if (isParentAutogroupedNode(node)) {
-          return (
-            node.value.span_id === id ||
-            node.head.value.span_id === id ||
-            node.tail.value.span_id === id
-          );
+          const headSpanId = isEAPSpanNode(node.head)
+            ? node.head.value.event_id
+            : node.head.value.span_id;
+          const tailSpanId = isEAPSpanNode(node.tail)
+            ? node.tail.value.event_id
+            : node.tail.value.span_id;
+          return headSpanId === id || tailSpanId === id;
         }
         if (isSiblingAutogroupedNode(node)) {
           const child = node.children[0]!;
@@ -1265,10 +1435,16 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       if (type === 'ms' && isMissingInstrumentationNode(node)) {
-        return node.previous.value.span_id === id || node.next.value.span_id === id;
+        const previousSpanId = isSpanNode(node.previous)
+          ? node.previous.value.span_id
+          : node.previous.value.event_id;
+        const nextSpanId = isSpanNode(node.next)
+          ? node.next.value.span_id
+          : node.next.value.event_id;
+        return previousSpanId === id || nextSpanId === id;
       }
 
-      if (type === 'error' && isTraceErrorNode(node)) {
+      if (type === 'error' && (isTraceErrorNode(node) || isEAPErrorNode(node))) {
         return node.value.event_id === id;
       }
 
@@ -1294,14 +1470,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurrences) {
+          if (o.event_id === eventId) {
             return true;
           }
         }
       }
-      if (isSpanNode(n)) {
-        if (n.value.span_id === eventId) {
+      if (isSpanNode(n) || isEAPSpanNode(n)) {
+        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+        if (spanId === eventId) {
           return true;
         }
 
@@ -1311,32 +1488,35 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurrences) {
+          if (o.event_id === eventId) {
             return true;
           }
         }
       }
-      if (isEAPSpanNode(n)) {
-        if (n.value.event_id === eventId) {
-          return true;
-        }
-      }
-      if (isTraceErrorNode(n)) {
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === eventId;
       }
       if (isTraceNode(n)) {
         return false;
       }
       if (isMissingInstrumentationNode(n)) {
-        return n.previous.value.span_id === eventId || n.next.value.span_id === eventId;
+        const previousSpanId = isSpanNode(n.previous)
+          ? n.previous.value.span_id
+          : n.previous.value.event_id;
+        const nextSpanId = isSpanNode(n.next)
+          ? n.next.value.span_id
+          : n.next.value.event_id;
+        return previousSpanId === eventId || nextSpanId === eventId;
       }
       if (isParentAutogroupedNode(n)) {
-        return (
-          n.value.span_id === eventId ||
-          n.head.value.span_id === eventId ||
-          n.tail.value.span_id === eventId
-        );
+        const headSpanId = isEAPSpanNode(n.head)
+          ? n.head.value.event_id
+          : n.head.value.span_id;
+        const tailSpanId = isEAPSpanNode(n.tail)
+          ? n.tail.value.event_id
+          : n.tail.value.span_id;
+        return headSpanId === eventId || tailSpanId === eventId;
       }
 
       if (isSiblingAutogroupedNode(n)) {
@@ -1485,6 +1665,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
           t => t.children.filter(c => isEAPTransactionNode(c)),
           t => TraceTree.FindByID(node, t.value.parent_span_id)
         );
+
+        const browserRequestSpan = node.children.find(
+          c => isEAPSpanNode(c) && isBrowserRequestSpan(c.value)
+        ) as TraceTreeNode<TraceTree.EAPSpan> | undefined;
+        if (browserRequestSpan) {
+          TraceTree.ReparentSSRUnderBrowserRequestSpan(browserRequestSpan);
+        }
       }
 
       // Flip expanded so that we can collect visible children
@@ -1650,15 +1837,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           this.dispatch('trace timeline change', this.root.space);
         }
 
-        if (options.preferences.missing_instrumentation) {
-          TraceTree.DetectMissingInstrumentation(root);
-        }
-        if (options.preferences.autogroup.sibling) {
-          TraceTree.AutogroupSiblingSpanNodes(root);
-        }
-        if (options.preferences.autogroup.parent) {
-          TraceTree.AutogroupDirectChildrenSpanNodes(root);
-        }
+        TraceTree.ApplyPreferences(root, options);
 
         if (index !== -1) {
           this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
@@ -1759,6 +1938,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   // Only supports parent/child swaps (the only ones we need)
+  // E.g. needed for swapping SSR spans: https://github.com/getsentry/rfcs/blob/main/text/0138-achieving-order-between-pageload-and-srr-spans.md
   static Swap({
     parent,
     child,
@@ -1887,63 +2067,73 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     let traceStats: {
-      javascriptRootTransactions: Array<TraceTree.Transaction | TraceTree.EAPSpan>;
-      orphans: number;
-      roots: number;
+      javascript_root_transactions_count: number;
+      orphan_errors_count: number;
+      orphan_spans_count: number;
+      roots_count: number;
     };
 
     if (isEAPTraceNode(trace)) {
       traceStats = {
-        javascriptRootTransactions: trace.value.filter(isJavascriptSDKEvent),
-        orphans: trace.value.filter(span => span.parent_span_id !== null).length,
-        roots: trace.value.filter(span => span.parent_span_id === null).length,
+        javascript_root_transactions_count: trace.value.filter(
+          (v): v is TraceTree.EAPSpan => isEAPSpan(v) && isJavascriptSDKEvent(v)
+        ).length,
+        orphan_spans_count: trace.value.filter(
+          v => isEAPSpan(v) && v.parent_span_id !== null
+        ).length,
+        roots_count: trace.value.filter(v => isEAPSpan(v) && v.parent_span_id === null)
+          .length,
+        orphan_errors_count: trace.value.filter(v => isEAPError(v)).length,
       };
     } else if (isTraceNode(trace)) {
-      traceStats = trace.value.transactions.reduce<{
-        javascriptRootTransactions: TraceTree.Transaction[];
-        orphans: number;
-        roots: number;
-      }>(
-        (stats, transaction) => {
-          if (isRootEvent(transaction)) {
-            stats.roots++;
+      traceStats = {
+        ...trace.value.transactions.reduce<{
+          javascript_root_transactions_count: number;
+          orphan_spans_count: number;
+          roots_count: number;
+        }>(
+          (stats, transaction) => {
+            if (isRootEvent(transaction)) {
+              stats.roots_count++;
 
-            if (isJavascriptSDKEvent(transaction)) {
-              stats.javascriptRootTransactions.push(transaction);
+              if (isJavascriptSDKEvent(transaction)) {
+                stats.javascript_root_transactions_count++;
+              }
+            } else {
+              stats.orphan_spans_count++;
             }
-          } else {
-            stats.orphans++;
-          }
-          return stats;
-        },
-        {roots: 0, orphans: 0, javascriptRootTransactions: []}
-      );
+            return stats;
+          },
+          {roots_count: 0, orphan_spans_count: 0, javascript_root_transactions_count: 0}
+        ),
+        orphan_errors_count: trace.value.orphan_errors.length,
+      };
     } else {
       throw new Error('Unknown trace type');
     }
 
-    if (traceStats.roots === 0) {
-      if (traceStats.orphans > 0) {
+    if (traceStats.roots_count === 0) {
+      if (traceStats.orphan_spans_count > 0) {
         return TraceShape.NO_ROOT;
       }
 
-      if (isTraceNode(trace) && (trace.value.orphan_errors?.length ?? 0) > 0) {
+      if (traceStats.orphan_errors_count > 0) {
         return TraceShape.ONLY_ERRORS;
       }
 
       return TraceShape.EMPTY_TRACE;
     }
 
-    if (traceStats.roots === 1) {
-      if (traceStats.orphans > 0) {
+    if (traceStats.roots_count === 1) {
+      if (traceStats.orphan_spans_count > 0) {
         return TraceShape.BROKEN_SUBTRACES;
       }
 
       return TraceShape.ONE_ROOT;
     }
 
-    if (traceStats.roots > 1) {
-      if (traceStats.javascriptRootTransactions.length > 0) {
+    if (traceStats.roots_count > 1) {
+      if (traceStats.javascript_root_transactions_count > 0) {
         return TraceShape.BROWSER_MULTIPLE_ROOTS;
       }
 
@@ -1960,7 +2150,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
+    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
+    preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
     let cancelled = false;
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;
@@ -1975,15 +2167,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(api, {
-              orgSlug: organization.slug,
-              query: qs.stringify(
-                getTraceQueryParams(urlParams, filters.selection, {
-                  timestamp: batchTraceData.timestamp,
-                })
-              ),
-              traceId: batchTraceData.traceSlug,
-            });
+            return fetchTrace(
+              api,
+              {
+                orgSlug: organization.slug,
+                query: qs.stringify(
+                  getTraceQueryParams(urlParams, filters.selection, {
+                    timestamp: batchTraceData.timestamp,
+                  })
+                ),
+                traceId: batchTraceData.traceSlug,
+              },
+              options.type
+            );
           })
         );
 
@@ -1991,27 +2187,44 @@ export class TraceTree extends TraceTreeEventDispatcher {
           return;
         }
 
-        const updatedData = results.reduce(
-          (acc, result) => {
-            // Ignoring the error case for now
-            if (result.status === 'fulfilled') {
+        const accumulator: TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace =
+          options.type === 'eap'
+            ? []
+            : {
+                transactions: [],
+                orphan_errors: [],
+              };
+
+        const updatedData = results.reduce((acc, result) => {
+          // Ignoring the error case for now
+          if (result.status === 'fulfilled') {
+            if (
+              isTraceSplitResult<
+                TraceSplitResults<TraceTree.Transaction>,
+                TraceTree.EAPTrace
+              >(result.value) &&
+              isTraceSplitResult<
+                TraceSplitResults<TraceTree.Transaction>,
+                TraceTree.EAPTrace
+              >(acc)
+            ) {
               const {transactions, orphan_errors} = result.value;
               acc.transactions.push(...transactions);
               acc.orphan_errors.push(...orphan_errors);
+            } else if (Array.isArray(acc) && Array.isArray(result.value)) {
+              // accumulate eap trace
+              acc.push(...result.value);
             }
+          }
 
-            return acc;
-          },
-          {
-            transactions: [],
-            orphan_errors: [],
-          } as TraceSplitResults<TraceTree.Transaction>
-        );
+          return acc;
+        }, accumulator);
 
         this.appendTree(
           TraceTree.FromTrace(updatedData, {
             meta: options.meta?.data,
             replay: null,
+            preferences: options.preferences,
           })
         );
         rerender();
@@ -2051,7 +2264,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
-      return `ag-${n.head.value.span_id}`;
+      const headSpanId = isEAPSpanNode(n.head)
+        ? n.head.value.event_id
+        : n.head.value.span_id;
+      return `ag-${headSpanId}`;
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0]!;
@@ -2067,11 +2283,11 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     const spanId = isEAPSpanNode(n) ? n.value.event_id : n.value.span_id;
     return `span-${spanId}`;
   }
-  if (isTraceNode(n)) {
+  if (isTraceNode(n) || isEAPTraceNode(n)) {
     return `trace-root`;
   }
 
-  if (isTraceErrorNode(n)) {
+  if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
     return `error-${n.value.event_id}`;
   }
 
@@ -2080,7 +2296,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   if (isMissingInstrumentationNode(n)) {
-    return `ms-${n.previous.value.span_id}`;
+    const previousSpanId = isSpanNode(n.previous)
+      ? n.previous.value.span_id
+      : n.previous.value.event_id;
+    return `ms-${previousSpanId}`;
   }
 
   throw new Error('Not implemented');
@@ -2111,6 +2330,7 @@ function printTraceTreeNode(
       padding +
       (t.value.op || 'unknown span') +
       ' - ' +
+      getNodeDescriptionPrefix(t) +
       (t.value.description || 'unknown description') +
       (isEAPTransactionNode(t) ? ` (eap-transaction)` : '')
     );
@@ -2137,7 +2357,7 @@ function printTraceTreeNode(
     return padding + 'eap trace root';
   }
 
-  if (isTraceErrorNode(t)) {
+  if (isTraceErrorNode(t) || isEAPErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
 
@@ -2155,7 +2375,11 @@ function traceQueueIterator(
   root: TraceTreeNode<TraceTree.NodeValue>,
   visitor: (
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
+    value:
+      | TraceTree.Transaction
+      | TraceTree.TraceError
+      | TraceTree.EAPSpan
+      | TraceTree.EAPError
   ) => void
 ) {
   if (!isTraceSplitResult(trace)) {
@@ -2235,26 +2459,29 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: TraceTree.Span,
   node: TraceTreeNode<TraceTree.NodeValue>
-): TraceTree.TracePerformanceIssue[] {
+): TraceTree.TraceOccurrence[] {
   if (!isTransactionNode(node) || !node.value?.performance_issues?.length) {
     return [];
   }
 
-  const performanceIssues: TraceTree.TracePerformanceIssue[] = [];
+  const occurences: TraceTree.TraceOccurrence[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
-    for (const s of perfIssue.span) {
-      if (s === span.span_id) {
-        performanceIssues.push(perfIssue);
-      }
-    }
-
     for (const suspect of perfIssue.suspect_spans) {
       if (suspect === span.span_id) {
-        performanceIssues.push(perfIssue);
+        occurences.push(perfIssue);
       }
     }
   }
 
-  return performanceIssues;
+  return occurences;
+}
+
+export function getNodeDescriptionPrefix(
+  node: TraceTreeNode<TraceTree.EAPSpan> | TraceTreeNode<TraceTree.Span>
+) {
+  // Check if span has http.request.prefetch attribute and add prefix if it does
+  const isPrefetch =
+    isSpanNode(node) && node.value.data && !!node.value.data['http.request.prefetch'];
+  return isPrefetch ? '(prefetch) ' : '';
 }

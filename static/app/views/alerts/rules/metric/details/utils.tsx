@@ -11,9 +11,8 @@ import {
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Incident} from 'sentry/views/alerts/types';
-
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 /**
  * Retrieve start/end date of a metric alert incident for the events graph

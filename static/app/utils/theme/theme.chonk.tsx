@@ -3,14 +3,13 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled, {
   type CreateStyledComponent,
   type FilteringStyledOptions,
+  type StyledOptions,
 } from '@emotion/styled';
-import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
+import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
 import commonTheme, {
-  type ColorMapping,
   darkTheme,
-  type FormTheme,
   generateAlertTheme,
   generateButtonTheme,
   generateLevelTheme,
@@ -18,7 +17,402 @@ import commonTheme, {
   generateThemePrismVariables,
   generateThemeUtils,
   lightTheme,
-} from 'sentry/utils/theme';
+} from './theme';
+
+const CHART_PALETTE_LIGHT = [
+  ['#7553FF'],
+  ['#7553FF', '#FFD00E'],
+  ['#7553FF', '#F53A9F', '#FFD00E'],
+  ['#7553FF', '#F53A9F', '#FFD00E', '#67C800'],
+  ['#7553FF', '#F53A9F', '#FFD00E', '#67C800', '#00A9D2'],
+  ['#7553FF', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#00A9D2'],
+  ['#7553FF', '#5533B2', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#00A9D2'],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#00A9D2',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#00A9D2',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#00A9D2',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+    '#5533B2',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+  ],
+] as const;
+
+const CHART_PALETTE_DARK = [
+  ['#7A60FB'],
+  ['#7A60FB', '#FFD00E'],
+  ['#7A60FB', '#F53A9F', '#FFD00E'],
+  ['#7A60FB', '#F53A9F', '#FFD00E', '#67C800'],
+  ['#7A60FB', '#F53A9F', '#FFD00E', '#67C800', '#0CACD4'],
+  ['#7A60FB', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#0CACD4'],
+  ['#7A60FB', '#5C3CBB', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#0CACD4'],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+    '#5C3CBB',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+  ],
+] as const;
+
+type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+type ColorLength = (typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK)['length'];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A
+  : TupleOf<N, [...A, A['length']]>;
+
+type ValidLengthArgument = TupleOf<ColorLength>[number];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
+  infer _First,
+  ...infer Rest,
+]
+  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
+  : Record<number, unknown>;
+
+type NextMap = NextTuple<TupleOf<ColorLength>>;
+type Next<R extends ValidLengthArgument> = NextMap[R];
+/**
+ * Returns the color palette for a given number of series.
+ * If length argument is statically analyzable, the return type will be narrowed
+ * to the specific color palette index.
+ * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
+ * return a single color, not two colors. It smells like either a bug or off by one error.
+ * @param length - The number of series to return a color palette for?
+ */
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): <Length extends ValidLengthArgument>(
+  length: Length | number
+) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number
+  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
+    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+  };
+}
 
 const formTheme: FormTheme = {
   /**
@@ -27,8 +421,8 @@ const formTheme: FormTheme = {
    */
   form: {
     md: {
-      height: '40px',
-      minHeight: '40px',
+      height: '36px',
+      minHeight: '36px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
@@ -96,9 +490,17 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       muted: colorScheme.gray500,
       accent: colorScheme.blue500,
       promotion: colorScheme.pink500,
-      danger: colorScheme.red400,
+      danger: colorScheme.red500,
       warning: colorScheme.yellow500,
       success: colorScheme.green500,
+    },
+    graphics: {
+      muted: colorScheme.gray400,
+      accent: colorScheme.blue400,
+      promotion: colorScheme.pink400,
+      danger: colorScheme.red400,
+      warning: colorScheme.yellow400,
+      success: colorScheme.green400,
     },
     background: {
       primary: colorScheme.surface500,
@@ -152,24 +554,33 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 }
 
 const space = {
-  nano: '1px',
-  micro: '2px',
-  mini: '4px',
+  none: '0px',
+  '2xs': '2px',
+  xs: '4px',
   sm: '6px',
   md: '8px',
   lg: '12px',
   xl: '16px',
+  '2xl': '24px',
+  '3xl': '32px',
+  '4xl': '48px',
+  '5xl': '64px',
+  '6xl': '80px',
+  '7xl': '96px',
+  '8xl': '112px',
+  '9xl': '128px',
 } as const;
 
 const radius = {
-  nano: '1px',
-  micro: '2px',
-  mini: '3px',
+  none: '0px',
+  '2xs': '2px',
+  xs: '3px',
   sm: '4px',
-  md: '5px',
-  lg: '6px',
-  xl: '8px',
-  // @TODO(jonasbadalic): do we need an xl?
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
+  '2xl': '16px',
+  full: 'calc(infinity*1px)',
 } as const;
 
 const lightColors = {
@@ -177,8 +588,8 @@ const lightColors = {
   white: '#F6F5FA',
 
   surface500: '#FFFFFF', // background.primary
-  surface400: '#FBFAFF', // background.secondary
-  surface300: '#F9F7FF', // background.tertiary
+  surface400: '#F4F4FB', // background.secondary
+  surface300: '#ECECF8', // background.tertiary
   surface200: '#EBE9F2', // border.muted
   surface100: '#DAD7E5', // border.primary
 
@@ -199,8 +610,8 @@ const lightColors = {
   gray800: '#181423', // content.primary
   gray700: '#524E5E', // ⚠ link.muted.active only
   gray600: '#5B5866', // ⚠ link.muted.hover only
-  gray500: '#6E6C75', // content.secondary, link.muted.default
-  gray400: '#8D8B94', // Graphical Objects and User Interface Components
+  gray500: '#69676F', // content.secondary, link.muted.default
+  gray400: '#87858E', // Graphical Objects and User Interface Components
   gray300: 'rgba(24, 20, 35, 0.07)',
   gray200: 'rgba(24, 20, 35, 0.05)',
   gray100: 'rgba(24, 20, 35, 0.03)',
@@ -550,7 +961,7 @@ const generateAliases = (
    */
   active: colors.chonk.blue200,
   activeHover: colors.chonk.blue300,
-  activeText: colors.chonk.blue400,
+  activeText: tokens.content.accent,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -558,12 +969,6 @@ const generateAliases = (
    */
   focus: tokens.border.accent,
   focusBorder: tokens.border.accent,
-
-  /**
-   * Inactive
-   * NOTE: Used in only a few places, but unclear how this would map to chonkUI
-   */
-  inactive: colors.gray300,
 
   /**
    * Link color indicates that something is clickable
@@ -579,11 +984,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   * Default form text color
-   */
-  formText: colors.gray300,
-
-  /**
    *
    */
   rowBackground: tokens.background.primary,
@@ -592,7 +992,7 @@ const generateAliases = (
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
-  chartLineColor: colors.gray100,
+  chartLineColor: colors.gray300,
 
   /**
    * Color for chart label text
@@ -602,7 +1002,12 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
+
+  /**
+   * Hover color of the drag handle used in the content slider diff view.
+   */
+  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -615,11 +1020,6 @@ const generateAliases = (
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: colors.gray100,
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.chonk.blue300,
@@ -627,12 +1027,12 @@ const generateAliases = (
 
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
-    valid: colors.chonk.blue100,
-    validActive: color(colors.chonk.blue100).opaquer(1.0).string(),
-    invalid: colors.chonk.red100,
-    invalidActive: color(colors.chonk.red100).opaquer(0.8).string(),
-    warning: colors.chonk.yellow100,
-    warningActive: color(colors.chonk.yellow100).opaquer(0.8).string(),
+    valid: colors.blue100,
+    validActive: color(colors.blue100).opaquer(1.0).string(),
+    invalid: colors.red100,
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -640,23 +1040,13 @@ const generateAliases = (
    * NOTE: Not being used anymore in the new Search UI
    */
   searchTokenBorder: {
-    valid: colors.chonk.blue200,
-    validActive: color(colors.chonk.blue200).opaquer(1).string(),
-    invalid: colors.chonk.red200,
-    invalidActive: color(colors.chonk.red200).opaquer(1).string(),
-    warning: colors.chonk.yellow200,
-    warningActive: color(colors.chonk.yellow200).opaquer(1).string(),
+    valid: colors.blue200,
+    validActive: color(colors.blue200).opaquer(1).string(),
+    invalid: colors.red200,
+    invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: tokens.content.primary,
 
   /**
    * Background of alert banners at the top
@@ -779,10 +1169,17 @@ const chonkDarkColorMapping: ColorMapping = {
   red100: darkColors.red100,
 };
 
-const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
+const lightTokens = generateChonkTokens(lightColors);
+const darkTokens = generateChonkTokens(darkColors);
+
+const lightAliases = generateAliases(lightTokens, lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
+interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
+  chart: {
+    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+    getColorPalette: ReturnType<typeof makeChartColorPalette>;
+  };
   colors: typeof lightColors & {
     background: ReturnType<typeof generateChonkTokens>['background'];
     border: ReturnType<typeof generateChonkTokens>['border'];
@@ -796,8 +1193,12 @@ interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
   radius: typeof radius;
 
   space: typeof space;
+  tokens: typeof lightTokens;
 }
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -808,16 +1209,19 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   ...lightAliases,
   ...lightShadows,
 
+  tokens: lightTokens,
+
   inverted: {
     ...chonkDarkColorMapping,
     ...darkAliases,
+    tokens: darkTokens,
   },
 
   space,
   radius,
   focusRing: {
     outline: 'none',
-    boxShadow: `0 0 0 2px ${lightAliases.background}, 0 0 0 4px ${lightAliases.focusBorder}`,
+    boxShadow: `0 0 0 0 ${lightAliases.background}, 0 0 0 2px ${lightAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
@@ -827,9 +1231,23 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
 
+  tour: {
+    background: darkColors.surface400,
+    header: darkColors.white,
+    text: darkAliases.subText,
+    next: lightAliases.textColor,
+    previous: darkColors.white,
+    close: lightColors.white,
+  },
+
+  chart: {
+    colors: CHART_PALETTE_LIGHT,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
+  },
+
   prismVariables: generateThemePrismVariables(
     prismLight,
-    lightAliases.backgroundSecondary
+    lightAliases.backgroundTertiary
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
@@ -847,11 +1265,18 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...lightTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: lightAliases.background,
+    border: lightAliases.border,
+    superuser: '#880808',
   },
 };
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
 export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -861,17 +1286,19 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   ...chonkDarkColorMapping,
   ...darkAliases,
   ...darkShadows,
+  tokens: darkTokens,
 
   inverted: {
     ...chonkDarkColorMapping,
     ...darkAliases,
+    tokens: lightTokens,
   },
 
   space,
   radius,
   focusRing: {
     outline: 'none',
-    boxShadow: `0 0 0 2px ${darkAliases.background}, 0 0 0 4px ${darkAliases.focusBorder}`,
+    boxShadow: `0 0 0 0 ${darkAliases.background}, 0 0 0 2px ${darkAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
@@ -881,10 +1308,24 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
 
-  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  tour: {
+    background: darkColors.blue400,
+    header: darkColors.white,
+    text: darkColors.white,
+    next: lightAliases.textColor,
+    previous: darkColors.white,
+    close: lightColors.white,
+  },
+
+  chart: {
+    colors: CHART_PALETTE_DARK,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
+  },
+
+  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundTertiary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    darkAliases.backgroundTertiary
   ),
 
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,
@@ -898,8 +1339,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...darkTheme.sidebar,
+    background: darkAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: darkAliases.background,
+    border: darkAliases.border,
+    superuser: '#880808',
   },
 };
 
@@ -913,7 +1358,6 @@ declare module '@emotion/react' {
   /**
    * Configure Emotion to use our theme
    */
-  type SentryTheme = typeof lightTheme;
   export interface Theme extends SentryTheme {
     isChonk: boolean;
   }
@@ -1029,7 +1473,9 @@ export function useChonkTheme(): ChonkTheme {
   return theme;
 }
 
-function assertChonkTheme(theme: Theme): asserts theme is ChonkTheme {
+function assertChonkTheme(
+  theme: Theme | DO_NOT_USE_ChonkTheme
+): asserts theme is ChonkTheme {
   if (!theme.isChonk) {
     throw new Error('A chonk component may only be called inside a chonk theme context');
   }

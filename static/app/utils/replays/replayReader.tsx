@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
@@ -6,6 +7,7 @@ import {defined} from 'sentry/utils';
 import {domId} from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
@@ -18,7 +20,7 @@ import {
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
-import replayerStepper from 'sentry/utils/replays/replayerStepper';
+import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
 import type {
   BreadcrumbFrame,
   ClipWindow,
@@ -28,6 +30,7 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -45,6 +48,7 @@ import {
   isMetaFrame,
   isPaintFrame,
   isTouchEndFrame,
+  isTouchMoveFrame,
   isTouchStartFrame,
   isWebVitalFrame,
   NodeType,
@@ -82,6 +86,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+  /**
+   * Relates to the setting of the clip window. If the event timestamp is before the replay started,
+   * the clip window will be set to the start of the replay.
+   */
+  eventTimestampMs?: number;
 }
 
 type RequiredNotNull<T> = {
@@ -153,6 +162,7 @@ export default class ReplayReader {
     replayRecord,
     clipWindow,
     fetching,
+    eventTimestampMs,
   }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
@@ -165,6 +175,7 @@ export default class ReplayReader {
         replayRecord,
         fetching,
         clipWindow,
+        eventTimestampMs,
       });
     } catch (err) {
       Sentry.captureException(err);
@@ -179,6 +190,7 @@ export default class ReplayReader {
         fetching,
         replayRecord,
         clipWindow,
+        eventTimestampMs,
       });
     }
   }
@@ -189,6 +201,7 @@ export default class ReplayReader {
     fetching,
     replayRecord,
     clipWindow,
+    eventTimestampMs,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
     this._fetching = fetching;
@@ -280,7 +293,7 @@ export default class ReplayReader {
     this._duration = replayRecord.duration;
 
     if (clipWindow) {
-      this._applyClipWindow(clipWindow);
+      this._applyClipWindow(clipWindow, eventTimestampMs);
     }
   }
 
@@ -298,20 +311,35 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
+  private _errorBeforeReplayStart = false;
+  private _replayerQuery: ReturnType<
+    typeof replayerDomQuery<ReplayFrame | RecordingFrame, Extraction>
+  > | null = null;
 
-  private _applyClipWindow = (clipWindow: ClipWindow) => {
-    const clipStartTimestampMs = clamp(
-      clipWindow.startTimestampMs,
-      this._replayRecord.started_at.getTime(),
-      this._replayRecord.finished_at.getTime()
-    );
-    const clipEndTimestampMs = clamp(
-      clipWindow.endTimestampMs,
-      clipStartTimestampMs,
-      this._replayRecord.finished_at.getTime()
-    );
+  private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
+    let clipStartTimestampMs: number;
+    let clipEndTimestampMs: number;
+    const replayStart = this._replayRecord.started_at.getTime();
+    const replayEnd = this._replayRecord.finished_at.getTime();
 
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+    // error event for this clip is before the replay started.
+    // use the start of the replay as the start of the clip.
+    // set the clip to be at most 10 seconds long.
+    if (eventTimestampMs && eventTimestampMs < replayStart) {
+      clipStartTimestampMs = replayStart;
+      clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
+      this._errorBeforeReplayStart = true;
+    } else {
+      clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
+      clipEndTimestampMs = clamp(
+        clipWindow.endTimestampMs,
+        clipStartTimestampMs,
+        replayEnd
+      );
+    }
+
+    const clipDuration = clipEndTimestampMs - clipStartTimestampMs;
+    this._duration = duration(clipDuration); // this value should not be 0
 
     // For video replays, we need to bypass setting the global offset (_startOffsetMs)
     // because it messes with the playback time by causing it
@@ -419,26 +447,26 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getExtractDomNodes = memoize(
-    async ({withoutStyles}: {withoutStyles?: boolean} = {}) => {
-      if (this._fetching) {
-        return null;
-      }
-      const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
-
-      const results = await replayerStepper({
-        frames: this.getDOMFrames(),
-        rrwebEvents: withoutStyles
-          ? this.getRRWebFramesWithoutStyles()
-          : this.getRRWebFrames(),
-        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-        onVisitFrame,
-        shouldVisitFrame,
-      });
-
-      return results;
+  domQuery = () => {
+    if (this._replayerQuery) {
+      return this._replayerQuery;
     }
-  );
+
+    this._replayerQuery = replayerDomQuery({
+      rrwebEvents: this.getRRWebFramesForDomExtraction(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame: extractDomNodes.onVisitFrame,
+    });
+
+    return this._replayerQuery;
+  };
+
+  getDomNodesForFrame = ({frame}: {frame: ReplayFrame}): Extraction | null => {
+    if (this._fetching) {
+      return null;
+    }
+    return this.domQuery()?.getResult(frame) ?? null;
+  };
 
   getClipWindow = () => this._clipWindow;
 
@@ -448,6 +476,11 @@ export default class ReplayReader {
   getDurationMs = () => {
     return this._duration.asMilliseconds();
   };
+
+  /**
+   * @returns Whether the error happened before the replay started
+   */
+  getErrorBeforeReplayStart = () => this._errorBeforeReplayStart;
 
   getStartOffsetMs = () => this._startOffsetMs;
 
@@ -469,9 +502,14 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  clampNextFrame = (currEvent: eventWithTime, nextEvent: eventWithTime) => {
+    nextEvent.timestamp = Math.max(nextEvent.timestamp, currEvent.timestamp + 750);
+  };
+
   getRRWebFramesWithSnapshots = memoize(() => {
     const eventsWithSnapshots: RecordingFrame[] = [];
     const events = this._sortedRRWebEvents;
+
     events.forEach((e, index) => {
       // For taps, sometimes the timestamp difference between TouchStart
       // and TouchEnd is too small. This clamps the tap to a min time
@@ -479,7 +517,19 @@ export default class ReplayReader {
       if (isTouchStartFrame(e) && index < events.length - 2) {
         const nextEvent = events[index + 1]!;
         if (isTouchEndFrame(nextEvent)) {
-          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
+          this.clampNextFrame(e, nextEvent);
+        }
+
+        // Do the same thing if the next event is a TouchMove
+        if (isTouchMoveFrame(nextEvent)) {
+          this.clampNextFrame(e, nextEvent);
+
+          if (index < events.length - 3) {
+            const nextNextEvent = events[index + 2]!;
+            if (isTouchEndFrame(nextNextEvent)) {
+              this.clampNextFrame(nextEvent, nextNextEvent);
+            }
+          }
         }
       }
       eventsWithSnapshots.push(e);
@@ -526,32 +576,58 @@ export default class ReplayReader {
   });
 
   /**
-   * Filter out style mutations as they can cause perf problems especially when
-   * used in replayStepper
+   * Do not include style mutation content as they can cause perf problems when
+   * used in replayStepper. However, we need to keep the nodes itself as to not affect the tree structure.
+   *
+   * Skip media interaction events as they are unnecessary to the
+   * stepper. Prevents errors with `play()` (https://developer.chrome.com/blog/play-request-was-interrupted)
    */
-  getRRWebFramesWithoutStyles = memoize(() => {
-    return this.getRRWebFrames().map(e => {
-      if (
-        e.type === EventType.IncrementalSnapshot &&
-        'source' in e.data &&
-        e.data.source === IncrementalSource.Mutation
-      ) {
-        return {
-          ...e,
-          data: {
-            ...e.data,
-            adds: e.data.adds.filter(
-              add =>
-                !(
-                  (add.node.type === 3 && add.node.isStyle) ||
-                  (add.node.type === 2 && add.node.tagName === 'style')
-                )
-            ),
-          },
-        };
-      }
-      return e;
-    });
+  getRRWebFramesForDomExtraction = memoize(() => {
+    return this.getRRWebFrames()
+      .filter(
+        ({data, type}) =>
+          type !== EventType.IncrementalSnapshot ||
+          data.source !== IncrementalSource.MediaInteraction
+      )
+      .map(e => {
+        if (
+          e.type === EventType.IncrementalSnapshot &&
+          'source' in e.data &&
+          e.data.source === IncrementalSource.Mutation
+        ) {
+          return {
+            ...e,
+            data: {
+              ...e.data,
+              adds: e.data.adds.map(add => {
+                if (add.node.type === 3 && add.node.isStyle) {
+                  return {
+                    ...add,
+                    node: {
+                      ...add.node,
+                      textContent: '',
+                    },
+                  };
+                }
+
+                if (add.node.type === 2 && add.node.tagName === 'style') {
+                  return {
+                    ...add,
+                    node: {
+                      ...add.node,
+                      attributes: {},
+                      childNodes: [],
+                    },
+                  };
+                }
+
+                return add;
+              }),
+            },
+          };
+        }
+        return e;
+      });
   });
 
   getRRwebTouchEvents = memoize(() =>
@@ -708,6 +784,8 @@ export default class ReplayReader {
   hasCanvasElementInReplay = memoize(() => {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
+
+  isFetching = () => this._fetching;
 
   isVideoReplay = () => this.getVideoEvents().length > 0;
 

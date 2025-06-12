@@ -1,13 +1,17 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, ResultItem} from './types';
@@ -18,6 +22,7 @@ type Action = {
   description: string;
   requiresSuperuser: boolean;
   title: string;
+  isHidden?: () => boolean;
 };
 
 const ACTIONS: Action[] = [
@@ -44,7 +49,7 @@ const ACTIONS: Action[] = [
 
   {
     title: t('Toggle dark mode'),
-    description: t('Toggle dark mode (superuser only atm)'),
+    description: t('Toggle dark mode'),
     requiresSuperuser: false,
     action: () => {
       removeBodyTheme();
@@ -94,6 +99,28 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
+function createCopyDSNAction(params: {orgId?: string; projectId?: string}) {
+  return {
+    title: t('Copy Project (%s) DSN to Clipboard', params.projectId),
+    description: t('Copies the Project DSN to the clipboard.'),
+    isHidden: () => !params.orgId || !params.projectId, // visible if both orgId and projectId are present
+    requiresSuperuser: false,
+    action: async () => {
+      const api = new Client();
+      const data: ProjectKey[] = await api.requestPromise(
+        `/projects/${params.orgId}/${params.projectId}/keys/`
+      );
+
+      if (data.length > 0 && data[0]?.dsn?.public) {
+        navigator.clipboard.writeText(data[0]?.dsn?.public);
+        addSuccessMessage(t('Copied DSN to clipboard'));
+      } else {
+        addErrorMessage(t('No DSN found for project'));
+      }
+    },
+  };
+}
+
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
@@ -113,15 +140,17 @@ type Props = {
 function CommandSource({searchOptions, query, children}: Props) {
   const {isSuperuser} = useUser();
   const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
+  const params = useParams();
 
   const createSearch = useCallback(async () => {
+    const copyDSNAction = createCopyDSNAction(params);
     setFuzzy(
-      await createFuzzySearch<Action>(ACTIONS || [], {
+      await createFuzzySearch<Action>([...ACTIONS, copyDSNAction], {
         ...searchOptions,
         keys: ['title', 'description'],
       })
     );
-  }, [searchOptions]);
+  }, [searchOptions, params]);
 
   useEffect(() => void createSearch(), [createSearch]);
 
@@ -131,6 +160,7 @@ function CommandSource({searchOptions, query, children}: Props) {
       fuzzy
         ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
+        .filter(({item}) => !item.isHidden?.())
         .map(({item, ...rest}) => ({
           item: {
             ...item,

@@ -122,10 +122,7 @@ describe('ProjectDetail > ProjectAnr', function () {
         isProjectStabilized
         query="release:abc"
         location={router.location}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     await screen.findByText('11.56%');

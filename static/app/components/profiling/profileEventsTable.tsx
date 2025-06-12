@@ -129,9 +129,7 @@ interface ProfileEventsCellProps<F extends FieldType> {
   baggage: RenderBagger;
   column: GridColumnOrder<F>;
   columnIndex: number;
-  dataRow: {
-    [key: string]: any;
-  };
+  dataRow: Record<string, any>;
   meta: EventsResults<F>['meta'];
   rowIndex: number;
 }
@@ -248,9 +246,8 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
           <Link
             to={linkToSummary}
             onClick={() =>
-              trackAnalytics('profiling_views.go_to_transaction', {
+              trackAnalytics('profiling_views.landing.tab.transaction_click', {
                 organization: props.baggage.organization,
-                source: 'profiling.landing.transaction_table',
               })
             }
           >

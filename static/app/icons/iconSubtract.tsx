@@ -11,13 +11,12 @@ interface Props extends SVGIconProps {
   isCircled?: boolean;
 }
 
-function IconSubtract({ref, isCircled = false, ...props}: Props) {
+function IconSubtract({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon
       {...props}
       data-test-id="icon-subtract"
-      ref={ref}
       kind={theme.isChonk ? 'stroke' : 'path'}
     >
       {theme.isChonk ? (

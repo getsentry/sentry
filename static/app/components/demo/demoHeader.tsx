@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {SIDEBAR_MOBILE_HEIGHT} from 'sentry/components/sidebar/constants';
 import {IconUpload} from 'sentry/icons';
@@ -15,16 +16,16 @@ import {
   isDemoModeActive,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
-import {captureEmail} from 'sentry/utils/demoMode/utils';
+import {initDemoMode} from 'sentry/utils/demoMode/utils';
 import useApi from 'sentry/utils/useApi';
 
-export const DEMO_HEADER_HEIGHT_PX = 70;
+const DEMO_HEADER_HEIGHT_PX = 70;
 
 export default function DemoHeader() {
   const api = useApi();
 
   useEffect(() => {
-    captureEmail(api);
+    initDemoMode(api);
   }, [api]);
 
   if (!isDemoModeActive()) {
@@ -45,9 +46,7 @@ export default function DemoHeader() {
       </DocsButton>
       <NewRequestDemoBtn
         onClick={() =>
-          trackAnalytics('growth.demo_click_request_demo', {
-            organization: null,
-          })
+          trackAnalytics('growth.demo_click_request_demo', {organization: null})
         }
         href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
         external
@@ -62,14 +61,13 @@ export default function DemoHeader() {
             extraQueryParameterWithEmail()
           );
 
+          trackAnalytics('growth.demo_click_sign_up', {
+            organization: null,
+          });
+
           // Using window.open instead of href={} because we need to read `email`
           // from localStorage when the user clicks the button.
           window.open(url, '_blank');
-
-          trackAnalytics('growth.demo_click_get_started', {
-            cta: undefined,
-            organization: null,
-          });
         }}
       >
         <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>

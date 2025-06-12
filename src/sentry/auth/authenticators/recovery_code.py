@@ -26,7 +26,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     remove_button = None
     is_backup_interface = True
 
-    def __init__(self, authenticator=None):
+    def __init__(self, authenticator=None) -> None:
         AuthenticatorInterface.__init__(self, authenticator)
 
     def get_codes(self):
@@ -42,7 +42,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         salt = hexlify(urandom(16))
         return {"salt": salt, "used": 0}
 
-    def regenerate_codes(self, save=True):
+    def regenerate_codes(self, save: bool = True) -> None:
         if not self.is_enrolled():
             raise RuntimeError("Interface is not enrolled")
         self.config.update(self.generate_new_config())
@@ -52,7 +52,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         if save:
             self.authenticator.save()
 
-    def validate_otp(self, otp):
+    def validate_otp(self, otp) -> bool:
         mask = self.config["used"]
         code = otp.strip().replace("-", "").upper()
         for idx, ref_code in enumerate(self.get_codes()):
@@ -63,7 +63,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
                 return True
         return False
 
-    def get_unused_codes(self):
+    def get_unused_codes(self) -> list[str]:
         mask = self.config["used"]
         rv = []
         for idx, code in enumerate(self.get_codes()):

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -13,7 +11,6 @@ import {
   fetchOrganizationByMember,
   fetchOrganizations,
 } from 'sentry/actionCreators/organizations';
-import CircleIndicator from 'sentry/components/circleIndicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -27,7 +24,7 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import U2fSign from 'sentry/components/u2f/u2fsign';
+import {WebAuthnEnroll} from 'sentry/components/webAuthn/webAuthnEnroll';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
@@ -41,6 +38,8 @@ import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/compone
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {AuthenticatorHeader} from './components/authenticatorHeader';
+
 type GetFieldsOpts = {
   authenticator: Authenticator;
   /**
@@ -51,10 +50,6 @@ type GetFieldsOpts = {
    * Callback to reset SMS 2fa enrollment
    */
   onSmsReset: () => void;
-  /**
-   * Callback when u2f device is activated
-   */
-  onU2fTap: React.ComponentProps<typeof U2fSign>['onTap'];
   /**
    * Flag to track if we are currently sending the otp code
    */
@@ -69,7 +64,6 @@ const getFields = ({
   hasSentCode,
   sendingCode,
   onSmsReset,
-  onU2fTap,
 }: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
@@ -89,7 +83,11 @@ const getFields = ({
         </CodeContainer>
       ),
       () => (
-        <FieldGroup key="secret" label={t('Authenticator secret')}>
+        <FieldGroup
+          flexibleControlStateSize
+          key="secret"
+          label={t('Authenticator secret')}
+        >
           <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
         </FieldGroup>
       ),
@@ -128,15 +126,14 @@ const getFields = ({
   if (authenticator.id === 'u2f') {
     const deviceNameField = form.find(({name}) => name === 'deviceName')!;
     return [
+      () => <WebAuthnEnroll challengeData={authenticator.challenge} />,
       deviceNameField,
       () => (
-        <U2fSign
-          key="u2f-enroll"
-          style={{marginBottom: 0}}
-          challengeData={authenticator.challenge}
-          displayMode="enroll"
-          onTap={onU2fTap}
-        />
+        <Actions key="confirm">
+          <Button priority="primary" type="submit">
+            {t('Confirm')}
+          </Button>
+        </Actions>
       ),
     ];
   }
@@ -263,22 +260,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
-  // Handle u2f device tap
-  handleU2fTap = async (tapData: any) => {
-    const data = {deviceName: this.formModel.getValue('deviceName'), ...tapData};
-
-    this.setState({loading: true});
-
-    try {
-      await this.api.requestPromise(this.enrollEndpoint, {data});
-    } catch (err) {
-      this.handleEnrollError();
-      return;
-    }
-
-    this.handleEnrollSuccess();
-  };
-
   // Currently only TOTP uses this
   handleTotpSubmit = async (dataModel: any) => {
     if (!this.state.authenticator) {
@@ -302,6 +283,20 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     this.handleEnrollSuccess();
   };
 
+  // Handle webAuthn
+  handleWebAuthn = async (dataModel: any) => {
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {data: dataModel});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
+  };
+
   handleSubmit: FormProps['onSubmit'] = data => {
     const id = this.state.authenticator?.id;
 
@@ -311,6 +306,10 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     }
     if (id === 'sms') {
       this.handleSmsSubmit(data);
+      return;
+    }
+    if (id === 'u2f') {
+      this.handleWebAuthn(data);
       return;
     }
   };
@@ -373,7 +372,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
   handleRemove = async () => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) {
+    if (!authenticator?.authId) {
       return;
     }
 
@@ -402,7 +401,6 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       hasSentCode,
       sendingCode,
       onSmsReset: this.handleSmsReset,
-      onU2fTap: this.handleU2fTap,
     });
 
     // Attempt to extract `defaultValue` from server generated form fields
@@ -428,23 +426,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     return (
       <SentryDocumentTitle title={t('Security')}>
         <SettingsPageHeader
-          title={
-            <Fragment>
-              <span>{authenticator.name}</span>
-              <CircleIndicator
-                role="status"
-                aria-label={
-                  isActive
-                    ? t('Authentication Method Active')
-                    : t('Authentication Method Inactive')
-                }
-                enabled={isActive}
-                css={css`
-                  margin-left: 6px;
-                `}
-              />
-            </Fragment>
-          }
+          title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (

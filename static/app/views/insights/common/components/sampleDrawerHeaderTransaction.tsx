@@ -6,9 +6,8 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import {useDomainViewFilters} from '../../pages/useFilters';
 
 interface SampleDrawerHeaderProps {
   transaction: string;
@@ -74,6 +73,7 @@ const Bar = styled('h4')`
   gap: ${space(1)};
   padding: 0;
   margin: 0;
+  line-height: ${p => p.theme.text.lineHeightBody};
 
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};

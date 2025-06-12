@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -27,6 +25,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -70,10 +69,10 @@ const onboarding: OnboardingConfig = {
   ],
   configure: params => [
     {
-      title: t('Manual Configuration'),
       collapsible: true,
+      title: t('Manual Configuration'),
       description: tct(
-        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
         {
           manualSetupLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
@@ -81,36 +80,6 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tct(
-                  'Create or update [code:src/hooks.client.js] and [code:src/hooks.server.js] with the default [code:Sentry.init] call and SvelteKit hooks handlers.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Update [code:vite.config.js] to add source maps upload and auto-instrumentation via Vite plugins.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Create [code:.sentryclirc] and [code:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-            </List>
-          ),
-        },
         {
           description: <CopyDsnField params={params} />,
         },
@@ -253,13 +222,21 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/sveltekit',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/node-profiling/',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

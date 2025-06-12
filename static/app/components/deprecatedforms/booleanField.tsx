@@ -1,7 +1,7 @@
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 

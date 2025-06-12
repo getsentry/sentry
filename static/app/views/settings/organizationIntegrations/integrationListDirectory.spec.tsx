@@ -7,9 +7,9 @@ import {
   PublishedAppsFixture,
   SentryAppInstallsFixture,
 } from 'sentry-fixture/integrationListDirectory';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
 
@@ -22,40 +22,38 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization: org, router, routerProps} = initializeOrg();
+  const organization = OrganizationFixture();
 
   describe('Renders view', function () {
     beforeEach(() => {
       mockResponse([
-        [`/organizations/${org.slug}/config/integrations/`, ProviderListFixture()],
         [
-          `/organizations/${org.slug}/integrations/`,
+          `/organizations/${organization.slug}/config/integrations/`,
+          ProviderListFixture(),
+        ],
+        [
+          `/organizations/${organization.slug}/integrations/`,
           [BitbucketIntegrationConfigFixture()],
         ],
-        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedAppsFixture()],
+        [`/organizations/${organization.slug}/sentry-apps/`, OrgOwnedAppsFixture()],
         ['/sentry-apps/', PublishedAppsFixture()],
         ['/doc-integrations/', [DocIntegrationFixture()]],
         [
-          `/organizations/${org.slug}/sentry-app-installations/`,
+          `/organizations/${organization.slug}/sentry-app-installations/`,
           SentryAppInstallsFixture(),
         ],
-        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfigFixture()],
-        [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
+        [
+          `/organizations/${organization.slug}/plugins/configs/`,
+          PluginListConfigFixture(),
+        ],
       ]);
     });
 
     it('shows installed integrations at the top in order of weight', async function () {
-      render(
-        <IntegrationListDirectory
-          {...routerProps}
-          params={{orgId: org.slug}}
-          routeParams={{orgId: org.slug}}
-          hideHeader={false}
-        />,
-        {
-          router,
-        }
-      );
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
 
@@ -71,32 +69,36 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
-      render(
-        <IntegrationListDirectory
-          {...routerProps}
-          params={{orgId: org.slug}}
-          routeParams={{orgId: org.slug}}
-          hideHeader={false}
-        />,
-        {router}
-      );
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
       expect(screen.queryByText('GitHub (Legacy)')).not.toBeInTheDocument();
     });
 
     it('shows legacy plugin that has a First Party Integration if installed', async function () {
-      render(
-        <IntegrationListDirectory
-          {...routerProps}
-          params={{orgId: org.slug}}
-          routeParams={{orgId: org.slug}}
-          hideHeader={false}
-        />,
-        {router}
-      );
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
+    });
+
+    it('shows integrations that match the search query', async function () {
+      render(<IntegrationListDirectory />, {organization});
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
+      await userEvent.keyboard('{enter}');
+
+      expect(screen.queryByText('PagerDuty (Legacy)')).not.toBeInTheDocument();
+      expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+      expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
     });
   });
 });

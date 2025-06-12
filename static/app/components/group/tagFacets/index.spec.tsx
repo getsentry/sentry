@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
 const mockProject = ProjectFixture();
-const {router, organization} = initializeOrg({
+const {organization} = initializeOrg({
   organization: {},
   projects: [mockProject],
   router: {
@@ -199,7 +199,6 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          router,
           organization,
         }
       );
@@ -229,7 +228,6 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          router,
           organization,
         }
       );

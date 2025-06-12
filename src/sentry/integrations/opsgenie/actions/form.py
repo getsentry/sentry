@@ -11,6 +11,7 @@ from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.utils.forms import set_field_choices
 
 INVALID_TEAM = 1
 INVALID_KEY = 2
@@ -33,25 +34,22 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     team = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
-    fields: Mapping[str, forms.ChoiceField]  # type: ignore[assignment]
 
     def __init__(self, *args, **kwargs):
         self.org_id = kwargs.pop("org_id")
-        integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        teams = kwargs.pop("teams")
+        self._integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
+        self._teams = kwargs.pop("teams")
 
         super().__init__(*args, **kwargs)
-        if integrations:
-            self.fields["account"].initial = integrations[0][0]
+        if self._integrations:
+            self.fields["account"].initial = self._integrations[0][0]
 
-        self.fields["account"].choices = integrations
-        self.fields["account"].widget.choices = self.fields["account"].choices
+        set_field_choices(self.fields["account"], self._integrations)
 
-        if teams:
-            self.fields["team"].initial = teams[0][0]
+        if self._teams:
+            self.fields["team"].initial = self._teams[0][0]
 
-        self.fields["team"].choices = teams
-        self.fields["team"].widget.choices = self.fields["team"].choices
+        set_field_choices(self.fields["team"], self._teams)
 
     def _get_team_status(
         self,
@@ -67,8 +65,8 @@ class OpsgenieNotifyTeamForm(forms.Form):
     def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
         with record_event(OnCallInteractionType.VERIFY_TEAM).capture() as lifecyle:
             params = {
-                "account": dict(self.fields["account"].choices).get(integration_id),
-                "team": dict(self.fields["team"].choices).get(team_id),
+                "account": dict(self._integrations).get(integration_id),
+                "team": dict(self._teams).get(team_id),
             }
             integration = integration_service.get_integration(
                 integration_id=integration_id, provider="opsgenie"

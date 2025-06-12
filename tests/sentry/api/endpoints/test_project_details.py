@@ -959,6 +959,12 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
+            highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
+        )
+        assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
             highlightContext={"bird-words": ["invalid", 123, "integer"]},
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
@@ -1264,17 +1270,6 @@ class ProjectUpdateTest(APITestCase):
 
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
-
-    @with_feature("organizations:uptime-settings")
-    def test_uptime_settings(self):
-        # test when the value is set to False
-        resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=False)
-        assert self.project.get_option("sentry:uptime_autodetection") is False
-        assert resp.data["uptimeAutodetection"] is False
-        # test when the value is set to True
-        resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=True)
-        assert self.project.get_option("sentry:uptime_autodetection") is True
-        assert resp.data["uptimeAutodetection"] is True
 
     @with_feature({"organizations:dynamic-sampling-custom": False})
     def test_target_sample_rate_without_feature(self):
@@ -1889,6 +1884,130 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
 
+    @with_feature(
+        {
+            "organizations:dynamic-sampling-minimum-sample-rate": True,
+            "organizations:dynamic-sampling-custom": True,
+        }
+    )
+    def test_dynamic_sampling_minimum_sample_rate_with_feature(self):
+        """Test setting and getting dynamicSamplingMinimumSampleRate with feature flag enabled"""
+        # Test setting to True
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=True,
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is True
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
+        # Test getting the field after setting it
+        get_response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "dynamicSamplingMinimumSampleRate" in get_response.data
+        assert get_response.data["dynamicSamplingMinimumSampleRate"] is True
+
+        # Test setting to False
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=False,
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is False
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
+
+        # Test getting the field after setting it to False
+        get_response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "dynamicSamplingMinimumSampleRate" in get_response.data
+        assert get_response.data["dynamicSamplingMinimumSampleRate"] is False
+
+    def test_dynamic_sampling_minimum_sample_rate_without_feature(self):
+        """Test setting and getting dynamicSamplingMinimumSampleRate without feature flag"""
+        # Test setting the field without feature flag - should fail
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=True,
+            status_code=400,
+        )
+
+        # Test that the field is not present in GET response without feature flag
+        get_response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert not get_response.data["dynamicSamplingMinimumSampleRate"]
+
+    @with_feature(
+        {
+            "organizations:dynamic-sampling-minimum-sample-rate": True,
+            "organizations:dynamic-sampling-custom": True,
+        }
+    )
+    def test_dynamic_sampling_minimum_sample_rate_validation(self):
+        """Test validation of dynamicSamplingMinimumSampleRate parameter types"""
+        # Ensure initial state is False
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is False
+
+        # Test with valid boolean value
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=True,
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is True
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
+        # Test with valid string value
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate="true",
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is True
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
+        # Test with valid number value
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=1,
+        )
+        assert response.data["dynamicSamplingMinimumSampleRate"] is True
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
+        # Test with invalid float value
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=0.5,
+            status_code=400,
+        )
+        assert "Must be a valid boolean." in response.data["dynamicSamplingMinimumSampleRate"][0]
+        # Ensure the project option wasn't changed by invalid request
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
+        # Test with null/None value
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            dynamicSamplingMinimumSampleRate=None,
+            status_code=400,
+        )
+        assert "This field may not be null." in response.data["dynamicSamplingMinimumSampleRate"][0]
+        # Ensure the project option wasn't changed by invalid request
+        assert self.project.get_option("sentry:dynamic_sampling_minimum_sample_rate") is True
+
     @with_feature("organizations:tempest-access")
     def test_put_tempest_fetch_screenshots(self):
         # assert default value is False, and that put request updates the value
@@ -1946,3 +2065,71 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" not in response.data
+
+    def test_autofix_automation_tuning(self):
+        # Test without feature flag - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="low", status_code=400
+        )
+        assert (
+            "trigger-autofix-on-issue-summary feature enabled"
+            in resp.data["autofixAutomationTuning"][0]
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+
+        # Test with feature flag but invalid value - should fail
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_error_response(
+                self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
+            )
+            assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+
+            # Test with feature flag and valid value - should succeed
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
+            )
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
+            assert resp.data["autofixAutomationTuning"] == "medium"
+
+            # Test setting back to off
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, autofixAutomationTuning="off"
+            )
+            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
+            assert resp.data["autofixAutomationTuning"] == "off"
+
+    def test_seer_scanner_automation(self):
+        # Test without feature flag - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, seerScannerAutomation=False, status_code=400
+        )
+        assert (
+            "trigger-autofix-on-issue-summary feature enabled"
+            in resp.data["seerScannerAutomation"][0]
+        )
+        assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
+
+        # Test with feature flag but invalid value - should fail
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_error_response(
+                self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
+            )
+            assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
+            assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
+
+        # Test with feature flag and valid value - should succeed
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, seerScannerAutomation=False
+            )
+            assert self.project.get_option("sentry:seer_scanner_automation") is False
+            assert resp.data["seerScannerAutomation"] is False
+
+        # Test setting back to on
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, seerScannerAutomation=True
+            )
+            assert self.project.get_option("sentry:seer_scanner_automation") is True
+            assert resp.data["seerScannerAutomation"] is True

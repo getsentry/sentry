@@ -11,31 +11,31 @@ import {
   GridRow,
 } from 'sentry/components/gridEditable/styles';
 
-export interface ColumnConfig<Cell> {
+interface ColumnConfig<Cell, Row> {
   Header: () => React.ReactNode;
-  Cell?: (props: {value: Cell}) => React.ReactNode;
+  Cell?: (props: {row: Row; value: Cell}) => React.ReactNode;
   /** @default 1fr */
   width?: CSSProperties['gridTemplateColumns'];
 }
 
 interface TableProps<
   Data extends Record<string, unknown>,
-  ColumnId extends string = keyof Data extends string ? keyof Data : string,
+  ColumnId extends keyof Data = keyof Data,
 > {
   data: Data[];
-  columns?: {[Property in ColumnId]: ColumnConfig<Data[Property]>};
+  columns?: {[Property in ColumnId]?: ColumnConfig<Data[Property], Data>};
   fallback?: React.ReactNode;
 }
 
 export function defineColumns<Data extends {[Property in keyof Data]: unknown}>(columns: {
-  [Property in keyof Data]: ColumnConfig<Data[Property]>;
+  [Property in keyof Data]?: ColumnConfig<Data[Property], Data>;
 }) {
   return columns;
 }
 
 export function SimpleTable<
   Data extends Record<string, any>,
-  ColumnId extends string = keyof Data extends string ? keyof Data : string,
+  ColumnId extends keyof Data = keyof Data,
 >({columns, data, fallback}: TableProps<Data, ColumnId>) {
   const columnIds = Object.keys(columns ?? data.at(0) ?? {}) as unknown as ColumnId[];
   const gridTemplateColumns = columnIds
@@ -51,9 +51,9 @@ export function SimpleTable<
         <GridHead>
           <GridRow data-row="header">
             {columnIds.map(colId => {
-              const {Header = () => colId} = columns?.[colId] ?? {};
+              const {Header = () => String(colId)} = columns?.[colId] ?? {};
               return (
-                <GridHeadCellStatic key={colId} data-column={colId}>
+                <GridHeadCellStatic key={String(colId)} data-column={colId}>
                   <Header />
                 </GridHeadCellStatic>
               );
@@ -68,8 +68,8 @@ export function SimpleTable<
                   const value = row[colId] as Data[ColumnId];
                   const {Cell = DefaultCell} = columns?.[colId] ?? {};
                   return (
-                    <GridBodyCell key={colId} data-column={colId} data-row={i}>
-                      <Cell value={value} />
+                    <GridBodyCell key={String(colId)} data-column={colId} data-row={i}>
+                      <Cell value={value} row={row} />
                     </GridBodyCell>
                   );
                 })}

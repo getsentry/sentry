@@ -232,7 +232,7 @@ function useWidgetBuilderState(): {
             // Otherwise, reset sorting to the first field
             if (
               newFields.length > 0 &&
-              !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
+              !newFields.some(field => generateFieldAsString(field) === sort?.[0]?.field)
             ) {
               const validReleaseSortOptions = newFields.filter(field => {
                 const fieldString = generateFieldAsString(field);
@@ -343,6 +343,7 @@ function useWidgetBuilderState(): {
           setQuery([config.defaultWidgetQuery.conditions]);
           setLegendAlias([]);
           setSelectedAggregate(undefined);
+          setLimit(undefined);
           break;
         }
         case BuilderStateAction.SET_FIELDS: {
@@ -351,7 +352,7 @@ function useWidgetBuilderState(): {
           if (
             displayType === DisplayType.TABLE &&
             action.payload.length > 0 &&
-            !action.payload.find(
+            !action.payload.some(
               field => generateFieldAsString(field) === sort?.[0]?.field
             )
           ) {
@@ -455,6 +456,15 @@ function useWidgetBuilderState(): {
                 ),
               },
             ]);
+          }
+
+          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
+            setLimit(
+              Math.min(
+                DEFAULT_RESULTS_LIMIT,
+                getResultsLimit(query?.length ?? 1, yAxis?.length ?? 0)
+              )
+            );
           }
           break;
         }

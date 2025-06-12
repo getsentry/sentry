@@ -2,7 +2,7 @@ import {memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
-import {type Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -15,10 +15,10 @@ import {
   ChonkLeadingItems,
   type Priority,
 } from 'sentry/components/core/menuListItem/index.chonk';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
@@ -90,7 +90,6 @@ interface OtherProps {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: Partial<React.ComponentProps<typeof Label>>;
-  showDivider?: boolean;
 }
 
 interface Props extends MenuListItemProps, OtherProps {
@@ -104,7 +103,6 @@ function BaseMenuListItem({
   priority = 'default',
   size,
   disabled = false,
-  showDivider = false,
   leadingItems = false,
   trailingItems = false,
   isFocused = false,
@@ -125,7 +123,6 @@ function BaseMenuListItem({
 
   return (
     <MenuItemWrap
-      role="menuitem"
       aria-disabled={disabled}
       aria-labelledby={labelId}
       aria-describedby={detailId}
@@ -153,7 +150,7 @@ function BaseMenuListItem({
                 : leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
+          <ContentWrap isFocused={isFocused} size={size}>
             <LabelWrap>
               <Label id={labelId} data-test-id="menu-list-item-label" {...labelProps}>
                 {label}
@@ -244,11 +241,9 @@ const StyledPositionWrapper = styled(PositionWrapper)`
   }
 `;
 
-const StyledOverlay = styled(Overlay)<
-  {
-    size: Props['size'];
-  } & React.HTMLAttributes<HTMLDivElement>
->`
+const StyledOverlay = styled(Overlay)<{
+  size: Props['size'];
+}>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;
@@ -317,8 +312,12 @@ export const InnerWrap = withChonk(
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
     &,
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: ${getTextColor};
+      box-shadow: none;
+      outline: none;
     }
     ${p => p.disabled && `cursor: default;`}
 
@@ -334,13 +333,13 @@ export const InnerWrap = withChonk(
 
     ${p =>
       p.isFocused &&
-      `
-      z-index: 1;
-      /* Background to hide the previous item's divider */
-      ::before {
-        background: ${p.theme.backgroundElevated};
-      }
-    `}
+      css`
+        z-index: 1;
+        /* Background to hide the previous item's divider */
+        ::before {
+          background: ${p.theme.backgroundElevated};
+        }
+      `}
   `,
   ChonkInnerWrap
 );
@@ -368,7 +367,6 @@ const getVerticalPadding = (size: Props['size']) => {
 const ContentWrap = withChonk(
   styled('div')<{
     isFocused: boolean;
-    showDivider: boolean;
     size: Props['size'];
   }>`
     position: relative;
@@ -378,21 +376,6 @@ const ContentWrap = withChonk(
     gap: ${space(1)};
     justify-content: space-between;
     padding: ${p => getVerticalPadding(p.size)} 0;
-
-    ${p =>
-      p.showDivider &&
-      !p.isFocused &&
-      `
-      li:not(:last-child) &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 1px;
-        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
-      }
-    `}
   `,
   ChonkContentWrap
 );

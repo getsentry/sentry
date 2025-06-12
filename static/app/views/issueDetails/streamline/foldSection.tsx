@@ -57,6 +57,7 @@ export interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  ref?: React.Ref<HTMLElement>;
   style?: CSSProperties;
 }
 
@@ -77,7 +78,7 @@ function useOptionalLocalStorageState(
 }
 
 export function FoldSection({
-  ref: forwardedRef,
+  ref,
   children,
   title,
   actions,
@@ -86,9 +87,7 @@ export function FoldSection({
   initialCollapse = false,
   preventCollapse = false,
   disableCollapsePersistence = false,
-}: FoldSectionProps & {
-  ref?: React.Ref<HTMLElement>;
-}) {
+}: FoldSectionProps) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
 
@@ -162,14 +161,17 @@ export function FoldSection({
   );
   const labelPrefix = isCollapsed ? t('View') : t('Collapse');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
+  // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
+  const titleLabel = typeof title === 'string' ? title : sectionKey;
 
   return (
     <Fragment>
       <Section
-        ref={mergeRefs(forwardedRef, scrollToSection)}
+        ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
+        aria-label={titleLabel}
         className={className}
       >
         <SectionExpander

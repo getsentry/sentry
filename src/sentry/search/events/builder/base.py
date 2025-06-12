@@ -29,7 +29,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
+from sentry import features, options
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -79,7 +79,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
     Dataset.Events: EntityKey.Events,
     Dataset.Transactions: EntityKey.Transactions,
-    Dataset.EventsAnalyticsPlatform: EntityKey.EAPSpans,
+    Dataset.EventsAnalyticsPlatform: EntityKey.EAPItemsSpan,
 }
 
 
@@ -386,8 +386,7 @@ class BaseQueryBuilder:
         where_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.SearchFilter):
-                # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
-                condition = self.format_search_filter(cast(event_search.SearchFilter, term))
+                condition = self.format_search_filter(term)
                 if condition:
                     where_conditions.append(condition)
 
@@ -403,10 +402,7 @@ class BaseQueryBuilder:
         having_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.AggregateFilter):
-                # I have no idea why but mypy thinks this is AggregateFilter | AggregateFilter, which is incompatible with AggregateFilter...
-                condition = self.convert_aggregate_filter_to_condition(
-                    cast(event_search.AggregateFilter, term)
-                )
+                condition = self.convert_aggregate_filter_to_condition(term)
                 if condition:
                     having_conditions.append(condition)
 
@@ -535,11 +531,10 @@ class BaseQueryBuilder:
 
         where, having = [], []
 
-        # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
         if isinstance(term, event_search.SearchFilter):
-            where = self.resolve_where([cast(event_search.SearchFilter, term)])
+            where = self.resolve_where([term])
         elif isinstance(term, event_search.AggregateFilter):
-            having = self.resolve_having([cast(event_search.AggregateFilter, term)])
+            having = self.resolve_having([term])
 
         return where, having
 
@@ -1528,6 +1523,10 @@ class BaseQueryBuilder:
 
     def _get_entity_name(self) -> str:
         if self.dataset in DATASET_TO_ENTITY_MAP:
+            if self.dataset == Dataset.EventsAnalyticsPlatform and options.get(
+                "alerts.spans.use-eap-items"
+            ):
+                return EntityKey.EAPItems.value
             return DATASET_TO_ENTITY_MAP[self.dataset].value
         return self.dataset.value
 

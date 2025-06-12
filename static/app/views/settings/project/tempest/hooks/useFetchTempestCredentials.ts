@@ -1,8 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-
-import type {TempestCredentials} from '../types';
+import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
 
 const makeFetchTempestCredentialsQueryKey = ({
   orgSlug,

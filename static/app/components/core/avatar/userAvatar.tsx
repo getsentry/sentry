@@ -8,6 +8,7 @@ import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 export interface UserAvatarProps extends BaseAvatarProps {
   gravatar?: boolean;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
   renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
   user?: Actor | AvatarUser;
 }
@@ -24,9 +25,7 @@ export function UserAvatar({
   renderTooltip,
   user,
   ...props
-}: UserAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+}: UserAvatarProps) {
   if (!user) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
     return null;

@@ -25,15 +25,14 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
-import {eventViewFromWidget} from '../utils';
-import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
-import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
 import {
@@ -136,11 +135,7 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(
-  field: string,
-  meta: MetaType,
-  widget?: Widget
-) {
+function getCustomEventsFieldRenderer(field: string, meta: MetaType, widget?: Widget) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -152,7 +147,7 @@ export function getCustomEventsFieldRenderer(
   return getFieldRenderer(field, meta, false);
 }
 
-export function getEventsRequest(
+function getEventsRequest(
   api: Client,
   query: WidgetQuery,
   organization: Organization,
@@ -193,7 +188,7 @@ export function getEventsRequest(
 }
 
 // The y-axis options are a strict set of available aggregates
-export function filterYAxisOptions(_displayType: DisplayType) {
+function filterYAxisOptions(_displayType: DisplayType) {
   return (option: FieldValueOption) => {
     return ERRORS_AGGREGATION_FUNCTIONS.includes(
       option.value.meta.name as AggregationKey

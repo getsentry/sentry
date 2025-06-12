@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,7 +50,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
   );
 }
 
-export const StacktraceIntegrationBannerWrapper = styled('div')`
+const StacktraceIntegrationBannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -63,18 +64,18 @@ export const StacktraceIntegrationBannerWrapper = styled('div')`
   );
 `;
 
-export const IntegationBannerTitle = styled('div')`
+const IntegationBannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-export const IntegationBannerDescription = styled('div')`
+const IntegationBannerDescription = styled('div')`
   margin-bottom: ${space(1.5)};
   max-width: 340px;
 `;
 
-export const CloseBannerButton = styled(Button)`
+const CloseBannerButton = styled(Button)`
   position: absolute;
   display: block;
   top: ${space(2)};

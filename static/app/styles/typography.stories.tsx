@@ -159,20 +159,20 @@ export default function TypographyStories() {
   return (
     <FixedWidth>
       <h3>Typography</h3>
-      <p>
+      <Block>
         We've built Sentry's type system around Rubik - a playful open-source typeface.
         For code and code-like elements, we use <code>Roboto Mono</code>.
-      </p>
+      </Block>
       <hr />
       <h4>Type scale</h4>
-      <p>
+      <Block>
         Type scales are hierarchical type systems consisting of style definitions for
         common elements, such as Heading 1, Heading 2, Paragraph, and Button/Label.
-      </p>
-      <p>
+      </Block>
+      <Block>
         Sentry's type scale is based on the Rubik typeface. The root font size is 16px
         (1rem = 16px).
-      </p>
+      </Block>
       <PanelTable headers={['Scale', 'Weight', 'Size', 'Line Height', 'Letter Spacing']}>
         {TYPE_SCALE.map(({name, ...props}) => {
           return (
@@ -188,26 +188,26 @@ export default function TypographyStories() {
       </PanelTable>
       <hr />
       <h4>Styling</h4>
-      <p>
+      <Block>
         The type scale above should cover a large majority of use cases. However, if an
         element requires a custom style outside of the type scale, make sure to follow the
         rules below.
-      </p>
+      </Block>
       <h5>Size</h5>
-      <p>
+      <Block>
         <strong>Use values from the type scale above.</strong> Be mindful of the type
         hierarchy. If the element has low importance, use a smaller size.
-      </p>
-      <p>
+      </Block>
+      <Block>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel />
           Always define font sizes with the <code>rem</code> unit.
         </Flex>
-      </p>
+      </Block>
       <h5>Weight</h5>
-      <p>
+      <Block>
         <ExampleImg src={WeightGraphic} />
-      </p>
+      </Block>
       <ul>
         <li>
           <strong>Use Medium (600)</strong> for headings, button labels, and elements that
@@ -218,9 +218,9 @@ export default function TypographyStories() {
         </li>
       </ul>
       <h5>Line height</h5>
-      <p>
+      <Block>
         <ExampleImg src={LineHeightGraphic} />
-      </p>
+      </Block>
       <ul>
         <li>
           <strong>Use 1.4</strong> for body text (content that can wrap to multiple lines)
@@ -235,9 +235,9 @@ export default function TypographyStories() {
         </li>
       </ul>
       <h5>Letter spacing</h5>
-      <p>
+      <Block>
         <ExampleImg src={LetterSpacingGraphic} />
-      </p>
+      </Block>
       <ul>
         <li>
           <strong>Reduce letter spacing for headings.</strong> This makes them look more
@@ -255,11 +255,11 @@ export default function TypographyStories() {
       </ul>
       <hr />
       <h4>Code</h4>
-      <p>
+      <Block>
         Use Roboto Mono in Regular (400) for code and code-like elements, like search
         tokens.
-      </p>
-      <p>Set the line height based on the context:</p>
+      </Block>
+      <Block>Set the line height based on the context:</Block>
       <ul>
         <li>
           <strong>For multi-line code</strong>, use 1.6
@@ -271,16 +271,16 @@ export default function TypographyStories() {
       </ul>
       <hr />
       <h4>External Links</h4>
-      <p>
+      <Block>
         External links lead users to pages outside the application. Examples include links
         to Sentry's blog/marketing pages, terms of service, third-party documentation,…
-      </p>
-      <p>
+      </Block>
+      <Block>
         The following styling rules apply to external links only. Internal links, on the
         other hand, can have more flexible styles, based on their behavior and context.
-      </p>
+      </Block>
       <h5>In a sentence</h5>
-      <p>When a link appears inside a longer sentence…</p>
+      <Block>When a link appears inside a longer sentence…</Block>
       <ExamplePanel>
         ... like this{' '}
         <FixedExternalLink onClick={() => {}}>little link</FixedExternalLink>.
@@ -326,16 +326,16 @@ export default function TypographyStories() {
           </ul>
         </li>
       </ul>
-      <p>
+      <Block>
         <CodeSnippet filename="Styled Components" language="typescript">
           {InlineLinkExampleStyles}
         </CodeSnippet>
-      </p>
+      </Block>
       <h5>Standalone</h5>
-      <p>
+      <Block>
         When a link appears on its own and the user likely knows that it's a link given
         the context, like in a footer:
-      </p>
+      </Block>
       <ExamplePanel>
         <Flex column>
           <FooterLink to="">Privacy Policy</FooterLink>
@@ -360,15 +360,15 @@ export default function TypographyStories() {
           </ul>
         </li>
       </ul>
-      <p>
+      <Block>
         <CodeSnippet filename="Styled Components" language="typescript">
           {StandaloneLinkExampleStyles}
         </CodeSnippet>
-      </p>
+      </Block>
       <hr />
       <h4>Lists</h4>
       <h5>Unordered</h5>
-      <p>Use filled and hollow circles as bullets points:</p>
+      <Block>Use filled and hollow circles as bullets points:</Block>
       <ExamplePanel>
         <ul>
           <li>
@@ -387,26 +387,26 @@ export default function TypographyStories() {
           </li>
         </ul>
       </ExamplePanel>
-      <p>
+      <Block>
         <CodeSnippet filename="CSS" language="css">
           {UnorderedListExampleStyles}
         </CodeSnippet>
-      </p>
-      <p>
+      </Block>
+      <Block>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel />
           Don't add full stops (.) to the end of each item, unless the item contains
           multiple sentences.
         </Flex>
-      </p>
-      <p>
+      </Block>
+      <Block>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel /> Avoid using custom symbols and icons as bullet characters, as
           they usually look out of place and distract from the main text content.
         </Flex>
-      </p>
+      </Block>
       <h5>Ordered</h5>
-      <p>Use Arabic numerals and lowercase letters as counters:</p>
+      <Block>Use Arabic numerals and lowercase letters as counters:</Block>
       <ExamplePanel>
         <ol>
           <li>
@@ -425,33 +425,33 @@ export default function TypographyStories() {
           </li>
         </ol>
       </ExamplePanel>
-      <p>
+      <Block>
         <CodeSnippet filename="CSS" language="css">
           {OrderedListExampleStyles}
         </CodeSnippet>
-      </p>
-      <p>
+      </Block>
+      <Block>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel />
           Avoid using custom symbols and icons as counters.
         </Flex>
-      </p>
+      </Block>
       <hr />
       <h4>OpenType features</h4>
-      <p>
+      <Block>
         Rubik supports a few useful{' '}
         <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Fonts/OpenType_fonts_guide">
           OpenType font features
         </ExternalLink>
         . These features, or variants, are alternative characters that, when used in the
         right places, can help improve the reading experience.
-      </p>
+      </Block>
       <h5>Tabular figures</h5>
-      <p>
+      <Block>
         By default, Rubik uses proportional figures. This works well in most cases.
         However, for large tables with a lot of numbers, tabular figures would be a better
         choice, thanks to their consistent width and more legible design.
-      </p>
+      </Block>
       <PanelTable headers={['Proportional Figures', 'Tabular Figures']}>
         <div>999,999</div>
         <TabularNum>999,999</TabularNum>
@@ -462,75 +462,79 @@ export default function TypographyStories() {
         <div>1.11111</div>
         <TabularNum>1.11111</TabularNum>
       </PanelTable>
-      <p>
+      <Block>
         <CodeSnippet filename="CSS" language="css">
           {TabularNumsExampleStyles}
         </CodeSnippet>
-      </p>
+      </Block>
       <h5>Ligatures</h5>
-      <p>
+      <Block>
         Ligatures are special glyphs that replace two or more glyphs in order to better
         connect them. Common ligature replacements include ff, fi, fl, and ffi.
-      </p>
+      </Block>
       <SideBySideList>
         <li>
           <ExamplePanel fontSize="large">
             <FontNoLiga>ff, fi, fl</FontNoLiga>
           </ExamplePanel>
-          <p>Without ligatures, the characters are all separate.</p>
+          <Block>Without ligatures, the characters are all separate.</Block>
         </li>
         <li>
           <ExamplePanel fontSize="large">
             <FontLiga>ff, fi, fl</FontLiga>
           </ExamplePanel>
-          <p>With ligatures, the characters are connected into a single glyph.</p>
+          <Block>With ligatures, the characters are connected into a single glyph.</Block>
         </li>
       </SideBySideList>
-      <p>
+      <Block>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel />
           Use ligatures across the whole user interface.
         </Flex>
-      </p>
-      <p>
+      </Block>
+      <Block>
         <CodeSnippet filename="CSS" language="css">
           {FontLigatureExampleStyles}
         </CodeSnippet>
-      </p>
+      </Block>
       <h5>Fractions</h5>
       <SideBySideList>
         <li>
           <ExamplePanel fontSize="large">1/12</ExamplePanel>
-          <p>
+          <Block>
             Rubik also contains special formatting for fractions. Without this formatting,
             numbers in fractions are just rendered as separate characters.
-          </p>
+          </Block>
         </li>
         <li>
           <ExamplePanel fontSize="large">
             <FontFractional>1/12</FontFractional>
           </ExamplePanel>
-          <p>
+          <Block>
             Fractional formatting shrinks the numbers and connects them with a diagonal
             slash, forming a proportional, condensed visual block.
-          </p>
+          </Block>
         </li>
       </SideBySideList>
 
-      <p>
+      <Block>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel />
           Use fractional formatting whenever possible.
         </Flex>
-      </p>
-      <p>
+      </Block>
+      <Block>
         <CodeSnippet filename="CSS" language="css">
           {FontFractionExampleStyles}
         </CodeSnippet>
-      </p>
+      </Block>
     </FixedWidth>
   );
 }
+
+const Block = styled('div')`
+  margin-bottom: ${space(3)};
+`;
 
 const FixedExternalLink = styled(ExternalLink)`
   color: ${p => p.theme.blue300};

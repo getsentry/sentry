@@ -5,8 +5,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-
-import WidgetLegendNameEncoderDecoder from '../../../widgetLegendNameEncoderDecoder';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 export function formatSeriesName(seriesName: string): string {
   // Decode from series name disambiguation

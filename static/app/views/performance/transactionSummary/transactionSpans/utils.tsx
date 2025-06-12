@@ -16,7 +16,7 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 import type {SpanSort, SpanSortOption} from './types';
 import {SpanSortOthers, SpanSortPercentiles} from './types';
 
-export function generateSpansRoute({
+function generateSpansRoute({
   organization,
   view,
 }: {

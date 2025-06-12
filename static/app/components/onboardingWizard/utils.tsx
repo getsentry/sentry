@@ -7,7 +7,7 @@ function isTaskOverdue2Weeks(dateCompleted: string): boolean {
 }
 
 export function taskIsDone(task: OnboardingTask) {
-  return ['complete', 'skipped'].includes(task.status);
+  return ['complete', 'skipped'].includes(task?.status ?? '');
 }
 
 export function findCompleteTasks(task: OnboardingTask) {

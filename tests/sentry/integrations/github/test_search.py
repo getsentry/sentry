@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import responses
 from django.urls import reverse
 
+from sentry.integrations.github.integration import build_repository_query
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
@@ -36,6 +38,17 @@ class GithubSearchTest(APITestCase):
                 "access_token": "123456789",
                 "expires_at": future.replace(microsecond=0).isoformat(),
             },
+        )
+
+    def _build_repo_query_path(self, *, query: str) -> str:
+        return f"{self.base_url}/search/repositories?" + urlencode(
+            {
+                "q": build_repository_query(
+                    metadata=self.integration.metadata,
+                    name=self.integration.name,
+                    query=query,
+                ).decode("utf-8")
+            }
         )
 
     def setUp(self):
@@ -112,7 +125,7 @@ class GithubSearchTest(APITestCase):
     def test_finds_repo_results(self, mock_record):
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            self._build_repo_query_path(query="ex"),
             json={
                 "items": [
                     {"name": "example", "full_name": "test/example"},
@@ -144,7 +157,7 @@ class GithubSearchTest(APITestCase):
     def test_repo_search_validation_error(self, mock_record):
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20nope",
+            self._build_repo_query_path(query="nope"),
             json={
                 "message": "Validation Error",
                 "errors": [{"message": "Cannot search for that org"}],
@@ -185,9 +198,7 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     def test_finds_no_project_results(self):
-        responses.add(
-            responses.GET, self.base_url + "/search/repositories?q=org:test%20nope", json={}
-        )
+        responses.add(responses.GET, self._build_repo_query_path(query="nope"), json={})
         resp = self.client.get(self.url, data={"field": "repo", "query": "nope"})
 
         assert resp.status_code == 200
@@ -227,7 +238,7 @@ class GithubSearchTest(APITestCase):
     def test_search_project_rate_limit(self, mock_record):
         responses.add(
             responses.GET,
-            self.base_url + "/search/repositories?q=org:test%20ex",
+            self._build_repo_query_path(query="ex"),
             status=403,
             json={
                 "message": "API rate limit exceeded",

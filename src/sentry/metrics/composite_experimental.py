@@ -1,10 +1,8 @@
 from typing import Any
 
-from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.metrics.dummy import DummyMetricsBackend
 from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
-from sentry.options import UnknownOption
 from sentry.utils.imports import import_string
 
 __all__ = ["CompositeExperimentalMetricsBackend"]
@@ -35,11 +33,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
 
     @staticmethod
     def _minimetrics_sample_rate() -> float:
-        try:
-            # We want to control the sample rate of minimetrics independently of the primary backend's sample rate.
-            return options.get("delightful_metrics.minimetrics_sample_rate")
-        except UnknownOption:
-            return 0.0
+        # Previously bound to options.get("delightful_metrics.minimetrics_sample_rate")
+        # but this option check was resulting in excessive cache misses somehow.
+
+        return 1.0
 
     def incr(
         self,

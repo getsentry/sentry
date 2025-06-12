@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
+from sentry.api.helpers.environments import get_environment
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -45,6 +46,7 @@ advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = 
 ]
 
 DEFAULT_QUERY = "is:unresolved issue.priority:[high, medium]"
+TAXONOMY_DEFAULT_QUERY = "is:unresolved"
 
 
 def parse_and_convert_issue_search_query(
@@ -93,7 +95,11 @@ def build_query_params_from_request(
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
-        query = DEFAULT_QUERY
+        query = (
+            TAXONOMY_DEFAULT_QUERY
+            if features.has("organizations:issue-taxonomy", organization)
+            else DEFAULT_QUERY
+        )
 
     query = query.strip()
 
@@ -261,13 +267,12 @@ def calculate_stats_period(
 
 
 def prep_search(
-    cls: Any,
     request: Request,
     project: Project,
     extra_query_kwargs: dict[str, Any] | None = None,
 ) -> tuple[CursorResult[Group], dict[str, Any]]:
     try:
-        environment = cls._get_environment_from_request(request, project.organization_id)
+        environment = get_environment(request, project.organization_id)
     except Environment.DoesNotExist:
         result = CursorResult[Group](
             [], Cursor(0, 0, 0), Cursor(0, 0, 0), hits=0, max_hits=SEARCH_MAX_HITS

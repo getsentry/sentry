@@ -10,7 +10,6 @@ from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
     RepoTreesIntegration,
-    get_extension,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -19,8 +18,16 @@ from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 from .constants import METRIC_PREFIX
+from .errors import (
+    DoesNotFollowJavaPackageNamingConvention,
+    MissingModuleOrAbsPath,
+    NeedsExtension,
+    UnexpectedPathException,
+    UnsupportedFrameInfo,
+)
+from .frame_info import FrameInfo
 from .integration_utils import InstallationNotFoundError, get_installation
-from .utils import PlatformConfig
+from .utils.misc import get_straight_path_prefix_end_index
 
 logger = logging.getLogger(__name__)
 
@@ -33,33 +40,6 @@ class CodeMapping(NamedTuple):
 
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
-
-# List of file paths prefixes that should become stack trace roots
-FILE_PATH_PREFIX_LENGTH = {
-    "app:///": 7,
-    "../": 3,
-    "./": 2,
-}
-
-
-class UnexpectedPathException(Exception):
-    pass
-
-
-class UnsupportedFrameInfo(Exception):
-    pass
-
-
-class NeedsExtension(Exception):
-    pass
-
-
-class MissingModuleOrAbsPath(Exception):
-    pass
-
-
-class DoesNotFollowJavaPackageNamingConvention(Exception):
-    pass
 
 
 def derive_code_mappings(
@@ -74,87 +54,11 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     try:
         frame_filename = FrameInfo(frame, platform)
-        return trees_helper.list_file_matches(frame_filename)
+        return trees_helper.get_file_and_repo_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
 
     return []
-
-
-# XXX: Look at sentry.interfaces.stacktrace and maybe use that
-class FrameInfo:
-    def __init__(self, frame: Mapping[str, Any], platform: str | None = None) -> None:
-        if platform:
-            platform_config = PlatformConfig(platform)
-            if platform_config.extracts_filename_from_module():
-                self.frame_info_from_module(frame)
-                return
-
-        frame_file_path = frame["filename"]
-        frame_file_path = self.transformations(frame_file_path)
-
-        # Using regexes would be better but this is easier to understand
-        if (
-            not frame_file_path
-            or frame_file_path[0] in ["[", "<"]
-            or frame_file_path.find(" ") > -1
-            or frame_file_path.find("/") == -1
-        ):
-            raise UnsupportedFrameInfo("This path is not supported.")
-
-        if not get_extension(frame_file_path):
-            raise NeedsExtension("It needs an extension.")
-
-        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
-
-        # We normalize the path to be as close to what the path would
-        # look like in the source code repository, hence why we remove
-        # the straight path prefix and drive letter
-        self.normalized_path = frame_file_path[start_at_index:]
-        if start_at_index == 0:
-            self.stack_root = frame_file_path.split("/")[0]
-        else:
-            slash_index = frame_file_path.find("/", start_at_index)
-            self.stack_root = frame_file_path[0:slash_index]
-
-    def transformations(self, frame_file_path: str) -> str:
-        self.raw_path = frame_file_path
-
-        is_windows_path = False
-        if "\\" in frame_file_path:
-            is_windows_path = True
-            frame_file_path = frame_file_path.replace("\\", "/")
-
-        # Remove leading slash if it exists
-        if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
-            frame_file_path = frame_file_path[1:]
-
-        # Remove drive letter if it exists
-        if is_windows_path and frame_file_path[1] == ":":
-            frame_file_path = frame_file_path[2:]
-            # windows drive letters can be like C:\ or C:
-            # so we need to remove the slash if it exists
-            if frame_file_path[0] == "/":
-                frame_file_path = frame_file_path[1:]
-
-        return frame_file_path
-
-    def frame_info_from_module(self, frame: Mapping[str, Any]) -> None:
-        if frame.get("module") and frame.get("abs_path"):
-            stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
-            self.stack_root = stack_root
-            self.raw_path = filepath
-            self.normalized_path = filepath
-        else:
-            raise MissingModuleOrAbsPath("Investigate why the data is missing.")
-
-    def __repr__(self) -> str:
-        return f"FrameInfo: {self.raw_path}"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, FrameInfo):
-            return False
-        return self.raw_path == other.raw_path
 
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
@@ -190,7 +94,7 @@ class CodeMappingTreesHelper:
 
         return list(self.code_mappings.values())
 
-    def list_file_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
+    def get_file_and_repo_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
         """List all the files in a repo that match the frame_filename"""
         file_matches = []
         for repo_full_name in self.trees.keys():
@@ -380,6 +284,9 @@ class CodeMappingTreesHelper:
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
 
+    def __repr__(self) -> str:
+        return f"CodeMappingTreesHelper(trees={self.trees}, code_mappings={self.code_mappings})"
+
 
 def convert_stacktrace_frame_path_to_source_path(
     frame: EventFrame,
@@ -425,11 +332,8 @@ def convert_stacktrace_frame_path_to_source_path(
 
 def create_code_mapping(
     organization: Organization,
+    code_mapping: CodeMapping,
     project: Project,
-    stacktrace_root: str,
-    source_path: str,
-    repo_name: str,
-    branch: str,
 ) -> RepositoryProjectPathConfig:
     installation = get_installation(organization)
     # It helps with typing since org_integration can be None
@@ -437,21 +341,22 @@ def create_code_mapping(
         raise InstallationNotFoundError
 
     repository, _ = Repository.objects.get_or_create(
-        name=repo_name,
+        name=code_mapping.repo.name,
         organization_id=organization.id,
         defaults={"integration_id": installation.model.id},
     )
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=stacktrace_root,
+        stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
             "organization_id": organization.id,
             "integration_id": installation.model.id,
             "organization_integration_id": installation.org_integration.id,
-            "source_root": source_path,
-            "default_branch": branch,
-            "automatically_generated": True,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            # This function is called from the UI, thus, we know that the code mapping is user generated
+            "automatically_generated": False,
         },
     )
 
@@ -510,20 +415,6 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     return sorted_configs
 
 
-def get_straight_path_prefix_end_index(file_path: str) -> int:
-    """
-    Get the index where the straight path prefix ends in the file path.
-    This is  used for Node projects where the file path can start with
-    "app:///", "../", or "./"
-    """
-    index = 0
-    for prefix in FILE_PATH_PREFIX_LENGTH:
-        while file_path.startswith(prefix):
-            index += FILE_PATH_PREFIX_LENGTH[prefix]
-            file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
-    return index
-
-
 def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
@@ -575,35 +466,3 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
     raise UnexpectedPathException("Could not find common root from paths")
-
-
-# Based on # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
-def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
-    """This attempts to generate a modified module and a real path from a Java module name and filename.
-    Returns a tuple of (stack_root, source_path).
-    """
-    # An `abs_path` is valid if it contains a `.` and doesn't contain a `$`.
-    if "$" in abs_path or "." not in abs_path:
-        # Split the module at the first '$' character and take the part before it
-        # If there's no '$', use the entire module
-        file_path = module.split("$", 1)[0] if "$" in module else module
-        stack_root = module.rsplit(".", 1)[0].replace(".", "/")
-        return stack_root, file_path.replace(".", "/")
-
-    if "." not in module:
-        raise DoesNotFollowJavaPackageNamingConvention
-
-    parts = module.split(".")
-
-    if len(parts) > 2:
-        # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
-        #    stack_root: com/example/
-        #    file_path:  com/example/foo/bar/Baz.kt
-        stack_root = "/".join(parts[:2])
-        file_path = "/".join(parts[:-1]) + "/" + abs_path
-    else:
-        # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
-        stack_root = parts[0] + "/"
-        file_path = f"{stack_root}{abs_path}"
-
-    return stack_root, file_path

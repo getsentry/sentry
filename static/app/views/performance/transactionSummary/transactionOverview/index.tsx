@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -31,21 +32,21 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {addRoutePerformanceContext} from '../../utils';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
-} from '../filter';
-import type {ChildProps} from '../pageLayout';
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  makeVitalGroups,
+  PERCENTILE as VITAL_PERCENTILE,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent, {OTelSummaryContent} from './content';
@@ -74,7 +75,7 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const shouldUseTransactionSummaryEAP = useTransactionSummaryEAP();
 
   return (
     <MEPSettingProvider>
@@ -85,7 +86,11 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={isEAP ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper}
+        childComponent={
+          shouldUseTransactionSummaryEAP
+            ? EAPCardinalityLoadingWrapper
+            : CardinalityLoadingWrapper
+        }
       />
     </MEPSettingProvider>
   );
@@ -123,7 +128,6 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const navigate = useNavigate();
-
   const mepContext = useMEPDataContext();
 
   const queryData = useDiscoverQuery({
@@ -185,11 +189,9 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -221,7 +223,7 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
-
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const mepContext = useMEPDataContext();
@@ -234,7 +236,7 @@ function OverviewContentWrapper(props: ChildProps) {
   );
 
   const queryData = useDiscoverQuery({
-    eventView: getTotalsEventView(organization, eventView),
+    eventView: getTotalsEventView(organization, eventView, theme),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
@@ -293,11 +295,9 @@ function OverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -332,11 +332,11 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
-  organization,
   transactionName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
-  organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transactionName: string;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
@@ -345,8 +345,7 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
-  if (isEAP) {
+  if (shouldUseOTelFriendlyUI) {
     conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues(
       'transaction.method',
@@ -364,7 +363,7 @@ function generateEventView({
     }
   });
 
-  const fields = isEAP
+  const fields = shouldUseOTelFriendlyUI
     ? [
         'id',
         'user.email',
@@ -385,7 +384,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: isEAP ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );
@@ -405,12 +404,15 @@ function getTotalCountEventView(
 
 function getTotalsEventView(
   _organization: Organization,
-  eventView: EventView
+  eventView: EventView,
+  theme: Theme
 ): EventView {
-  const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-    vs.forEach(vital => keys.push(vital));
-    return keys;
-  }, []);
+  const vitals = makeVitalGroups(theme)
+    .map(({vitals: vs}) => vs)
+    .reduce((keys: WebVital[], vs) => {
+      vs.forEach(vital => keys.push(vital));
+      return keys;
+    }, []);
 
   const totalsColumns: QueryFieldValue[] = [
     {

@@ -6,12 +6,6 @@ import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
-import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
-import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
-import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
-import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
-import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import type {Fidelity} from 'sentry/components/charts/utils';
 import {
@@ -187,35 +181,24 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
   return undefined;
 }
 
-export function miniWidget(displayType: DisplayType): string {
-  switch (displayType) {
-    case DisplayType.BAR:
-      return WidgetBar;
-    case DisplayType.AREA:
-    case DisplayType.TOP_N:
-      return WidgetArea;
-    case DisplayType.BIG_NUMBER:
-      return WidgetBigNumber;
-    case DisplayType.TABLE:
-      return WidgetTable;
-    case DisplayType.LINE:
-    default:
-      return WidgetLine;
-  }
-}
-
 export function getWidgetInterval(
-  displayType: DisplayType,
+  widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
-  widgetInterval?: string,
+  widgetIntervalOverride?: string,
   fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
 
-  // Bars charts are daily totals to aligned with discover. It also makes them
-  // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = displayType === 'bar' ? '1d' : widgetInterval;
+  let interval =
+    widget.widgetType === WidgetType.SPANS
+      ? // For span based widgets, we want to permit non 1d bar charts.
+        undefined
+      : // Bars charts are daily totals to aligned with discover. It also makes them
+        // usefully different from line/area charts until we expose the interval control, or remove it.
+        widget.displayType === 'bar'
+        ? '1d'
+        : widgetIntervalOverride;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
@@ -230,13 +213,16 @@ export function getWidgetInterval(
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
     }
-    return displayType === 'bar' ? '1d' : interval;
+    return widget.displayType === 'bar' ? '1d' : interval;
   }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
-    const highInterval = getInterval(datetimeObj, 'high');
+    const highInterval = getInterval(
+      datetimeObj,
+      widget.widgetType === WidgetType.SPANS ? 'spans' : 'high'
+    );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
       return highInterval;
@@ -258,6 +244,7 @@ export function getFieldsFromEquations(fields: string[]): string[] {
 
 export function getWidgetDiscoverUrl(
   widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
   index = 0,
@@ -318,6 +305,10 @@ export function getWidgetDiscoverUrl(
     }
   });
   discoverLocation.query.field = fields;
+  discoverLocation.query.query = applyDashboardFilters(
+    query.conditions,
+    dashboardFilters
+  );
 
   if (isMetricsData) {
     discoverLocation.query.fromMetric = 'true';
@@ -332,6 +323,7 @@ export function getWidgetDiscoverUrl(
 
 export function getWidgetIssueUrl(
   widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization
 ) {
@@ -341,7 +333,7 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: widget.queries?.[0]?.conditions,
+    query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     project: selection.projects,
@@ -352,6 +344,7 @@ export function getWidgetIssueUrl(
 
 export function getWidgetReleasesUrl(
   _widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization
 ) {
@@ -362,6 +355,7 @@ export function getWidgetReleasesUrl(
       : {statsPeriod: period};
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
+    query: applyDashboardFilters('', dashboardFilters),
     project: selection.projects,
     environment: selection.environments,
   })}`;
@@ -374,7 +368,7 @@ export function flattenErrors(
 ): FlatValidationError {
   if (typeof data === 'string') {
     update.error = data;
-  } else {
+  } else if (defined(data)) {
     Object.keys(data).forEach((key: string) => {
       const value = data[key];
       if (typeof value === 'string') {
@@ -434,12 +428,6 @@ export function isCustomMeasurementWidget(widget: Widget) {
   );
 }
 
-export function getCustomMeasurementQueryParams() {
-  return {
-    dataset: 'metrics',
-  };
-}
-
 export function isWidgetUsingTransactionName(widget: Widget) {
   return (
     widget.widgetType === WidgetType.DISCOVER &&
@@ -466,7 +454,12 @@ export function isWidgetUsingTransactionName(widget: Widget) {
   );
 }
 
-export function hasSavedPageFilters(dashboard: DashboardDetails) {
+export function hasSavedPageFilters(
+  dashboard: Pick<
+    DashboardDetails,
+    'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
+  >
+) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
     dashboard.environment === undefined &&
@@ -606,8 +599,8 @@ export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
 }
 
-export function hasDatasetSelector(organization: Organization): boolean {
-  return organization.features.includes('performance-discover-dataset-selector');
+export function hasDatasetSelector(_organization: Organization): boolean {
+  return true;
 }
 
 export function appendQueryDatasetParam(
@@ -642,3 +635,17 @@ function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
 }
 
 export const performanceScoreTooltip = t('peformance_score is not supported in Discover');
+
+export function applyDashboardFilters(
+  baseQuery: string | undefined,
+  dashboardFilters: DashboardFilters | undefined
+): string | undefined {
+  const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
+  if (dashboardFilterConditions) {
+    if (baseQuery) {
+      return `(${baseQuery}) ${dashboardFilterConditions}`;
+    }
+    return dashboardFilterConditions;
+  }
+  return baseQuery;
+}

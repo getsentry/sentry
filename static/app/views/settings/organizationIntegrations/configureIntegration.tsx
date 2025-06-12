@@ -5,7 +5,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
@@ -13,7 +15,6 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,7 +25,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -148,9 +149,11 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }
 
   const onTabChange = (value: Tab) => {
+    // XXX: Omit the cursor to prevent paginating the next tab's queries.
+    const {cursor: _, ...query} = location.query;
     router.push({
       pathname: location.pathname,
-      query: {...location.query, tab: value},
+      query: {...query, tab: value},
     });
   };
 
@@ -443,17 +446,15 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     const hasCodeOwners =
       provider!.features.includes('codeowners') &&
       organization.features.includes('integrations-codeowners');
+    const hasUserMapping = provider!.features.includes('user-mapping');
 
-    // if no code mappings, render the single tab
-    if (!hasStacktraceLinking) {
-      return renderMainTab();
-    }
-
-    // otherwise render the tab view
-    const tabs: Array<[Tab, string]> = [
-      ['repos', t('Repositories')],
-      ['codeMappings', t('Code Mappings')],
-    ];
+    const tabs: Array<[Tab, string]> = [];
+    const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
+      ? [
+          ['repos', t('Repositories')],
+          ['codeMappings', t('Code Mappings')],
+        ]
+      : [];
 
     const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
       ? [
@@ -462,7 +463,23 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         ]
       : [];
 
-    const allTabs = tabs.concat(codeOwnerTabs);
+    // User mappings are mutually exclusive with stacktrace linking
+    // and code owners, so only render the main settings tab and user mappings.
+    const userMappingTabs: Array<[Tab, string]> = hasUserMapping
+      ? [
+          ['repos', t('Settings')],
+          ['userMappings', t('User Mappings')],
+        ]
+      : [];
+
+    const allTabs = tabs
+      .concat(stackTraceLinkingTabs)
+      .concat(codeOwnerTabs)
+      .concat(userMappingTabs);
+
+    if (allTabs.length === 0) {
+      return renderMainTab();
+    }
 
     return (
       <Fragment>

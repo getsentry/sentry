@@ -1,7 +1,9 @@
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+import pytest
 
 from sentry import buffer
 from sentry.eventstore.models import Event
@@ -17,9 +19,11 @@ from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+    BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
+    QueryResult,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -27,12 +31,14 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
     Condition,
 )
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.processors.delayed_workflow import (
     DataConditionGroupEvent,
     DataConditionGroupGroups,
@@ -519,6 +525,26 @@ class TestGetSnubaResults(BaseWorkflowTest):
             offset_percent_query: {group_id: 1},
         }
 
+    def test_get_condition_group_results_exception_propagation(self) -> None:
+        """
+        When we get an exception from the handler, we should propagate it.
+        We don't want to proceed with partial data.
+        """
+        mock_handler = Mock(spec=BaseEventFrequencyQueryHandler)
+        mock_handler.get_rate_bulk.side_effect = ValueError("Escaping exception")
+        mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
+
+        unique_query = UniqueConditionQuery(
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
+            interval="1h",
+            environment_id=None,
+        )
+
+        condition_groups = {unique_query: {1}}  # One group ID to query
+
+        with pytest.raises(ValueError, match="Escaping exception"):
+            get_condition_group_results(condition_groups)
+
 
 class TestGetGroupsToFire(TestDelayedWorkflowBase):
     def setUp(self):
@@ -527,7 +553,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
         self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
         self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
-        self.condition_group_results = {
+        self.condition_group_results: dict[UniqueConditionQuery, QueryResult] = {
             UniqueConditionQuery(
                 handler=EventFrequencyQueryHandler,
                 interval="1h",
@@ -765,7 +791,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_trigger.call_count == 2
@@ -783,7 +812,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
 
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
         )
 
         assert mock_enqueue.call_count == 2
@@ -799,6 +831,42 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.event2.for_group(self.group2),
             WorkflowDataConditionGroupType.ACTION_FILTER,
         )
+
+    @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    def test_fire_actions_for_groups__workflow_fire_history(self, mock_process):
+        mock_process.return_value = (
+            ProcessedDataConditionGroup(logic_result=True, condition_results=[]),
+            [],
+        )
+
+        self.trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER] = {
+            self.workflow1_dcgs[0].id: self.workflow1.id,
+        }
+        self.trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER] = {
+            self.workflow2_dcgs[1].id: self.workflow2.id,
+        }
+        self.groups_to_dcgs = {
+            self.group1.id: {self.workflow1_dcgs[0]},
+            self.group2.id: {self.workflow2_dcgs[1]},
+        }
+        fire_actions_for_groups(
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.trigger_group_to_dcg_model,
+            self.group_to_groupevent,
+        )
+
+        assert WorkflowFireHistory.objects.filter(
+            workflow=self.workflow2,
+            group_id=self.group2.id,
+            event_id=self.event2.event_id,
+        ).exists()
+
+        assert WorkflowFireHistory.objects.filter(
+            workflow=self.workflow1,
+            group_id=self.group1.id,
+            event_id=self.event1.event_id,
+        ).exists()
 
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):

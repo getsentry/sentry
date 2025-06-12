@@ -27,15 +27,14 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -56,21 +55,24 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
-import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
-import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
-
-import type {Anomaly, Incident} from '../../../types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
+import {
+  isEapAlertType,
+  shouldUseErrorsDiscoverDataset,
+} from 'sentry/views/alerts/rules/utils';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
   isSessionAggregate,
-} from '../../../utils';
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+} from 'sentry/views/alerts/utils';
+import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
+import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
 
 import type {TimePeriodType} from './constants';
 import {
@@ -93,10 +95,7 @@ interface MetricChartProps {
 }
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }
 
 export function getRuleChangeSeries(
@@ -288,17 +287,17 @@ export default function MetricChart({
             </Fragment>
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
-            (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            (isEapAlertType(getAlertTypeFromAggregateDataset(rule)) ? (
               <Feature features="visibility-explore-view">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ) : (
               <Feature features="discover-basic">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ))}
         </StyledChartControls>
@@ -335,16 +334,19 @@ export default function MetricChart({
         totalDuration,
         waitingForDataDuration,
         chartOption,
-      } = getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        seriesName: formattedAggregate,
-        incidents,
-        anomalies,
-        showWaitingForData:
-          shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
-        handleIncidentClick,
-      });
+      } = getMetricAlertChartOption(
+        {
+          timeseriesData,
+          rule,
+          seriesName: formattedAggregate,
+          incidents,
+          anomalies,
+          showWaitingForData:
+            shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
+          handleIncidentClick,
+        },
+        theme
+      );
 
       const comparisonSeriesName = capitalize(
         COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)
@@ -456,6 +458,10 @@ export default function MetricChart({
       rule,
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
+      samplingMode:
+        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+          ? SAMPLING_MODE.NORMAL
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );
@@ -574,7 +580,7 @@ export function getMetricChartTooltipFormatter({
         )}</strong></span></div>`,
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
-        `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+        `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
@@ -614,7 +620,7 @@ const StyledInlineContainer = styled(InlineContainer)`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.formText};
+  background: ${p => p.theme.subText};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;

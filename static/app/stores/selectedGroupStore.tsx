@@ -139,8 +139,8 @@ const storeConfig: SelectedGroupStoreDefinition = {
     }
 
     const ids = GroupStore.getAllItemIds();
-    const lastIdx = ids.findIndex(id => id === this.state.lastSelected);
-    const currentIdx = ids.findIndex(id => id === itemId);
+    const lastIdx = ids.indexOf(this.state.lastSelected);
+    const currentIdx = ids.indexOf(itemId);
 
     if (lastIdx === -1 || currentIdx === -1) {
       return;

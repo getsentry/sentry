@@ -4,6 +4,7 @@ import {
   type Reducer,
   useCallback,
   useContext,
+  useMemo,
   useReducer,
 } from 'react';
 
@@ -16,7 +17,6 @@ export const enum SectionKey {
   TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
   SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
 
@@ -50,6 +50,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded
    */
@@ -81,6 +82,9 @@ export const enum SectionKey {
   REGRESSION_EVENT_COMPARISON = 'regression-event-comparison',
   REGRESSION_POTENTIAL_CAUSES = 'regression-potential-causes',
   REGRESSION_AFFECTED_TRANSACTIONS = 'regression-affected-transactions',
+
+  AI_INPUT = 'ai-input',
+  AI_OUTPUT = 'ai-output',
 }
 
 /**
@@ -93,16 +97,20 @@ export interface SectionConfig {
   initialCollapse?: boolean;
 }
 
-export interface IssueDetailsContextType extends IssueDetailsState {
+interface IssueDetailsContextType extends IssueDetailsState {
   dispatch: Dispatch<IssueDetailsActions>;
 }
 
-export const IssueDetailsContext = createContext<IssueDetailsContextType>({
+const initialState: IssueDetailsState = {
   sectionData: {},
   detectorDetails: {},
   isSidebarOpen: true,
-  navScrollMargin: 0,
   eventCount: 0,
+  navScrollMargin: 0,
+};
+
+export const IssueDetailsContext = createContext<IssueDetailsContextType>({
+  ...initialState,
   dispatch: () => {},
 });
 
@@ -110,7 +118,7 @@ export function useIssueDetails() {
   return useContext(IssueDetailsContext);
 }
 
-export interface IssueDetailsState {
+interface IssueDetailsState {
   /**
    * Detector details for the current issue
    */
@@ -130,7 +138,7 @@ export interface IssueDetailsState {
   /**
    * Controls the state of each section.
    */
-  sectionData: {[key in SectionKey]?: SectionConfig};
+  sectionData: Partial<Record<SectionKey, SectionConfig>>;
 }
 
 type UpdateEventSectionAction = {
@@ -150,7 +158,7 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
-export type IssueDetailsActions =
+type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
@@ -177,15 +185,7 @@ function updateEventSection(
  * If trying to use the current state of the issue/event page, you likely want to use
  * `useIssueDetails` instead. This hook is just meant to create state for the provider.
  */
-export function useIssueDetailsReducer() {
-  const initialState: IssueDetailsState = {
-    sectionData: {},
-    detectorDetails: {},
-    isSidebarOpen: true,
-    eventCount: 0,
-    navScrollMargin: 0,
-  };
-
+export function IssueDetailsContextProvider({children}: {children: React.ReactNode}) {
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
     (state, action): IssueDetailsState => {
       switch (action.type) {
@@ -208,5 +208,7 @@ export function useIssueDetailsReducer() {
 
   const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
-  return {issueDetails, dispatch};
+  const value = useMemo(() => ({...issueDetails, dispatch}), [issueDetails, dispatch]);
+
+  return <IssueDetailsContext value={value}>{children}</IssueDetailsContext>;
 }

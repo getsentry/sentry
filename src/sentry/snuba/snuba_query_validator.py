@@ -1,8 +1,10 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import override
 
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
@@ -60,14 +62,18 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.ERROR,
         SnubaQueryEventType.EventType.DEFAULT,
     },
-    SnubaQuery.Type.PERFORMANCE: {SnubaQueryEventType.EventType.TRANSACTION},
+    SnubaQuery.Type.PERFORMANCE: {
+        SnubaQueryEventType.EventType.TRANSACTION,
+        SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+        SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+    },
 }
 
 
 class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
     environment = EnvironmentField(required=True, allow_null=True)
@@ -116,46 +122,27 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 )
         return query
 
-    def validate_aggregate(self, value: str):
-        allow_mri = features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
-            "organizations:insights-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        )
-        allow_eap = features.has(
-            "organizations:alerts-eap",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        )
-        try:
-            if not check_aggregate_column_support(
-                value,
-                allow_mri=allow_mri,
-                allow_eap=allow_eap,
-            ):
-                raise serializers.ValidationError(
-                    "Invalid Metric: We do not currently support this field."
-                )
-        except InvalidSearchQuery as e:
-            raise serializers.ValidationError(f"Invalid Metric: {e}")
-
-        return translate_aggregate_field(value, allow_mri=allow_mri)
-
     def validate_event_types(self, value: Sequence[str]) -> list[SnubaQueryEventType.EventType]:
         try:
-            return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
+            validated = [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
         except KeyError:
             raise serializers.ValidationError(
                 "Invalid event_type, valid values are %s"
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
 
+        if not features.has(
+            "organizations:ourlogs-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
+            raise serializers.ValidationError("You do not have access to the log alerts feature.")
+
+        return validated
+
     def validate(self, data):
         data = super().validate(data)
+        self._validate_aggregate(data)
         self._validate_query(data)
 
         query_type = data["query_type"]
@@ -170,7 +157,43 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % sorted(et.name.lower() for et in valid_event_types)
             )
 
+        dataset = data.get("dataset")
+        if dataset == Dataset.EventsAnalyticsPlatform and event_types and len(event_types) > 1:
+            raise serializers.ValidationError(
+                "Multiple event types not allowed. Valid event types are %s"
+                % sorted(et.name.lower() for et in valid_event_types)
+            )
+
         return data
+
+    def _validate_aggregate(self, data):
+        dataset = data.setdefault("dataset", Dataset.Events)
+        aggregate = data.get("aggregate")
+        allow_mri = features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
+        allow_eap = dataset == Dataset.EventsAnalyticsPlatform
+        try:
+            if not check_aggregate_column_support(
+                aggregate,
+                allow_mri=allow_mri,
+                allow_eap=allow_eap,
+            ):
+                raise serializers.ValidationError(
+                    {"aggregate": _("Invalid Metric: We do not currently support this field.")}
+                )
+        except InvalidSearchQuery as e:
+            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
+
+        data["aggregate"] = translate_aggregate_field(
+            aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+        )
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
@@ -184,7 +207,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
+            column = get_column_from_aggregate(
+                data["aggregate"],
+                allow_mri=True,
+                allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+            )
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"
@@ -315,6 +342,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    @override
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],

@@ -23,14 +23,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {GIGABYTE, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_ONDEMAND,
+} from 'getsentry/constants';
 import type {
   BillingHistory,
   BillingMetricHistory,
   Plan,
   Subscription,
 } from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
@@ -190,7 +195,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
         <thead>
           <tr>
             <th>
-              {subscription.planTier === PlanTier.AM3
+              {subscription.planDetails.budgetTerm === 'pay-as-you-go'
                 ? t('Pay-as-you-go Spend')
                 : history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('On-Demand Spend (Per-Category)')
@@ -227,10 +232,9 @@ function UsageHistoryRow({history, subscription}: RowProps) {
   // Only display categories with billing metric history
   const sortedCategories = sortCategories(categories);
 
-  const hasGifts =
-    Object.values(DataCategory).filter(c => {
-      return !!categories[c]?.free;
-    }).length > 0;
+  const hasGifts = Object.values(DataCategory).some(c => {
+    return !!categories[c]?.free;
+  });
 
   return (
     <StyledPanelItem>
@@ -332,12 +336,14 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       </td>
                     )}
                     <td>
-                      {usagePercentage(
-                        metricHistory.category === DataCategory.ATTACHMENTS
-                          ? metricHistory.usage / GIGABYTE
-                          : metricHistory.usage,
-                        metricHistory.prepaid
-                      )}
+                      {metricHistory.reserved === RESERVED_BUDGET_QUOTA
+                        ? 'N/A'
+                        : usagePercentage(
+                            metricHistory.category === DataCategory.ATTACHMENTS
+                              ? metricHistory.usage / GIGABYTE
+                              : metricHistory.usage,
+                            metricHistory.prepaid
+                          )}
                     </td>
                   </tr>
                 ))}

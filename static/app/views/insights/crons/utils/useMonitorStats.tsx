@@ -2,8 +2,7 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {MonitorBucket} from '../types';
+import type {MonitorBucket} from 'sentry/views/insights/crons/types';
 
 interface Options {
   /**

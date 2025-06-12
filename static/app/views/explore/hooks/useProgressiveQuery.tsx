@@ -1,25 +1,20 @@
-import useOrganization from 'sentry/utils/useOrganization';
-
 export const SAMPLING_MODE = {
-  PREFLIGHT: 'PREFLIGHT',
-  BEST_EFFORT: 'BEST_EFFORT',
+  NORMAL: 'NORMAL',
+  HIGH_ACCURACY: 'HIGHEST_ACCURACY',
 } as const;
 
-export const QUERY_MODE = {
-  SERIAL: 'serial',
-  PARALLEL: 'parallel',
+const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
+  samplingMode: SAMPLING_MODE.NORMAL,
 } as const;
 
-const LOW_SAMPLING_MODE_QUERY_EXTRAS = {
-  samplingMode: SAMPLING_MODE.PREFLIGHT,
+const HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS = {
+  samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
 } as const;
 
-const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
-  samplingMode: SAMPLING_MODE.BEST_EFFORT,
-} as const;
-
-export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
+export type SpansRPCQueryExtras = {
+  samplingMode?: SamplingMode;
+};
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   queryHookArgs: Parameters<TQueryFn>[0];
@@ -27,71 +22,68 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // Enforces that isFetched is always present in the result, required for the
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
-    result: {
+    result: ReturnType<TQueryFn>['result'] & {
+      data: any;
       isFetched: boolean;
+      isFetching: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions?: QueryOptions<TQueryFn>;
+}
+
+interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
+  canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
 }
 
 /**
- * A hook that composes the behavior of progressively loading from a preflight
- * endpoint and a best effort endpoint for quicker feedback for queries.
+ * A hook used for querying spans data from EAP in stages.
  *
- * This hook is meant to be used as a wrapper where another hook is passed along.
- * The hook argument must accept `enabled` and `queryExtras` as arguments and
- * return `results` and `isFetched` to indicate when the query is complete.
+ * It first fires a query using `SAMPLING_MODE.NORMAL`, allowing EAP to make a
+ * decision around which tier data to query so that it returns within an acceptable
+ * amount of time.
  *
- * When the best effort request is complete, the results will always use the
- * best effort results and surface the fidelity of the response that is served.
+ * In the event that the first query succeeds but returned no data, check to see
+ * if EAP used a partial data scan to answer the query. If it did, that means there
+ * is the possibility scanning the full table will result in some data. Here, it
+ * fires another query using `SAMPLING_MODE.HIGH_ACCURACY`. This comes at the risk
+ * of possibly timing out for a chance to answer the query with an non empty response.
  */
 export function useProgressiveQuery<
   TQueryFn extends (...args: any[]) => ReturnType<TQueryFn>,
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
-  const organization = useOrganization();
-  const canUseProgressiveLoading = organization.features.includes(
-    'visibility-explore-progressive-loading'
-  );
-
-  const singleQueryResult = queryHookImplementation({
+  const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
-    enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
+    queryExtras: NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
+    enabled: queryHookArgs.enabled,
   });
 
-  const preflightRequest = queryHookImplementation({
-    ...queryHookArgs,
-    queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading,
-  });
-
-  const bestEffortRequest = queryHookImplementation({
-    ...queryHookArgs,
-    queryExtras: HIGH_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled:
-      queryHookArgs.enabled &&
-      canUseProgressiveLoading &&
-      (queryMode === QUERY_MODE.PARALLEL || preflightRequest.result.isFetched),
-  });
-
-  if (!canUseProgressiveLoading) {
-    return singleQueryResult;
+  let triggerHighAccuracy = false;
+  if (normalSamplingModeRequest.result.isFetched) {
+    triggerHighAccuracy =
+      queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result) ?? false;
   }
+  // queryExtras is not passed in here because this request should be unsampled.
+  const highAccuracyRequest = queryHookImplementation({
+    ...queryHookArgs,
+    queryExtras: HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
+    enabled: queryHookArgs.enabled && triggerHighAccuracy,
+  });
 
-  if (bestEffortRequest.result.isFetched) {
+  if (highAccuracyRequest?.result?.isFetching || highAccuracyRequest?.result?.isFetched) {
     return {
-      ...bestEffortRequest,
-      samplingMode: SAMPLING_MODE.BEST_EFFORT,
+      ...highAccuracyRequest,
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
     };
   }
 
   return {
-    ...preflightRequest,
-    samplingMode: SAMPLING_MODE.PREFLIGHT,
+    ...normalSamplingModeRequest,
+    samplingMode: SAMPLING_MODE.NORMAL,
   };
 }

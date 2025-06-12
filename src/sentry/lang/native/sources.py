@@ -7,11 +7,15 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
+import google.auth
 import jsonschema
 import orjson
 import sentry_sdk
+from cachetools.func import ttl_cache
 from django.conf import settings
 from django.urls import reverse
+from google.auth import impersonated_credentials
+from google.auth.transport.requests import Request
 from rediscluster import RedisCluster
 
 from sentry import features, options
@@ -80,6 +84,7 @@ COMMON_SOURCE_PROPERTIES = {
     "layout": LAYOUT_SCHEMA,
     "filters": FILTERS_SCHEMA,
     "is_public": {"type": "boolean"},
+    "has_index": {"type": "boolean"},
 }
 
 APP_STORE_CONNECT_SCHEMA = {
@@ -109,14 +114,31 @@ APP_STORE_CONNECT_SCHEMA = {
     "additionalProperties": False,
 }
 
+# Abstract out commonalities between HTTP_SOURCE_SCHEMA
+# and BUILTIN_HTTP_SOURCE_SCHEMA
+HTTP_SOURCE_SCHEMA_INNER = {
+    "type": {"type": "string", "enum": ["http"]},
+    "url": {"type": "string"},
+    "username": {"type": "string"},
+    "password": {"type": "string"},
+    **COMMON_SOURCE_PROPERTIES,
+}
+
 HTTP_SOURCE_SCHEMA = {
     "type": "object",
+    "properties": HTTP_SOURCE_SCHEMA_INNER,
+    "required": ["type", "id", "url", "layout"],
+    "additionalProperties": False,
+}
+
+# Like HTTP_SOURCE_SCHEMA, but also allows a map of headers.
+# We don't want to expose that functionality via the API.
+BUILTIN_HTTP_SOURCE_SCHEMA = {
+    "type": "object",
     "properties": dict(
-        type={"type": "string", "enum": ["http"]},
-        url={"type": "string"},
-        username={"type": "string"},
-        password={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
+        headers={"type": "object", "patternProperties": {".*": {"type": "string"}}},
+        accept_invalid_certs={"type": "boolean"},
+        **HTTP_SOURCE_SCHEMA_INNER,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -154,6 +176,15 @@ GCS_SOURCE_SCHEMA = {
 SOURCE_SCHEMA = {
     "oneOf": [
         HTTP_SOURCE_SCHEMA,
+        S3_SOURCE_SCHEMA,
+        GCS_SOURCE_SCHEMA,
+        APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
+BUILTIN_SOURCE_SCHEMA = {
+    "oneOf": [
+        BUILTIN_HTTP_SOURCE_SCHEMA,
         S3_SOURCE_SCHEMA,
         GCS_SOURCE_SCHEMA,
         APP_STORE_CONNECT_SCHEMA,
@@ -224,6 +255,8 @@ REDACTED_SOURCES_SCHEMA = {
 }
 
 LAST_UPLOAD_TTL = 24 * 3600
+
+TOKEN_TTL_SECONDS = 3600
 
 
 def _get_cluster() -> RedisCluster:
@@ -534,14 +567,36 @@ def get_sources_for_project(project):
             # processing at this point.
             logger.exception("Invalid symbolicator source config")
 
-    def resolve_alias(source):
+    def resolve_alias(source, organization):
         for key in source.get("sources") or ():
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    yield from resolve_alias(other_source)
+                    yield from resolve_alias(other_source, organization)
                 else:
-                    yield other_source
+                    yield fetch_token_for_gcp_source_if_necessary(other_source, organization)
+
+    def fetch_token_for_gcp_source_if_necessary(source, organization):
+        if source.get("type") == "gcs":
+            if "client_email" in source and "private_key" in source:
+                return source
+            else:
+                client_email = source.get("client_email")
+                token = get_gcp_token(client_email)
+                # if target_credentials.token is None it means that the
+                # token could not be fetched successfully
+                if token is not None:
+                    # Create a new dict to avoid reference issues
+                    source = deepcopy(source)
+                    source["bearer_token"] = token
+
+                    # Remove other credentials if we have a token
+                    if "client_email" in source:
+                        del source["client_email"]
+                    if "private_key" in source:
+                        del source["private_key"]
+
+        return source
 
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
@@ -554,11 +609,37 @@ def get_sources_for_project(project):
         # is used to make `apple` expand to `ios`/`macos` and other
         # sources if configured as such.
         if source.get("type") == "alias":
-            sources.extend(resolve_alias(source))
+            sources.extend(resolve_alias(source, organization))
         else:
-            sources.append(source)
+            sources.append(fetch_token_for_gcp_source_if_necessary(source, organization))
 
     return sources
+
+
+# Expire the cached token 10 minutes earlier so that we can confidently pass it
+# to symbolicator with its configured timeout of 5 minutes
+@ttl_cache(ttl=TOKEN_TTL_SECONDS - 600)
+def get_gcp_token(client_email):
+    # Fetch the regular credentials for GCP
+    source_credentials, _ = google.auth.default()
+
+    if source_credentials is None:
+        return None
+
+    # Impersonate the service account to give the token for symbolicator a proper scope
+    target_credentials = impersonated_credentials.Credentials(
+        source_credentials=source_credentials,
+        target_principal=client_email,
+        target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        lifetime=TOKEN_TTL_SECONDS,
+    )
+
+    target_credentials.refresh(Request())
+
+    if target_credentials.token is None:
+        return None
+
+    return target_credentials.token
 
 
 def reverse_aliases_map(builtin_sources):

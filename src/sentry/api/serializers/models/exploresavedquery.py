@@ -3,7 +3,12 @@ from typing import DefaultDict, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryDataset,
+    ExploreSavedQueryLastVisited,
+    ExploreSavedQueryStarred,
+)
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
@@ -29,12 +34,31 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     dateUpdated: str
     lastVisited: str
     createdBy: UserSerializerResponse
+    starred: bool
+    position: int | None
+    isPrebuilt: bool
 
 
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
+
+        starred_queries = dict(
+            ExploreSavedQueryStarred.objects.filter(
+                explore_saved_query__in=item_list,
+                user_id=user.id,
+                organization=item_list[0].organization if item_list else None,
+                starred=True,
+            ).values_list("explore_saved_query_id", "position")
+        )
+        user_last_visited = dict(
+            ExploreSavedQueryLastVisited.objects.filter(
+                explore_saved_query__in=item_list,
+                user_id=user.id,
+                organization=item_list[0].organization if item_list else None,
+            ).values_list("explore_saved_query_id", "last_visited")
+        )
 
         service_serialized = user_service.serialize_many(
             filter={
@@ -52,6 +76,16 @@ class ExploreSavedQueryModelSerializer(Serializer):
             result[explore_saved_query]["created_by"] = serialized_users.get(
                 str(explore_saved_query.created_by_id)
             )
+            if explore_saved_query.id in starred_queries:
+                result[explore_saved_query]["starred"] = True
+                result[explore_saved_query]["position"] = starred_queries[explore_saved_query.id]
+            else:
+                result[explore_saved_query]["starred"] = False
+                result[explore_saved_query]["position"] = None
+            if explore_saved_query.id in user_last_visited:
+                result[explore_saved_query]["user_last_visited"] = user_last_visited[
+                    explore_saved_query.id
+                ]
 
         return result
 
@@ -72,8 +106,11 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "lastVisited": obj.last_visited,
+            "lastVisited": attrs.get("user_last_visited"),
             "createdBy": attrs.get("created_by"),
+            "starred": attrs.get("starred"),
+            "position": attrs.get("position"),
+            "isPrebuilt": obj.prebuilt_id is not None,
         }
 
         for key in query_keys:

@@ -15,7 +15,9 @@ describe('Nest.js onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
@@ -48,7 +50,7 @@ describe('Nest.js onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1.0/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
@@ -77,8 +79,9 @@ describe('Nest.js onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
+
     expect(
-      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
@@ -103,17 +106,16 @@ describe('Nest.js onboarding docs', function () {
       )
     ).toBeInTheDocument();
 
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+
     // Profiles sample rate should not be set for continuous profiling
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).not.toBeInTheDocument();
-
-    // Should have start and stop profiling calls
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
-    ).toBeInTheDocument();
   });
 });

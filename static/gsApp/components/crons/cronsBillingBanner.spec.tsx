@@ -33,7 +33,7 @@ describe('CronsBillingBanner', function () {
 
   it('Shows warning when trial is about to end', async function () {
     const now = moment();
-    const trialEnd = now.add(5, 'days').toString();
+    const trialEnd = now.add(5, 'days').toISOString();
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -72,7 +72,7 @@ describe('CronsBillingBanner', function () {
 
   it('Shows warning when trial has ended', async function () {
     const now = moment();
-    const lastTrialEnd = now.subtract(5, 'days').toString();
+    const lastTrialEnd = now.subtract(5, 'days').toISOString();
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,

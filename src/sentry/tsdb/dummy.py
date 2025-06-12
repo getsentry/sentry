@@ -38,6 +38,7 @@ class DummyTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         self.validate_arguments([model], _environment_ids(environment_ids))
         _, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -63,7 +64,7 @@ class DummyTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
@@ -73,6 +74,7 @@ class DummyTSDB(BaseTSDB):
         tenant_ids=None,
         referrer_suffix=None,
         conditions=None,
+        group_on_time: bool = False,
     ):
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}

@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -10,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 
-export type IssueCellProps = {
+type IssueCellProps = {
   className?: string;
   disabled?: boolean;
   group?: Group;
@@ -52,12 +53,12 @@ const IssueWrapper = styled(Link)<{disabled: boolean}>`
 
   ${p =>
     !p.disabled &&
-    `
-    &:hover ${Wrapper} {
-      color: ${p.theme.textColor};
-      text-decoration: underline;
-    }
-  `}
+    css`
+      &:hover ${Wrapper} {
+        color: ${p.theme.textColor};
+        text-decoration: underline;
+      }
+    `}
 `;
 
 const LastSeenWrapper = styled(Flex)`

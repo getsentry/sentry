@@ -10,6 +10,7 @@ import {
   type GroupSummaryData,
   useGroupSummaryData,
 } from 'sentry/components/group/groupSummary';
+import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -161,10 +162,12 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
     {
       match: 'command+alt+c',
       callback: onClick,
+      skipPreventDefault: NODE_ENV === 'development',
     },
     {
       match: 'ctrl+alt+c',
       callback: onClick,
+      skipPreventDefault: NODE_ENV === 'development',
     },
   ]);
 };

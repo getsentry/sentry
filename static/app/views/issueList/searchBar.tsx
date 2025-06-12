@@ -16,7 +16,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -24,10 +24,7 @@ import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
-const getFilterKeySections = (
-  tags: TagCollection,
-  organization: Organization
-): FilterKeySection[] => {
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
@@ -72,10 +69,7 @@ const getFilterKeySections = (
     },
   ];
 
-  if (
-    organization.features.includes('feature-flag-autocomplete') &&
-    eventFeatureFlags.length > 0
-  ) {
+  if (eventFeatureFlags.length > 0) {
     sections.push({
       value: FieldKind.FEATURE_FLAG,
       label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
@@ -134,6 +128,28 @@ function IssueListSearchBar({
         });
       }
 
+      if (key === FieldKey.FIRST_RELEASE) {
+        const includeLatest = 'latest'.startsWith(search.toLowerCase());
+        return [
+          ...(includeLatest
+            ? [
+                {
+                  count: 1,
+                  firstSeen: '2021-01-01',
+                  lastSeen: '2021-01-01',
+                  name: 'latest',
+                  value: 'latest',
+                } as TagValue,
+              ]
+            : []),
+          ...(await fetchTagValues({
+            ...fetchTagValuesPayload,
+            tagKey: 'release',
+            dataset: Dataset.ERRORS,
+          })),
+        ];
+      }
+
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
         fetchTagValues({
           ...fetchTagValuesPayload,
@@ -168,8 +184,8 @@ function IssueListSearchBar({
   );
 
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(filterKeys, organization);
-  }, [filterKeys, organization]);
+    return getFilterKeySections(filterKeys);
+  }, [filterKeys]);
 
   return (
     <SearchQueryBuilder
@@ -181,6 +197,7 @@ function IssueListSearchBar({
       disallowLogicalOperators
       showUnsubmittedIndicator
       searchSource={searchSource}
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       {...props}
     />
   );

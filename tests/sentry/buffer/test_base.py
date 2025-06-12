@@ -54,9 +54,9 @@ class BufferTest(TestCase):
         filters = {"id": group.id, "project_id": 1}
         the_date = timezone.now() + timedelta(days=5)
         self.buf.process(Group, columns, filters, {"last_seen": the_date})
-        group_ = Group.objects.get(id=group.id)
-        assert group_.times_seen == group.times_seen + 1
-        assert group_.last_seen == the_date
+        reload = Group.objects.get(id=group.id)
+        assert reload.times_seen == group.times_seen + 1
+        assert reload.last_seen == the_date
 
     def test_increments_when_null(self):
         org = Organization.objects.create(slug="test-org")

@@ -239,9 +239,6 @@ function ActionSet({
               confirmText: label('reprioritize'),
             });
           },
-          hasIssueStreamTableLayout: organization.features.includes(
-            'issue-stream-table-layout'
-          ),
         })}
       />
       {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}

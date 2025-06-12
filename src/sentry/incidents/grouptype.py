@@ -2,106 +2,169 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
-from uuid import uuid4
 
 from sentry import features
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
+from sentry.incidents.utils.format_duration import format_duration_idiomatic
+from sentry.incidents.utils.metric_issue_poc import QUERY_AGGREGATION_DISPLAY
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.snuba.metrics import format_mri_field, is_mri_field
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.types import DetectorGroupKey
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
 
 
-class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
-    def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
-        # Returning a placeholder for now, this may require us passing more info
+@dataclass
+class MetricIssueEvidenceData(EvidenceData):
+    alert_id: int
 
-        occurrence = IssueOccurrence(
-            id=str(uuid4()),
-            project_id=self.detector.project_id,
-            event_id=str(uuid4()),
-            fingerprint=self.build_fingerprint(group_key),
-            issue_title="Some Issue",
-            subtitle="Some subtitle",
-            resource_id=None,
-            evidence_data={"detector_id": self.detector.id, "value": value},
-            evidence_display=[],
-            type=MetricAlertFire,
-            detection_time=datetime.now(UTC),
+
+class MetricIssueDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate, int]):
+    def create_occurrence(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[QuerySubscriptionUpdate],
+        priority: DetectorPriorityLevel,
+    ) -> tuple[DetectorOccurrence, EventData]:
+        try:
+            detector_trigger = DataCondition.objects.get(
+                condition_group=self.detector.workflow_condition_group, condition_result=priority
+            )
+        except DataCondition.DoesNotExist:
+            raise DetectorException(
+                f"Failed to find detector trigger for detector id {self.detector.id}, cannot create metric issue occurrence"
+            )
+
+        try:
+            query_subscription = QuerySubscription.objects.get(id=data_packet.source_id)
+        except QuerySubscription.DoesNotExist:
+            raise DetectorException(
+                f"Failed to find query subscription for detector id {self.detector.id}, cannot create metric issue occurrence"
+            )
+
+        try:
+            snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        except SnubaQuery.DoesNotExist:
+            raise DetectorException(
+                f"Failed to find snuba query for detector id {self.detector.id}, cannot create metric issue occurrence"
+            )
+        occurrence = DetectorOccurrence(
+            issue_title=self.construct_title(snuba_query, detector_trigger, priority),
+            subtitle="An Issue Subtitle",
+            type=MetricIssue,
             level="error",
             culprit="Some culprit",
-            initial_issue_priority=new_status.value,
         )
-        event_data = {
-            "timestamp": occurrence.detection_time,
-            "project_id": occurrence.project_id,
-            "event_id": occurrence.event_id,
-            "platform": "python",
-            "received": occurrence.detection_time,
-            "tags": {},
-        }
-        return occurrence, event_data
+        return occurrence, {}
 
-    @property
-    def counter_names(self) -> list[str]:
-        # Placeholder for now, this should be a list of counters that we want to update as we go above warning / critical
-        return []
-
-    def get_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+    def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
-    def get_group_key_values(
-        self, data_packet: DataPacket[QuerySubscriptionUpdate]
-    ) -> dict[DetectorGroupKey, int]:
-        # This is for testing purposes, we'll need to update the values inspected.
-        return {None: data_packet.packet["values"]["foo"]}
+    def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+        return data_packet.packet["values"]["value"]
+
+    def construct_title(
+        self,
+        snuba_query: SnubaQuery,
+        detector_trigger: DataCondition,
+        priority: DetectorPriorityLevel,
+    ) -> str:
+        comparison_delta = self.detector.config.get("comparison_delta")
+        agg_display_key = snuba_query.aggregate
+
+        if is_mri_field(agg_display_key):
+            aggregate = format_mri_field(agg_display_key)
+        elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in agg_display_key:
+            agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[
+                0
+            ].strip()
+            aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+        else:
+            aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+
+        # Determine the higher or lower comparison
+        higher_or_lower = ""
+        if detector_trigger.type == Condition.GREATER:
+            higher_or_lower = "greater than" if comparison_delta else "above"
+        else:
+            higher_or_lower = "less than" if comparison_delta else "below"
+
+        label = "Warning" if priority == DetectorPriorityLevel.MEDIUM else "Critical"
+
+        # Format the time window for the threshold
+        time_window = format_duration_idiomatic(snuba_query.time_window // 60)
+
+        # If the detector_trigger has a comparison delta, format the comparison string
+        comparison: str | int | float = "threshold"
+        if comparison_delta:
+            comparison_delta_minutes = comparison_delta // 60
+            comparison = TEXT_COMPARISON_DELTA.get(
+                comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago "
+            )
+        else:
+            comparison = detector_trigger.comparison
+
+        template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
+        return template.format(
+            label=label.capitalize(),
+            metric=aggregate,
+            higher_or_lower=higher_or_lower,
+            comparison=comparison,
+            time_window=time_window,
+        )
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
 # like these when we're sending issues as alerts
 @dataclass(frozen=True)
-class MetricAlertFire(GroupType):
+class MetricIssue(GroupType):
     type_id = 8001
-    slug = "metric_alert_fire"
-    description = "Metric alert fired"
+    slug = "metric_issue"
+    description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
+    category_v2 = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    detector_handler = MetricAlertDetectorHandler
-    detector_validator = MetricAlertsDetectorValidator
-    detector_config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "A representation of a metric alert firing",
-        "type": "object",
-        "required": ["threshold_period", "detection_type"],
-        "properties": {
-            "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
-            "comparison_delta": {
-                "type": ["integer", "null"],
-                "enum": COMPARISON_DELTA_CHOICES,
+    detector_settings = DetectorSettings(
+        handler=MetricIssueDetectorHandler,
+        validator=MetricAlertsDetectorValidator,
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "A representation of a metric alert firing",
+            "type": "object",
+            "required": ["threshold_period", "detection_type"],
+            "properties": {
+                "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
+                "comparison_delta": {
+                    "type": ["integer", "null"],
+                    "enum": COMPARISON_DELTA_CHOICES,
+                },
+                "detection_type": {
+                    "type": "string",
+                    "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
+                },
+                "sensitivity": {"type": ["string", "null"]},
+                "seasonality": {"type": ["string", "null"]},
             },
-            "detection_type": {
-                "type": "string",
-                "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
-            },
-            "sensitivity": {"type": ["string", "null"]},
-            "seasonality": {"type": ["string", "null"]},
         },
-    }
+    )
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:

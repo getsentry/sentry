@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
@@ -152,9 +151,6 @@ function SpansInterface({event, affectedSpanIds}: Props) {
                     );
                   }}
                 </Observer>
-                <GuideAnchorWrapper>
-                  <GuideAnchor target="span_tree" position="bottom" />
-                </GuideAnchorWrapper>
               </Panel>
             </Fragment>
           );
@@ -163,12 +159,6 @@ function SpansInterface({event, affectedSpanIds}: Props) {
     </Container>
   );
 }
-
-const GuideAnchorWrapper = styled('div')`
-  height: 0;
-  width: 0;
-  margin-left: 50%;
-`;
 
 const Container = styled('div')<{hasErrors: boolean}>`
   ${p =>

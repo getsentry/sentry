@@ -2,13 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -17,28 +19,19 @@ import {
   type DomainView,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
-import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
-import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
-import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
-import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
-import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
-import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
-import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
-import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
+import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
+import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function SessionsOverview() {
+function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
-  const hasSessionData = useProjectHasSessions();
+  const {hasSessionData} = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
 
   return (
@@ -49,13 +42,11 @@ export function SessionsOverview() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
-                <ModulePageFilterBar
-                  moduleName={ModuleName.SESSIONS}
-                  extraFilters={<SubregionSelector />}
-                  onProjectChange={() => {
-                    setFilters(['']);
-                  }}
-                />
+                <PageFilterBar>
+                  <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                  <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                  <DatePageFilter />
+                </PageFilterBar>
               </ToolRibbon>
             </ModuleLayout.Full>
             {showOnboarding ? (
@@ -93,86 +84,58 @@ function ViewSpecificCharts({
   view: DomainView | '';
 }) {
   switch (view) {
-    case FRONTEND_LANDING_SUB_PATH:
+    case FRONTEND_LANDING_SUB_PATH: {
       return (
         <Fragment>
-          <ModuleLayout.Third>
-            <ErrorFreeSessionsChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <SessionHealthCountChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <UserHealthCountChart />
-          </ModuleLayout.Third>
+          <ModuleLayout.Half>
+            <ChartPlacementSlot view={view} index={0} />
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <ChartPlacementSlot view={view} index={1} />
+          </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" />
+            <ChartPlacementSlot view={view} index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthRateChart />
+            <ChartPlacementSlot view={view} index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <UserHealthRateChart />
-          </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <GiveFeedbackSection />
+            <ChartPlacementSlot view={view} index={4} />
           </ModuleLayout.Third>
         </Fragment>
       );
-
-    case MOBILE_LANDING_SUB_PATH:
+    }
+    case MOBILE_LANDING_SUB_PATH: {
       return (
         <Fragment>
-          <ModuleLayout.Third>
-            <CrashFreeSessionsChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <ReleaseNewIssuesChart />
-          </ModuleLayout.Third>
+          <ModuleLayout.Half>
+            <ChartPlacementSlot view={view} index={0} />
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <ChartPlacementSlot view={view} index={1} />
+          </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ReleaseSessionCountChart />
+            <ChartPlacementSlot view={view} index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthCountChart />
+            <ChartPlacementSlot view={view} index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <UserHealthCountChart />
-          </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <ReleaseSessionPercentageChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <SessionHealthRateChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <UserHealthRateChart />
-          </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <GiveFeedbackSection />
+            <ChartPlacementSlot view={view} index={4} />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
             <FilterWrapper>
               <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+              <ReleaseTableSearch />
             </FilterWrapper>
             <ReleaseHealth filters={filters} />
           </ModuleLayout.Full>
         </Fragment>
       );
+    }
     default:
       return null;
   }
@@ -189,6 +152,11 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const FilterWrapper = styled('div')`
-  display: flex;
   margin: ${space(2)} 0;
+  gap: ${space(1)};
+  display: grid;
+  grid-template-columns: auto 1fr;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-rows: auto auto;
+  }
 `;

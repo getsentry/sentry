@@ -120,14 +120,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        user_selected_dataset = (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            )
-            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
-        )
+        user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
 
         query.update(
             organization=organization,

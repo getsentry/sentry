@@ -20,8 +20,8 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.SPM]: {
-    desc: t('Spans per minute'),
+  [SpanFunction.TPM]: {
+    desc: t('Transactions per minute'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
@@ -32,8 +32,8 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.HTTP_ERROR_COUNT]: {
-    desc: t('Count of 5XX http errors'),
+  [SpanFunction.HTTP_RESPONSE_COUNT]: {
+    desc: t('Count of HTTP responses by code'),
     defaultOutputType: 'integer',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
@@ -65,6 +65,18 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.TRACE_STATUS_RATE]: {
     desc: t('Percentage of spans with matching trace status'),
     defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.FAILURE_RATE_IF]: {
+    desc: t('Failed event percentage based on span.status'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.COUNT]: {
+    desc: t('Count of spans'),
+    defaultOutputType: 'integer',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
@@ -111,7 +123,7 @@ const SPAN_FILTERS: FilterKeySection = {
     SpanIndexedField.SPAN_STATUS,
     SpanIndexedField.SPAN_ACTION,
     SpanIndexedField.SPAN_DOMAIN,
-    SpanIndexedField.SPAN_MODULE,
+    SpanIndexedField.SPAN_CATEGORY,
   ],
 };
 

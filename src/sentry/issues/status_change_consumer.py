@@ -8,7 +8,7 @@ from typing import Any
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash

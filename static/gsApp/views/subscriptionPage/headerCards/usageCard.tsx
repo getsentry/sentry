@@ -1,15 +1,16 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import {PlanTier, type Subscription} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
 import {
@@ -22,20 +23,21 @@ import {
   shouldSeeSpendVisibility,
 } from 'getsentry/views/subscriptionPage/utils';
 
-const COLORS = {
-  prepaid: CHART_PALETTE[5][0],
-  ondemand: CHART_PALETTE[5][1],
-} as const;
-
 interface UsageCardProps {
   organization: Organization;
   subscription: Subscription;
 }
 
 export function UsageCard({subscription, organization}: UsageCardProps) {
+  const theme = useTheme();
   const intervalPrice = subscription.customPrice
     ? subscription.customPrice
     : subscription.planDetails?.price;
+
+  const COLORS = {
+    prepaid: theme.chart.getColorPalette(5)[0],
+    ondemand: theme.chart.getColorPalette(5)[1],
+  } as const;
 
   if (!intervalPrice || !shouldSeeSpendVisibility(subscription)) {
     return null;
@@ -51,9 +53,16 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
       ? onDemandBudgets.sharedMaxBudget
       : getTotalBudget(onDemandBudgets);
 
-  const {prepaidTotalSpent, onDemandTotalSpent, prepaidTotalPrice} =
-    calculateTotalSpend(subscription);
+  const {
+    prepaidTotalSpent,
+    prepaidReservedBudgetPrice,
+    onDemandTotalSpent,
+    prepaidTotalPrice,
+  } = calculateTotalSpend(subscription);
+  const priceWithoutReservedBudgets = prepaidTotalPrice - prepaidReservedBudgetPrice;
+  const spendWithoutReservedBudgets = prepaidTotalSpent - prepaidReservedBudgetPrice;
   const showPrepaid = prepaidTotalPrice > 0;
+  const showIncludedInSubscription = priceWithoutReservedBudgets > 0;
 
   // No reserved spend beyond the base subscription and no on-demand budgets
   if (!showPrepaid && !showOnDemand) {
@@ -64,7 +73,9 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
   // Prevent more than 100% width
   const prepaidPercentUsed = Math.max(
     0,
-    Math.round(Math.min((prepaidTotalSpent / prepaidTotalPrice) * 100, 100))
+    Math.round(
+      Math.min((spendWithoutReservedBudgets / priceWithoutReservedBudgets) * 100, 100)
+    )
   );
   const prepaidPercentUnused = 100 - prepaidPercentUsed;
   const onDemandPercentUsed = Math.round(
@@ -76,7 +87,9 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
   let prepaidMaxWidth = showOnDemand && showPrepaid ? 50 : showPrepaid ? 100 : 0;
   if (showOnDemand && showPrepaid && prepaidTotalSpent && onDemandTotalBudget) {
     prepaidMaxWidth = Math.round(
-      (prepaidTotalPrice / (prepaidTotalPrice + onDemandTotalBudget)) * 100
+      (priceWithoutReservedBudgets /
+        (priceWithoutReservedBudgets + onDemandTotalBudget)) *
+        100
     );
   }
 
@@ -85,7 +98,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
       <UsageSummary
         style={{gridTemplateColumns: `repeat(${showOnDemand ? 3 : 2}, auto)`}}
       >
-        {showPrepaid && (
+        {showIncludedInSubscription && (
           <SummaryWrapper>
             <SummaryTitleWrapper>
               <SummaryTitle>{t('Included In Subscription')}</SummaryTitle>
@@ -97,7 +110,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
               </Tooltip>
             </SummaryTitleWrapper>
             <SummaryTotal>
-              {formatCurrency(roundUpToNearestDollar(prepaidTotalPrice))}/mo
+              {formatCurrency(roundUpToNearestDollar(priceWithoutReservedBudgets))}/mo
             </SummaryTotal>
           </SummaryWrapper>
         )}
@@ -105,16 +118,17 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
           <SummaryWrapper>
             <SummaryTitleWrapper>
               <SummaryTitle>
-                {subscription.planTier === PlanTier.AM3
-                  ? t('Pay-as-you-go Spent')
-                  : t('On-Demand Spent')}
+                {tct('[budgetType] Spent', {
+                  budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+                })}
               </SummaryTitle>
               <Tooltip
-                title={
-                  subscription.planTier === PlanTier.AM3
-                    ? t('Pay-as-you-go budget consumed')
-                    : t('On-Demand budget consumed')
-                }
+                title={tct('[budgetType] consumed', {
+                  budgetType: displayBudgetName(subscription.planDetails, {
+                    title: true,
+                    withBudget: true,
+                  }),
+                })}
                 skipWrapper
               >
                 <IconInfo size="xs" />
@@ -146,7 +160,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
         </SummaryWrapper>
       </UsageSummary>
       <PlanUseBarContainer>
-        {showPrepaid && (
+        {showIncludedInSubscription && (
           <PlanUseBarGroup style={{width: `${prepaidMaxWidth}%`}}>
             {prepaidPercentUsed > 1 && (
               <PlanUseBar
@@ -188,14 +202,14 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
         )}
       </PlanUseBarContainer>
       <LegendPriceWrapper>
-        {showPrepaid && (
+        {showIncludedInSubscription && (
           <LegendContainer>
             <LegendDot style={{backgroundColor: COLORS.prepaid}} />
             <div>
               <LegendTitle>{t('Included in Subscription')}</LegendTitle>
               <LegendPrice>
                 {formatPercentage(prepaidPercentUsed / 100)} of{' '}
-                {formatCurrency(roundUpToNearestDollar(prepaidTotalPrice))}
+                {formatCurrency(roundUpToNearestDollar(priceWithoutReservedBudgets))}
               </LegendPrice>
             </div>
           </LegendContainer>
@@ -205,9 +219,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
             <LegendDot style={{backgroundColor: COLORS.ondemand}} />
             <div>
               <LegendTitle>
-                {subscription.planTier === PlanTier.AM3
-                  ? t('Pay-as-you-go')
-                  : t('On-Demand')}
+                {displayBudgetName(subscription.planDetails, {title: true})}
               </LegendTitle>
               <LegendPrice>
                 {formatCurrency(onDemandTotalSpent)} of{' '}

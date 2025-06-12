@@ -231,7 +231,7 @@ class BaseApiClient:
         )
 
         if self.integration_type:
-            sentry_sdk.Scope.get_isolation_scope().set_tag(self.integration_type, self.name)
+            sentry_sdk.get_isolation_scope().set_tag(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),
@@ -422,6 +422,7 @@ class BaseApiClient:
             if is_response_error(response):
                 buffer.record_error()
         if buffer.is_integration_broken():
+            # TODO(ecosystem): We should delete this feature of fix it
             # disable_integration(buffer, redis_key, self.integration_id)
             self.logger.info(
                 "integration.should_disable",
@@ -441,6 +442,7 @@ class BaseApiClient:
         else:
             buffer.record_error()
         if buffer.is_integration_broken():
+            # TODO(ecosystem): We should delete this feature of fix it
             # disable_integration(buffer, redis_key, self.integration_id)
             self.logger.info(
                 "integration.should_disable",

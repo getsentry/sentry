@@ -9,6 +9,7 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
+from sentry.exceptions import InvalidConfiguration
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -112,9 +113,10 @@ class RegionJiraIntegrationTest(APITestCase):
                     "name": "project",
                     "default": "10000",
                     "updatesForm": True,
-                    "choices": [("10000", "EX"), ("10001", "ABC")],
+                    "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                     "label": "Jira Project",
                     "type": "select",
+                    "required": True,
                 },
                 {
                     "default": "message",
@@ -207,6 +209,143 @@ class RegionJiraIntegrationTest(APITestCase):
                     "type": "select",
                 },
             ]
+
+    @responses.activate
+    @with_feature("organizations:jira-paginated-projects")
+    def test_get_create_issue_config_with_none_issue(self):
+        # Mock the paginated projects response
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "key": "PROJ1", "name": "Project 1"},
+                    {"id": "10001", "key": "PROJ2", "name": "Project 2"},
+                ],
+                "total": 2,
+            },
+        )
+
+        # Mock the create issue metadata endpoint
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            json={
+                "projects": [
+                    {
+                        "id": "10000",
+                        "key": "PROJ1",
+                        "name": "Project 1",
+                        "issuetypes": [
+                            {
+                                "description": "An error in the code",
+                                "fields": {
+                                    "issuetype": {
+                                        "key": "issuetype",
+                                        "name": "Issue Type",
+                                        "required": True,
+                                    }
+                                },
+                                "id": "bug1",
+                                "name": "Bug",
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        # None, user, params=self.params
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(group=None, user=self.user)
+
+        # Find the project field in the config
+        project_field = next(field for field in fields if field["name"] == "project")
+
+        # Verify the project field is configured correctly
+        assert (
+            project_field["url"]
+            == f"/extensions/jira/search/{self.organization.slug}/{self.integration.id}/"
+        )
+        assert project_field["choices"] == [
+            ("10000", "PROJ1 - Project 1"),
+            ("10001", "PROJ2 - Project 2"),
+        ]
+        assert project_field["type"] == "select"
+
+    @responses.activate
+    @with_feature("organizations:jira-paginated-projects")
+    def test_get_create_issue_config_paginated_projects(self):
+        """Test that projects are fetched using pagination when the feature flag is enabled"""
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        assert group is not None
+
+        # Mock the paginated projects response
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "key": "PROJ1", "name": "Project 1"},
+                    {"id": "10001", "key": "PROJ2", "name": "Project 2"},
+                ],
+                "total": 2,
+            },
+        )
+
+        # Mock the create issue metadata endpoint
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            json={
+                "projects": [
+                    {
+                        "id": "10000",
+                        "key": "PROJ1",
+                        "name": "Project 1",
+                        "issuetypes": [
+                            {
+                                "description": "An error in the code",
+                                "fields": {
+                                    "issuetype": {
+                                        "key": "issuetype",
+                                        "name": "Issue Type",
+                                        "required": True,
+                                    }
+                                },
+                                "id": "bug1",
+                                "name": "Bug",
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(group, self.user)
+
+        # Find the project field in the config
+        project_field = next(field for field in fields if field["name"] == "project")
+
+        # Verify the project field is configured correctly
+        assert (
+            project_field["url"]
+            == f"/extensions/jira/search/{self.organization.slug}/{self.integration.id}/"
+        )
+        assert project_field["choices"] == [
+            ("10000", "PROJ1 - Project 1"),
+            ("10001", "PROJ2 - Project 2"),
+        ]
+        assert project_field["type"] == "select"
 
     def test_get_create_issue_config_customer_domain(self):
         event = self.store_event(
@@ -365,11 +504,12 @@ class RegionJiraIntegrationTest(APITestCase):
 
             assert project_field == {
                 "default": "10000",
-                "choices": [("10000", "EX"), ("10001", "ABC")],
+                "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
                 "updatesForm": True,
+                "required": True,
             }
 
     def test_get_create_issue_config_with_default(self):
@@ -398,11 +538,12 @@ class RegionJiraIntegrationTest(APITestCase):
 
             assert project_field == {
                 "default": "10001",
-                "choices": [("10000", "EX"), ("10001", "ABC")],
+                "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
                 "updatesForm": True,
+                "required": True,
             }
 
     @patch("sentry.integrations.jira.integration.JiraIntegration.fetch_issue_create_meta")
@@ -447,11 +588,12 @@ class RegionJiraIntegrationTest(APITestCase):
 
             assert project_field == {
                 "default": "10001",
-                "choices": [("10000", "EX"), ("10001", "ABC")],
+                "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
                 "updatesForm": True,
+                "required": True,
             }
 
     def test_get_create_issue_config_with_label_default(self):
@@ -683,7 +825,8 @@ class RegionJiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        installation.sync_assignee_outbound(external_issue, user)
+        with pytest.raises(InvalidConfiguration):
+            installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1

@@ -19,8 +19,6 @@ import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProv
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
-// updateOnboardingTask triggers an out of band state update
-jest.mock('sentry/actionCreators/onboardingTasks');
 jest.mock('sentry/actionCreators/members', () => ({
   fetchOrgMembers: jest.fn(() => Promise.resolve([])),
   indexMembersByProject: jest.fn(() => {
@@ -119,7 +117,9 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     return {
@@ -562,7 +562,6 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
-      expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
     });
 
     it('invalid preview alert', async () => {

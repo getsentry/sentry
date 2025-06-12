@@ -1,4 +1,5 @@
 from pathlib import PurePath, PureWindowsPath
+from typing import Any
 from urllib.parse import urlparse
 
 from rest_framework import serializers, status
@@ -12,30 +13,33 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.issues.auto_source_code_config.code_mapping import FrameInfo, find_roots
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.issues.auto_source_code_config.code_mapping import find_roots
+from sentry.issues.auto_source_code_config.frame_info import FrameInfo
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 
 
-class PathMappingSerializer(CamelSnakeSerializer):
+class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
     stack_path = serializers.CharField()
     source_url = serializers.URLField()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.integration = None
-        self.repo = None
+        self.integration: RpcIntegration | None = None
+        self.repo: Repository | None = None
 
     @property
-    def providers(self):
+    def providers(self) -> list[str]:
         return [
             x.key for x in integrations.all() if x.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
     @property
-    def org_id(self):
+    def org_id(self) -> int:
         return self.context["organization_id"]
 
-    def validate_source_url(self, source_url: str):
+    def validate_source_url(self, source_url: str) -> str:
         # first check to see if we are even looking at the same file
         stack_path = self.initial_data["stack_path"]
 
@@ -47,11 +51,15 @@ class PathMappingSerializer(CamelSnakeSerializer):
                 "Source code URL points to a different file than the stack trace"
             )
 
-        def integration_match(integration: RpcIntegration):
+        def integration_match(integration: RpcIntegration) -> bool:
             installation = integration.get_installation(self.org_id)
-            return installation.source_url_matches(source_url)
+            # Check if the installation has the source_url_matches method
+            if isinstance(installation, RepositoryIntegration):
+                return installation.source_url_matches(source_url)
+            # Fallback to a basic check if the method doesn't exist
+            return False
 
-        def repo_match(repo: Repository):
+        def repo_match(repo: Repository) -> bool:
             return repo.url is not None and source_url.startswith(repo.url)
 
         # now find the matching integration
@@ -101,7 +109,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     depending on the source code URL
     """
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         serializer = PathMappingSerializer(
             context={"organization_id": project.organization_id},
             data=request.data,
@@ -111,15 +119,24 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
         source_url = data["source_url"]
-        stack_path = data["stack_path"]
+        frame_info = get_frame_info_from_request(request)
 
+        # validated by `serializer.is_valid()`
+        assert serializer.repo is not None
+        assert serializer.integration is not None
         repo = serializer.repo
         integration = serializer.integration
         installation = integration.get_installation(project.organization_id)
 
+        if not isinstance(installation, RepositoryIntegration):
+            return self.respond(
+                {"detail": "Integration does not support repository operations"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
-        stack_root, source_root = find_roots(FrameInfo({"filename": stack_path}), source_path)
+        stack_root, source_root = find_roots(frame_info, source_path)
 
         return self.respond(
             {
@@ -131,3 +148,12 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                 "defaultBranch": branch,
             }
         )
+
+
+def get_frame_info_from_request(request: Request) -> FrameInfo:
+    frame = {
+        "abs_path": request.data.get("absPath"),
+        "filename": request.data["stackPath"],
+        "module": request.data.get("module"),
+    }
+    return FrameInfo(frame, request.data.get("platform"))

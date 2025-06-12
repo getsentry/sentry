@@ -1,3 +1,4 @@
+import type React from 'react';
 import {
   type CSSProperties,
   useCallback,
@@ -18,25 +19,30 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
+import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {ReleaseMetaBasic} from 'sentry/types/release';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -45,9 +51,11 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
-const enum EventGraphSeries {
+enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -63,6 +71,7 @@ interface EventGraphProps {
    * chart).
    */
   disableZoomNavigation?: boolean;
+  eventView?: EventView;
   ref?: React.Ref<ReactEchartsRef>;
   /**
    * Configures showing releases on the chart as bubbles or lines. This is used
@@ -78,7 +87,10 @@ interface EventGraphProps {
 }
 
 function createSeriesAndCount(stats: EventsStats) {
-  return stats?.data?.reduce(
+  return stats?.data?.reduce<{
+    count: number;
+    series: Array<{name: number; value: number}>;
+  }>(
     (result, [timestamp, countData]) => {
       const count = countData?.[0]?.count ?? 0;
       return {
@@ -92,13 +104,14 @@ function createSeriesAndCount(stats: EventsStats) {
         count: result.count + count,
       };
     },
-    {series: [] as SeriesDataUnit[], count: 0}
+    {series: [], count: 0}
   );
 }
 
 export function EventGraph({
   group,
   event,
+  eventView: eventViewProps,
   disableZoomNavigation = false,
   showReleasesAs,
   showSummary = true,
@@ -107,6 +120,7 @@ export function EventGraph({
 }: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
@@ -130,7 +144,8 @@ export function EventGraph({
     ref: chartContainerRef,
     onResize,
   });
-  const eventView = useIssueDetailsEventView({group, isSmallContainer});
+  const eventViewHook = useIssueDetailsEventView({group, isSmallContainer});
+  const eventView = eventViewProps || eventViewHook;
 
   const {
     data: groupStats = {},
@@ -145,6 +160,7 @@ export function EventGraph({
   });
 
   const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
+  const shouldShowBubbles = hasReleaseBubblesSeries && showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
@@ -229,6 +245,7 @@ export function EventGraph({
   const currentEventSeries = useCurrentEventMarklineSeries({
     event,
     group,
+    eventSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -253,37 +270,71 @@ export function EventGraph({
       staleTime: 0,
     }
   );
+  const {flags} = useFlagsInEvent({
+    eventId: event?.id,
+    groupId: group.id,
+    group,
+    event,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+    enabled: Boolean(event?.id && group.id),
+  });
+
+  const handleReleaseLineClick = useCallback(
+    (release: ReleaseMetaBasic) => {
+      navigate(
+        makeReleaseDrawerPathname({
+          location,
+          release: release.version,
+          source: 'issue-details',
+        })
+      );
+    },
+    [location, navigate]
+  );
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    releases: shouldShowBubbles ? [] : releases,
+    onReleaseClick: handleReleaseLineClick,
   });
+
+  const flagSeries = useFlagSeries({
+    event,
+    flags: shouldShowBubbles ? [] : flags,
+  });
+
+  // Do some manipulation to make sure the release buckets match up to `eventSeries`
+  const lastEventSeries = eventSeries.at(-1);
+  const penultEventSeries = eventSeries.at(-2);
+  const lastEventSeriesTimestamp = lastEventSeries?.name;
+  const penultEventSeriesTimestamp = penultEventSeries?.name;
+  const eventSeriesInterval =
+    lastEventSeriesTimestamp &&
+    penultEventSeriesTimestamp &&
+    lastEventSeriesTimestamp - penultEventSeriesTimestamp;
 
   const {
     connectReleaseBubbleChartRef,
-    releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({ref: chartRef}) => {
-      return (
-        <EventGraph
-          ref={chartRef}
-          group={group}
-          event={event}
-          showSummary={false}
-          showReleasesAs="line"
-          disableZoomNavigation
-          {...styleProps}
-        />
-      );
-    },
+    chartId: EVENT_GRAPH_WIDGET_ID,
+    eventId: event?.id,
+    alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
     minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
-    maxTime: eventSeries.length && (eventSeries.at(-1)?.name as number),
-    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    maxTime:
+      lastEventSeriesTimestamp && eventSeriesInterval
+        ? lastEventSeriesTimestamp + eventSeriesInterval
+        : undefined,
+    releases: shouldShowBubbles ? releases : [],
+    flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
     datetime: {
@@ -293,20 +344,14 @@ export function EventGraph({
     },
   });
 
+  useReleasesDrawer();
+
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {
       connectReleaseBubbleChartRef(e);
     },
     [connectReleaseBubbleChartRef]
   );
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-    event,
-  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
@@ -367,7 +412,7 @@ export function EventGraph({
     }
 
     // Only display the current event mark line if on the issue details tab
-    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
+    if (currentEventSeries?.markLine && currentTab === Tab.DETAILS) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
@@ -406,7 +451,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.gray200,
+    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -432,18 +477,22 @@ export function EventGraph({
   if (isLoadingStats || isPendingUniqueUsersCount) {
     return (
       <GraphWrapper {...styleProps}>
-        <SummaryContainer>
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.EVENT}
-            disabled
-            label={t('Events')}
-          />
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.USER}
-            disabled
-            label={t('Users')}
-          />
-        </SummaryContainer>
+        {showSummary ? (
+          <SummaryContainer>
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.EVENT}
+              disabled
+              label={t('Events')}
+            />
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.USER}
+              disabled
+              label={t('Users')}
+            />
+          </SummaryContainer>
+        ) : (
+          <div />
+        )}
         <LoadingChartContainer ref={chartContainerRef}>
           <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
@@ -481,7 +530,6 @@ export function EventGraph({
       )}
       <ChartContainer role="figure" ref={chartContainerRef}>
         <BarChart
-          {...releaseBubbleEventHandlers}
           ref={mergeRefs(ref, handleConnectRef)}
           height={100}
           series={series}
@@ -497,6 +545,7 @@ export function EventGraph({
             ...releaseBubbleGrid,
           }}
           tooltip={{
+            appendToBody: true,
             formatAxisLabel: (
               value,
               isTimestamp,
@@ -527,6 +576,12 @@ export function EventGraph({
             },
           }}
           xAxis={{
+            axisTick: {
+              show: false,
+            },
+            axisLabel: {
+              margin: 8,
+            },
             ...releaseBubbleXAxis,
           }}
           {...(disableZoomNavigation
@@ -546,19 +601,22 @@ function GraphButton({
   label,
   count,
   ...props
-}: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
+}: {
+  isActive: boolean;
+  label: string;
+  count?: string;
+} & Partial<ButtonProps>) {
   return (
-    <Callout
+    <CalloutButton
       isActive={isActive}
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <InteractionStateLayer hidden={isActive} />
       <Flex column>
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>
-    </Callout>
+    </CalloutButton>
   );
 }
 
@@ -569,7 +627,7 @@ const GraphWrapper = styled('div')`
 
 const SummaryContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => (p.theme.isChonk ? space(0.75) : space(0.5))};
   flex-direction: column;
   margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
@@ -579,21 +637,27 @@ const SummaryContainer = styled('div')`
   }
 `;
 
-const Callout = styled(Button)<{isActive: boolean}>`
-  cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-  border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  padding: ${space(0.5)} ${space(2)};
-  box-shadow: none;
-  height: unset;
-  overflow: hidden;
-  &:disabled {
-    opacity: 1;
-  }
-  &:hover {
+const CalloutButton = withChonk(
+  styled(Button)<{isActive: boolean}>`
+    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
     border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  }
-`;
+    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    padding: ${space(0.5)} ${space(2)};
+    box-shadow: none;
+    height: unset;
+    overflow: hidden;
+    &:disabled {
+      opacity: 1;
+    }
+    &:hover {
+      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    }
+  `,
+  styled(Button)<never>`
+    height: unset;
+    padding: ${space(0.5)} ${space(1.5)};
+  `
+);
 
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;

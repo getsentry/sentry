@@ -7,7 +7,12 @@ class AlertRuleTriggerActionDeletionTask(ModelDeletionTask[AlertRuleTriggerActio
 
     def get_child_relations(self, instance: AlertRuleTriggerAction) -> list[BaseRelation]:
         from sentry.notifications.models.notificationmessage import NotificationMessage
+        from sentry.workflow_engine.models import ActionAlertRuleTriggerAction
 
-        return [
+        relations: list[BaseRelation] = [
             ModelRelation(NotificationMessage, {"trigger_action_id": instance.id}),
+            ModelRelation(
+                ActionAlertRuleTriggerAction, {"alert_rule_trigger_action_id": instance.id}
+            ),
         ]
+        return relations

@@ -5,7 +5,6 @@ import tempfile
 from hashlib import sha1
 
 import sentry_sdk
-from celery import current_task
 from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
@@ -17,6 +16,9 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import export_tasks
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import capture_exception
@@ -44,6 +46,13 @@ logger = logging.getLogger(__name__)
     max_retries=3,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=export_tasks,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 def assemble_download(
     data_export_id,
@@ -53,7 +62,6 @@ def assemble_download(
     bytes_written=0,
     environment_id=None,
     export_retries=3,
-    countdown=60,
     **kwargs,
 ):
     with sentry_sdk.start_span(op="assemble"):
@@ -147,7 +155,6 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries - 1,
                     },
-                    countdown=countdown,
                 )
             else:
                 return data_export.email_failure(message=str(error))
@@ -161,8 +168,8 @@ def assemble_download(
             capture_exception(error)
 
             try:
-                current_task.retry()
-            except MaxRetriesExceededError:
+                retry_task()
+            except (MaxRetriesExceededError, NoRetriesRemainingError):
                 metrics.incr(
                     "dataexport.end",
                     tags={"success": False, "error": str(error)},
@@ -186,7 +193,6 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries,
                     },
-                    countdown=3,
                 )
             else:
                 metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
@@ -291,6 +297,9 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
     queue="data_export",
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=export_tasks,
+    ),
 )
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_span(op="merge"):
@@ -372,7 +381,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
 
 def _set_data_on_scope(data_export):
-    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
     if data_export.user_id:
         user = dict(id=data_export.user_id)
         scope.set_user(user)

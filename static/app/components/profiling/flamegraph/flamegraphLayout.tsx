@@ -276,7 +276,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             }
           >
             <CollapsibleTimeline
-              title={t('Transaction')}
+              title={t('Trace')}
               open={timelines.transaction_spans}
               onOpen={onOpenSpans}
               onClose={onCloseSpans}

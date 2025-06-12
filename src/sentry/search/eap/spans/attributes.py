@@ -1,5 +1,11 @@
+import logging
+import os
+from dataclasses import replace
+from typing import Any, Literal
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
+from sentry.insights.models import InsightsStarredSegment
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
@@ -11,6 +17,7 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.events.constants import (
     PRECISE_FINISH_TS,
     PRECISE_START_TS,
@@ -18,14 +25,10 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_event_id, is_span_id
+from sentry.utils import json
+from sentry.utils.validators import is_empty_string, is_event_id_or_list, is_span_id
 
-
-def validate_event_id(value: str | list[str]) -> bool:
-    if isinstance(value, list):
-        return all([is_event_id(item) for item in value])
-    else:
-        return is_event_id(value)
+logger = logging.getLogger(__name__)
 
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
@@ -34,7 +37,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     + [
         ResolvedAttribute(
             public_alias="id",
-            internal_name="sentry.span_id",
+            internal_name="sentry.item_id",
             search_type="string",
             validator=is_span_id,
         ),
@@ -42,7 +45,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
-            validator=is_span_id,
+            validator=[is_empty_string, is_span_id],
         ),
         ResolvedAttribute(
             public_alias="span.action",
@@ -51,24 +54,24 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="span.description",
-            internal_name="sentry.name",
+            internal_name="sentry.raw_description",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="description",
-            internal_name="sentry.name",
+            internal_name="sentry.raw_description",
             search_type="string",
             secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="sentry.normalized_description",
-            internal_name="sentry.description",
+            internal_name="sentry.normalized_description",
             search_type="string",
         ),
         # Message maps to description, this is to allow wildcard searching
         ResolvedAttribute(
             public_alias="message",
-            internal_name="sentry.name",
+            internal_name="sentry.raw_description",
             search_type="string",
             secondary_alias=True,
         ),
@@ -86,6 +89,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span.op",
             internal_name="sentry.op",
             search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="span.name",
+            internal_name="sentry.op",
+            search_type="string",
+            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="span.category",
@@ -116,11 +125,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=validate_event_id,
+            validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="transaction",
-            internal_name="sentry.segment_name",
+            internal_name="sentry.transaction",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -134,23 +143,28 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="transaction.event_id",
+            internal_name="sentry.event_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="profile.id",
             internal_name="sentry.profile_id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="profiler.id",
-            internal_name="profiler_id",
+            internal_name="sentry.profiler_id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.id",
-            internal_name="thread.id",
+            internal_name="sentry.thread.id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.name",
-            internal_name="thread.name",
+            internal_name="sentry.thread.name",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -166,7 +180,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
-            search_type="number",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="ai.total_cost",
@@ -206,12 +220,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias=PRECISE_START_TS,
-            internal_name="sentry.start_timestamp",
+            internal_name="sentry.start_timestamp_precise",
             search_type="number",
         ),
         ResolvedAttribute(
             public_alias=PRECISE_FINISH_TS,
-            internal_name="sentry.end_timestamp",
+            internal_name="sentry.end_timestamp_precise",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="received",
+            internal_name="sentry.received",
             search_type="number",
         ),
         ResolvedAttribute(
@@ -220,17 +239,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="second",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_slow",
+            public_alias="mobile.slow_frames",
             internal_name="frames.slow",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_frozen",
+            public_alias="mobile.frozen_frames",
             internal_name="frames.frozen",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_total",
+            public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
         ),
@@ -251,7 +270,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="byte",
         ),
         simple_measurements_field(
-            "messaging.message.receive.latency", search_type="millisecond", secondary_alias=True
+            "messaging.message.receive.latency",
+            search_type="millisecond",
+            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="messaging.message.receive.latency",
@@ -266,27 +287,27 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="spans.browser",
-            internal_name="sentry.span_ops.ops.browser",
+            internal_name="span_ops.ops.browser",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.db",
-            internal_name="sentry.span_ops.ops.db",
+            internal_name="span_ops.ops.db",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.http",
-            internal_name="sentry.span_ops.ops.http",
+            internal_name="span_ops.ops.http",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.resource",
-            internal_name="sentry.span_ops.ops.resource",
+            internal_name="span_ops.ops.resource",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.ui",
-            internal_name="sentry.span_ops.ops.ui",
+            internal_name="span_ops.ops.ui",
             search_type="millisecond",
         ),
         ResolvedAttribute(
@@ -295,7 +316,52 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             secondary_alias=True,
         ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_weight",
+            internal_name="sentry.sampling_weight",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_factor",
+            internal_name="sentry.sampling_factor",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="code.lineno",
+            internal_name="code.lineno",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("file_extension"),
+        simple_sentry_field("device.family"),
+        simple_sentry_field("device.arch"),
+        simple_sentry_field("device.battery_level"),
+        simple_sentry_field("device.brand"),
+        simple_sentry_field("device.charging"),
+        simple_sentry_field("device.locale"),
+        simple_sentry_field("device.model_id"),
+        simple_sentry_field("device.name"),
+        simple_sentry_field("device.online"),
+        simple_sentry_field("device.orientation"),
+        simple_sentry_field("device.screen_density"),
+        simple_sentry_field("device.screen_dpi"),
+        simple_sentry_field("device.screen_height_pixels"),
+        simple_sentry_field("device.screen_width_pixels"),
+        simple_sentry_field("device.simulator"),
+        simple_sentry_field("device.uuid"),
+        simple_sentry_field("app.device"),
+        simple_sentry_field("device.model"),
+        simple_sentry_field("runtime"),
+        simple_sentry_field("runtime.name"),
+        simple_sentry_field("browser"),
+        simple_sentry_field("os"),
+        simple_sentry_field("os.rooted"),
+        simple_sentry_field("gpu.name"),
+        simple_sentry_field("gpu.vendor"),
+        simple_sentry_field("monitor.id"),
+        simple_sentry_field("monitor.slug"),
+        simple_sentry_field("request.url"),
+        simple_sentry_field("request.method"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
@@ -304,7 +370,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
-        simple_sentry_field("span_id"),
+        ResolvedAttribute(
+            public_alias="span_id",
+            internal_name="sentry.item_id",
+            search_type="string",
+        ),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
         simple_sentry_field("transaction.op"),
@@ -315,6 +385,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_sentry_field("os.name"),
+        simple_sentry_field("app_start_type"),
+        simple_sentry_field("ttid"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
         simple_measurements_field("frames_frozen"),
@@ -362,6 +435,53 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     ]
 }
 
+DEPRECATED_ATTRIBUTES: list[dict[str, Any]] = []
+try:
+    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
+        DEPRECATED_ATTRIBUTES = json.loads(f.read())["attributes"]
+except Exception:
+    logger.exception("Failed to load deprecated attributes from 'deprecated_attributes.json'")
+
+
+try:
+    for attribute in DEPRECATED_ATTRIBUTES:
+        deprecation = attribute.get("deprecation", {})
+        attr_type = attribute.get("type", "string")
+        key = attribute["key"]
+        if (
+            "replacement" in deprecation
+            and "_status" in deprecation
+            and deprecation["_status"] == "backfill"
+        ):
+            status = deprecation["_status"]
+            replacement = deprecation["replacement"]
+            if key in SPAN_ATTRIBUTE_DEFINITIONS:
+                deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[key]
+                SPAN_ATTRIBUTE_DEFINITIONS[key] = replace(
+                    deprecated_attr, replacement=replacement, deprecation_status=status
+                )
+                # TODO: Introduce units to attribute schema.
+                SPAN_ATTRIBUTE_DEFINITIONS[replacement] = replace(
+                    deprecated_attr, public_alias=replacement, internal_name=replacement
+                )
+            else:
+                SPAN_ATTRIBUTE_DEFINITIONS[key] = ResolvedAttribute(
+                    public_alias=key,
+                    internal_name=key,
+                    search_type=attr_type,
+                    replacement=replacement,
+                    deprecation_status=status,
+                )
+
+                SPAN_ATTRIBUTE_DEFINITIONS[replacement] = ResolvedAttribute(
+                    public_alias=replacement,
+                    internal_name=replacement,
+                    search_type=attr_type,
+                )
+
+except Exception as e:
+    logger.exception("Failed to update attribute definitions: %s", e)
+
 
 def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
@@ -385,6 +505,73 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     )
 
 
+def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    if params.user is None or params.organization_id is None:
+        raise ValueError("User and organization is required for is_starred_transaction")
+
+    starred_segment_results = InsightsStarredSegment.objects.filter(
+        organization_id=params.organization_id,
+        project_id__in=params.project_ids,
+        user_id=params.user.id,
+    )
+
+    value_map = {result.segment_name: "true" for result in starred_segment_results}
+
+    return VirtualColumnContext(
+        from_column_name="sentry.transaction",
+        to_column_name="is_starred_transaction",
+        value_map=value_map,
+        default_value="false",  # We can directly make this a boolean when https://github.com/getsentry/eap-planning/issues/224 is fixed
+    )
+
+
+SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    }
+    | {
+        # sentry.service is the project id as a string, but map to project for convenience
+        "sentry.service": "project",
+        # Temporarily reverse map these old aliases.
+        # TODO: Once TraceItemAttributeNamesResponse is updated
+        # to return the new aliases, remove these temp mappings.
+        "sentry.name": "span.description",
+        "sentry.description": "sentry.normalized_description",
+        "sentry.span_id": "id",
+        "sentry.segment_name": "transaction",
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type != "string"
+    }
+    | {
+        "sentry.start_timestamp": PRECISE_START_TS,
+        "sentry.end_timestamp": PRECISE_FINISH_TS,
+    },
+}
+
+SPANS_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
+}
+
+SPANS_REPLACEMENT_ATTRIBUTES: set[str] = {
+    definition.replacement
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+SPANS_REPLACEMENT_MAP: dict[str, str] = {
+    definition.public_alias: definition.replacement
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+
 SPAN_VIRTUAL_CONTEXTS = {
     "device.class": VirtualColumnDefinition(
         constructor=device_class_context_constructor,
@@ -395,6 +582,11 @@ SPAN_VIRTUAL_CONTEXTS = {
     "span.module": VirtualColumnDefinition(
         constructor=module_context_constructor,
     ),
+    "is_starred_transaction": VirtualColumnDefinition(
+        constructor=is_starred_segment_context_constructor,
+        default_value="false",
+        processor=lambda x: True if x == "true" else False,
+    ),
 }
 
 for key in constants.PROJECT_FIELDS:
@@ -403,3 +595,16 @@ for key in constants.PROJECT_FIELDS:
         term_resolver=project_term_resolver,
         filter_column="project.id",
     )
+
+SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
+
+
+for definition in SPAN_ATTRIBUTE_DEFINITIONS.values():
+    if not definition.secondary_alias:
+        continue
+
+    secondary_aliases = SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING.get(
+        definition.internal_name, set()
+    )
+    secondary_aliases.add(definition.public_alias)
+    SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING[definition.internal_name] = secondary_aliases

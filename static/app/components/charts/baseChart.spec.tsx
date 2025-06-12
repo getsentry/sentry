@@ -1,9 +1,11 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import theme from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(() => null);

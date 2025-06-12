@@ -28,20 +28,20 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
     return {
       color: theme.colors.white,
       background: theme.colors.chonk.red400,
-      border: `1px solid ${theme.colors.chonk.red100}`,
+      border: `1px solid ${theme.colors.red100}`,
     };
   }
   if (status === IncidentStatus.WARNING) {
     return {
       color: theme.colors.black,
       background: theme.colors.chonk.yellow400,
-      border: `1px solid ${theme.colors.chonk.yellow100}`,
+      border: `1px solid ${theme.colors.yellow100}`,
     };
   }
   return {
     color: theme.colors.black,
     background: theme.colors.chonk.green400,
-    border: `1px solid ${theme.colors.chonk.green100}`,
+    border: `1px solid ${theme.colors.green100}`,
   };
 }
 
@@ -60,7 +60,7 @@ export const ChonkAlertBadgeDiamondBackground = chonkStyled('div')<AlertBadgePro
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: ${p => p.theme.radius.mini};
+  border-radius: ${p => p.theme.radius.xs};
 
   > svg {
     width: 13px;

@@ -5,14 +5,14 @@ import * as Sentry from '@sentry/react';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconQuestion, IconWarning} from 'sentry/icons';
@@ -82,7 +82,10 @@ function CommitRow({
   return hasStreamlinedUI ? (
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
-        <StyledExternalLink href={commit.pullRequest?.externalUrl}>
+        <StyledExternalLink
+          href={commit.pullRequest?.externalUrl}
+          onClick={onPullRequestClick}
+        >
           <Message>{formatCommitMessage(commit.message)}</Message>
         </StyledExternalLink>
       ) : (

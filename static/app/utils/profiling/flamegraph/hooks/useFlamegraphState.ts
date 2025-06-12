@@ -3,11 +3,11 @@ import {useContext} from 'react';
 import type {
   FlamegraphStateDispatch,
   FlamegraphStateValue,
-} from '../flamegraphStateProvider/flamegraphContext';
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {
   FlamegraphStateDispatchContext,
   FlamegraphStateValueContext,
-} from '../flamegraphStateProvider/flamegraphContext';
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 
 export function useFlamegraphState(): FlamegraphStateValue {
   const context = useContext(FlamegraphStateValueContext);

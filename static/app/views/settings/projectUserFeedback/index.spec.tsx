@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectUserFeedback from 'sentry/views/settings/projectUserFeedback';
 
 describe('ProjectUserFeedback', function () {
-  const {routerProps, organization, project, router} = initializeOrg();
+  const {routerProps, organization, project} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -29,10 +29,7 @@ describe('ProjectUserFeedback', function () {
         {...routerProps}
         organization={organization}
         project={project}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     const mock = MockApiClient.addMockResponse({
@@ -57,7 +54,7 @@ describe('ProjectUserFeedback', function () {
 });
 
 describe('ProjectUserFeedbackProcessing', function () {
-  const {routerProps, organization, project, router} = initializeOrg();
+  const {routerProps, organization, project} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -72,18 +69,32 @@ describe('ProjectUserFeedbackProcessing', function () {
       method: 'GET',
       body: [],
     });
+    organization.features = [];
   });
 
-  it('can toggle spam detection', async function () {
+  it('cannot toggle spam detection', function () {
     render(
       <ProjectUserFeedback
         {...routerProps}
         organization={organization}
         project={project}
-      />,
-      {
-        router,
-      }
+      />
+    );
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('can toggle spam detection', async function () {
+    organization.features.push('user-feedback-spam-ingest');
+
+    render(
+      <ProjectUserFeedback
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />
     );
 
     const mock = MockApiClient.addMockResponse({

@@ -8,13 +8,21 @@ import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/bread
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationEdit() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
     <SentryDocumentTitle title={t('Edit Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
+      <BreadcrumbsProvider
+        crumb={{
+          label: t('Automations'),
+          to: makeAutomationBasePathname(organization.slug),
+        }}
+      >
         <ActionsProvider actions={<Actions />}>
           <EditLayout>
             <h2>Edit Automation</h2>

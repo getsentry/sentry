@@ -1,5 +1,5 @@
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';

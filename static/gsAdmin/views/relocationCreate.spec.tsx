@@ -2,7 +2,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import RelocationCreate from 'admin/views/relocationCreate';
 
@@ -122,7 +121,7 @@ describe('Relocation Create', function () {
       },
     });
 
-    render(<RelocationCreate />);
+    const {router} = render(<RelocationCreate />);
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const fileInput = screen.getByLabelText('file-upload');
     const ownerInput = screen.getByLabelText('owner-input');
@@ -133,8 +132,10 @@ describe('Relocation Create', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
     expect(mockapi).toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      `/_admin/relocations/test/d39f84fc-554a-4d7d-95b7-78f983bcba73/`
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/_admin/relocations/test/d39f84fc-554a-4d7d-95b7-78f983bcba73/`,
+      })
     );
   });
 });

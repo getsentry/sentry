@@ -15,7 +15,7 @@ import TransactionReplays from 'sentry/views/performance/transactionSummary/tran
 type InitializeOrgProps = {
   location?: {
     pathname?: string;
-    query?: {[key: string]: string};
+    query?: Record<string, string>;
   };
   organizationProps?: {
     features?: string[];
@@ -60,7 +60,11 @@ const renderComponent = ({
   ProjectsStore.init();
   ProjectsStore.loadInitialData(projects);
 
-  return render(<TransactionReplays />, {router, organization});
+  return render(<TransactionReplays />, {
+    router,
+    organization,
+    deprecatedRouterMocks: true,
+  });
 };
 
 describe('TransactionReplays', () => {

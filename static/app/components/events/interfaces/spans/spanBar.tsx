@@ -1,8 +1,10 @@
 import {Component, createRef, Fragment} from 'react';
 import type {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
 import {
@@ -44,7 +46,6 @@ import {
   getHumanDuration,
   lightenBarColor,
 } from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -105,7 +106,6 @@ import {
   spanTargetHash,
   unwrapTreeDepth,
 } from './utils';
-
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
 //   INTERSECTION_THRESHOLDS.push(i);
@@ -120,7 +120,7 @@ const INTERSECTION_THRESHOLDS: number[] = [
   0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
-export const MARGIN_LEFT = 0;
+const MARGIN_LEFT = 0;
 
 export type SpanBarProps = ScrollbarManagerChildrenProps & {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
@@ -148,6 +148,7 @@ export type SpanBarProps = ScrollbarManagerChildrenProps & {
   span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar | NewTraceDetailsSpanBar) => void;
+  theme: Theme;
   toggleEmbeddedChildren:
     | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
@@ -1101,7 +1102,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderSpanBarRectangles() {
-    const {span, spanBarColor, spanBarType, generateBounds} = this.props;
+    const {span, spanBarColor, spanBarType, generateBounds, theme} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -1112,7 +1113,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const subTimings = getSpanSubTimings(span);
+    const subTimings = getSpanSubTimings(span, theme);
     const hasSubTimings = !!subTimings;
 
     const subSpans = hasSubTimings
@@ -1127,7 +1128,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
               style={{
                 backgroundColor: lightenBarColor(
                   getSpanOperation(span),
-                  timing.colorLighten
+                  timing.colorLighten,
+                  theme
                 ),
                 left: `min(${toPercent(timingBounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(timingBounds.width || 0),

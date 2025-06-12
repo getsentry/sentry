@@ -230,7 +230,6 @@ describe('InvestigationRule', function () {
       dataset: DiscoverDatasets.TRANSACTIONS,
       query: 'branch:main',
     });
-    organization.features = ['performance-discover-dataset-selector'];
 
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',

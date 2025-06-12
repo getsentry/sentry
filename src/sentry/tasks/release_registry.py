@@ -6,6 +6,8 @@ from django.core.cache import cache
 from sentry.net.http import Session
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import sdk_control_tasks, sdk_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -71,6 +73,7 @@ def _fetch_release_registry_data(**kwargs):
     soft_time_limit=60,
     queue="release_registry",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=sdk_tasks, processing_deadline_duration=65),
 )
 def fetch_release_registry_data(**kwargs):
     _fetch_release_registry_data(**kwargs)
@@ -82,6 +85,9 @@ def fetch_release_registry_data(**kwargs):
     soft_time_limit=60,
     queue="release_registry.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=sdk_control_tasks, processing_deadline_duration=65
+    ),
 )
 def fetch_release_registry_data_control(**kwargs):
     _fetch_release_registry_data(**kwargs)

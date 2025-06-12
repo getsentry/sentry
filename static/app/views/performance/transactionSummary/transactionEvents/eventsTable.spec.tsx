@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -11,6 +12,8 @@ import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
+
+const theme = ThemeFixture();
 
 type Data = {
   features?: string[];
@@ -149,6 +152,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -156,8 +160,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
@@ -194,6 +197,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -201,8 +205,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findAllByRole('columnheader')).toHaveLength(6);
@@ -228,6 +231,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -235,8 +239,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'deadbeef'})).toHaveAttribute(
@@ -275,6 +278,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -282,8 +286,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -310,6 +313,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -317,8 +321,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

@@ -38,8 +38,6 @@ const defaultProps = {
   statsPeriod: '24h',
   onDelete: jest.fn(),
   displayReprocessingActions: false,
-  onSortChange: jest.fn(),
-  sort: '',
 };
 
 function WrappedComponent(props: any) {
@@ -75,13 +73,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
-      it('can bulk select', async function () {
-        render(<WrappedComponent queryCount={1500} />);
-
-        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-      });
-
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
@@ -91,7 +82,9 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select the first 1,000 issues that match this search query/)
+        );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
@@ -119,7 +112,9 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select the first 1,000 issues that match this search query/)
+        );
         await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
@@ -152,7 +147,9 @@ describe('IssueListActions', function () {
         const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
         await userEvent.click(checkbox);
         expect(checkbox).toBeChecked();
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 15 issues that match this search query/)
+        );
       });
 
       it('bulk resolves', async function () {
@@ -165,7 +162,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 15 issues that match this search query/)
+        );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
@@ -408,19 +407,6 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('sort', function () {
-    it('calls onSortChange with new sort value', async function () {
-      const mockOnSortChange = jest.fn();
-      render(<WrappedComponent onSortChange={mockOnSortChange} />);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
-
-      await userEvent.click(screen.getByText(/Number of events/));
-
-      expect(mockOnSortChange).toHaveBeenCalledWith('freq');
-    });
-  });
-
   describe('performance issues', function () {
     it('disables options that are not supported for performance issues', async () => {
       jest
@@ -508,7 +494,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'More issue actions'})
@@ -556,7 +544,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'More issue actions'})

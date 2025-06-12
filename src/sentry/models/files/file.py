@@ -29,8 +29,9 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
         db_table = "sentry_file"
 
     def _blob_index_records(self) -> Sequence[FileBlobIndex]:
-        return list(
-            FileBlobIndex.objects.filter(file=self).select_related("blob").order_by("offset")
+        return sorted(
+            FileBlobIndex.objects.filter(file=self).select_related("blob"),
+            key=lambda fbi: fbi.offset,
         )
 
     def _create_blob_index(self, blob: FileBlob, offset: int) -> FileBlobIndex:

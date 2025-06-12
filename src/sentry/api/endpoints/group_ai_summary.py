@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
+from sentry.autofix.utils import SeerAutomationSource
 from sentry.models.group import Group
 from sentry.seer.issue_summary import get_issue_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class GroupAiSummaryEndpoint(GroupEndpoint):
+class GroupAiSummaryEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -26,11 +27,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=60),
-            RateLimitCategory.USER: RateLimit(limit=10, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=30, window=60
-            ),  # TODO: Raise this limit when we move out of internal preview
+            RateLimitCategory.IP: RateLimit(limit=20, window=60),
+            RateLimitCategory.USER: RateLimit(limit=20, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
         }
     }
 
@@ -39,7 +38,10 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         force_event_id = data.get("event_id", None)
 
         summary_data, status_code = get_issue_summary(
-            group=group, user=request.user, force_event_id=force_event_id
+            group=group,
+            user=request.user,
+            force_event_id=force_event_id,
+            source=SeerAutomationSource.ISSUE_DETAILS,
         )
 
         return Response(summary_data, status=status_code)

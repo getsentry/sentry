@@ -3,22 +3,68 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {DataCategory} from 'sentry/types/core';
 
+import triggerChangePlanAction from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
+import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
-
-import ChangePlanAction from '../components/changePlanAction';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
-  const mockConfirmCallback = jest.fn();
-  const mockClose = jest.fn();
-  const mockOnConfirm = jest.fn();
-  const mockDisableConfirmButton = jest.fn();
+  const subscription: Subscription = SubscriptionFixture({
+    organization: mockOrg,
+    planTier: PlanTier.AM3,
+    plan: 'am3_business',
+    billingInterval: 'monthly',
+    contractInterval: 'monthly',
+    categories: {
+      errors: MetricHistoryFixture({
+        category: DataCategory.ERRORS,
+        reserved: 1000000,
+        prepaid: 1000000,
+        order: 1,
+      }),
+    },
+  });
+  const BILLING_CONFIG = BillingConfigFixture(PlanTier.ALL);
+  const testPlan = PlanFixture({
+    id: 'test_test_monthly',
+    name: 'TEST Tier Test Plan',
+    price: 5000,
+    basePrice: 5000,
+    billingInterval: 'monthly',
+    contractInterval: 'monthly',
+    reservedMinimum: 500000,
+    categories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
+    checkoutCategories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
+    planCategories: {
+      errors: [
+        {events: 50000, price: 1000},
+        {events: 100000, price: 2000},
+      ],
+      transactions: [
+        {events: 10000, price: 2500},
+        {events: 25000, price: 5000},
+      ],
+    },
+    userSelectable: true,
+    isTestPlan: true,
+  });
+
+  BILLING_CONFIG.planList.push(testPlan);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -27,56 +73,7 @@ describe('ChangePlanAction', () => {
     const user = UserFixture();
     user.permissions = new Set(['billing.provision']);
     ConfigStore.set('user', user);
-
-    // Setup basic subscription
-    const subscription: Subscription = SubscriptionFixture({
-      organization: mockOrg,
-      planTier: PlanTier.AM3,
-      plan: 'am3_business',
-      billingInterval: 'monthly',
-      contractInterval: 'monthly',
-      planDetails: PlanFixture({
-        id: 'am3_business',
-        name: 'Business',
-      }),
-      categories: {
-        errors: MetricHistoryFixture({
-          category: 'errors',
-          reserved: 1000000,
-          prepaid: 1000000,
-          order: 1,
-        }),
-        transactions: MetricHistoryFixture({
-          category: 'transactions',
-          reserved: 1000000,
-          prepaid: 1000000,
-          order: 2,
-        }),
-      },
-    });
-
-    const AM3_BILLING_CONFIG = BillingConfigFixture(PlanTier.AM3);
-    const AM2_BILLING_CONFIG = BillingConfigFixture(PlanTier.AM2);
-    const AM1_BILLING_CONFIG = BillingConfigFixture(PlanTier.AM1);
-    const MM2_BILLING_CONFIG = BillingConfigFixture(PlanTier.MM2);
-
-    // Set up API responses for billing configs
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=mm2`,
-      body: MM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am1`,
-      body: AM1_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am2`,
-      body: AM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am3`,
-      body: AM3_BILLING_CONFIG,
-    });
+    SubscriptionStore.set(mockOrg.slug, subscription);
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
@@ -84,81 +81,27 @@ describe('ChangePlanAction', () => {
       body: subscription,
     });
 
-    const testPlan = PlanFixture({
-      id: 'test_test_monthly',
-      name: 'TEST Tier Test Plan',
-      price: 5000,
-      basePrice: 5000,
-      billingInterval: 'monthly',
-      contractInterval: 'monthly',
-      reservedMinimum: 500000,
-      categories: ['errors', 'transactions'],
-      planCategories: {
-        errors: [{events: 50000, price: 1000}],
-        transactions: [{events: 10000, price: 2500}],
-      },
-      userSelectable: true,
-      isTestPlan: true,
-    });
-
-    AM3_BILLING_CONFIG.planList.push(PlanFixture({...testPlan}));
-
-    // Update API responses
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=mm2`,
-      body: MM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am1`,
-      body: AM1_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am2`,
-      body: AM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am3`,
-      body: AM3_BILLING_CONFIG,
-    });
-
-    const testSubscription = {
-      ...subscription,
-      planTier: PlanTier.TEST,
-      plan: 'test_test_monthly',
-      planDetails: {
-        id: 'test_test_monthly',
-        name: 'TEST Tier Test Plan',
-        isTestPlan: true,
-      },
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/subscription/`,
-      body: testSubscription,
-    });
-    MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
-      body: testSubscription,
+      url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+      body: BILLING_CONFIG,
     });
   });
 
-  function renderComponent(props = {}) {
-    return render(
-      <ChangePlanAction
-        orgId={mockOrg.slug}
-        partnerPlanId={null}
-        disableConfirmButton={mockDisableConfirmButton}
-        close={mockClose}
-        confirm={jest.fn()}
-        onConfirm={mockOnConfirm}
-        setConfirmCallback={mockConfirmCallback}
-        {...props}
-      />
-    );
+  async function openAndLoadModal(props = {}) {
+    triggerChangePlanAction({
+      subscription,
+      organization: mockOrg,
+      onSuccess: jest.fn(),
+      partnerPlanId: null,
+      ...props,
+    });
+    const modal = renderGlobalModal();
+    expect(await screen.findByRole('button', {name: 'Change Plan'})).toBeInTheDocument();
+    return modal;
   }
 
   it('loads the billing config and displays plan options', async () => {
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for async data to load
     await waitFor(() => {
@@ -171,46 +114,78 @@ describe('ChangePlanAction', () => {
     expect(screen.getByRole('tab', {name: 'MM2'})).toBeInTheDocument();
 
     // Verify at least one plan option is displayed
-    expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
+    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+    // Verify checkout categories are displayed
+    expect(screen.getAllByRole('textbox')).toHaveLength(
+      subscription.planDetails.checkoutCategories.length + 2 // +2 for audit fields
+    );
+    expect(screen.getByRole('textbox', {name: 'Spans'})).toBeInTheDocument();
+
+    // Does not display non-checkout categories or non-existent categories
+    expect(
+      screen.queryByRole('textbox', {name: 'Continuous profile hours'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Performance units'})
+    ).not.toBeInTheDocument();
 
     // Test basic interaction - click on AM2 tier
     const am2Tab = screen.getByRole('tab', {name: 'AM2'});
     await userEvent.click(am2Tab);
+
+    // Verify tab change changes plan options displayed
+    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+    // Verify tab change changes categories displayed
+    expect(screen.getAllByRole('textbox')).toHaveLength(
+      PlanDetailsLookupFixture('am2_business')!.checkoutCategories.length + 2 // +2 for audit fields
+    );
+    expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Continuous profile hours'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Spans'})).not.toBeInTheDocument();
   });
 
-  it('calls confirm callback when changes are confirmed', async () => {
-    // Mock the PUT endpoint response
+  it('only displays current plan for NT customers', async () => {
+    const ntSubscription = SubscriptionFixture({
+      organization: mockOrg,
+      plan: 'am2_business',
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'NT',
+          displayName: 'NT',
+          supportNote: '',
+        },
+        isActive: true,
+      },
+      sponsoredType: 'NT',
+    });
+    SubscriptionStore.set(mockOrg.slug, ntSubscription);
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/subscription/`,
-      method: 'PUT',
-      body: {success: true},
+      url: `/subscriptions/${mockOrg.slug}/`,
+      body: ntSubscription,
     });
 
-    renderComponent();
+    await openAndLoadModal({partnerPlanId: ntSubscription.plan});
 
-    // Wait for component to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    // Select a plan
-    const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
-    await userEvent.click(planRadio);
-
-    // Directly call the mock function with known data
-    const data = {
-      plan: 'am3_business',
-      reservedErrors: 1000000,
-      reservedTransactions: 1000000,
-    };
-    mockOnConfirm(data);
-
-    // Check if the onConfirm was called
-    expect(mockOnConfirm).toHaveBeenCalled();
-    expect(mockOnConfirm).toHaveBeenCalledWith(data);
+    expect(screen.queryByTestId('am3-tier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('am2-tier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('am1-tier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mm2-tier')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
+    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
   });
 
-  it('tests complete form submission flow', async () => {
+  it('completes form submission flow', async () => {
+    mockOrg.features = [];
     // Mock the PUT endpoint response
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
@@ -218,7 +193,7 @@ describe('ChangePlanAction', () => {
       body: {success: true},
     });
 
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for component to load
     await waitFor(() => {
@@ -226,17 +201,23 @@ describe('ChangePlanAction', () => {
     });
 
     // Select a plan
-    const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
-    await userEvent.click(planRadio);
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
 
-    // Verify that the confirm callback was set
-    expect(mockConfirmCallback).toHaveBeenCalled();
+    // Select reserved volumes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+      '1'
+    );
 
-    // Get the callback function
-    const confirmCallback = mockConfirmCallback.mock.calls[0][0];
+    expect(screen.queryByText('Available Products')).not.toBeInTheDocument();
 
-    // Trigger the callback
-    await confirmCallback();
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
     // Verify the PUT API was called
     expect(putMock).toHaveBeenCalled();
@@ -244,28 +225,46 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('plan', 'am3_business');
   });
 
-  it('calls disableConfirmButton when plan state changes', async () => {
-    // This test focuses on verifying that handlePlanChange calls disableConfirmButton
-    renderComponent();
+  it('completes form with seer', async () => {
+    mockOrg.features = ['seer-billing'];
+    const putMock = MockApiClient.addMockResponse({
+      url: `/customers/${mockOrg.slug}/subscription/`,
+      method: 'PUT',
+      body: {success: true},
+    });
 
-    // Wait for component to load
+    openAndLoadModal();
+
     await waitFor(() => {
       expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
-    // Reset the mock count
-    mockDisableConfirmButton.mockClear();
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
 
-    // Select a plan
-    const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
-    await userEvent.click(planRadio);
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+      '1'
+    );
 
-    // Verify disableConfirmButton was called
-    expect(mockDisableConfirmButton).toHaveBeenCalled();
+    expect(screen.getByText('Available Products')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Seer'));
+
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
+
+    expect(putMock).toHaveBeenCalled();
+    const requestData = putMock.mock.calls[0][1].data;
+    expect(requestData).toHaveProperty('plan', 'am3_business');
+    expect(requestData).toHaveProperty('seer', true);
   });
 
   it('updates plan list when switching between tiers', async () => {
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for component to load
     await waitFor(() => {
@@ -273,7 +272,7 @@ describe('ChangePlanAction', () => {
     });
 
     // Verify AM3 tier plans are displayed
-    expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
+    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
 
     // Switch to AM2 tier
     const am2Tab = screen.getByRole('tab', {name: 'AM2'});
@@ -299,7 +298,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('shows only test plans when using TEST tier', async () => {
-    renderComponent();
+    openAndLoadModal();
 
     // First, click the TEST tier to activate it
     await waitFor(() => {
@@ -311,14 +310,12 @@ describe('ChangePlanAction', () => {
 
     // Verify TEST tier plans are shown after clicking the TEST tier tab
     await waitFor(() => {
-      const testPlans = screen.queryAllByTestId(
-        'change-plan-radio-btn-test_test_monthly'
-      );
+      const testPlans = screen.queryAllByTestId('change-plan-label-test_test_monthly');
       expect(testPlans.length).toBeGreaterThan(0);
     });
   });
 
-  it('tests complete form submission flow for the TEST tier', async () => {
+  it('completes form submission flow for the TEST tier', async () => {
     // Mock the PUT endpoint response
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
@@ -326,7 +323,7 @@ describe('ChangePlanAction', () => {
       body: {success: true},
     });
 
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for component to load
     await waitFor(() => {
@@ -336,37 +333,255 @@ describe('ChangePlanAction', () => {
     // Click on the TEST tier tab (if not already active)
     const testTierTab = screen.getByRole('tab', {name: 'TEST'});
     await userEvent.click(testTierTab);
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeDisabled();
+    expect(screen.getByTestId('change-plan-label-test_test_monthly')).toBeInTheDocument();
 
-    // Find test plan radio button and select it
-    await waitFor(
-      () => {
-        const testPlans = screen.queryAllByTestId(
-          'change-plan-radio-btn-test_test_monthly'
-        );
-        expect(testPlans.length).toBeGreaterThan(0);
-        return testPlans;
-      },
-      {timeout: 2000}
-    ).then(async testPlans => {
-      if (testPlans && testPlans.length > 0) {
-        await userEvent.click(testPlans[0] as HTMLElement);
-      }
-    });
+    // Select a plan
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
 
-    // Verify that the confirm callback was set
-    expect(mockConfirmCallback).toHaveBeenCalled();
+    // Select reserved volumes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '50,000');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Transactions'}),
+      '25,000'
+    );
 
-    // Get the callback function
-    const confirmCallback = mockConfirmCallback.mock.calls[0][0];
-
-    // Trigger the callback
-    await confirmCallback();
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
     // Verify the PUT API was called
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'test_test_monthly');
     expect(requestData).toHaveProperty('reservedErrors', 50000);
-    expect(requestData).toHaveProperty('reservedTransactions', 10000);
+    expect(requestData).toHaveProperty('reservedTransactions', 25000);
+  });
+
+  describe('Seer Budget', () => {
+    beforeEach(() => {
+      mockOrg.features = ['seer-billing'];
+      jest.clearAllMocks();
+      MockApiClient.clearMockResponses();
+
+      const user = UserFixture();
+      user.permissions = new Set(['billing.provision']);
+      ConfigStore.set('user', user);
+      SubscriptionStore.set(mockOrg.slug, subscription);
+
+      // Set up default subscription response
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${mockOrg.slug}/`,
+        body: subscription,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        body: BILLING_CONFIG,
+      });
+    });
+
+    it('shows Seer budget checkbox for AM tiers', async () => {
+      openAndLoadModal();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      const am2Tab = screen.getByRole('tab', {name: 'AM2'});
+      await userEvent.click(am2Tab);
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      const am1Tab = screen.getByRole('tab', {name: 'AM1'});
+      await userEvent.click(am1Tab);
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+    });
+
+    it('hides Seer budget checkbox for MM2 tier', async () => {
+      openAndLoadModal();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
+      await userEvent.click(mm2Tab);
+
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(
+        screen.queryByRole('checkbox', {
+          name: 'Seer',
+        })
+      ).not.toBeInTheDocument();
+    });
+
+    it('initializes Seer budget checkbox based on current subscription', async () => {
+      // Create subscription with Seer budget
+      const subscriptionWithSeer = SubscriptionFixture({
+        organization: mockOrg,
+        planTier: PlanTier.AM3,
+        plan: 'am3_business',
+        billingInterval: 'monthly',
+        contractInterval: 'monthly',
+        reservedBudgets: [SeerReservedBudgetFixture({})],
+        categories: {
+          errors: MetricHistoryFixture({
+            category: DataCategory.ERRORS,
+            reserved: 1000000,
+            prepaid: 1000000,
+            order: 1,
+          }),
+        },
+      });
+
+      SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${mockOrg.slug}/`,
+        body: subscriptionWithSeer,
+      });
+
+      await openAndLoadModal({subscription: subscriptionWithSeer});
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      // Select a plan to make the Available Products section visible
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      // Verify Seer budget checkbox is checked when subscription has Seer budget
+      const seerCheckbox = screen.getByRole('checkbox', {
+        name: 'Seer',
+      });
+      expect(seerCheckbox).toBeChecked();
+    });
+
+    it('initializes Seer budget checkbox as unchecked when subscription has no Seer budget', async () => {
+      openAndLoadModal({});
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      // Select a plan to make the Available Products section visible
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      // Verify Seer budget checkbox is unchecked when subscription has no Seer budget
+      const seerCheckbox = screen.getByRole('checkbox', {
+        name: 'Seer',
+      });
+      expect(seerCheckbox).not.toBeChecked();
+    });
+
+    it('includes seer parameter in form submission when checkbox is checked', async () => {
+      // Mock the PUT endpoint response
+      const putMock = MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/subscription/`,
+        method: 'PUT',
+        body: {success: true},
+      });
+
+      openAndLoadModal({});
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      // Select a plan
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      // Check the Seer budget checkbox
+      const seerCheckbox = screen.getByRole('checkbox', {
+        name: 'Seer',
+      });
+      await userEvent.click(seerCheckbox);
+
+      // Select required reserved volumes
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Spans'}),
+        '10,000,000'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Uptime monitors'}),
+        '1'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+        '1'
+      );
+
+      // Submit the form
+      expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
+
+      // Verify the PUT API was called with seer parameter
+      expect(putMock).toHaveBeenCalled();
+      const requestData = putMock.mock.calls[0][1].data;
+      expect(requestData).toHaveProperty('seer', true);
+    });
+
+    it('does not include seer parameter in form submission when checkbox is unchecked', async () => {
+      // Mock the PUT endpoint response
+      const putMock = MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/subscription/`,
+        method: 'PUT',
+        body: {success: true},
+      });
+
+      openAndLoadModal({});
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      // Select a plan
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      // Verify Seer budget checkbox is unchecked (default state)
+      const seerCheckbox = screen.getByRole('checkbox', {
+        name: 'Seer',
+      });
+      expect(seerCheckbox).not.toBeChecked();
+
+      // Select required reserved volumes
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Spans'}),
+        '10,000,000'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Uptime monitors'}),
+        '1'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+        '1'
+      );
+
+      // Submit the form
+      expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
+
+      // Verify the PUT API was called with seer parameter set to false
+      expect(putMock).toHaveBeenCalled();
+      const requestData = putMock.mock.calls[0][1].data;
+      expect(requestData).toHaveProperty('seer', false);
+    });
   });
 });

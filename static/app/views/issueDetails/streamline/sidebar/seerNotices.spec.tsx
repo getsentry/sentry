@@ -1,207 +1,169 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
-import type {AutofixRepository} from 'sentry/components/events/autofix/types';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import ConfigStore from 'sentry/stores/configStore';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
 describe('SeerNotices', function () {
-  // Helper function to create repository objects
-  const createRepository = (
-    overrides: Partial<AutofixRepository> = {}
-  ): AutofixRepository => ({
-    default_branch: 'main',
+  const createRepository = (overrides = {}) => ({
     external_id: 'repo-123',
-    integration_id: '123',
     name: 'org/repo',
+    owner: 'org',
     provider: 'github',
-    url: 'https://github.com/org/repo',
+    provider_raw: 'github',
     is_readable: true,
+    is_writeable: true,
     ...overrides,
   });
 
-  it('renders nothing when all repositories are readable', function () {
-    const repositories = [createRepository(), createRepository({name: 'org/repo2'})];
+  function getProjectWithAutomation(
+    automationTuning = 'off' as 'off' | 'low' | 'medium' | 'high' | 'always'
+  ) {
+    return {
+      ...ProjectFixture(),
+      autofixAutomationTuning: automationTuning,
+      organization: {
+        ...ProjectFixture().organization,
+        features: ['trigger-autofix-on-issue-summary'],
+      },
+    };
+  }
 
-    const {container} = render(
-      <SeerNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
-
-    expect(container).toBeEmptyDOMElement();
+  const organization = OrganizationFixture({
+    features: ['trigger-autofix-on-issue-summary'],
   });
 
-  it('renders GitHub integration setup card when hasGithubIntegration is false', function () {
-    render(
-      <SeerNotices
-        autofixRepositories={[createRepository()]}
-        hasGithubIntegration={false}
-      />
-    );
-
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-
-    // Test for text fragments with formatting
-    expect(screen.getByText(/Autofix is/, {exact: false})).toBeInTheDocument();
-    expect(screen.getByText('a lot better')).toBeInTheDocument();
-    expect(
-      screen.getByText(/when it has your codebase as context/, {exact: false})
-    ).toBeInTheDocument();
-
-    // Test for text with links
-    expect(screen.getByText(/Set up the/, {exact: false})).toBeInTheDocument();
-    expect(screen.getByText('GitHub Integration', {selector: 'a'})).toBeInTheDocument();
-    expect(
-      screen.getByText(/to allow Autofix to go deeper/, {exact: false})
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('Set Up Now')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Install'})).toBeInTheDocument();
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: [],
+        preference: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/autofix-repos/`,
+      body: [createRepository()],
+    });
+    ConfigStore.set('user', UserFixture());
   });
 
-  it('renders warning for a single unreadable GitHub repository', function () {
-    const repositories = [createRepository({is_readable: false})];
-
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
-
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
-    expect(screen.getByText('org/repo')).toBeInTheDocument();
-    expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-    expect(screen.getByText(/code mappings/)).toBeInTheDocument();
+  it('shows automation step if automation is allowed and tuning is off', async () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
+    });
+    const project = {
+      ...ProjectFixture(),
+      organization: {
+        ...ProjectFixture().organization,
+        features: [],
+      },
+    };
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
+      organization: {
+        ...organization,
+        features: ['trigger-autofix-on-issue-summary'],
+      },
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Unleash Automation')).toBeInTheDocument();
+    });
   });
 
-  it('renders warning for a single unreadable non-GitHub repository', function () {
-    const repositories = [
-      createRepository({is_readable: false, provider: 'gitlab', name: 'org/gitlab-repo'}),
-    ];
-
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
-
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
-    expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
-    expect(
-      screen.getByText(/It currently only supports GitHub repositories/)
-    ).toBeInTheDocument();
+  it('does not show automation step if automation is not allowed', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'off',
+      },
+    });
+    const project = {
+      ...ProjectFixture(),
+      organization: {
+        ...ProjectFixture().organization,
+        features: [],
+      },
+    };
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
+      organization: {...organization, features: []},
+    });
+    expect(screen.queryByText('Unleash Automation')).not.toBeInTheDocument();
   });
 
-  it('renders warning for multiple unreadable repositories (all GitHub)', function () {
-    const repositories = [
-      createRepository({is_readable: false, name: 'org/repo1'}),
-      createRepository({is_readable: false, name: 'org/repo2'}),
-    ];
-
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
-
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
-    expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
-    expect(screen.getByText(/For best performance, enable the/)).toBeInTheDocument();
-    expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-    expect(screen.getByText(/code mappings/)).toBeInTheDocument();
+  it('shows fixability view step if automation is allowed and view not starred', () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+      },
+    });
+    const project = getProjectWithAutomation('high');
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user').options,
+        prefersStackedNavigation: true,
+      },
+    });
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
+      organization: {
+        ...organization,
+        features: ['trigger-autofix-on-issue-summary'],
+      },
+    });
+    expect(screen.getByText('Get Some Quick Wins')).toBeInTheDocument();
+    expect(screen.getByText('Star Recommended View')).toBeInTheDocument();
   });
 
-  it('renders warning for multiple unreadable repositories (all non-GitHub)', function () {
-    const repositories = [
-      createRepository({
-        is_readable: false,
-        provider: 'gitlab',
-        name: 'org/gitlab-repo1',
-      }),
-      createRepository({
-        is_readable: false,
-        provider: 'bitbucket',
-        name: 'org/bitbucket-repo2',
-      }),
-    ];
-
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
-
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
-    expect(screen.getByText('org/gitlab-repo1, org/bitbucket-repo2')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Autofix currently only supports GitHub repositories/)
-    ).toBeInTheDocument();
-  });
-
-  it('renders warning for multiple unreadable repositories (mixed GitHub and non-GitHub)', function () {
-    const repositories = [
-      createRepository({is_readable: false, name: 'org/github-repo'}),
-      createRepository({is_readable: false, provider: 'gitlab', name: 'org/gitlab-repo'}),
-    ];
-
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
-
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
-    expect(screen.getByText('org/github-repo, org/gitlab-repo')).toBeInTheDocument();
-    expect(screen.getByText(/For best performance, enable the/)).toBeInTheDocument();
-    expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-    expect(screen.getByText(/code mappings/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Autofix currently only supports GitHub repositories/)
-    ).toBeInTheDocument();
-  });
-
-  it('renders warning for unreadable repositories along with GitHub setup card when no GitHub integration', function () {
-    const repositories = [
-      createRepository({is_readable: false, name: 'org/repo1'}),
-      createRepository({is_readable: false, name: 'org/repo2'}),
-    ];
-
-    render(
-      <SeerNotices autofixRepositories={repositories} hasGithubIntegration={false} />
-    );
-
-    // GitHub setup card
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Now')).toBeInTheDocument();
-
-    // Unreadable repos warning
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
-    expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
-  });
-
-  it('renders correct integration links based on integration_id', function () {
-    const repositories = [
-      createRepository({is_readable: false, integration_id: '456', name: 'org/repo1'}),
-    ];
-
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
-
-    const integrationLink = screen.getByText('GitHub integration');
-    expect(integrationLink).toHaveAttribute(
-      'href',
-      '/settings/org-slug/integrations/github/456'
-    );
-
-    const codeMappingsLink = screen.getByText('code mappings');
-    expect(codeMappingsLink).toHaveAttribute(
-      'href',
-      '/settings/org-slug/integrations/github/456/?tab=codeMappings'
-    );
-  });
-
-  it('combines multiple notices when necessary', function () {
-    const repositories = [
-      createRepository({is_readable: false, name: 'org/repo1'}),
-      createRepository({is_readable: false, name: 'org/repo2'}),
-    ];
-
-    render(
-      <SeerNotices autofixRepositories={repositories} hasGithubIntegration={false} />
-    );
-
-    // Should have both the GitHub setup card and the unreadable repos warning
-    const setupCard = screen.getByText('Set Up the GitHub Integration').closest('div');
-    const warningAlert = screen
-      .getByText(/Autofix can't access these repositories:/)
-      .closest('div');
-
-    expect(setupCard).toBeInTheDocument();
-    expect(warningAlert).toBeInTheDocument();
-    expect(setupCard).not.toBe(warningAlert);
+  it('does not render guided steps if all onboarding steps are complete', () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${ProjectFixture().slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/starred/`,
+      body: [
+        GroupSearchViewFixture({
+          query: 'is:unresolved issue.seer_actionability:high',
+          starred: true,
+        }),
+      ],
+    });
+    const project = getProjectWithAutomation('medium');
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
+      ...{
+        organization: {
+          ...organization,
+          features: ['trigger-autofix-on-issue-summary'],
+        },
+      },
+    });
+    // Should not find any step titles
+    expect(screen.queryByText('Set Up the GitHub Integration')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pick Repositories to Work In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unleash Automation')).not.toBeInTheDocument();
+    expect(screen.queryByText('Get Some Quick Wins')).not.toBeInTheDocument();
   });
 });

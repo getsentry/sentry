@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:13.869988+00:00'
+created: '2025-04-25T21:24:16.219666+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -41,7 +41,7 @@ contributing variants:
               "service.getName(): \"Tomcat\";  Protocol handler start failed"
           exception*
             stacktrace*
-              frame*
+              frame* (marked in-app by the client)
                 module*
                   "io.sentry.example.Application"
                 function*

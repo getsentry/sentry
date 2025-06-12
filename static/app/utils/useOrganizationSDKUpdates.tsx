@@ -1,7 +1,6 @@
+import type {ProjectSdkUpdates} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {ProjectSdkUpdates} from '../types/project';
 
 interface Options {
   enabled?: boolean;

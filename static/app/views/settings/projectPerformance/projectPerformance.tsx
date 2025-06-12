@@ -5,7 +5,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -19,7 +20,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
@@ -71,7 +71,7 @@ export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
-type ProjectPerformanceSettings = {[key: string]: number | boolean};
+type ProjectPerformanceSettings = Record<string, number | boolean>;
 
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
@@ -274,7 +274,6 @@ function ProjectPerformance() {
   }
 
   const requiredScopes: Scope[] = ['project:write'];
-
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
   const isSuperUser = isActiveSuperuser();
@@ -332,47 +331,11 @@ function ProjectPerformance() {
     },
   ];
 
-  const performanceIssueFormFields: Field[] = [
-    {
-      name: 'performanceIssueCreationRate',
-      type: 'range',
-      label: t('Performance Issue Creation Rate'),
-      min: 0.0,
-      max: 1.0,
-      step: 0.01,
-      defaultValue: 0,
-      help: t(
-        'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
-      ),
-      getValue(value) {
-        return Array.isArray(value) ? value[0] : value;
-      },
-    },
-    {
-      name: 'performanceIssueSendToPlatform',
-      type: 'boolean',
-      label: t('Send Occurrences To Platform'),
-      defaultValue: false,
-      help: t(
-        'This determines whether performance issue occurrences are sent to the issues platform.'
-      ),
-    },
-    {
-      name: 'performanceIssueCreationThroughPlatform',
-      type: 'boolean',
-      label: t('Create Issues Through Issues Platform'),
-      defaultValue: false,
-      help: t(
-        'This determines whether performance issues are created through the issues platform.'
-      ),
-    },
-  ];
-
-  const performanceIssueDetectorAdminFields: Field[] = [
-    {
+  const performanceIssueDetectorAdminFieldMapping: Record<string, Field> = {
+    [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
       name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
       type: 'boolean',
-      label: t('N+1 DB Queries Detection Enabled'),
+      label: t('N+1 DB Queries Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -385,10 +348,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_SLOW_DB_QUERY]: {
       name: DetectorConfigAdmin.SLOW_DB_ENABLED,
       type: 'boolean',
-      label: t('Slow DB Queries Detection Enabled'),
+      label: t('Slow DB Queries Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -401,10 +364,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {
       name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
       type: 'boolean',
-      label: t('N+1 API Calls Detection Enabled'),
+      label: t('N+1 API Calls Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -417,10 +380,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
       name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
       type: 'boolean',
-      label: t('Large Render Blocking Asset Detection Enabled'),
+      label: t('Large Render Blocking Asset Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -433,10 +396,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
       name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
       type: 'boolean',
-      label: t('Consecutive DB Queries Detection Enabled'),
+      label: t('Consecutive DB Queries Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -449,10 +412,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
       name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
       type: 'boolean',
-      label: t('Large HTTP Payload Detection Enabled'),
+      label: t('Large HTTP Payload Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -465,10 +428,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_DB_MAIN_THREAD]: {
       name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
       type: 'boolean',
-      label: t('DB On Main Thread Detection Enabled'),
+      label: t('DB on Main Thread Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -481,10 +444,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD]: {
       name: DetectorConfigAdmin.FILE_IO_ENABLED,
       type: 'boolean',
-      label: t('File I/O on Main Thread Detection Enabled'),
+      label: t('File I/O on Main Thread Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -497,10 +460,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET]: {
       name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
       type: 'boolean',
-      label: t('Uncompressed Assets Detection Enabled'),
+      label: t('Uncompressed Assets Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -513,10 +476,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP]: {
       name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
       type: 'boolean',
-      label: t('Consecutive HTTP Detection Enabled'),
+      label: t('Consecutive HTTP Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -529,10 +492,10 @@ function ProjectPerformance() {
         );
       },
     },
-    {
+    [IssueTitle.PERFORMANCE_HTTP_OVERHEAD]: {
       name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
       type: 'boolean',
-      label: t('HTTP/1.1 Overhead Enabled'),
+      label: t('HTTP/1.1 Overhead Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -545,6 +508,9 @@ function ProjectPerformance() {
         );
       },
     },
+  };
+
+  const performanceRegressionAdminFields: Field[] = [
     {
       name: DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED,
       type: 'boolean',
@@ -580,15 +546,9 @@ function ProjectPerformance() {
   ];
 
   const project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
-    const supportMail = ConfigStore.get('supportEmail');
-    const disabledReason = hasAccess
-      ? tct(
-          'Detection of this issue has been disabled. Contact our support team at [link:support@sentry.io].',
-          {
-            link: <ExternalLink href={'mailto:' + supportMail} />,
-          }
-        )
-      : null;
+    const disabledText = t('Detection of this issue has been disabled.');
+
+    const disabledReason = hasAccess ? disabledText : null;
 
     const formatDuration = (value: number | ''): string => {
       return value ? (value < 1000 ? `${value}ms` : `${value / 1000}s`) : '';
@@ -613,7 +573,7 @@ function ProjectPerformance() {
 
     const issueType = safeGetQsParam('issueType');
 
-    return [
+    const baseDetectorFields: JsonFormObject[] = [
       {
         title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         fields: [
@@ -914,6 +874,29 @@ function ProjectPerformance() {
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
       },
     ];
+
+    // If the organization can manage detectors, add the admin field to the existing settings
+    return baseDetectorFields.map(fieldGroup => {
+      const manageField =
+        performanceIssueDetectorAdminFieldMapping[fieldGroup.title as string];
+
+      return manageField
+        ? {
+            ...fieldGroup,
+            fields: [
+              {
+                ...manageField,
+                help: t(
+                  'Controls whether or not Sentry should detect this type of issue.'
+                ),
+                disabled: !hasAccess,
+                disabledReason: t('You do not have permission to manage detectors.'),
+              },
+              ...fieldGroup.fields,
+            ],
+          }
+        : fieldGroup;
+    });
   };
 
   return (
@@ -1036,55 +1019,33 @@ function ProjectPerformance() {
         </Form>
       </Feature>
       <Fragment>
-        <Feature features="organizations:performance-issues-dev">
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={{
-              performanceIssueCreationRate: project.performanceIssueCreationRate,
-              performanceIssueSendToPlatform: project.performanceIssueSendToPlatform,
-              performanceIssueCreationThroughPlatform:
-                project.performanceIssueCreationThroughPlatform,
-            }}
-            apiMethod="PUT"
-            apiEndpoint={projectEndpoint}
-          >
-            <Access access={requiredScopes} project={project}>
-              {({hasAccess}) => (
-                <JsonForm
-                  title={t('Performance Issues - All')}
-                  fields={performanceIssueFormFields}
-                  disabled={!hasAccess}
-                />
-              )}
-            </Access>
-          </Form>
-        </Feature>
         {isSuperUser && (
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={performanceIssueSettings}
-            apiMethod="PUT"
-            onSubmitError={error => {
-              if (error.status === 403) {
-                addErrorMessage(
-                  t(
-                    'This action requires active super user access. Please re-authenticate to make changes.'
-                  )
-                );
-              }
-            }}
-            apiEndpoint={performanceIssuesEndpoint}
-          >
-            <JsonForm
-              title={t(
-                '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-              )}
-              fields={performanceIssueDetectorAdminFields}
-              disabled={!isSuperUser}
-            />
-          </Form>
+          <Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={performanceIssueSettings}
+              apiMethod="PUT"
+              onSubmitError={error => {
+                if (error.status === 403) {
+                  addErrorMessage(
+                    t(
+                      'This action requires active super user access. Please re-authenticate to make changes.'
+                    )
+                  );
+                }
+              }}
+              apiEndpoint={performanceIssuesEndpoint}
+            >
+              <JsonForm
+                title={t(
+                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                )}
+                fields={performanceRegressionAdminFields}
+                disabled={!isSuperUser}
+              />
+            </Form>
+          </Fragment>
         )}
         <Form
           allowUndo
@@ -1092,7 +1053,7 @@ function ProjectPerformance() {
           apiMethod="PUT"
           apiEndpoint={performanceIssuesEndpoint}
           saveOnBlur
-          onSubmitSuccess={(option: {[key: string]: number}) => {
+          onSubmitSuccess={(option: Record<string, number>) => {
             const [threshold_key, threshold_value] = Object.entries(option)[0]!;
 
             trackAnalytics(

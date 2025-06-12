@@ -17,7 +17,7 @@ export default function FeedbackAlertBanner({
 }) {
   const organization = useOrganization();
   const filterSet = filters?.filter(r => r.id === IssueAlertFilterType.ISSUE_CATEGORY);
-  if (!filterSet || !filterSet.length) {
+  if (!filterSet?.length) {
     return null;
   }
   const filterFeedback = filterSet.find(f => f.value === '6'); // category: feedback

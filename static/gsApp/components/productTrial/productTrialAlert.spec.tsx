@@ -70,9 +70,9 @@ describe('ProductTrialAlert', function () {
         product={DataCategory.SPANS}
       />
     );
-    expect(screen.getByText('Spans Trial')).toBeInTheDocument();
+    expect(screen.getByText('Tracing Trial')).toBeInTheDocument();
     expect(
-      screen.getByText(`You have full access to unlimited Spans until ${trial.endDate}`)
+      screen.getByText(`You have full access to unlimited Tracing until ${trial.endDate}`)
     ).toBeInTheDocument();
   });
 
@@ -149,10 +149,10 @@ describe('ProductTrialAlert', function () {
         product={DataCategory.PROFILES}
       />
     );
-    expect(screen.getByText('Profiling Trial')).toBeInTheDocument();
+    expect(screen.getByText('Continuous Profiling Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Your unlimited Profiling trial ended. Keep using more by upgrading your plan.'
+        'Your unlimited Continuous Profiling trial ended. Keep using more by upgrading your plan.'
       )
     ).toBeInTheDocument();
   });

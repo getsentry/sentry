@@ -96,7 +96,7 @@ class DummyNotificationWithMoreFields(DummyNotification):
     def get_title_link(self, *args):
         from sentry.integrations.messaging.message_builder import get_title_link
 
-        return get_title_link(self.group, None, False, True, self)
+        return get_title_link(self.group, None, False, True, self, ExternalProviders.SLACK)
 
 
 TEST_ISSUE_OCCURRENCE = IssueOccurrence(

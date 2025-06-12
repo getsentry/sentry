@@ -70,7 +70,11 @@ describe('GroupUptimeChecks', () => {
       body: [],
     });
 
-    render(<GroupUptimeChecks />, {organization, router});
+    render(<GroupUptimeChecks />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
       expect(screen.getByText(column)).toBeInTheDocument();
@@ -93,7 +97,11 @@ describe('GroupUptimeChecks', () => {
       match: [MockApiClient.matchQuery({referrer: 'api.uptime-checks-grid'})],
     });
 
-    render(<GroupUptimeChecks />, {organization, router});
+    render(<GroupUptimeChecks />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1-1 matching uptime checks')).toBeInTheDocument();
@@ -125,7 +133,11 @@ describe('GroupUptimeChecks', () => {
       match: [MockApiClient.matchQuery({referrer: 'api.uptime-checks-grid'})],
     });
 
-    render(<GroupUptimeChecks />, {organization, router});
+    render(<GroupUptimeChecks />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 
     const traceId = getShortEventId(uptimeCheck.traceId);

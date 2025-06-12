@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:31:44.063306+00:00'
+created: '2025-04-25T21:24:05.888016+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,22 +30,22 @@ contributing variants:
       app*
         threads*
           stacktrace*
-            frame*
-              function*
-                "unicorn"
             frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
+                "unicorn"
+            frame* (marked in-app by the client)
+              function*
                 "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "FudgeLogTaggedError"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "closure"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "SentrySetupInteractor.setupSentry"
-            frame*
+            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
               function*
                 "closure"
   system*

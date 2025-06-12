@@ -9,7 +9,6 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vsts.webhooks import WorkItemWebhook, get_vsts_external_id
 from sentry.silo.base import control_silo_function
 
@@ -42,7 +41,10 @@ class VstsRequestParser(BaseRequestParser):
                 return self.get_default_missing_integration_response()
 
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        except Integration.DoesNotExist:
+            return self.get_default_missing_integration_response()
+
+        if len(regions) == 0:
             return self.get_default_missing_integration_response()
 
         return self.get_response_from_webhookpayload(

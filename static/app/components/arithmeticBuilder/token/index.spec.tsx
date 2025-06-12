@@ -38,7 +38,7 @@ function Tokens(props: TokensProp) {
   );
 
   return (
-    <ArithmeticBuilderContext.Provider
+    <ArithmeticBuilderContext
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
@@ -47,7 +47,7 @@ function Tokens(props: TokensProp) {
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
-    </ArithmeticBuilderContext.Provider>
+    </ArithmeticBuilderContext>
   );
 }
 
@@ -92,11 +92,7 @@ describe('token', function () {
 
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
-      expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
-      ).toBeInTheDocument();
+      expect(await screen.findByLabelText('avg(span.duration)')).toBeInTheDocument();
     });
 
     it('allow selecting function using keyboard', async function () {
@@ -140,7 +136,7 @@ describe('token', function () {
       const options = within(screen.getByRole('listbox'));
       await userEvent.click(options.getByTestId('icon-parenthesis'));
 
-      const row = await screen.findByRole('row');
+      const row = await screen.findByLabelText('open_paren:0');
       expect(within(row).getByTestId('icon-parenthesis')).toBeInTheDocument();
     });
 
@@ -329,10 +325,6 @@ describe('token', function () {
 
       await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
 
-      const lastInput = getLastInput();
-      await waitFor(() => expect(lastInput).toHaveFocus());
-      await userEvent.type(lastInput, '{Escape}');
-
       await waitFor(() => {
         expect(
           screen.getByRole('row', {
@@ -367,10 +359,6 @@ describe('token', function () {
       expect(screen.getAllByRole('option')).toHaveLength(1);
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
-
-      const lastInput = getLastInput();
-      await waitFor(() => expect(lastInput).toHaveFocus());
-      await userEvent.type(lastInput, '{Escape}');
 
       expect(
         await screen.findByRole('row', {

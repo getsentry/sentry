@@ -1,73 +1,72 @@
-import {useCallback, useState} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Chevron} from 'sentry/components/chevron';
 import {Flex} from 'sentry/components/container/flex';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
+import FormContext from 'sentry/components/forms/formContext';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconArrow} from 'sentry/icons';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 
-export interface PriorityControlGridProps {
-  name: string;
-  onPriorityChange?: (value: PriorityLevel) => void;
-  onThresholdChange?: (level: PriorityLevel, threshold: number) => void;
-  priority?: PriorityLevel;
-  thresholds?: PriorityThresholds;
+function ThresholdPriority() {
+  const lowThresholdDirection = useFormField<string>('conditionGroup.conditions.0.type')!;
+  const lowThreshold = useFormField<string>('conditionGroup.conditions.0.comparison')!;
+  return (
+    <div>
+      {lowThresholdDirection === ''
+        ? t('Above')
+        : lowThresholdDirection === 'above'
+          ? t('Above')
+          : t('Below')}{' '}
+      {lowThreshold === '' ? '0s' : lowThreshold + 's'}
+    </div>
+  );
 }
 
-export interface PriorityThresholds {
-  high?: number;
-  medium?: number;
+function ChangePriority() {
+  const lowThresholdDirection = useFormField<string>('conditionGroup.conditions.0.type')!;
+  const lowThreshold = useFormField<string>('conditionGroup.conditions.0.comparison')!;
+  return (
+    <div>
+      {lowThreshold === '' ? '0' : lowThreshold}%{' '}
+      {lowThresholdDirection === ''
+        ? t('higher')
+        : lowThresholdDirection === 'higher'
+          ? t('higher')
+          : t('lower')}
+    </div>
+  );
 }
 
-export default function PriorityControl({
-  name,
-  priority: initialPriority,
-  onPriorityChange,
-  thresholds: initialThresholds,
-  onThresholdChange,
-}: PriorityControlGridProps) {
-  const [priority, setPriority] = useState<PriorityLevel>(
-    initialPriority ?? PriorityLevel.LOW
-  );
-  const [thresholds, setThresholds] = useState<PriorityThresholds>(
-    initialThresholds ?? {}
-  );
-  const setCreatedPriority = useCallback(
-    (level: PriorityLevel) => {
-      setPriority(level);
-      onPriorityChange?.(level);
-    },
-    [setPriority, onPriorityChange]
-  );
-  const setMediumThreshold = useCallback(
-    (threshold: number) => {
-      setThresholds(v => ({...v, [PriorityLevel.MEDIUM]: threshold}));
-      onThresholdChange?.(PriorityLevel.MEDIUM, threshold);
-    },
-    [setThresholds, onThresholdChange]
-  );
-  const setHighThreshold = useCallback(
-    (threshold: number) => {
-      setThresholds(v => ({...v, [PriorityLevel.HIGH]: threshold}));
-      onThresholdChange?.(PriorityLevel.HIGH, threshold);
-    },
-    [setThresholds, onThresholdChange]
-  );
+export default function PriorityControl() {
+  // TODO: kind type not yet available from detector types
+  const detectorKind = useFormField<string>('kind')!;
+  const conditionResult =
+    useFormField<PriorityLevel>('conditionGroup.conditions.0.conditionResult') ||
+    PriorityLevel.LOW;
 
   return (
     <Grid>
       <PrioritizeRow
-        left={<span style={{textAlign: 'right'}}>{t('Issue created')}</span>}
-        right={<PrioritySelect value={priority} onChange={setCreatedPriority} />}
+        left={
+          <Flex align="center" column>
+            {!detectorKind || detectorKind === 'threshold' ? (
+              <ThresholdPriority />
+            ) : (
+              <ChangePriority />
+            )}
+            <SecondaryLabel>({t('issue created')})</SecondaryLabel>
+          </Flex>
+        }
+        right={<PrioritySelect />}
       />
-      {priorityIsConfigurable(priority, PriorityLevel.MEDIUM) && (
+      {priorityIsConfigurable(conditionResult, PriorityLevel.MEDIUM) && (
         <PrioritizeRow
           left={
             <NumberField
@@ -77,23 +76,15 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
-              // empty string required to keep this as a controlled input
-              value={thresholds[PriorityLevel.MEDIUM] ?? ''}
-              onChange={threshold => setMediumThreshold(Number(threshold))}
-              name={`${name}-medium`}
+              placeholder="0"
+              name={`conditionGroup.conditions.1.comparison`}
               data-test-id="priority-control-medium"
             />
           }
-          right={
-            <GroupPriorityBadge
-              showLabel
-              variant="signal"
-              priority={PriorityLevel.MEDIUM}
-            />
-          }
+          right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
         />
       )}
-      {priorityIsConfigurable(priority, PriorityLevel.HIGH) && (
+      {priorityIsConfigurable(conditionResult, PriorityLevel.HIGH) && (
         <PrioritizeRow
           left={
             <NumberField
@@ -103,20 +94,12 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
-              // empty string required to keep this as a controlled input
-              value={thresholds[PriorityLevel.HIGH] ?? ''}
-              onChange={threshold => setHighThreshold(Number(threshold))}
-              name={`${name}-high`}
+              placeholder="0"
+              name={`conditionGroup.conditions.2.comparison`}
               data-test-id="priority-control-high"
             />
           }
-          right={
-            <GroupPriorityBadge
-              showLabel
-              variant="signal"
-              priority={PriorityLevel.HIGH}
-            />
-          }
+          right={<GroupPriorityBadge showLabel priority={PriorityLevel.HIGH} />}
         />
       )}
     </Grid>
@@ -154,21 +137,11 @@ function PrioritizeRow({left, right}: {left: React.ReactNode; right: React.React
 
 const priorities = [PriorityLevel.LOW, PriorityLevel.MEDIUM, PriorityLevel.HIGH];
 
-function PrioritySelect({
-  value: initialValue,
-  onChange = () => {},
-}: {
-  onChange?: (value: PriorityLevel) => void;
-  value?: PriorityLevel;
-}) {
-  const [value, setValue] = useState<PriorityLevel>(initialValue ?? PriorityLevel.HIGH);
-  const handleChange = useCallback(
-    (select: SelectOption<PriorityLevel>) => {
-      onChange(select.value);
-      setValue(select.value);
-    },
-    [onChange, setValue]
-  );
+function PrioritySelect() {
+  const formContext = useContext(FormContext);
+  const conditionResult =
+    useFormField<PriorityLevel>('conditionGroup.conditions.0.conditionResult') ||
+    PriorityLevel.LOW;
 
   return (
     <CompactSelect
@@ -176,20 +149,22 @@ function PrioritySelect({
       trigger={(props, isOpen) => {
         return (
           <EmptyButton {...props}>
-            <GroupPriorityBadge showLabel variant="signal" priority={value}>
+            <GroupPriorityBadge showLabel priority={conditionResult}>
               <InteractionStateLayer isPressed={isOpen} />
-              <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
             </GroupPriorityBadge>
           </EmptyButton>
         );
       }}
       options={priorities.map(priority => ({
-        label: <GroupPriorityBadge showLabel variant="signal" priority={priority} />,
+        label: <GroupPriorityBadge showLabel priority={priority} />,
         value: priority,
         textValue: priority,
       }))}
-      value={value}
-      onChange={handleChange}
+      value={conditionResult}
+      onChange={({value}) => {
+        formContext.form?.setValue('conditionGroup.conditions.0.conditionResult', value);
+      }}
     />
   );
 }
@@ -222,4 +197,9 @@ const Cell = styled(Flex)`
     padding: 0;
     width: 5rem;
   }
+`;
+
+const SecondaryLabel = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;

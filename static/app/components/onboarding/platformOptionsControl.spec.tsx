@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -30,20 +29,17 @@ describe('Onboarding Product Selection', function () {
   };
 
   it('renders default state', function () {
-    const {router} = initializeOrg({
-      router: {
+    render(<PlatformOptionsControl platformOptions={platformOptions} />, {
+      initialRouterConfig: {
         location: {
+          pathname: '/mock-pathname/',
           query: {
             springBoot: 'v3',
             packageManager: 'something-else',
           },
         },
-        params: {},
+        route: '/mock-pathname/',
       },
-    });
-
-    render(<PlatformOptionsControl platformOptions={platformOptions} />, {
-      router,
     });
 
     // Find the Spring Boot option, preselected from the URL
@@ -75,21 +71,21 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('updates the url on change', async function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            springBoot: 'v3',
-            packageManager: 'gradle',
+    const {router} = render(
+      <PlatformOptionsControl platformOptions={platformOptions} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              springBoot: 'v3',
+              packageManager: 'gradle',
+            },
           },
+          route: '/mock-pathname/',
         },
-        params: {},
-      },
-    });
-
-    render(<PlatformOptionsControl platformOptions={platformOptions} />, {
-      router,
-    });
+      }
+    );
 
     const springBootV3 = screen.getByRole('radio', {name: 'V3'});
     expect(springBootV3).toBeInTheDocument();
@@ -101,28 +97,17 @@ describe('Onboarding Product Selection', function () {
 
     await userEvent.click(springBootV2);
 
-    expect(router.replace).toHaveBeenCalledWith({
-      ...router.location,
-      query: {
-        springBoot: 'v2',
-        packageManager: 'gradle',
-      },
-    });
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        query: {
+          springBoot: 'v2',
+          packageManager: 'gradle',
+        },
+      })
+    );
   });
 
   it('triggers onChange callback', async function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            springBoot: 'v3',
-            packageManager: 'gradle',
-          },
-        },
-        params: {},
-      },
-    });
-
     const handleChange = jest.fn();
 
     render(
@@ -131,7 +116,16 @@ describe('Onboarding Product Selection', function () {
         onChange={handleChange}
       />,
       {
-        router,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname',
+            query: {
+              springBoot: 'v3',
+              packageManager: 'gradle',
+            },
+          },
+          route: '/mock-pathname/',
+        },
       }
     );
 

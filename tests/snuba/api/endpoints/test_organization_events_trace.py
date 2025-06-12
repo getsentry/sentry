@@ -15,9 +15,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
     url_name: str
     FEATURES = [
         "organizations:performance-view",
-        "organizations:performance-file-io-main-thread-detector",
         "organizations:trace-view-load-more",
-        "organizations:performance-slow-db-issue",
     ]
 
     def setUp(self):
@@ -1468,7 +1466,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     def test_with_error_event(self):
         self.load_trace()
-        start, _ = self.get_start_end_from_day_ago(1000)
+        _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
             timestamp=start,
@@ -1494,6 +1492,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert error_result["span"] == self.gen1_span_ids[0]
         assert error_result["title"] == error.title
         assert error_result["message"] == error.search_message
+        assert error_result["timestamp"] == datetime.fromisoformat(error.timestamp).timestamp()
 
     @pytest.mark.skip(
         "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"

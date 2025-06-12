@@ -2,6 +2,7 @@
 // Styled components used by both ListBox and GridList
 //
 
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -118,14 +119,14 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
 
   ${p =>
     p.visible
-      ? `
-    opacity: 1;
-    pointer-events: all;
-  `
-      : `
-    opacity: 0;
-    pointer-events: none;
-  `}
+      ? css`
+          opacity: 1;
+          pointer-events: all;
+        `
+      : css`
+          opacity: 0;
+          pointer-events: none;
+        `}
 
   li[role="rowgroup"]:hover &,
   li[role="presentation"]:hover & {

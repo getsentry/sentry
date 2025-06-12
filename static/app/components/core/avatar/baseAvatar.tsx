@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 
 import {Gravatar} from 'sentry/components/core/avatar/gravatar';
 import {LetterAvatar} from 'sentry/components/core/avatar/letterAvatar';
-import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
 import {
@@ -106,7 +106,7 @@ export function BaseAvatar({
     );
 
   return (
-    <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
+    <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
         ref={ref as React.Ref<HTMLSpanElement>}
         data-test-id={`${type}-avatar`}
@@ -115,7 +115,6 @@ export function BaseAvatar({
         suggested={!!suggested}
         style={{...(size ? {height: size, width: size} : {}), ...style}}
         title={title}
-        hasTooltip={hasTooltip}
         {...props}
       >
         {hasError
@@ -137,7 +136,6 @@ export function BaseAvatar({
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
 const AvatarContainer = styled('span')<{
-  hasTooltip: boolean;
   round: boolean;
   suggested: boolean;
 }>`
@@ -145,9 +143,6 @@ const AvatarContainer = styled('span')<{
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
-  :hover {
-    pointer-events: ${p => (p.hasTooltip ? 'none' : 'auto')};
-  }
 `;
 
 interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {

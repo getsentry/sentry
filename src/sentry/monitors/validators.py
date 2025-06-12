@@ -18,13 +18,11 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.models import CheckInStatus, Monitor, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule
 from sentry.utils.dates import AVAILABLE_TIMEZONES
-
-MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -121,6 +119,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
         min_value=1,
+        max_value=MAX_MARGIN,
     )
 
     max_runtime = EmptyIntegerField(
@@ -274,11 +273,6 @@ class MonitorValidator(CamelSnakeSerializer):
         required=False,
         help_text="Disable creation of monitor incidents",
     )
-    type = serializers.ChoiceField(
-        choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())),
-        required=False,
-        default="cron_job",
-    )
     config = ConfigValidator(help_text="The configuration for the monitor.")
     alert_rule = MonitorAlertRuleValidator(required=False)
 
@@ -290,7 +284,7 @@ class MonitorValidator(CamelSnakeSerializer):
         # a seat, otherwise fail with the reason it cannot.
         #
         # XXX: This check will ONLY be performed when a monitor is provided via
-        #      context. It is the callers responsabiliy to ensure that a
+        #      context. It is the caller's responsibility to ensure that a
         #      monitor is provided in context for this to be validated.
         if status == ObjectStatus.ACTIVE and monitor:
             result = quotas.backend.check_assign_monitor_seat(monitor)
@@ -298,9 +292,6 @@ class MonitorValidator(CamelSnakeSerializer):
                 raise ValidationError(result.reason)
 
         return status
-
-    def validate_type(self, value):
-        return MONITOR_TYPES.get(value, value)
 
     def validate_slug(self, value):
         # Ignore if slug is equal to current value

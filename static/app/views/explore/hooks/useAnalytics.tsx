@@ -20,23 +20,31 @@ import {
   useExploreTitle,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import type {
+  UseInfiniteLogsQueryResult,
+  UseLogsQueryResult,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  computeVisualizeSampleTotals,
+} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;
   dataset: DiscoverDatasets;
   fields: string[];
   interval: string;
+  isTopN: boolean;
   page_source: 'explore' | 'compare';
   query: string;
   queryType: 'aggregate' | 'samples' | 'traces';
@@ -47,7 +55,7 @@ interface UseTrackAnalyticsProps {
   tracesTableResult?: TracesTableResult;
 }
 
-export function useTrackAnalytics({
+function useTrackAnalytics({
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -60,6 +68,7 @@ export function useTrackAnalytics({
   visualizes,
   page_source,
   interval,
+  isTopN,
 }: UseTrackAnalyticsProps) {
   const organization = useOrganization();
 
@@ -100,19 +109,22 @@ export function useTrackAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes: visualizes.map(visualize => ({
-        chartType: visualize.chartType,
-        yAxes: visualize.yAxes,
-      })),
+      visualizes: visualizes.map(visualize => visualize.toJSON()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
+      sample_counts: computeVisualizeSampleTotals(
+        visualizes,
+        timeseriesResult.data,
+        isTopN
+      ),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
     });
 
+    /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
@@ -130,6 +142,7 @@ export function useTrackAnalytics({
     `,
       {isAnalytics: true}
     );
+    /* eslint-enable @typescript-eslint/no-base-to-string */
   }, [
     organization,
     dataset,
@@ -149,6 +162,7 @@ export function useTrackAnalytics({
     query_status,
     page_source,
     interval,
+    isTopN,
   ]);
 
   useEffect(() => {
@@ -178,6 +192,11 @@ export function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
+      sample_counts: computeVisualizeSampleTotals(
+        visualizes,
+        timeseriesResult.data,
+        isTopN
+      ),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -215,6 +234,7 @@ export function useTrackAnalytics({
     query_status,
     page_source,
     interval,
+    isTopN,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -259,6 +279,11 @@ export function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
+      sample_counts: computeVisualizeSampleTotals(
+        visualizes,
+        timeseriesResult.data,
+        isTopN
+      ),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -282,6 +307,7 @@ export function useTrackAnalytics({
     page_source,
     tracesTableResultDefined,
     interval,
+    isTopN,
   ]);
 }
 
@@ -306,6 +332,8 @@ export function useAnalytics({
   const query = useExploreQuery();
   const fields = useExploreFields();
   const visualizes = useExploreVisualizes();
+  const topEvents = useTopEvents();
+  const isTopN = topEvents ? topEvents > 0 : false;
 
   return useTrackAnalytics({
     queryType,
@@ -320,6 +348,7 @@ export function useAnalytics({
     visualizes,
     interval,
     page_source: 'explore',
+    isTopN,
   });
 }
 
@@ -331,6 +360,7 @@ export function useCompareAnalytics({
   spansTableResult,
   timeseriesResult,
   interval,
+  isTopN,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -338,6 +368,7 @@ export function useCompareAnalytics({
   | 'spansTableResult'
   | 'timeseriesResult'
   | 'interval'
+  | 'isTopN'
 > & {
   index: number;
   query: ReadableExploreQueryParts;
@@ -345,13 +376,10 @@ export function useCompareAnalytics({
   const dataset = DiscoverDatasets.SPANS_EAP_RPC;
   const query = queryParts.query;
   const fields = queryParts.fields;
-  const visualizes = queryParts.yAxes.map(yAxis => {
-    return {
-      chartType: queryParts.chartType,
-      yAxes: [yAxis],
-      label: String(index),
-    } as Visualize;
-  });
+  const visualizes = queryParts.yAxes.map(
+    yAxis =>
+      new Visualize([yAxis], {label: String(index), chartType: queryParts.chartType})
+  );
 
   return useTrackAnalytics({
     queryType,
@@ -364,6 +392,7 @@ export function useCompareAnalytics({
     visualizes,
     interval,
     page_source: 'compare',
+    isTopN,
   });
 }
 
@@ -371,7 +400,7 @@ export function useLogAnalytics({
   logsTableResult,
   source,
 }: {
-  logsTableResult: UseExploreLogsTableResult;
+  logsTableResult: UseLogsQueryResult | UseInfiniteLogsQueryResult;
   source: LogsAnalyticsPageSource;
 }) {
   const organization = useOrganization();
@@ -451,14 +480,14 @@ function computeConfidence(
   });
 }
 
-export function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
+function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'values'>): number {
   let emptyBucketsForSeries = 0;
-  for (const item of series.data) {
+  for (const item of series.values) {
     if (item.value === 0 || item.value === null) {
       emptyBucketsForSeries += 1;
     }
   }
-  return Math.floor((emptyBucketsForSeries / series.data.length) * 100);
+  return Math.floor((emptyBucketsForSeries / series.values.length) * 100);
 }
 
 function computeEmptyBuckets(

@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 
 export interface StatusIndicatorProps {
   status: 'muted' | 'info' | 'warning' | 'success' | 'resolved' | 'error';

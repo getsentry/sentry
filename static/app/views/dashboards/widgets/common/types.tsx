@@ -1,7 +1,6 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-
-import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 type AttributeValueType =
   | 'number'
@@ -14,55 +13,73 @@ type AttributeValueType =
   | 'string'
   | 'size'
   | 'rate'
+  | 'score'
   | null;
 
 type AttributeValueUnit = DataUnit | null;
 
-export type TimeSeriesValueType = AttributeValueType;
+type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
-  type: TimeSeriesValueType;
-  unit: TimeSeriesValueUnit;
+  /**
+   * Difference between the timestamps of the datapoints, in milliseconds
+   */
+  interval: number;
+  valueType: TimeSeriesValueType;
+  valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
+  /**
+   * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
+   */
+  order?: number;
 };
 
 export type TimeSeriesItem = {
-  timestamp: string;
+  /**
+   * Milliseconds since Unix epoch
+   */
+  timestamp: number;
   value: number | null;
-  delayed?: boolean;
+  /**
+   * A data point might be incomplete for a few reasons. One possible reason is that it's too new, and the ingestion of data for this time bucket is still going. Another reason is that it's truncated. For example, if we're plotting a data bucket from 1:00pm to 2:00pm, but the data set only includes data from 1:15pm and on, the bucket is incomplete.
+   */
+  incomplete?: boolean;
 };
 
 export type TimeSeries = {
-  data: TimeSeriesItem[];
-  field: string;
   meta: TimeSeriesMeta;
+  values: TimeSeriesItem[];
+  yAxis: string;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-export type TabularMeta = {
-  fields: {
-    [key: string]: TabularValueType;
-  };
-  units: {
-    [key: string]: TabularValueUnit;
-  };
+type TabularMeta<TFields extends string = string> = {
+  fields: Record<TFields, TabularValueType>;
+  units: Record<TFields, TabularValueUnit>;
 };
 
-export type TabularRow = Record<string, number | string | undefined>;
+export type TabularRow<TFields extends string = string> = Record<
+  TFields,
+  number | string | string[] | null
+>;
 
-export type TabularData = {
-  data: TabularRow[];
-  meta: TabularMeta;
+export type TabularData<TFields extends string = string> = {
+  data: Array<TabularRow<TFields>>;
+  meta: TabularMeta<TFields>;
 };
 
-export type ErrorProp = Error | string;
+type ErrorProp = Error | string;
+export interface ErrorPropWithResponseJSON extends Error {
+  responseJSON?: {detail: string};
+}
 
 export interface StateProps {
-  error?: ErrorProp;
+  error?: ErrorProp | ErrorPropWithResponseJSON;
   isLoading?: boolean;
   onRetry?: () => void;
 }
@@ -74,4 +91,4 @@ export type Release = {
   version: string;
 };
 
-export type LegendSelection = {[key: string]: boolean};
+export type LegendSelection = Record<string, boolean>;

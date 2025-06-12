@@ -186,10 +186,111 @@ const crashReportOnboarding: OnboardingConfig = {
   verify: () => [],
   nextSteps: () => [],
 };
+const profilingOnboarding: OnboardingConfig = {
+  introduction: () => (
+    <p>
+      {tct(
+        'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
+        {code: <code />}
+      )}
+    </p>
+  ),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        {
+          language: 'bash',
+          description: tct('Install the [code:sentry/sentry-symfony] bundle:', {
+            code: <code />,
+          }),
+          code: 'composer require sentry/sentry-symfony',
+        },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: t('Install the Excimer extension via PECL:'),
+                language: 'bash',
+                code: 'pecl install excimer',
+              },
+              {
+                description: tct(
+                  "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+                  {
+                    sentryPhpDocumentationLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+                    ),
+                  }
+                ),
+              },
+            ]
+          : []),
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: tct('Add your DSN to your [code:.env] file:', {code: <code />}),
+          language: 'shell',
+          code: `
+###> sentry/sentry-symfony ###
+SENTRY_DSN="${params.dsn.public}"
+###< sentry/sentry-symfony ###
+          `,
+        },
+        ...(params.isPerformanceSelected || params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Add further configuration options to your [code:config/packages/sentry.yaml] file:',
+                  {code: <code />}
+                ),
+                language: 'yaml',
+                code: `when@prod:
+      sentry:
+          dsn: '%env(SENTRY_DSN)%'${
+            params.isPerformanceSelected || params.isProfilingSelected
+              ? `
+          options:`
+              : ''
+          }${
+            params.isPerformanceSelected
+              ? `
+              # Specify a fixed sample rate
+              traces_sample_rate: 1.0`
+              : ''
+          }${
+            params.isProfilingSelected
+              ? `
+              # Set a sampling rate for profiling - this is relative to traces_sample_rate
+              profiles_sample_rate: 1.0`
+              : ''
+          }`,
+              },
+            ]
+          : []),
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+      configurations: [],
+    },
+  ],
+  nextSteps: () => [],
+};
 
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  profilingOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };

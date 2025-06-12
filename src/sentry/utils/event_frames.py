@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Protocol, cast
 
+from sentry.utils import metrics
 from sentry.utils.safe import PathSearchable, get_path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -39,23 +43,24 @@ class SdkFrameMunger:
 
 
 def java_frame_munger(frame: EventFrame) -> str | None:
-    if not frame.filename or not frame.module:
+    stacktrace_path = None
+    if not frame.module or not frame.abs_path:
         return None
 
-    if "$" in frame.module:
-        path = frame.module.split("$")[0].replace(".", "/")
-        if frame.abs_path and frame.abs_path.count(".") == 1:
-            # Append extension
-            path = path + "." + frame.abs_path.split(".")[-1]
-        return path
+    from sentry.issues.auto_source_code_config.errors import (
+        DoesNotFollowJavaPackageNamingConvention,
+    )
+    from sentry.issues.auto_source_code_config.frame_info import get_path_from_module
 
-    if "/" not in str(frame.filename) and frame.module:
-        # Replace the last module segment with the filename, as the
-        # terminal element in a module path is the class
-        module = frame.module.split(".")
-        module[-1] = frame.filename
-        return "/".join(module)
-    return None
+    try:
+        _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
+    except DoesNotFollowJavaPackageNamingConvention:
+        pass
+    except Exception:
+        # Report but continue
+        logger.exception("Investigate. Error munging java frame")
+
+    return stacktrace_path
 
 
 def cocoa_frame_munger(frame: EventFrame) -> str | None:
@@ -65,6 +70,11 @@ def cocoa_frame_munger(frame: EventFrame) -> str | None:
     rel_path = package_relative_path(frame.abs_path, frame.package)
     if rel_path:
         return rel_path
+
+    logger.warning(
+        "sentry.issues.frame_munging.failure",
+        extra={"platform": "cocoa", "frame": frame},
+    )
     return None
 
 
@@ -131,7 +141,12 @@ def try_munge_frame_path(
     if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
         return None
 
-    return munger.frame_munger(frame)
+    munged_filename = munger.frame_munger(frame)
+    metrics.incr(
+        "sentry.issues.frame_munging",
+        tags={"platform": platform, "outcome": "success" if munged_filename else "failure"},
+    )
+    return munged_filename
 
 
 def munged_filename_and_frames(
@@ -166,7 +181,7 @@ def munged_filename_and_frames(
 
 
 def get_crashing_thread(
-    thread_frames: Sequence[Mapping[str, Any]] | None
+    thread_frames: Sequence[Mapping[str, Any]] | None,
 ) -> Mapping[str, Any] | None:
     if not thread_frames:
         return None

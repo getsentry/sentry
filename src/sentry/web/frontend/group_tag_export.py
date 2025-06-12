@@ -4,7 +4,7 @@ from django.http import Http404
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.helpers.environments import get_environment_id
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import (
     GroupTagValueAndEventUser,
@@ -29,13 +29,13 @@ class GroupTagCsvResponder(CsvResponder[GroupTagValueAndEventUser]):
 
 
 @region_silo_view
-class GroupTagExportView(ProjectView, EnvironmentMixin):
+class GroupTagExportView(ProjectView):
     required_scope = "event:read"
 
     def get(self, request: Request, organization, project, group_id, key) -> HttpResponseBase:
         # If the environment doesn't exist then the tag can't possibly exist
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = get_environment_id(request, project.organization_id)
         except Environment.DoesNotExist:
             raise Http404
 

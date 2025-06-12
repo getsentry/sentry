@@ -77,6 +77,7 @@ class BillingDetails extends Component<Props, State> {
     if (queryReferrer?.includes('billing-failure')) {
       openEditCreditCard({
         organization,
+        subscription,
         onSuccess: this.handleCardUpdated,
         location,
       });
@@ -135,6 +136,7 @@ class BillingDetails extends Component<Props, State> {
               onClick={() =>
                 openEditCreditCard({
                   organization,
+                  subscription,
                   onSuccess: this.handleCardUpdated,
                 })
               }

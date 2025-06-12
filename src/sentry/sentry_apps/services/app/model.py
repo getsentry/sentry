@@ -12,7 +12,7 @@ from typing import Any, Protocol, TypedDict
 from pydantic.fields import Field
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 
 
@@ -94,7 +94,7 @@ class RpcSentryAppComponent(RpcModel):
 
 class RpcSentryAppComponentContext(RpcModel):
     installation: RpcSentryAppInstallation
-    component: RpcSentryAppComponent
+    component: RpcSentryAppComponent | None = None
 
 
 class RpcAlertRuleActionResult(RpcModel):
@@ -124,7 +124,7 @@ class SentryAppEventDataInterface(Protocol):
     def is_enabled(self) -> bool: ...
 
 
-class RpcSentryAppEventData(RpcModel, metaclass=RpcModelProtocolMeta):
+class RpcSentryAppEventData(RpcModel):
     id: str = ""
     label: str = ""
     action_type: str = ""

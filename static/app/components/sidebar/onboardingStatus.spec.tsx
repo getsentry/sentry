@@ -59,7 +59,6 @@ describe('Onboarding Status', function () {
         {
           task: OnboardingTaskKey.FIRST_PROJECT,
           status: 'complete',
-          user: UserFixture(),
           completionSeen: undefined,
           dateCompleted: undefined,
         },
@@ -108,7 +107,6 @@ describe('Onboarding Status', function () {
         {
           task: OnboardingTaskKey.FIRST_PROJECT,
           status: 'complete',
-          user: UserFixture(),
           completionSeen: '2024-12-16T14:52:01.385227Z',
           dateCompleted: '2024-12-13T09:35:05.010028Z',
         },

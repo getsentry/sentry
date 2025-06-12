@@ -1,7 +1,5 @@
-import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import Redirect from 'sentry/components/redirect';
-
-import {GettingStartedWithProjectContextProvider} from './gettingStartedWithProjectContext';
+import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 type Props = {
   children: React.ReactNode;
@@ -17,9 +15,5 @@ export default function Projects({children}: Props) {
     return <Redirect to={redirectPath} />;
   }
 
-  return (
-    <GettingStartedWithProjectContextProvider>
-      {children}
-    </GettingStartedWithProjectContextProvider>
-  );
+  return children;
 }

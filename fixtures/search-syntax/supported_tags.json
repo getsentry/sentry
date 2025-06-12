@@ -19,7 +19,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "browser", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "chrome", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "chrome",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -32,7 +37,12 @@
         },
         "key": {"type": "keySimple", "value": "os", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "*windows*", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "*windows*",
+          "quoted": false,
+          "wildcard": "surrounded"
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -57,7 +67,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "browser", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "chrome", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "chrome",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {

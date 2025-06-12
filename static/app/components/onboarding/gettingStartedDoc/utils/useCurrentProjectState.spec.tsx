@@ -171,7 +171,7 @@ describe('useCurrentProjectState', () => {
     expect(result.current.currentProject).toBe(javascript);
   });
 
-  it('should return undefined if no selection and no projects have onboarding', () => {
+  it('should return the first project if no selection and no projects have onboarding', () => {
     ProjectsStore.loadInitialData([rust_1, rust_2]);
     mockPageFilterStore([]);
     const {result} = renderHook(useCurrentProjectState, {
@@ -183,7 +183,7 @@ describe('useCurrentProjectState', () => {
       },
       wrapper: createWrapper(),
     });
-    expect(result.current.currentProject).toBeUndefined();
+    expect(result.current.currentProject).toBe(rust_1);
   });
 
   it('should override current project if setCurrentProjects is called', () => {

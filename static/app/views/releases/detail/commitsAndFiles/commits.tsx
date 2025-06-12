@@ -23,9 +23,12 @@ import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
+import {
+  getCommitsByRepository,
+  getQuery,
+  getReposToRender,
+} from 'sentry/views/releases/detail/utils';
 import {useReleaseCommits} from 'sentry/views/releases/utils/useReleaseCommits';
-
-import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
 import RepositorySwitcher from './repositorySwitcher';

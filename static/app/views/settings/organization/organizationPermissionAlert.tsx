@@ -5,7 +5,7 @@ import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 
-export interface OrganizationPermissionAlertProps extends Omit<AlertProps, 'type'> {
+interface OrganizationPermissionAlertProps extends Omit<AlertProps, 'type'> {
   access?: Scope[];
   message?: ReactNode;
 }

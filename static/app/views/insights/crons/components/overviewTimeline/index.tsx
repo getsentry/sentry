@@ -22,10 +22,9 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
-
-import {CronServiceIncidents} from '../serviceIncidents';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
@@ -155,6 +154,8 @@ export function OverviewTimeline({monitorList}: Props) {
         cursorOffsets={{right: 40}}
         additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
+        cursorOverlayAnchor="top"
+        cursorOverlayAnchorOffset={10}
       />
 
       <MonitorRows>

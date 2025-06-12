@@ -4,7 +4,7 @@ from django.apps import AppConfig
 class Config(AppConfig):
     name = "sentry.auth.providers.fly"
 
-    def ready(self):
+    def ready(self) -> None:
         from sentry import auth, options
 
         from .provider import FlyOAuth2Provider, NonPartnerFlyOAuth2Provider

@@ -2,30 +2,14 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as useApi from 'sentry/utils/useApi';
-
 import {EvidencePreview} from './evidencePreview';
 
 describe('EvidencePreview', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/',
     });
-  });
-
-  it('does not fetch before hover', () => {
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    const spy = jest.spyOn(api, 'requestPromise');
-
-    render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
-
-    jest.runAllTimers();
-
-    expect(spy).not.toHaveBeenCalled();
   });
 
   it('shows error when request fails', async () => {
@@ -52,16 +36,22 @@ describe('EvidencePreview', () => {
       },
     });
 
-    MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/group-id/events/recommended/`,
       body: event,
     });
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 
+    // Does not fetch before hover
+    expect(mockApi).not.toHaveBeenCalled();
+
     await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await screen.findByTestId('evidence-preview-body');
+
+    // Fetches after hover
+    expect(mockApi).toHaveBeenCalled();
 
     expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
     expect(

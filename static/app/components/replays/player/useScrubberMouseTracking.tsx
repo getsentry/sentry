@@ -88,5 +88,3 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
   });
   return mouseTrackingProps;
 }
-
-export default useScrubberMouseTracking;

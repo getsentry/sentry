@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
@@ -86,6 +87,7 @@ export function SuspectFunctionsTable({
   eventView,
   project,
 }: SuspectFunctionsTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -117,6 +119,7 @@ export function SuspectFunctionsTable({
   const baggage: RenderFunctionBaggage = {
     location,
     organization,
+    theme,
     unit: 'nanosecond',
   };
 
@@ -139,7 +142,7 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </TableHeader>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             {COLUMNS.map((column, i) => {
@@ -214,11 +217,16 @@ function TableEntry({
           const items = metric[column.value].map(example => {
             return {
               value: getShortEventId(getProfileTargetId(example)),
-              onClick: () =>
+              onClick: () => {
+                const source =
+                  analyticsPageSource === 'performance_transaction'
+                    ? 'performance.transactions_summary.suspect_functions'
+                    : 'unknown';
                 trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
-                  source: `${analyticsPageSource}.suspect_functions_table`,
-                }),
+                  source,
+                });
+              },
               target: generateProfileRouteFromProfileReference({
                 organization,
                 projectSlug: project?.slug || '',

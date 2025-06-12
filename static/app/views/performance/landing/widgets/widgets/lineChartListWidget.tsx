@@ -5,14 +5,15 @@ import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -30,21 +31,16 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {
-  createUnnamedTransactionsDiscoverTarget,
-  UNPARAMETERIZED_TRANSACTION,
-} from 'sentry/views/performance/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {excludeTransaction} from '../../utils';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import SelectableList, {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
@@ -55,22 +51,29 @@ import SelectableList, {
   TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   WidgetDataResult,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -108,6 +111,20 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
+  const useEap = useInsightsEap();
+  const spanDataset = useEap
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_METRICS;
+
+  const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
+
+  const spanQueryParams: Record<string, string> = useEap
+    ? {...EAP_QUERY_PARAMS}
+    : {dataset: DiscoverDatasets.SPANS_METRICS};
+
+  const metricsQueryParams: Record<string, string> = useEap
+    ? {...EAP_QUERY_PARAMS}
+    : {dataset: DiscoverDatasets.METRICS};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
@@ -167,8 +184,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           }
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
-          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+          removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
@@ -178,26 +194,27 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field: SpanMetricsField.SPAN_OP},
             {field: SpanMetricsField.SPAN_GROUP},
             {field: 'project.id'},
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
             {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field},
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('event.type');
+
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('has', 'span.description');
-          mutableSearch.addFilterValue('span.module', 'db');
+          mutableSearch.addFilterValue('has', 'sentry.normalized_description');
+          mutableSearch.addFilterValue('span.category', 'db');
+          mutableSearch.addFilterValue('!span.op', `[${EXCLUDED_DB_OPS.join(',')}]`);
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
@@ -212,27 +229,25 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
-          mutableSearch.removeFilter('transaction.op');
-          eventView.additionalConditions.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('transaction.op');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
+          removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('span.module', 'http');
+          mutableSearch.addFilterValue('span.category', 'http');
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
             {field: SpanMetricsField.SPAN_OP},
             {field: 'project.id'},
             {field: SpanMetricsField.SPAN_GROUP},
@@ -242,17 +257,16 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           mutableSearch.removeFilter('time_spent_percentage()');
-          eventView.additionalConditions.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           eventView.query = `${mutableSearch.formatString()} ${getResourcesEventViewQuery(
             {'resource.render_blocking_status': 'blocking'},
@@ -269,19 +283,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
-          eventView.additionalConditions.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('transaction.op');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
+          removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
-          eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.additionalConditions.setFilterValues('count()', ['>1']);
+          extraQueryParams = {
+            ...extraQueryParams,
+            ...metricsQueryParams,
+          };
+          eventView.dataset = metricsDataset;
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
@@ -351,7 +370,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
             !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.SPAN_DESCRIPTION
+              SpanMetricsField.NORMALIZED_DESCRIPTION
             ] &&
             !provided.widgetData.list.data[selectedListIndex]?.[
               SpanMetricsField.SPAN_DOMAIN
@@ -383,8 +402,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               ]);
             }
 
-            eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-            eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            if (useEap) {
+              eventView.additionalConditions.removeFilter('span.op');
+              eventView.additionalConditions.removeFilter('!span.op');
+            } else {
+              eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+              eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            }
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction.duration');
             eventView.query = mutableSearch.formatString();
@@ -395,10 +419,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -412,7 +436,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             currentSeriesNames = [`avg(${SpanMetricsField.SPAN_SELF_TIME})`];
 
             // Update search query
-            eventView.additionalConditions.removeFilter('event.type');
+            removeTransactionFilterForSpanQuery({eventView, useEap});
             eventView.additionalConditions.removeFilter('transaction');
 
             if (
@@ -442,10 +466,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -459,14 +483,21 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             currentSeriesNames = [`${SpanFunction.CACHE_MISS_RATE}()`];
 
             // Update search query
-            eventView.additionalConditions.removeFilter('event.type');
-            eventView.additionalConditions.removeFilter('transaction.op');
+            removeTransactionFilterForSpanQuery({eventView, useEap});
 
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
             eventView.query = mutableSearch.formatString();
           } else {
             eventView.fields = [{field: 'transaction'}, {field}];
+          }
+
+          if (useEap) {
+            eventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+            extraQueryParams = {
+              ...extraQueryParams,
+              ...spanQueryParams,
+            };
           }
 
           return (
@@ -646,7 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = listItem[SpanMetricsField.SPAN_DESCRIPTION] as string;
+          const description = listItem[SpanMetricsField.NORMALIZED_DESCRIPTION] as string;
           const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;
@@ -866,3 +897,43 @@ const EventsRequest = withApi(_EventsRequest);
 const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;
 `;
+
+const removeTransactionFilterForSpanQuery = ({
+  eventView,
+  mutableSearch,
+  useEap,
+}: {
+  eventView: EventView;
+  useEap: boolean;
+  mutableSearch?: MutableSearch;
+}) => {
+  if (useEap) {
+    eventView.additionalConditions.removeFilter('is_transaction');
+    mutableSearch?.removeFilter('is_transaction');
+  } else {
+    eventView.additionalConditions.removeFilter('event.type');
+    mutableSearch?.removeFilter('event.type');
+  }
+};
+
+const removeTransactionOpFilter = ({
+  eventView,
+  mutableSearch,
+  useEap,
+}: {
+  eventView: EventView;
+  useEap: boolean;
+  mutableSearch?: MutableSearch;
+}) => {
+  if (useEap) {
+    eventView.additionalConditions.removeFilter('span.op');
+    eventView.additionalConditions.removeFilter('!span.op');
+    mutableSearch?.removeFilter('span.op');
+    mutableSearch?.removeFilter('!span.op');
+  } else {
+    eventView.additionalConditions.removeFilter('transaction.op');
+    eventView.additionalConditions.removeFilter('!transaction.op');
+    mutableSearch?.removeFilter('transaction.op');
+    mutableSearch?.removeFilter('!transaction.op');
+  }
+};

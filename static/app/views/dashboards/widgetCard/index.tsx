@@ -1,26 +1,27 @@
-import {useContext, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
+import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -30,13 +31,16 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  OnDemandExtractionState,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -44,9 +48,11 @@ import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-export const SESSION_DURATION_ALERT_TEXT = t(
-  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+const SESSION_DURATION_ALERT_TEXT = tct(
+  'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
+  {
+    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
+  }
 );
 
 export const SESSION_DURATION_ALERT = (
@@ -65,6 +71,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
@@ -86,6 +93,7 @@ type Props = WithRouterProps & {
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
+  showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -104,14 +112,20 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
+  const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const navigate = useNavigate();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched && newData.tableResults) {
-      props.onDataFetched(newData.tableResults);
+    const {...rest} = newData;
+    if (props.onDataFetched && rest.tableResults) {
+      props.onDataFetched(rest.tableResults);
     }
 
-    setData(prevData => ({...prevData, ...newData}));
+    setData(prevData => ({...prevData, ...rest}));
+
+    setIsLoadingTextVisible(false);
   };
 
   const {
@@ -135,6 +149,8 @@ function WidgetCard(props: Props) {
     disableFullscreen,
     showConfidenceWarning,
     minTableColumnWidth,
+    disableZoom,
+    showLoadingText,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -161,6 +177,27 @@ function WidgetCard(props: Props) {
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
+  const onDataFetchStart = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    setIsLoadingTextVisible(false);
+    timeoutRef.current = setTimeout(() => {
+      setIsLoadingTextVisible(true);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [timeoutRef]);
+
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
       setWidgetViewerData({
@@ -174,12 +211,15 @@ function WidgetCard(props: Props) {
         isSampled: data?.isSampled,
       });
 
-      props.router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${props.index}/`,
-        query: location.query,
-      });
+      navigate(
+        {
+          pathname: `${location.pathname}${
+            location.pathname.endsWith('/') ? '' : '/'
+          }widget/${props.index}/`,
+          query: location.query,
+        },
+        {preventScrollReset: true}
+      );
     }
   };
 
@@ -210,6 +250,7 @@ function WidgetCard(props: Props) {
 
   const actions = props.showContextMenu
     ? getMenuOptions(
+        dashboardFilters,
         organization,
         selection,
         widget,
@@ -271,6 +312,9 @@ function WidgetCard(props: Props) {
             widgetLegendState={widgetLegendState}
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
+            disableZoom={disableZoom}
+            onDataFetchStart={onDataFetchStart}
+            showLoadingText={showLoadingText && isLoadingTextVisible}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
@@ -345,12 +389,6 @@ const ErrorCard = styled(Placeholder)`
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
-`;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 export const WidgetDescription = styled('small')`

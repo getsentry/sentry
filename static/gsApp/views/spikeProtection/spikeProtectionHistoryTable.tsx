@@ -2,7 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DiscoverButton from 'sentry/components/discoverButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -22,6 +23,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
@@ -158,7 +160,10 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             })
           }
           to={{
-            pathname: `/organizations/${organization.slug}/discover/homepage/`,
+            pathname: makeDiscoverPathname({
+              organization,
+              path: '/homepage/',
+            }),
             query: {
               project: [project.id],
               start: decodeScalar(spike.start),

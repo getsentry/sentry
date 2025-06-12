@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -64,6 +63,7 @@ describe('StreamGroup', function () {
     render(<StreamGroup id="1337" hasGuideAnchor />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
@@ -77,7 +77,11 @@ describe('StreamGroup', function () {
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByTestId('group')).toHaveAttribute(
@@ -97,6 +101,7 @@ describe('StreamGroup', function () {
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
@@ -121,7 +126,9 @@ describe('StreamGroup', function () {
       body: {priority: PriorityLevel.HIGH},
     });
 
-    render(<StreamGroup id="1337" query="is:unresolved" />);
+    render(<StreamGroup id="1337" query="is:unresolved" />, {
+      deprecatedRouterMocks: true,
+    });
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
     expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
@@ -145,7 +152,11 @@ describe('StreamGroup', function () {
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     // skipHover - Prevent stacktrace preview from being rendered
@@ -154,7 +165,11 @@ describe('StreamGroup', function () {
 
   it('can select row', async function () {
     const {router, organization} = initializeOrg();
-    render(<StreamGroup id="1337" query="is:unresolved" />, {router, organization});
+    render(<StreamGroup id="1337" query="is:unresolved" />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     const checkbox = screen.getByRole('checkbox', {name: 'Select Issue'});
@@ -173,7 +188,11 @@ describe('StreamGroup', function () {
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -187,9 +206,7 @@ describe('StreamGroup', function () {
         withColumns={['firstSeen', 'lastSeen']}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['issue-stream-table-layout'],
-        }),
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -206,9 +223,7 @@ describe('StreamGroup', function () {
       />,
       {
         router,
-        organization: OrganizationFixture({
-          features: ['issue-stream-table-layout'],
-        }),
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -232,9 +247,7 @@ describe('StreamGroup', function () {
     GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
 
     render(<StreamGroup id="1337" query="is:unresolved" />, {
-      organization: OrganizationFixture({
-        features: ['issue-stream-table-layout'],
-      }),
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();

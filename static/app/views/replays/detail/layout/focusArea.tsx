@@ -6,8 +6,7 @@ import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
-
-import type {ReplayRecord} from '../../types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export default function FocusArea({
   isVideoReplay,

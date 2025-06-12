@@ -4,9 +4,10 @@ import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction'
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
+import type {SelectableProduct} from 'getsentry/views/amCheckout/types';
 
 type HasSub = {subscription: Subscription};
-type QuotaAlert = {event_types: string; is_warning: boolean} & HasSub;
+type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
 type UpsellProvider = {
   action: string;
   can_trial: boolean;
@@ -86,12 +87,21 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
+  'checkout.product_select': Record<
+    SelectableProduct,
+    {
+      enabled: boolean;
+      previously_enabled: boolean;
+    }
+  > &
+    HasSub;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
+    // TODO(data categories): check if these can be parsed
     attachments?: number;
     errors?: number;
     monitorSeats?: number;
@@ -178,6 +188,7 @@ type GetsentryEventParameters = {
   'quota_alert.clicked_link': QuotaAlert & {clicked_event: EventType};
   'quota_alert.clicked_see_usage': QuotaAlert;
   'quota_alert.clicked_snooze': QuotaAlert;
+  'quota_alert.clicked_unsnooze': QuotaAlert;
   'quota_alert.shown': QuotaAlert;
   'replay.list_page.manage_sub': UpdateProps;
   'replay.list_page.open_modal': UpdateProps & {
@@ -250,6 +261,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'growth.codecov_promotion_opened': 'Growth: Codecov Promotion Opened',
   'quota_alert.shown': 'Quota Alert: Shown',
   'quota_alert.clicked_snooze': 'Quota Alert: Clicked Snooze',
+  'quota_alert.clicked_unsnooze': 'Quota Alert: Clicked Unsnooze',
   'product_trial.clicked_snooze': 'Quota Alert: Clicked Snooze',
   'quota_alert.clicked_link': 'Quota Alert: Clicked Link',
   'quota_alert.clicked_see_usage': 'Quota Alert: Clicked See Usage',
@@ -271,6 +283,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'am_checkout.viewed': 'AM Checkout: Viewed',
   'checkout.bundle_navigation': 'Checkout: Bundle Navigation',
   'checkout.change_plan': 'Checkout: Change Plan',
+  'checkout.product_select': 'Checkout: Product Select',
   'checkout.ondemand_changed': 'Checkout: Ondemand Changed',
   'checkout.payg_changed': 'Checkout: Pay As You Go Budget Changed',
   'checkout.change_contract': 'Checkout: Change Contract',

@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {EventIdResponse} from 'sentry/types/event';
@@ -15,7 +14,7 @@ import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
+import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked/marked';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,34 +31,6 @@ const shouldSearchEventIds = (query?: string) =>
 // STRING-HEXVAL
 const shouldSearchShortIds = (query: string) => /[\w\d]+-[\w\d]+/.test(query);
 
-// Helper functions to create result objects
-async function createOrganizationResults(
-  organizationsPromise: Promise<Organization[]>
-): Promise<ResultItem[]> {
-  const organizations = (await organizationsPromise) || [];
-  const resolvedTs = makeResolvedTs();
-
-  return organizations.flatMap(org => [
-    {
-      title: t('%s Dashboard', org.slug),
-      description: t('Organization Dashboard'),
-      model: org,
-      sourceType: 'organization',
-      resultType: 'route',
-      to: `/${org.slug}/`,
-      resolvedTs,
-    },
-    {
-      title: t('%s Settings', org.slug),
-      description: t('Organization Settings'),
-      model: org,
-      sourceType: 'organization',
-      resultType: 'settings',
-      to: `/settings/${org.slug}/`,
-      resolvedTs,
-    },
-  ]);
-}
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
   organization?: Organization
@@ -105,7 +76,7 @@ async function createProjectResults(
       resultType: 'route',
       to:
         makeProjectsPathname({
-          orgSlug: organization.slug,
+          organization,
           path: `/${project.slug}/`,
         }) + `?project=${project.id}`,
       resolvedTs,
@@ -353,12 +324,6 @@ function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
     setLoading(true);
     const pendingResults: Array<Promise<ResultItem[] | null>> = [];
 
-    // Always query for organizations
-    pendingResults.push(
-      createOrganizationResults(fetchOrganizations(api, {query: apiQuery}))
-    );
-
-    // Query organization APIs
     if (organization) {
       const org = organization;
       const slug = organization.slug;

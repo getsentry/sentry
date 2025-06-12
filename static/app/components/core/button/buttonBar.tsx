@@ -2,11 +2,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {StyledButton} from 'sentry/components/core/button';
+// eslint-disable-next-line boundaries/element-types
 import type {ValidSize} from 'sentry/styles/space';
+// eslint-disable-next-line boundaries/element-types
 import {space} from 'sentry/styles/space';
 
-export interface ButtonBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
+interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;
   gap?: ValidSize | 0;
   merged?: boolean;

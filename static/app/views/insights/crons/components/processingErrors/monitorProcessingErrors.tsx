@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
-import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -13,7 +12,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
@@ -90,7 +89,7 @@ export function MonitorProcessingErrors({
               <ProcessingErrorTitle type={errortype} />
               <ErrorHeaderActions>
                 <Button
-                  icon={<Chevron size="small" direction={isExpanded ? 'up' : 'down'} />}
+                  icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
                   aria-expanded={isExpanded}
                   size="zero"

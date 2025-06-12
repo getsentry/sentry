@@ -23,25 +23,15 @@ describe('SaveQueryModal', function () {
         CloseButton={stubEl}
         closeModal={() => {}}
         organization={initialData.organization}
-        queries={[
-          {
-            query: 'span.op:pageload',
-            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
-            groupBys: ['span.op'],
-          },
-        ]}
         saveQuery={saveQuery}
       />
     );
 
     expect(screen.getByText('Create a New Query')).toBeInTheDocument();
     expect(screen.getByText('Cancel')).toBeInTheDocument();
-    expect(screen.getByText('Filter')).toBeInTheDocument();
-    expect(screen.getByText('pageload')).toBeInTheDocument();
-    expect(screen.getByText('Visualize')).toBeInTheDocument();
-    expect(screen.getByText('avg(span.duration)')).toBeInTheDocument();
-    expect(screen.getByText('Group By')).toBeInTheDocument();
-    expect(screen.getAllByText('span.op')).toHaveLength(2);
+    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Starred')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Starred'})).toBeInTheDocument();
   });
 
   it('should call saveQuery', async function () {
@@ -54,21 +44,62 @@ describe('SaveQueryModal', function () {
         CloseButton={stubEl}
         closeModal={() => {}}
         organization={initialData.organization}
-        queries={[
-          {
-            query: 'span.op:pageload',
-            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
-            groupBys: ['span.op'],
-          },
-        ]}
         saveQuery={saveQuery}
       />
     );
 
-    await userEvent.type(screen.getByTitle('Enter a name for your saved query'), 'test');
+    await userEvent.type(
+      screen.getByTitle('Enter a name for your new query'),
+      'Query Name'
+    );
 
     await userEvent.click(screen.getByLabelText('Create a New Query'));
 
-    await waitFor(() => expect(saveQuery).toHaveBeenCalled());
+    await waitFor(() => expect(saveQuery).toHaveBeenCalledWith('Query Name', true));
+  });
+
+  it('should call saveQuery without starring the query', async function () {
+    const saveQuery = jest.fn();
+    render(
+      <SaveQueryModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={initialData.organization}
+        saveQuery={saveQuery}
+      />
+    );
+
+    await userEvent.type(
+      screen.getByTitle('Enter a name for your new query'),
+      'Query Name'
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Starred'}));
+
+    await userEvent.click(screen.getByLabelText('Create a New Query'));
+
+    await waitFor(() => expect(saveQuery).toHaveBeenCalledWith('Query Name', false));
+  });
+
+  it('should render rename ui', function () {
+    const saveQuery = jest.fn();
+    render(
+      <SaveQueryModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={initialData.organization}
+        saveQuery={saveQuery}
+        name="Initial Query Name"
+      />
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue('Initial Query Name');
+    expect(screen.getByText('Rename Query')).toBeInTheDocument();
+    expect(screen.getByText('Save Changes')).toBeInTheDocument();
   });
 });

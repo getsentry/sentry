@@ -17,7 +17,7 @@ type UpdateTokenQueryVariables = {
 type FetchApiTokenParameters = {
   tokenId: string;
 };
-export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters): ApiQueryKey => [
+const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters): ApiQueryKey => [
   `/api-tokens/${tokenId}/`,
 ];
 

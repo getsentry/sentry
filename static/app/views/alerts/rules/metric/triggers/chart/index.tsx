@@ -1,5 +1,6 @@
 import {type ComponentProps, Fragment, PureComponent} from 'react';
 import React from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -33,13 +34,9 @@ import type {
   Confidence,
   EventsStats,
   MultiSeriesEventsStats,
-  NewQuery,
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -48,9 +45,18 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  SessionsAggregate,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/types';
+import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
@@ -58,16 +64,7 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-
-import type {MetricRule, Trigger} from '../../types';
-import {
-  AlertRuleComparisonType,
-  Dataset,
-  SessionsAggregate,
-  TimePeriod,
-  TimeWindow,
-} from '../../types';
-import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -84,6 +81,7 @@ type Props = {
   projects: Project[];
   query: MetricRule['query'];
   resolveThreshold: MetricRule['resolveThreshold'];
+  theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
@@ -92,12 +90,11 @@ type Props = {
   confidence?: Confidence;
   formattedAggregate?: string;
   header?: React.ReactNode;
-  includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
-  onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  seriesSamplingInfo?: SeriesSamplingInfo;
   showTotalCount?: boolean;
 };
 
@@ -125,7 +122,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -244,9 +241,6 @@ class TriggersChart extends PureComponent<Props, State> {
     if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
     }
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      this.fetchExtrapolationSampleCount();
-    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -263,15 +257,11 @@ class TriggersChart extends PureComponent<Props, State> {
       if (showTotalCount && !isSessionAggregate(aggregate)) {
         this.fetchTotalCount();
       }
-      if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-        this.fetchExtrapolationSampleCount();
-      }
     }
   }
 
   // Create new API Client so that historical requests aren't automatically deduplicated
   historicalAPI = new Client();
-  confidenceAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -354,49 +344,6 @@ class TriggersChart extends PureComponent<Props, State> {
     }
   }
 
-  async fetchExtrapolationSampleCount() {
-    const {location, api, organization, environment, projects, query} = this.props;
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Alerts - Extrapolation Meta',
-      fields: ['count_sample()', 'min(sampling_rate)'],
-      query: search.formatString(),
-      version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
-    };
-
-    const eventView = EventView.fromNewQueryWithPageFilters(discoverQuery, {
-      datetime: {
-        period: TimePeriod.SEVEN_DAYS,
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: environment ? [environment] : [],
-      projects: projects.map(({id}) => Number(id)),
-    });
-
-    const response = await doDiscoverQuery<TableData>(
-      api,
-      `/organizations/${organization.slug}/events/`,
-      eventView.getEventsAPIPayload(location)
-    );
-
-    const extrapolationSampleCount = response[0]?.data?.[0]?.['count_sample()'];
-    this.setState({
-      extrapolationSampleCount: extrapolationSampleCount
-        ? Number(extrapolationSampleCount)
-        : null,
-    });
-  }
-
   renderChart({
     isLoading,
     isReloading,
@@ -433,10 +380,11 @@ class TriggersChart extends PureComponent<Props, State> {
       organization,
       showTotalCount,
       anomalies = [],
-      confidence,
       dataset,
+      confidence,
+      seriesSamplingInfo,
     } = this.props;
-    const {statsPeriod, totalCount, extrapolationSampleCount} = this.state;
+    const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
 
@@ -469,6 +417,7 @@ class TriggersChart extends PureComponent<Props, State> {
           />
         ) : (
           <ThresholdsChart
+            theme={this.props.theme}
             period={statsPeriod}
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
@@ -492,8 +441,10 @@ class TriggersChart extends PureComponent<Props, State> {
             <InlineContainer data-test-id="alert-total-events">
               {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
                 <ConfidenceFooter
-                  sampleCount={extrapolationSampleCount ?? undefined}
+                  sampleCount={seriesSamplingInfo?.sampleCount}
+                  isSampled={seriesSamplingInfo?.isSampled}
                   confidence={confidence}
+                  dataScanned={seriesSamplingInfo?.dataScanned}
                 />
               ) : (
                 <React.Fragment>
@@ -536,6 +487,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       timeWindow,
       query,
+      theme,
       location,
       aggregate,
       dataset,
@@ -549,7 +501,6 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
-      onConfidenceDataLoaded,
     } = this.props;
 
     const period = this.getStatsPeriod()!;
@@ -620,7 +571,8 @@ class TriggersChart extends PureComponent<Props, State> {
                   comparisonTimeseriesData,
                   timeWindow,
                   triggers,
-                  thresholdType
+                  thresholdType,
+                  theme
                 );
               }
 
@@ -695,8 +647,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -711,7 +661,6 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
 
     return (
@@ -732,17 +681,16 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        {this.props.includeConfidence ? (
-          <EventsRequest
-            {...baseProps}
-            api={this.confidenceAPI}
-            period={TimePeriod.SEVEN_DAYS}
-            dataLoadedCallback={onConfidenceDataLoaded}
-          >
-            {noop}
-          </EventsRequest>
-        ) : null}
-        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
+        <EventsRequest
+          {...baseProps}
+          period={period}
+          dataLoadedCallback={onDataLoaded}
+          sampling={
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+              ? SAMPLING_MODE.NORMAL
+              : undefined
+          }
+        >
           {({
             loading,
             errored,
@@ -758,7 +706,8 @@ class TriggersChart extends PureComponent<Props, State> {
                 comparisonTimeseriesData,
                 timeWindow,
                 triggers,
-                thresholdType
+                thresholdType,
+                theme
               );
             }
 

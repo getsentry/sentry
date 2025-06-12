@@ -20,7 +20,12 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
+    IssueAlertMigrator,
+    UnableToAcquireLockApiError,
+    ensure_default_error_detector,
+)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -111,8 +116,8 @@ class IssueAlertMigratorTest(TestCase):
         ]
 
     def assert_nothing_migrated(self, issue_alert):
-        assert not AlertRuleWorkflow.objects.filter(rule=issue_alert).exists()
-        assert not AlertRuleDetector.objects.filter(rule=issue_alert).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=issue_alert.id).exists()
+        assert not AlertRuleDetector.objects.filter(rule_id=issue_alert.id).exists()
 
         assert Workflow.objects.all().count() == 0
         assert Detector.objects.all().count() == 0
@@ -123,8 +128,8 @@ class IssueAlertMigratorTest(TestCase):
     def assert_issue_alert_migrated(
         self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
     ):
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=issue_alert)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule=issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.name == issue_alert.label
@@ -135,7 +140,7 @@ class IssueAlertMigratorTest(TestCase):
         assert workflow.enabled == is_enabled
 
         detector = Detector.objects.get(id=issue_alert_detector.detector.id)
-        assert detector.name == "Error Detector"
+        assert detector.name == "Error Monitor"
         assert detector.project_id == self.project.id
         assert detector.enabled is True
         assert detector.owner_user_id is None
@@ -259,7 +264,7 @@ class IssueAlertMigratorTest(TestCase):
 
         IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
 
@@ -296,7 +301,7 @@ class IssueAlertMigratorTest(TestCase):
 
         IssueAlertMigrator(self.issue_alert, self.user.id, should_create_actions=False).run()
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
 
         assert workflow.when_condition_group
@@ -308,8 +313,8 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         # there should be only 1
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=self.issue_alert.id)
         Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         Detector.objects.get(id=issue_alert_detector.detector.id)
 
@@ -341,6 +346,7 @@ class IssueAlertMigratorTest(TestCase):
 
     def test_run__every_event_condition__any(self):
         conditions = [
+            {"id": EveryEventCondition.id},
             {"id": EveryEventCondition.id},
             {"id": RegressionEventCondition.id},
         ]
@@ -384,8 +390,8 @@ class IssueAlertMigratorTest(TestCase):
         with pytest.raises(Exception):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=self.issue_alert.id)
         Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         Detector.objects.get(id=issue_alert_detector.detector.id)
 
@@ -430,3 +436,31 @@ class IssueAlertMigratorTest(TestCase):
             IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()
 
         self.assert_nothing_migrated(self.issue_alert)
+
+
+class TestEnsureDefaultErrorDetector(TestCase):
+    def test_ensure_default_error_detector(self):
+        project = self.create_project()
+        detector = ensure_default_error_detector(project)
+        assert detector.name == "Error Monitor"
+        assert detector.project_id == project.id
+        assert detector.type == ErrorGroupType.slug
+
+    def test_ensure_default_error_detector__already_exists(self):
+        project = self.create_project()
+        detector = ensure_default_error_detector(project)
+        with patch(
+            "sentry.workflow_engine.migration_helpers.issue_alert_migration.locks.get"
+        ) as mock_lock:
+            assert ensure_default_error_detector(project).id == detector.id
+            # No lock if it already exists.
+            mock_lock.assert_not_called()
+
+    def test_ensure_default_error_detector__lock_fails(self):
+        project = self.create_project()
+        with patch(
+            "sentry.workflow_engine.migration_helpers.issue_alert_migration.locks.get"
+        ) as mock_lock:
+            mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
+            with pytest.raises(UnableToAcquireLockApiError):
+                ensure_default_error_detector(project)

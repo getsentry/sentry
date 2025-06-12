@@ -11,6 +11,7 @@ import omit from 'lodash/omit';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -21,8 +22,8 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -51,17 +52,15 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-
-import {getFormatter} from '../../../components/charts/components/tooltip';
-import {getDatasetConfig} from '../datasetConfig/base';
-import type {Widget} from '../types';
-import {DisplayType} from '../types';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -85,8 +84,10 @@ type WidgetCardChartProps = Pick<
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   confidence?: Confidence;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -99,6 +100,7 @@ type WidgetCardChartProps = Pick<
   sampleCount?: number;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
+  showLoadingText?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -166,7 +168,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             location={location}
             fields={fields}
             title={tableResults.length > 1 ? result.title : ''}
-            loading={loading}
+            // Bypass the loading state for span widgets because this renders the loading placeholder
+            // and we want to show the underlying data during preflight instead
+            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
             loader={<LoadingPlaceholder />}
             metadata={result.meta}
             data={result.data}
@@ -281,6 +285,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       confidence,
       showConfidenceWarning,
       sampleCount,
+      isSampled,
+      disableZoom,
+      showLoadingText,
     } = this.props;
 
     if (errorMessage) {
@@ -295,7 +302,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
-            <LoadingScreen loading={loading} />
+            <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
             {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
@@ -306,7 +313,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
+          <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
           <BigNumberResizeWrapper noPadding={noPadding}>
             {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
@@ -322,9 +329,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       seriesName?.match(otherRegex)
     );
     const colors = timeseriesResults
-      ? (getChartColorPalette(
-          timeseriesResults.length - (shouldColorOther ? 3 : 2)
-        ).slice() as string[])
+      ? (theme.chart
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          .slice() as string[])
       : [];
     // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
     if (shouldColorOther) {
@@ -486,7 +493,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       },
     };
 
-    const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+    const ref = this.props.chartGroup ? this.handleRef : undefined;
 
     // Excluding Other uses a slightly altered regex to match the Other series name
     // because the series names are formatted with widget IDs to avoid conflicts
@@ -503,7 +510,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             : 0)
         : undefined;
     return (
-      <ChartZoom period={period} start={start} end={end} utc={utc}>
+      <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
         {zoomRenderProps => {
           return (
             <ReleaseSeries
@@ -524,9 +531,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     widget,
                     releaseSeries
                   );
+
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
-                    <LoadingScreen loading={loading} />
+                    <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
                     <ChartWrapper
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
@@ -539,9 +547,15 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                             // Override default datazoom behaviour for updating Global Selection Header
                             ...(onZoom ? {onDataZoom: onZoom} : {}),
                             legend,
-                            series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
+                            series: [
+                              ...series,
+                              // only add release series if there is series data
+                              ...(series?.length > 0
+                                ? (modifiedReleaseSeriesResults ?? [])
+                                : []),
+                            ],
                             onLegendSelectChanged,
-                            forwardedRef,
+                            ref,
                           }),
                           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
@@ -552,6 +566,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           confidence={confidence}
                           sampleCount={sampleCount}
                           topEvents={topEventsCountExcludingOther}
+                          isSampled={isSampled}
                         />
                       )}
                     </ChartWrapper>
@@ -572,17 +587,29 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   justify-content: center;
   align-items: center;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({
+  loading,
+  showLoadingText,
+}: {
+  loading: boolean;
+  showLoadingText?: boolean;
+}) {
   if (!loading) {
     return null;
   }
+
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
+      {showLoadingText && (
+        <p id="loading-text">{t('Turning data into pixels - almost ready')}</p>
+      )}
     </StyledTransparentLoadingMask>
   );
 }

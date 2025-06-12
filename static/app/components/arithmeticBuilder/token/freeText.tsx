@@ -165,7 +165,7 @@ function InternalInput({
           if (input.endsWith('(')) {
             const pos = input.lastIndexOf(' ');
             const maybeFunc = input.substring(pos + 1, input.length - 1);
-            if (aggregateFunctions.find(func => func.name === maybeFunc)) {
+            if (aggregateFunctions.some(func => func.name === maybeFunc)) {
               dispatch({
                 type: 'REPLACE_TOKEN',
                 token,
@@ -529,12 +529,6 @@ const Row = styled('div')`
       right: ${space(0.5)};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
-    }
-  }
-
-  input {
-    &::selection {
       background-color: ${p => p.theme.gray100};
     }
   }
