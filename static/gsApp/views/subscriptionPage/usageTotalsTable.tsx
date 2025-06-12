@@ -149,7 +149,7 @@ function UsageTotalsTable({
   isEventBreakdown,
   totals,
   subscription,
-  showAllTotals,
+  showAllTotals = true,
 }: Props) {
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown

@@ -50,6 +50,14 @@ type Props = {
 };
 
 /**
+ * Determines whether to show all totals (including dropped rows) for given categories
+ */
+function shouldShowAllTotals(categories: DataCategory[] | DataCategory): boolean {
+  const categoryArray = Array.isArray(categories) ? categories : [categories];
+  return !categoryArray.some(category => isSeer(category));
+}
+
+/**
  * Subscription overview page.
  */
 function Overview({location, subscription, promotionData}: Props) {
@@ -257,7 +265,7 @@ function Overview({location, subscription, promotionData}: Props) {
                 totals={categoryTotals}
                 eventTotals={eventTotals}
                 showEventBreakdown={showEventBreakdown}
-                showAllTotals={!isSeer(category)}
+                showAllTotals={shouldShowAllTotals(category)}
                 reservedUnits={categoryHistory.reserved}
                 prepaidUnits={categoryHistory.prepaid}
                 freeUnits={categoryHistory.free}
@@ -278,13 +286,14 @@ function Overview({location, subscription, promotionData}: Props) {
         {subscription.reservedBudgets?.map(reservedBudget => {
           let softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null = null;
           let trueForward = false;
-          let showAllTotals = true;
+
+          const budgetCategories = Object.keys(
+            reservedBudget.categories
+          ) as DataCategory[];
+          const showAllTotals = shouldShowAllTotals(budgetCategories);
 
           Object.keys(reservedBudget.categories).forEach(category => {
             const categoryHistory = subscription.categories[category as DataCategory];
-            if (categoryHistory?.category && isSeer(categoryHistory?.category)) {
-              showAllTotals = false;
-            }
             if (softCapType === null) {
               if (categoryHistory?.softCapType) {
                 softCapType = categoryHistory.softCapType;
@@ -322,7 +331,7 @@ function Overview({location, subscription, promotionData}: Props) {
               totals={categoryTotals}
               eventTotals={eventTotals}
               showEventBreakdown={showProductTrialEventBreakdown}
-              showAllTotals={!isSeer(pt.category)}
+              showAllTotals={shouldShowAllTotals(pt.category)}
               subscription={subscription}
               organization={organization}
               displayMode={displayMode}
