@@ -153,7 +153,7 @@ def evaluate_workflows_action_filters(
             event_data, workflow_env=workflows_by_id[action_condition.workflow_id].environment
         )
         group_evaluation, remaining_conditions = process_data_condition_group(
-            action_condition.id, workflow_event_data
+            action_condition, workflow_event_data
         )
 
         if remaining_conditions:
