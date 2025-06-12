@@ -85,5 +85,4 @@ const TableWrapper = styled('div')`
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  display: flex;
 `;
