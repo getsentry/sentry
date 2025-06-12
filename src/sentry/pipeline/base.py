@@ -187,15 +187,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         if callable(step):
             step = step()
 
-        return self.dispatch_to(step)
-
-    def dispatch_to(self, step: PipelineView[M, S]) -> HttpResponseBase:
-        """
-        Dispatch to a view expected by this pipeline.
-
-        A subclass may override this if its views take other parameters.
-        """
-        return step.dispatch(request=self.request, pipeline=self)
+        return step.dispatch(self.request, pipeline=self)
 
     def error(self, message: str) -> HttpResponseBase:
         self.get_logger().error(
