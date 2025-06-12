@@ -2,7 +2,7 @@
 
 ## Overview
 This document outlines the implementation of the startups program feature that allows admins to grant customers access to a startups program, which includes:
-- Program-based credit allocation (YCombinator: $50,000, Other: $5,000)
+- Program-based credit allocation (YCombinator: $50,001, Other: $5,000)
 - Program-specific welcome emails
 - Audit logging of all actions taken
 
@@ -11,7 +11,7 @@ This document outlines the implementation of the startups program feature that a
 ### 1. StartupsAction Component (`static/gsAdmin/components/startupsAction.tsx`)
 - Modal component for selecting startups program type
 - Program options:
-  - **YCombinator (Current)**: $50,000 in credits
+  - **YCombinator (Current)**: $50,001 in credits
   - **Other**: $5,000 in credits
 - Optional notes field for admin documentation
 - Real-time display of selected program benefits
@@ -68,7 +68,7 @@ def get_program_credit_amount(self, program_type):
     Map program type to credit amount
     """
     program_credits = {
-        'ycombinator': 5000000,  # $50,000 in cents
+        'ycombinator': 5000100,  # $50,001 in cents
         'other': 500000,         # $5,000 in cents
     }
     return program_credits.get(program_type, 500000)  # Default to $5,000
@@ -96,7 +96,7 @@ Program-specific email templates and sending:
 **YCombinator Program Templates:**
 - Text: `sentry/emails/startups_ycombinator_welcome.txt`
 - HTML: `sentry/emails/startups_ycombinator_welcome.html`
-- Features: YC branding, $50,000 credits, YC-specific resources
+- Features: YC branding, $50,001 credits, YC-specific resources
 
 **Other Startups Program Templates:**
 - Text: `sentry/emails/startups_welcome.txt`
@@ -213,7 +213,7 @@ Create tests for:
 
 ### Integration Testing
 1. Full end-to-end test of both program types
-2. Verify correct credits are applied (YC: $50k, Other: $5k)
+2. Verify correct credits are applied (YC: $50,001, Other: $5k)
 3. Verify correct email templates are sent
 4. Verify audit log entries contain program information
 
@@ -227,7 +227,7 @@ Create tests for:
 ## Program Specifications
 
 ### YCombinator Program
-- **Credit Amount**: $50,000
+- **Credit Amount**: $50,001
 - **Email Templates**: YC-branded with orange color scheme
 - **Features**:
   - Priority YC support

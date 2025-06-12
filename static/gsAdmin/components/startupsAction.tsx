@@ -56,7 +56,7 @@ class StartupsAction extends Component<Props, State> {
   getProgramDescription = (programType: string | null) => {
     switch (programType) {
       case 'ycombinator':
-        return '$50,000 in credits for YCombinator startups';
+        return '$50,001 in credits for YCombinator startups';
       case 'other':
         return '$5,000 in credits for qualifying startups';
       default:

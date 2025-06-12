@@ -2,7 +2,7 @@ Hi there!
 
 Welcome to the Sentry Startups Program for YCombinator companies! We're excited to support your YC journey with powerful error monitoring and performance tracking.
 
-As part of the YCombinator startups program, you've been granted $50,000 in credits to help scale your startup. These credits can be used for:
+As part of the YCombinator startups program, you've been granted $50,001 in credits to help scale your startup. These credits can be used for:
 - Error tracking and monitoring across all your services
 - Performance monitoring and optimization
 - Release tracking and deployment monitoring
@@ -10,7 +10,7 @@ As part of the YCombinator startups program, you've been granted $50,000 in cred
 - And all other Sentry features
 
 YCombinator startups get access to:
-✓ $50,000 in Sentry credits
+✓ $50,001 in Sentry credits
 ✓ Priority support from our team
 ✓ Dedicated YC startup resources
 ✓ Performance optimization guidance
