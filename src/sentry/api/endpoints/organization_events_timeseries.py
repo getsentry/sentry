@@ -217,7 +217,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         else:
             try:
-                validate_referrer(referrer)
+                validate_referrer(referrer, raise_error=True)
             except Exception:
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
         query_source = self.get_request_querysource(request, referrer)

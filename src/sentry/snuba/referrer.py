@@ -1034,7 +1034,7 @@ VALUES = {referrer.value for referrer in Referrer}
 VALID_SUFFIXES = ["primary", "secondary"]
 
 
-def validate_referrer(referrer: str | None) -> None:
+def validate_referrer(referrer: str | None, raise_error: bool = False) -> None:
     if not referrer:
         return
 
@@ -1052,3 +1052,6 @@ def validate_referrer(referrer: str | None) -> None:
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)
+
+    if raise_error:
+        raise Exception(error_message)
