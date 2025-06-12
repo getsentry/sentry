@@ -33,6 +33,7 @@ class TestEvaluateMetricDetector(BaseWorkflowTest):
             project=self.project,
             workflow_condition_group=self.create_data_condition_group(),
             type=MetricIssue.slug,
+            created_by_id=self.user.id,
         )
         self.critical_detector_trigger = self.create_data_condition(
             type=Condition.GREATER,
@@ -129,7 +130,7 @@ class TestEvaluateMetricDetector(BaseWorkflowTest):
         assert occurrence.evidence_data == evidence_data
         assert occurrence.level == "error"
         assert occurrence.priority == self.critical_detector_trigger.condition_result
-        assert occurrence.assignee == self.detector.created_by_id
+        assert occurrence.assignee.id == self.detector.created_by_id
 
     @with_feature("organizations:issue-metric-issue-ingest")
     @with_feature("organizations:issue-metric-issue-post-process-group")
