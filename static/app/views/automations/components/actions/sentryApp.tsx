@@ -31,7 +31,7 @@ export function SentryAppNode() {
   });
 }
 
-export function SentryAppActionSettingsButton() {
+function SentryAppActionSettingsButton() {
   const {action, handler, onUpdate} = useActionNodeContext();
   const sentryApp = handler.sentryApp;
 
