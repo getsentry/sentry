@@ -24,12 +24,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import (
-    ActionHandler,
-    DataConditionHandler,
-    DataSourceTypeHandler,
-    DetectorPriorityLevel,
-)
+from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
 
 
 class ActionSerializerResponse(TypedDict):
@@ -181,25 +176,11 @@ class DataSourceSerializer(Serializer):
 @register(DataCondition)
 class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
-        condition_result = obj.condition_result
-
-        # Convert DetectorPriorityLevel enum values to lowercase string names
-        if isinstance(condition_result, DetectorPriorityLevel):
-            condition_result = condition_result.name.lower()
-        elif isinstance(condition_result, int):
-            # Try to convert integer to DetectorPriorityLevel and get name
-            try:
-                priority_level = DetectorPriorityLevel(condition_result)
-                condition_result = priority_level.name.lower()
-            except ValueError:
-                # Keep original value if it's not a valid DetectorPriorityLevel
-                pass
-
         return {
             "id": str(obj.id),
             "type": obj.type,
             "comparison": obj.comparison,
-            "conditionResult": condition_result,
+            "conditionResult": obj.condition_result.name.lower(),
         }
 
 
