@@ -1,10 +1,14 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {AddPermissionsBlock} from 'sentry/views/codecov/tests/onboardingSteps/addPermissionsBlock';
+import {AddUploadToken} from 'sentry/views/codecov/tests/onboardingSteps/addUploadToken';
+import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
+import {ChooseUploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
 import {OutputCoverageFile} from 'sentry/views/codecov/tests/onboardingSteps/outputCoverageFile';
 import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 
@@ -20,6 +24,8 @@ export default function TestsOnboardingPage() {
     },
     [setSearchParams]
   );
+  const [selectedUploadPermission, setSelectedUploadPermission] =
+    useState<UploadPermission>('oidc');
 
   return (
     <LayoutGap>
@@ -45,6 +51,14 @@ export default function TestsOnboardingPage() {
         />
         <StepsContainer>
           <OutputCoverageFile step="1" />
+          {/* TODO coming soon: we will conditionally render this based on CLI vs GHAction and OIDC vs Token for CLI */}
+          <ChooseUploadPermission
+            step="2a"
+            selectedUploadPermission={selectedUploadPermission}
+            setSelectedUploadPermission={setSelectedUploadPermission}
+          />
+          <AddUploadToken step="2b" />
+          <AddPermissionsBlock step="2b" />
         </StepsContainer>
       </OnboardingContainer>
     </LayoutGap>
