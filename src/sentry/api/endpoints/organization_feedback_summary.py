@@ -16,6 +16,8 @@ from sentry.feedback.usecases.feedback_summaries import generate_summary
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
+from sentry.spans.grouping.utils import hash_values
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -77,20 +79,41 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         if groups.count() < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize")
-            return Response({"summary": None, "success": False, "num_feedbacks_used": 0})
+            return Response(
+                {
+                    "summary": None,
+                    "success": False,
+                    "num_feedbacks_used": 0,
+                }
+            )
 
         # Also cap the number of characters that we send to the LLM
         group_feedbacks = []
+        feedback_ids = []
         total_chars = 0
         for group in groups:
             total_chars += len(group.data["metadata"]["message"])
             if total_chars > MAX_FEEDBACKS_TO_SUMMARIZE_CHARS:
                 break
             group_feedbacks.append(group.data["metadata"]["message"])
+            feedback_ids.append(str(group.id))
 
         # Edge case
         if len(group_feedbacks) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
+
+        # is this the right / efficient way to generate a cache key? or should i not be hashing here?
+        hashed_feedback_ids = hash_values(feedback_ids)
+        summary_cache_key = f"feedback_summary:{organization.id}:{hashed_feedback_ids}"
+        summary = cache.get(summary_cache_key)
+        if summary:
+            return Response(
+                {
+                    "summary": summary,
+                    "success": True,
+                    "num_feedbacks_used": len(group_feedbacks),
+                }
+            )
 
         try:
             summary = generate_summary(group_feedbacks)
@@ -99,6 +122,12 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             logger.exception("Error generating summary of user feedbacks")
             return Response({"detail": "Error generating summary"}, status=500)
 
+        cache.set(summary_cache_key, summary, timeout=60 * 60 * 24)
+
         return Response(
-            {"summary": summary, "success": True, "num_feedbacks_used": len(group_feedbacks)}
+            {
+                "summary": summary,
+                "success": True,
+                "num_feedbacks_used": len(group_feedbacks),
+            }
         )
