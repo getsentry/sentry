@@ -78,7 +78,7 @@ def enqueue_workflow(
 
     condition_group_set = {condition.condition_group_id for condition in delayed_conditions}
     condition_groups = ",".join(
-        str(condition_group_id) for condition_group_id in condition_group_set
+        str(condition_group_id) for condition_group_id in sorted(condition_group_set)
     )
 
     value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
