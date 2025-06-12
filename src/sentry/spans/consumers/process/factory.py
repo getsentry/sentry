@@ -147,7 +147,6 @@ def process_batch(
             continue
 
         span = Span(
-            partition=partition_id,
             trace_id=val["trace_id"],
             span_id=val["span_id"],
             parent_span_id=val.get("parent_span_id"),
