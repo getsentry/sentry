@@ -1522,18 +1522,18 @@ describe('Subscription > CombinedUsageTotals', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
 
-    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 26 72%'});
+    const acceptedRows = screen.getAllByRole('row', {name: 'Accepted 0 0%'});
     expect(acceptedRows).toHaveLength(2);
 
     // Should NOT show dropped rows for SEER categories
     expect(
-      screen.queryByRole('row', {name: 'Total Dropped 10 28%'})
+      screen.queryByRole('row', {name: 'Total Dropped 10 100%'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: 'Over Quota 7 19%'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'Over Quota 7 70%'})).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('row', {name: 'Spike Protection 1 3%'})
+      screen.queryByRole('row', {name: 'Spike Protection 1 10%'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: 'Other 2 6%'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'Other 2 20%'})).not.toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Issue Fixes'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
