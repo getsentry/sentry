@@ -69,10 +69,9 @@ class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
                 queryset = queryset.filter(event=query["event"])
 
         # Handle date filtering
-        if any(param in query for param in ("start", "end", "statsPeriod")):
-            start, end = get_date_range_from_stats_period(request.GET)
-            if start and end:
-                queryset = queryset.filter(datetime__range=(start, end))
+        start, end = get_date_range_from_stats_period(request.GET, optional=True)
+        if start and end:
+            queryset = queryset.filter(datetime__range=(start, end))
 
         response = self.paginate(
             request=request,
