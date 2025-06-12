@@ -165,7 +165,7 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
         <DrawerWrapper>
           <StyledDrawerHeader>
             <HeaderContent>
-              <div>AI Mode</div>
+              <div />
               <LinkButton
                 size="xs"
                 to={getTraceDetailsUrl({
