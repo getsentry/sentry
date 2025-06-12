@@ -146,7 +146,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
                 {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
               </Link>
               {hasPerformance && (
-                <Link
+                <TransactionsLink
                   data-test-id="project-transactions"
                   to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
                 >
@@ -158,7 +158,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
                       size="xs"
                     />
                   )}
-                </Link>
+                </TransactionsLink>
               )}
             </Fragment>
           ) : (
@@ -295,6 +295,12 @@ const SummaryLinkPlaceholder = styled(Placeholder)`
   width: 180px;
   margin-top: ${space(0.25)};
   margin-bottom: ${space(0.5)};
+`;
+
+const TransactionsLink = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const SettingsButton = styled(LinkButton)`
