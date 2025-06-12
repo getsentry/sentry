@@ -33,6 +33,11 @@ import {
 } from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
+// Mock the trace explore AI query context hook
+jest.mock('sentry/views/explore/contexts/traceExploreAiQueryContext', () => ({
+  useTraceExploreAiQueryContext: jest.fn(),
+}));
+
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
   [FieldKey.ASSIGNED]: {
@@ -4424,9 +4429,16 @@ describe('SearchQueryBuilder', function () {
   });
   describe('Ask Seer functionality', function () {
     it('shows Ask Seer option when trace explore AI context is available and AI features are allowed', async function () {
+      // Mock the hook to return a truthy value
+      const mockUseTraceExploreAiQueryContext =
+        require('sentry/views/explore/contexts/traceExploreAiQueryContext')
+          .useTraceExploreAiQueryContext as jest.Mock;
+      mockUseTraceExploreAiQueryContext.mockReturnValue({enabled: true});
+
       render(<SearchQueryBuilder {...defaultProps} />, {
         organization: OrganizationFixture({
-          features: ['organizations:gen-ai-explore-traces'],
+          features: ['organizations:gen-ai-explore-traces', 'gen-ai-features'],
+          hideAiFeatures: false,
         }),
       });
 
