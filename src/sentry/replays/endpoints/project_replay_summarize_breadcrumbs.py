@@ -58,7 +58,7 @@ class ProjectReplaySummarizeBreadcrumbsEndpoint(ProjectEndpoint):
 
 
 @sentry_sdk.trace
-def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> bytes:
+def analyze_recording_segments(segments: list[RecordingSegmentStorageMeta]) -> dict[str, Any]:
     request_data = json.dumps({"logs": get_request_data(iter_segment_data(segments))})
 
     # XXX: I have to deserialize this request so it can be "automatically" reserialized by the
