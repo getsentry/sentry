@@ -181,10 +181,13 @@ def _sync_project_artifact_bundle(
     source_artifact_bundle: ArtifactBundle,
     target_artifact_bundle: ArtifactBundle,
 ):
-    source_project_artifact_bundle = ProjectArtifactBundle.objects.get(
+    source_project_artifact_bundle = ProjectArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
-    )
+    ).first()
+
+    if not source_project_artifact_bundle:
+        return
 
     target_project = _find_matching_project(
         source_project_artifact_bundle.project_id,
