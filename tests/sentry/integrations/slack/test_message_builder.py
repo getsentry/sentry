@@ -1100,6 +1100,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group1.type = ErrorGroupType.type_id
         group1.save()
 
+        self.project.update_option("sentry:seer_scanner_automation", True)
+
         # Test case for long exception text (over 50 characters)
         long_text = (
             "This is a very long text that exceeds the 50 character limit and should be truncated"
