@@ -1,6 +1,17 @@
 import styled from '@emotion/styled';
 
-export const UnstyledButton = styled('button')`
+export function UnstyledButton({
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  );
+}
+
+export const RemovedStylesButton = styled('button')`
   background: none;
   border: none;
   outline: none;
