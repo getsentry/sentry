@@ -10,7 +10,7 @@ x-sentry-service-config:
       description: Service that provides fast aggregation and query capabilities on top of Clickhouse
       remote:
         repo_name: snuba
-        branch: master
+        branch: unrevert-topic-partition-counts
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
     snuba-profiling:
