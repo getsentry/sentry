@@ -6,8 +6,6 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-
-# from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.snuba.dataset import Dataset
@@ -15,7 +13,7 @@ from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataCondition, DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import (
@@ -133,7 +131,10 @@ class TestEvaluateMetricDetector(BaseWorkflowTest):
         assert occurrence.priority == self.critical_detector_trigger.condition_result
         assert occurrence.assignee == self.detector.created_by_id
 
-    @django_db_all
+    @with_feature("organizations:issue-metric-issue-ingest")
+    @with_feature("organizations:issue-metric-issue-post-process-group")
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     @patch("sentry.workflow_engine.processors.workflow.process_workflows")
     def test_occurrence_post_process(self, mock_process_workflows):
         value = self.critical_detector_trigger.comparison + 1
@@ -155,51 +156,23 @@ class TestEvaluateMetricDetector(BaseWorkflowTest):
 
         assert occurrence is not None
 
-        # massage the data for self.store_event
-        # del evaluation_result.event_data["event_id"]
-        # del evaluation_result.event_data["project_id"] # invalid_attribute
-        # evaluation_result.event_data["timestamp"] = evaluation_result.event_data[
-        #     "timestamp"
-        # ].isoformat() # Object of type datetime is not JSON serializable
-        # evaluation_result.event_data["received"] = evaluation_result.event_data[
-        #     "received"
-        # ].isoformat() # Object of type datetime is not JSON serializable
-
-        # event = self.store_event(data=evaluation_result.event_data, project_id=self.project.id)
-
-        # occurrence_dict = occurrence_data.to_dict()
-        # occurrence_dict["event_id"] = event.event_id
-        # # print("fingerprint: ", occurrence_dict["fingerprint"])
-        # # print("value: ", occurrence_dict["evidence_data"]["value"])
-
-        # occurrence_dict["fingerprint"] = [str(self.detector.id)]
-        # occurrence_dict["evidence_data"][
-        #     "value"
-        # ] = 6  # idk what 6 is, but this is what I see in CI diff
-        # del occurrence_dict["evidence_data"][
-        #     "conditions"
-        # ]  # also idk just trying to match what the diff wants this to look like
-        # print("occurrence_dict: ", occurrence_dict)
-        # occurrence, group_info = save_issue_occurrence(occurrence_dict, event)
-        # assert occurrence.group
-        #  ptest{'id': 'b2f515085308494491d5591f3780d8bc', 'project_id': 4556235644534786, 'event_id': '77e193a865e1430ca5221b2332eb780e', 'fingerprint': ['c1400be7e4fa2824b0253ed1d4413aa2'], 'issue_title': 'something bad happened', 'subtitle': 'it was bad', 'culprit': 'api/123', 'resource_id': '1234', 'evidence_data': {'detector_id': 1}, 'evidence_display': [{'name': 'hi', 'value': 'bye', 'important': True}, {'name': 'what', 'value': 'where', 'important': False}], 'type': 8001, 'detection_time': 1749760283.86989, 'level': 'warning'}
-
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
             event_data=evaluation_result.event_data,
         )
+        occurrence.save()
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
-        assert stored_occurrence  # currently failing here
         event = eventstore.backend.get_event_by_id(
-            evaluation_result.event_data["project_id"], stored_occurrence.event_id
+            occurrence.project_id, stored_occurrence.event_id
         )
 
         post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key="dummy",
+            cache_key=None,
+            occurrence_id=occurrence.id,
             group_id=event.group_id,
             project_id=occurrence.project_id,
             eventstream_type=EventStreamEventType.Generic.value,

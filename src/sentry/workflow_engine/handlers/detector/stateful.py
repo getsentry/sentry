@@ -490,14 +490,13 @@ class StatefulDetectorHandler(
             ],
         }
 
-        # fingerprint = [
-        #     *self.build_issue_fingerprint(group_key),
-        #     self.state_manager.build_key(group_key),
-        # ]
+        fingerprint = [
+            *self.build_issue_fingerprint(group_key),
+            self.state_manager.build_key(group_key),
+        ]
 
         return detector_occurrence.to_issue_occurrence(
-            # fingerprint=fingerprint,
-            fingerprint=[str(self.detector.id)],
+            fingerprint=fingerprint,
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
