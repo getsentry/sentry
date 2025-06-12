@@ -6,11 +6,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  useExploreAggregateFields,
   useExploreDataset,
+  useExploreGroupBys,
   useExploreSortBys,
+  useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -60,32 +60,33 @@ function useExploreAggregatesTableImp({
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
-  const aggregateFields = useExploreAggregateFields();
+  const groupBys = useExploreGroupBys();
   const sorts = useExploreSortBys();
+  const visualizes = useExploreVisualizes();
 
   const fields = useMemo(() => {
     // When rendering the table, we want the group bys first
     // then the aggregates.
     const allFields: string[] = [];
 
-    for (const aggregateField of aggregateFields) {
-      if (isGroupBy(aggregateField)) {
-        if (allFields.includes(aggregateField.groupBy)) {
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
           continue;
         }
-        allFields.push(aggregateField.groupBy);
-      } else {
-        for (const yAxis of aggregateField.yAxes) {
-          if (allFields.includes(yAxis)) {
-            continue;
-          }
-          allFields.push(yAxis);
-        }
+        allFields.push(yAxis);
       }
     }
 
     return allFields.filter(Boolean);
-  }, [aggregateFields]);
+  }, [groupBys, visualizes]);
 
   const eventView = useMemo(() => {
     const search = new MutableSearch(query);

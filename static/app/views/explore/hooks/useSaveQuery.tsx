@@ -5,6 +5,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
+import {isVisualize} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   type SavedQuery,
@@ -15,7 +16,7 @@ import {
 const TRACE_EXPLORER_DATASET = 'spans';
 
 export function useSaveQuery() {
-  const {groupBys, sortBys, visualizes, fields, query, mode, id, title} =
+  const {aggregateFields, sortBys, fields, query, mode, id, title} =
     useExplorePageParams();
   const {selection} = usePageFilters();
   const {datetime, projects, environments} = selection;
@@ -39,19 +40,19 @@ export function useSaveQuery() {
       environment: environments,
       query: [
         {
+          aggregateField: aggregateFields.map(aggregateField => {
+            return isVisualize(aggregateField) ? aggregateField.toJSON() : aggregateField;
+          }),
           fields,
           orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-          groupby: groupBys.filter(groupBy => groupBy !== ''),
           query: query ?? '',
-          visualize: visualizes.map(visualize => visualize.toJSON()),
           mode,
         },
       ],
     };
   }, [
-    groupBys,
+    aggregateFields,
     sortBys,
-    visualizes,
     fields,
     query,
     mode,
