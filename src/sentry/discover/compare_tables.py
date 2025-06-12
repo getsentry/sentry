@@ -50,8 +50,6 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}
     )
-    logger.info("metrics_data_row: %s", metrics_data_row)
-    logger.info("eap_data_row: %s", eap_data_row)
     metrics_fields = metrics_query_result["meta"]["fields"]
 
     mismatches: list[str] = []
@@ -95,6 +93,7 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
     )
 
 
+@sentry_sdk.tracing.trace
 def compare_tables_for_dashboard_widget_queries(
     widget_query: DashboardWidgetQuery,
 ) -> CompareTableResultDict:
