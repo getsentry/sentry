@@ -19,7 +19,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
@@ -56,7 +56,6 @@ describe('GithubInstallationSelect', () => {
     // Select an installation
     await userEvent.click(screen.getByText('bufo-bot'));
 
-    screen.logTestingPlaygroundURL();
     // Install button should be enabled
     expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
@@ -102,7 +101,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     expect(
-      screen.getByText('Install on an Existing Github Organization')
+      screen.getByText('Install on an Existing GitHub Organization')
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();

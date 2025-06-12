@@ -44,6 +44,9 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
+  const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
+    'solution' | 'code_changes' | 'open_pr'
+  >('solution');
 
   useEffect(() => {
     if (repositories) {
@@ -70,6 +73,9 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
+        setAutomatedRunStoppingPoint(
+          preference.automated_run_stopping_point || 'solution'
+        );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
         const repoIds = codeMappingRepos.map(repo => repo.external_id);
@@ -84,22 +90,26 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
+        setAutomatedRunStoppingPoint('solution');
       }
     }
   }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
 
   const updatePreferences = useCallback(
-    (updatedIds?: string[], updatedSettings?: Record<string, RepoSettings>) => {
+    (
+      updatedIds?: string[],
+      updatedSettings?: Record<string, RepoSettings>,
+      newStoppingPoint?: 'solution' | 'code_changes' | 'open_pr'
+    ) => {
       if (!repositories) {
         return;
       }
-
       const idsToUse = updatedIds || selectedRepoIds;
       const settingsToUse = updatedSettings || repoSettings;
+      const stoppingPointToUse = newStoppingPoint || automatedRunStoppingPoint;
       const selectedRepos = repositories.filter(repo =>
         idsToUse.includes(repo.externalId)
       );
-
       const reposData = selectedRepos.map(repo => {
         const [owner, name] = (repo.name || '/').split('/');
         return {
@@ -111,14 +121,19 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           instructions: settingsToUse[repo.externalId]?.instructions || '',
         };
       });
-
       updateProjectSeerPreferences({
         repositories: reposData,
+        automated_run_stopping_point: stoppingPointToUse,
       });
-
       setShowSaveNotice(true);
     },
-    [repositories, selectedRepoIds, repoSettings, updateProjectSeerPreferences]
+    [
+      repositories,
+      selectedRepoIds,
+      repoSettings,
+      automatedRunStoppingPoint,
+      updateProjectSeerPreferences,
+    ]
   );
 
   const handleSaveModalSelections = useCallback(

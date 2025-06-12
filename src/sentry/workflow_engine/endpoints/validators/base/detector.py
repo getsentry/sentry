@@ -10,6 +10,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionValidator,
     BaseDataSourceValidator,
 )
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataSource,
@@ -31,7 +32,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def validate_detector_type(self, value: str) -> type[GroupType]:
         detector_type = grouptype.registry.get_by_slug(value)
         if detector_type is None:
-            raise serializers.ValidationError("Unknown detector type")
+            organization = self.context.get("organization")
+            if organization:
+                error_message = get_unknown_detector_type_error(value, organization)
+            else:
+                error_message = f"Unknown detector type '{value}'"
+            raise serializers.ValidationError(error_message)
         if (
             detector_type.detector_settings is None
             or detector_type.detector_settings.validator is None

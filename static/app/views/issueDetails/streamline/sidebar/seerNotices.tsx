@@ -6,19 +6,14 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -28,8 +23,6 @@ import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
@@ -38,11 +31,6 @@ interface SeerNoticesProps {
   project: Project;
   hasGithubIntegration?: boolean;
 }
-
-const SeerBetaClosingAlert = HookOrDefault({
-  hookName: 'component:seer-beta-closing-alert',
-  defaultComponent: () => <div data-test-id="seer-beta-closing-alert" />,
-});
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
@@ -53,17 +41,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     isLoading: isLoadingPreferences,
   } = useProjectSeerPreferences(project);
   const {starredViews: views} = useStarredIssueViews();
-  const {mutate: createIssueView} = useCreateGroupSearchView({
-    onMutate: () => {
-      addLoadingMessage(t('Creating view...'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('View starred successfully'));
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to create view'));
-    },
-  });
+
   const detailedProject = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -121,31 +99,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const incompleteSteps = stepConditions.filter(Boolean).length;
   const anyStepIncomplete = incompleteSteps > 0;
 
-  const handleStarFixabilityView = () => {
-    let projects: number[] = [];
-    if (!organization.features.includes('global-views')) {
-      // org cannot have a view with multiple projects, so we'll just use the current project
-      projects = [Number(project.id)];
-    }
-    createIssueView({
-      name: 'Easy Fixes 🤖',
-      query: 'is:unresolved issue.seer_actionability:[high,super_high]',
-      querySort: IssueSortOptions.DATE,
-      projects,
-      environments: [],
-      timeFilters: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: null,
-      },
-      starred: true,
-    });
-  };
-
   return (
     <NoticesContainer>
-      <SeerBetaClosingAlert />
       {/* Collapsed summary */}
       {anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
@@ -313,9 +268,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <Button onClick={() => setStepsCollapsed(true)} size="sm">
                     {t('Skip for Now')}
                   </Button>
-                  <Button onClick={handleStarFixabilityView} size="sm" priority="primary">
-                    {t('Star Recommended View')}
-                  </Button>
+                  <StarFixabilityViewButton
+                    isCompleted={!needsFixabilityView}
+                    project={project}
+                  />
                 </GuidedSteps.StepButtons>
               </GuidedSteps.Step>
             )}

@@ -126,29 +126,17 @@ class SnubaTest(TestCase, SnubaTestCase):
         assert results == [
             {
                 "flag": "key",
-                "score": 2.7622287114272543,
+                "score": 0.01634056054997356,
                 "baseline_percent": 0.5,
                 "distribution": {
-                    "baseline": {
-                        "false": 1,
-                        "true": 1,
-                    },
-                    "outliers": {
-                        "true": 1,
-                    },
+                    "baseline": {"false": 1, "true": 1},
+                    "outliers": {"true": 1},
                 },
             },
             {
                 "flag": "other",
-                "score": 0.0,
+                "score": 0.016181914331041776,
                 "baseline_percent": 0,
-                "distribution": {
-                    "baseline": {
-                        "false": 2,
-                    },
-                    "outliers": {
-                        "false": 1,
-                    },
-                },
+                "distribution": {"baseline": {"false": 2}, "outliers": {"false": 1}},
             },
         ]

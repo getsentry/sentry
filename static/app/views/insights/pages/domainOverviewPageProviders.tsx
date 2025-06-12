@@ -6,19 +6,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 
-export function DomainOverviewPageProviders({
-  children,
-  maxPickableDays,
-}: {
-  children: React.ReactNode;
-  maxPickableDays?: number;
-}) {
+export function DomainOverviewPageProviders({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
   const location = useLocation();
 
   return (
     <NoProjectMessage organization={organization}>
-      <PageFiltersContainer maxPickableDays={maxPickableDays}>
+      <PageFiltersContainer>
         <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
           <MEPSettingProvider location={location}>{children}</MEPSettingProvider>
         </SentryDocumentTitle>

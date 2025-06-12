@@ -23,7 +23,7 @@ preprod: 0001_emerge_upload_models
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0925_backfill_open_periods
+sentry: 0926_dashboard_favorite_defer_position_constraint
 
 social_auth: 0001_squashed_0002_default_auto_field
 
@@ -31,4 +31,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0067_workflow_action_group_status_group_db_constraint
+workflow_engine: 0068_migrate_anomaly_detection_alerts

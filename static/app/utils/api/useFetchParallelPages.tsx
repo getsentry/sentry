@@ -104,14 +104,13 @@ export default function useFetchParallelPages<Data>({
     [pages, perPage]
   );
 
-  const willFetch = enabled && Boolean(cursors.length);
   const [state, setState] = useState<State<Data>>({
     pages: [],
     error: undefined,
     getLastResponseHeader: undefined,
-    status: 'pending',
+    status: enabled ? (cursors.length ? 'pending' : 'success') : 'pending',
     isError: false,
-    isFetching: willFetch,
+    isFetching: enabled && Boolean(cursors.length),
   });
 
   const fetch = useCallback(
@@ -173,18 +172,17 @@ export default function useFetchParallelPages<Data>({
   );
 
   useEffect(() => {
-    if (!willFetch) {
-      return;
+    if (enabled) {
+      if (cursors.length) {
+        setState(prev => ({...prev, status: 'pending', isFetching: true}));
+        fetch();
+      } else {
+        setState(prev => ({...prev, status: 'success', isFetching: false}));
+      }
+    } else {
+      setState(prev => ({...prev, status: 'pending', isFetching: false}));
     }
-
-    setState(prev => ({
-      ...prev,
-      status: 'pending',
-      isFetching: true,
-    }));
-
-    fetch();
-  }, [willFetch, fetch]);
+  }, [cursors, enabled, fetch]);
 
   return state;
 }

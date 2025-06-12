@@ -130,6 +130,14 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             == current_project_meta["last_release_version"]
         )
 
+    def test_authors_is_none(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id, version="1", authors=None
+        )
+        release.add_project(self.project)
+        result = serialize(release, self.user)
+        assert result["authors"] == []
+
     def test_mobile_version(self):
         user = self.create_user()
         project = self.create_project()

@@ -16,8 +16,8 @@ from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
+from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.spans.consumers.process_segments.message import process_segment
-from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -98,12 +98,12 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             output_block_size=self.output_block_size,
         )
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.pool.close()
 
 
 def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
-    if not options.get("standalone-spans.process-segments-consumer.enable"):
+    if not options.get("spans.process-segments.consumer.enable"):
         return []
 
     try:
@@ -133,5 +133,5 @@ def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPay
     )
 
 
-def _unfold_segment(spans: list[Value[KafkaPayload]]):
+def _unfold_segment(spans: list[Value[KafkaPayload]]) -> list[Value[KafkaPayload]]:
     return [span for span in spans if span is not None]

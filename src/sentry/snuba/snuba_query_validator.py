@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import override
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -72,7 +73,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
 class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
     environment = EnvironmentField(required=True, allow_null=True)
@@ -341,6 +342,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    @override
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],

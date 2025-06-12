@@ -46,7 +46,6 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {
@@ -461,7 +460,7 @@ function EAPSpanNodeDetails({
                         <SectionTitleWithQuestionTooltip
                           title={t('Attributes')}
                           tooltipText={t(
-                            'These attributes are indexed and can be queries in the Trace Explorer.'
+                            'These attributes are indexed and can be queried in the Trace Explorer.'
                           )}
                         />
                       }
@@ -490,7 +489,7 @@ function EAPSpanNodeDetails({
                           <SectionTitleWithQuestionTooltip
                             title={t('Contexts')}
                             tooltipText={t(
-                              "This data is not indexed and can't be queries in the Trace Explorer. For querying, attach these as attributes to your spans."
+                              "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
                             )}
                           />
                         }
@@ -520,10 +519,6 @@ function EAPSpanNodeDetails({
                         event={eventTransaction}
                         organization={organization}
                       />
-                    ) : null}
-
-                    {isTransaction ? (
-                      <BreadCrumbs event={eventTransaction} organization={organization} />
                     ) : null}
 
                     {isTransaction && project ? (

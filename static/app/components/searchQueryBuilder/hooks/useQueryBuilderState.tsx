@@ -9,8 +9,9 @@ import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/
 import {
   type FieldDefinitionGetter,
   type FocusOverride,
-  isTermOperator,
+  isWildcardOperator,
   type SearchQueryBuilderOperators,
+  WildcardOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -26,6 +27,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryBuilderState = {
   /**
@@ -162,35 +164,117 @@ function deleteQueryTokens(
   };
 }
 
+export function addWildcardToToken(
+  token: TokenResult<Token.VALUE_TEXT>,
+  isContains: boolean,
+  isStartsWith: boolean,
+  isEndsWith: boolean
+) {
+  let newTokenValue = token.value;
+  if ((isContains || isEndsWith) && !token.value.startsWith('*')) {
+    newTokenValue = `*${newTokenValue}`;
+  }
+
+  if ((isContains || isStartsWith) && !token.value.endsWith('*')) {
+    newTokenValue = `${newTokenValue}*`;
+  }
+
+  return newTokenValue;
+}
+
+export function removeWildcardFromToken(
+  token: TokenResult<Token.VALUE_TEXT>,
+  isContains: boolean,
+  isStartsWith: boolean,
+  isEndsWith: boolean
+) {
+  let newTokenValue = token.value;
+  if (!isEndsWith && !isContains && token.value.startsWith('*')) {
+    newTokenValue = newTokenValue.slice(1);
+  }
+
+  if (!isStartsWith && !isContains && token.value.endsWith('*')) {
+    newTokenValue = newTokenValue.slice(0, -1);
+  }
+
+  return newTokenValue;
+}
+
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: SearchQueryBuilderOperators
+  newOperator: SearchQueryBuilderOperators,
+  hasWildcardOperators: boolean
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
-
+  const isNotEqual =
+    newOperator === TermOperator.NOT_EQUAL ||
+    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
   const newToken: TokenResult<Token.FILTER> = {...token};
-  if (isTermOperator(newOperator)) {
-    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
-  } else {
+  newToken.negated = isNotEqual;
+
+  if (isWildcardOperator(newOperator)) {
     // whenever we have a wildcard operator, we want to set the operator to the default,
     // because there is no special characters for the wildcard operators just the asterisk
     newToken.operator = TermOperator.DEFAULT;
+  } else {
+    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
   }
-  newToken.negated = isNotEqual;
+
+  const isContains =
+    newOperator === WildcardOperators.CONTAINS ||
+    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
+  const isStartsWith = newOperator === WildcardOperators.STARTS_WITH;
+  const isEndsWith = newOperator === WildcardOperators.ENDS_WITH;
+
+  if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT) {
+    newToken.value.value = addWildcardToToken(
+      newToken.value,
+      isContains,
+      isStartsWith,
+      isEndsWith
+    );
+    newToken.value.value = removeWildcardFromToken(
+      newToken.value,
+      isContains,
+      isStartsWith,
+      isEndsWith
+    );
+  } else if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT_LIST) {
+    newToken.value.items.forEach(item => {
+      if (!item.value) return;
+      item.value.value = addWildcardToToken(
+        item.value,
+        isContains,
+        isStartsWith,
+        isEndsWith
+      );
+      item.value.value = removeWildcardFromToken(
+        item.value,
+        isContains,
+        isStartsWith,
+        isEndsWith
+      );
+    });
+  }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function modifyFilterOperator(
   state: QueryBuilderState,
-  action: UpdateFilterOpAction
+  action: UpdateFilterOpAction,
+  hasWildcardOperators: boolean
 ): QueryBuilderState {
-  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
+  const newQuery = modifyFilterOperatorQuery(
+    state.query,
+    action.token,
+    action.op,
+    hasWildcardOperators
+  );
 
   if (newQuery === state.query) {
     return state;
@@ -419,6 +503,9 @@ function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
+  // stop the user from entering multiple wildcards by themselves
+  newValue = newValue.replace(/\*\*+/g, '*');
+
   return replaceQueryToken(query, token.value, newValue);
 }
 
@@ -543,6 +630,10 @@ export function useQueryBuilderState({
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
 }) {
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+
   const initialState: QueryBuilderState = {
     query: initialQuery,
     committedQuery: initialQuery,
@@ -606,7 +697,7 @@ export function useQueryBuilderState({
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action);
+          return modifyFilterOperator(state, action, hasWildcardOperators);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
@@ -620,7 +711,7 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, getFieldDefinition]
+    [disabled, getFieldDefinition, hasWildcardOperators]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

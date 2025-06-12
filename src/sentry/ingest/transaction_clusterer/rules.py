@@ -147,7 +147,7 @@ class CompositeRuleStore:
 
         if self.MERGE_MAX_RULES < len(rules):
             set_span_attribute("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
-            sentry_sdk.Scope.get_isolation_scope().set_context(
+            sentry_sdk.get_isolation_scope().set_context(
                 "clustering_rules_max",
                 {
                     "num_existing_rules": len(rules),
