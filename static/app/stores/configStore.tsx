@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 import {createStore} from 'reflux';
 
@@ -10,6 +11,8 @@ interface ConfigStoreDefinition extends StrictStoreDefinition<Config> {
   loadInitialData(config: Config): void;
   set<K extends keyof Config>(key: K, value: Config[K]): void;
 }
+
+const {warn} = Sentry.logger;
 
 const storeConfig: ConfigStoreDefinition = {
   // When the app is booted we will _immediately_ hydrate the config store,
@@ -44,7 +47,21 @@ const storeConfig: ConfigStoreDefinition = {
     // TODO(dcramer): abstract this out of ConfigStore
     if (config.user) {
       config.user.permissions = new Set(config.user.permissions);
-      moment.tz.setDefault(config.user.options.timezone);
+
+      const systemTimeZone = moment.tz.guess();
+      const userTimeZone = config.user.options.timezone;
+
+      const nowInSystemTimezone = moment.tz(undefined, systemTimeZone);
+      const nowInUserTimezone = moment.tz(undefined, userTimeZone);
+
+      if (nowInSystemTimezone.utcOffset() !== nowInUserTimezone.utcOffset()) {
+        warn('System time zone does not match user preferences time zone', {
+          systemTimeZone,
+          userTimeZone,
+        });
+      }
+
+      moment.tz.setDefault(userTimeZone);
     }
 
     this.trigger(config);
