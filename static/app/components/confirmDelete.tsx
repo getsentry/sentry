@@ -22,6 +22,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
       {...props}
       bypass={false}
       disableConfirmButton
+      priority="danger"
       renderMessage={({disableConfirmButton}) => (
         <Fragment>
           <Alert.Container>
