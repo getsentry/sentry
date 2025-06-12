@@ -540,6 +540,32 @@ describe('Incident Rules Form', () => {
       );
     }, 10000);
 
+    it('disables editing transaction alert type if deprecated flag is enabled', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'visibility-explore-view',
+        'performance-transaction-deprecation-alerts',
+      ];
+      const metricRule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...metricRule,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+        ruleId: rule.id,
+      });
+
+      await userEvent.hover(screen.getAllByText('Throughput')[1]!);
+      expect(
+        await screen.findByText(
+          'Transaction based alerts are no longer supported. Create span alerts instead.'
+        )
+      ).toBeInTheDocument(); // tooltip description
+    });
+
     it('switches from percent change to count', async () => {
       createWrapper({
         ruleId: rule.id,
