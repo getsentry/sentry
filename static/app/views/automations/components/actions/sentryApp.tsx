@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconSettings} from 'sentry/icons';
@@ -8,27 +10,23 @@ import {useActionNodeContext} from 'sentry/views/automations/components/actionNo
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 export function SentryAppDetails({handler}: {handler: ActionHandler}) {
-  const name = handler?.sentryApp?.name;
+  const name = handler?.sentryApp?.name || t('unknown SentryApp');
   const title = handler?.sentryApp?.title;
 
-  return title || name || t('Unknown SentryApp action');
+  return title || tct('Notify [name]', {name});
 }
 
 export function SentryAppNode() {
   const {handler} = useActionNodeContext();
-  const sentryApp = handler?.sentryApp;
-  if (!sentryApp) {
-    return t('Unknown SentryApp action');
-  }
 
-  const name = sentryApp.name;
-  const title = sentryApp.title;
-  return tct('[label] [settings]', {
-    label: title || name,
-    settings: sentryApp.settings
-      ? tct('with these [settings]', {settings: <SentryAppActionSettingsButton />})
-      : null,
-  });
+  return (
+    <Fragment>
+      <SentryAppDetails handler={handler} />
+      {handler?.sentryApp?.settings
+        ? tct(' with these [settings]', {settings: <SentryAppActionSettingsButton />})
+        : null}
+    </Fragment>
+  );
 }
 
 function SentryAppActionSettingsButton() {
