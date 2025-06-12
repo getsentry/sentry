@@ -26,7 +26,6 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
     start = serializers.DateTimeField(required=False)
     end = serializers.DateTimeField(required=False)
     statsPeriod = serializers.CharField(required=False)
-    utc = serializers.BooleanField(required=False)
 
     def validate_event(self, event):
         try:

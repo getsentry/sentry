@@ -252,26 +252,3 @@ class OrganizationAuditLogsTest(APITestCase):
         # Should only return the recent entry, not the old one
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(recent_entry.id)
-
-    def test_utc_parameter(self):
-        now = timezone.now()
-
-        entry = AuditLogEntry.objects.create(
-            organization_id=self.organization.id,
-            event=audit_log.get_event_id("ORG_EDIT"),
-            actor=self.user,
-            datetime=now - timedelta(hours=1),
-        )
-
-        # Test that utc parameter is accepted (both true and false)
-        response_utc_true = self.get_success_response(
-            self.organization.slug, qs_params={"utc": "true"}
-        )
-        assert len(response_utc_true.data["rows"]) == 1
-        assert response_utc_true.data["rows"][0]["id"] == str(entry.id)
-
-        response_utc_false = self.get_success_response(
-            self.organization.slug, qs_params={"utc": "false"}
-        )
-        assert len(response_utc_false.data["rows"]) == 1
-        assert response_utc_false.data["rows"][0]["id"] == str(entry.id)
