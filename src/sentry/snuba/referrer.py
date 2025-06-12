@@ -112,7 +112,11 @@ class Referrer(StrEnum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+    API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
+        "api.insights.app-starts.mobile-startup-bar-chart"
+    )
     API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
+    API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -188,6 +192,9 @@ class Referrer(StrEnum):
     )
     API_PERFORMANCE_BROWSER_RESOURCES_RESOURCE_SUMMARY_METRICS_RIBBON = (
         "api.performance.browser.resources.resource-summary-metrics-ribbon"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROFILE_EXISTS = (
+        "api.performance.browser.web-vitals.profile-exists"
     )
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
@@ -418,6 +425,7 @@ class Referrer(StrEnum):
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
+    API_PROFILING_ONBOARDING = "profiling-onboarding"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
@@ -660,11 +668,18 @@ class Referrer(StrEnum):
         "api.performance.backend.overview.duration-chart"
     )
     API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART = "api.performance.backend.overview.jobs-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PAGES_TABLE = "api.performance.backend.overview.pages-table"
     API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART = (
         "api.performance.backend.overview.queries-chart"
     )
     API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART = "api.performance.backend.overview.cache-chart"
     API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE = "api.performance.backend.overview.paths-table"
+    API_PERFORMNACE_BACKEND_OVERVIEW_SLOW_SSR_CHART = (
+        "api.performance.backend.overview.slow-ssr-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
+        "api.performance.backend.overview.web-vitals-chart"
+    )
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
