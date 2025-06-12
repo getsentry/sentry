@@ -5,13 +5,13 @@ export function UnstyledButton({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button type="button" {...props}>
+    <RemovedStylesButton type="button" {...props}>
       {children}
-    </button>
+    </RemovedStylesButton>
   );
 }
 
-export const RemovedStylesButton = styled('button')`
+const RemovedStylesButton = styled('button')`
   background: none;
   border: none;
   outline: none;
