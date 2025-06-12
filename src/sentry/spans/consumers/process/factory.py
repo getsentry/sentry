@@ -160,7 +160,16 @@ def process_batch(
         except Exception:
             logger.exception("spans.invalid-message")
             # We only DLQ when parsing the input for now. All other errors
-            # beyond this point are likely a downtime of the cluster.
+            # beyond this point are very unlikely to pertain to a specific message:
+            #
+            # * if we get exceptions from buffer.process_spans, it's likely
+            #   because Redis is down entirely.
+            # * if we get exceptions from the flusher, it's likely that there
+            #   is a broader issue with traffic patterns where no individual
+            #   message is at fault.
+            #
+            # in those situations it's better to halt the consumer as we're
+            # otherwise very likely to just DLQ everything anyway.
             raise InvalidMessage(value.partition, value.offset)
 
     assert min_timestamp is not None
