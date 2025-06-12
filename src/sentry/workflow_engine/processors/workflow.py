@@ -149,9 +149,13 @@ def evaluate_workflows_action_filters(
     )
     workflows_by_id = {workflow.id: workflow for workflow in workflows}
     for action_condition in action_conditions:
-        workflow_event_data = replace(
-            event_data, workflow_env=workflows_by_id[action_condition.workflow_id].environment
+        workflow = workflows_by_id[action_condition.workflow_id]
+        env = (
+            Environment.objects.get_from_cache(id=workflow.environment_id)
+            if workflow.environment_id
+            else None
         )
+        workflow_event_data = replace(event_data, workflow_env=env)
         group_evaluation, remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_event_data
         )
@@ -160,7 +164,7 @@ def evaluate_workflows_action_filters(
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
             enqueue_workflow(
-                workflows_by_id[action_condition.workflow_id],
+                workflow,
                 remaining_conditions,
                 event_data.event,
                 WorkflowDataConditionGroupType.ACTION_FILTER,
