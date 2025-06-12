@@ -8,6 +8,7 @@ const AI_RUN_OPS = [
   'ai.run.generateText',
   'ai.run.generateObject',
   'gen_ai.invoke_agent',
+  'ai.pipeline.generate_text',
 ];
 const AI_RUN_DESCRIPTIONS = ['ai.generateText', 'generateText'];
 
@@ -17,6 +18,7 @@ const AI_GENERATION_OPS = [
   'ai.run.doGenerate',
   'gen_ai.chat',
   'gen_ai.generate_content',
+  'gen_ai.generate_text',
   'gen_ai.text_completion',
 ];
 const AI_GENERATION_DESCRIPTIONS = [
