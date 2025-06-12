@@ -26,7 +26,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 ```
-
 ## Testing Philosophy
 
 - **User-centric testing**: Write tests that resemble how users interact with the app.
@@ -36,8 +35,8 @@ import {
 
 1. **`getByRole`** - Primary selector for most elements
    ```tsx
-   screen.getByRole('button', { name: /save/i })
-   screen.getByRole('textbox', { name: /search/i })
+   screen.getByRole('button', { name: 'Save' })
+   screen.getByRole('textbox', { name: 'Search' })
    ```
 
 2. **`getByLabelText`/`getByPlaceholderText`** - For form elements

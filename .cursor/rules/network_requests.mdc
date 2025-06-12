@@ -1,0 +1,329 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Network Requests
+
+## Overview
+
+Sentry uses React Query (via `sentry/utils/queryClient.tsx`) as the preferred way to make network requests. This document outlines best practices for fetching and updating data in the Sentry frontend codebase.
+
+## Basic Usage
+
+### Fetching Data (GET requests)
+
+Use `useApiQuery` for making GET requests:
+
+```tsx
+import { useApiQuery } from "sentry/utils/queryClient";
+
+type ProjectsResponse = Array<{ id: string; name: string }>;
+
+function ProjectsList({ orgSlug }) {
+  const {
+    isPending,
+    isError,
+    data: projects,
+    refetch,
+  } = useApiQuery<ProjectsResponse>(
+    [`/projects/`, { query: { orgSlug } }],
+    {
+      staleTime: 0, // Required - consider this value carefully
+    }
+  );
+
+  if (isPending) return <LoadingIndicator />;
+  if (isError) return <LoadingError onRetry={refetch} />;
+
+  return (
+    <ul>
+      {projects?.map(project => (
+        <li key={project.id}>{project.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Updating Data (POST/PUT/DELETE requests)
+
+Use `useMutation` for making data modifications:
+
+```tsx
+import { useMutation } from "sentry/utils/queryClient";
+import useApi from "sentry/utils/useApi";
+
+type CreateProjectResponse = { id: string; name: string };
+type CreateProjectVariables = { name: string; orgSlug: string };
+
+function CreateProjectButton({ orgSlug }) {
+  const api = useApi();
+
+  const { mutate, isPending } = useMutation<
+    CreateProjectResponse,
+    RequestError,
+    CreateProjectVariables
+  >({
+    mutationFn: ({ name, orgSlug }) => {
+      return api.requestPromise(`/organizations/${orgSlug}/projects/`, {
+        method: "POST",
+        data: { name },
+      });
+    },
+    onSuccess: (response) => {
+      addSuccessMessage(`Successfully created project ${response.name}`);
+    },
+    onError: (error) => {
+      addErrorMessage(`Failed to create project: ${error.message}`);
+    },
+  });
+
+  return (
+    <Button
+      disabled={isPending}
+      onClick={() => mutate({ name: "New Project", orgSlug })}
+    >
+      {isPending ? "Creating..." : "Create Project"}
+    </Button>
+  );
+}
+```
+
+## Best Practices
+
+### Query Keys
+
+Query keys should be an array which includes an endpoint URL and options such as query params:
+
+```tsx
+// Basic query key
+['/projects/']
+
+// With query parameters
+['/projects/', { query: { orgSlug: 'my-org' } }]
+
+// With additional options
+['/projects/', { query: { orgSlug: 'my-org' }, method: 'GET' }]
+```
+
+### Choosing staleTime
+
+`staleTime` determines how long data stays fresh before being refetched:
+
+- `staleTime: Infinity` - "Never refetch automatically"
+- `staleTime: 0` - "Refetch on every remount/key change"
+- `staleTime: 30_000` - "Refetch at most every 30 seconds"
+
+### Creating Reusable Query Hooks
+
+Extract common queries into reusable hooks:
+
+```tsx
+// useFetchProjects.tsx
+export function makeFetchProjectsQueryKey({
+  orgSlug,
+}: {
+  orgSlug: string;
+}): ApiQueryKey {
+  return [`/projects/`, { query: { orgSlug } }];
+}
+
+export function useFetchProjects(
+  params: { orgSlug: string },
+  options: Partial<UseApiQueryOptions<ProjectsResponse>> = {}
+) {
+  return useApiQuery<ProjectsResponse>(makeFetchProjectsQueryKey(params), {
+    staleTime: 60_000, // Cache for 1 minute
+    ...options,
+  });
+}
+```
+
+### Updating Cache Data
+
+Update the cache when you have new data:
+
+```tsx
+import { setApiQueryData, useQueryClient } from "sentry/utils/queryClient";
+
+const queryClient = useQueryClient();
+
+// After creating a new project
+const newProject = await createProject();
+setApiQueryData<ProjectsResponse>(
+  queryClient,
+  makeFetchProjectsQueryKey({ orgSlug }),
+  data => data ? [...data, newProject] : data
+);
+```
+
+### Optimistic Updates
+
+For better UX, update the UI before the server responds:
+
+```tsx
+const { mutate } = useMutation({
+  mutationFn: updateProject,
+  onMutate: async (variables) => {
+    // Cancel ongoing queries
+    await queryClient.cancelQueries(projectQueryKey);
+
+    // Save previous state
+    const previousProject = queryClient.getQueryData(projectQueryKey);
+
+    // Update cache optimistically
+    setApiQueryData(
+      queryClient,
+      projectQueryKey,
+      oldData => ({ ...oldData, name: variables.name })
+    );
+
+    // Return context for error handling
+    return { previousProject };
+  },
+  onError: (error, variables, context) => {
+    // Restore previous state on error
+    queryClient.setQueryData(projectQueryKey, context.previousProject);
+    addErrorMessage("Failed to update project");
+  },
+  onSettled: () => {
+    // Refetch to ensure data is correct
+    queryClient.invalidateQueries({ queryKey: projectQueryKey });
+  }
+});
+```
+
+## Testing Network Requests
+
+Use `MockApiClient` to test components that make network requests:
+
+```tsx
+import { render, screen } from 'sentry-test/reactTestingLibrary';
+import { MockApiClient } from 'sentry-test/mockApiClient';
+
+describe('ProjectsList', () => {
+  it('displays projects when loaded', async () => {
+    // Mock API response
+    MockApiClient.addMockResponse({
+      url: '/projects/',
+      body: [{ id: '1', name: 'My Project' }],
+    });
+
+    render(<ProjectsList orgSlug="my-org" />);
+
+    // Wait for data to load and component to render
+    expect(await screen.findByText('My Project')).toBeInTheDocument();
+  });
+
+  it('handles errors', async () => {
+    // Mock error response
+    MockApiClient.addMockResponse({
+      url: '/projects/',
+      statusCode: 500,
+      body: { detail: 'Server Error' },
+    });
+
+    render(<ProjectsList orgSlug="my-org" />);
+
+    // Check for error state
+    expect(await screen.findByText('Loading Error')).toBeInTheDocument();
+  });
+});
+```
+
+### Testing Mutations
+
+When testing mutations that trigger refetches:
+
+```tsx
+it('creates a project and updates the list', async () => {
+  // Initial empty list
+  MockApiClient.addMockResponse({
+    url: '/projects/',
+    body: [],
+  });
+
+  // Create project endpoint
+  const createMock = MockApiClient.addMockResponse({
+    url: '/organizations/my-org/projects/',
+    method: 'POST',
+    body: { id: '1', name: 'New Project' },
+  });
+
+  render(<ProjectsPage orgSlug="my-org" />);
+
+  // Trigger creation
+  await userEvent.click(screen.getByRole('button', { name: 'Create Project' }));
+
+  // IMPORTANT: Update the mock response for the refetch
+  MockApiClient.addMockResponse({
+    url: '/projects/',
+    body: [{ id: '1', name: 'New Project' }],
+  });
+
+  // Verify API was called
+  await waitFor(() => expect(createMock).toHaveBeenCalled());
+
+  // Verify UI updated
+  expect(await screen.findByText('New Project')).toBeInTheDocument();
+});
+```
+
+## Common Patterns
+
+### Handling Pagination
+
+For paginated data, use `useInfiniteApiQuery`:
+
+```tsx
+import { useInfiniteApiQuery } from "sentry/utils/queryClient";
+
+function PaginatedList() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteApiQuery({
+    queryKey: ['/events/', { query: { limit: 10 } }],
+    staleTime: 60_000,
+  });
+
+  return (
+    <div>
+      {data?.pages.flatMap(page => page[0]).map(item => (
+        <div key={item.id}>{item.title}</div>
+      ))}
+
+      {hasNextPage && (
+        <Button
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? 'Loading more...' : 'Load More'}
+        </Button>
+      )}
+    </div>
+  );
+}
+```
+
+### Dependent Queries
+
+For queries that depend on data from another query:
+
+```tsx
+const { data: project } = useApiQuery<Project>(
+  [`/projects/${projectId}/`],
+  { staleTime: 60_000 }
+);
+
+const { data: issues } = useApiQuery<Issues>(
+  [`/projects/${projectId}/issues/`, { query: { environment: project?.environment } }],
+  {
+    staleTime: 30_000,
+    enabled: !!project, // Only run when project data is available
+  }
+);
+```
