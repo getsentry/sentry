@@ -130,6 +130,7 @@ class TestEvaluateMetricDetector(BaseWorkflowTest):
         assert occurrence.evidence_data == evidence_data
         assert occurrence.level == "error"
         assert occurrence.priority == self.critical_detector_trigger.condition_result
+        assert occurrence.assignee
         assert occurrence.assignee.id == self.detector.created_by_id
 
     @with_feature("organizations:issue-metric-issue-ingest")
@@ -164,9 +165,11 @@ class TestEvaluateMetricDetector(BaseWorkflowTest):
         )
         occurrence.save()
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
+        assert stored_occurrence
         event = eventstore.backend.get_event_by_id(
             occurrence.project_id, stored_occurrence.event_id
         )
+        assert event
 
         post_process_group(
             is_new=True,
