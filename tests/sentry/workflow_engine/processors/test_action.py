@@ -56,6 +56,10 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
         )
         assert set(triggered_actions) == {self.action}
 
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id
+        }
+
         for status in [status_1, status_2]:
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
@@ -78,9 +82,32 @@ class TestFilterRecentlyFiredActions(BaseWorkflowTest):
         )
         assert set(triggered_actions) == {self.action, action_3}
 
+        assert {getattr(action, "workflow_id") for action in triggered_actions} == {
+            self.workflow.id,
+            workflow.id,
+        }
+
         for status in [status_1, status_2, status_3]:
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
+
+    def test_creates_workflow_fire_histories(self):
+        workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
+        action_group = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group,
+            action=self.action,
+        )  # shared action
+        self.create_workflow_data_condition_group(workflow, action_group)
+        status = WorkflowActionGroupStatus.objects.create(
+            workflow=workflow, action=self.action, group=self.group
+        )
+        status.update(date_updated=timezone.now() - timedelta(hours=1))
+
+        triggered_actions = filter_recently_fired_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+        assert set(triggered_actions) == {self.action}
 
 
 @freeze_time("2024-01-09")

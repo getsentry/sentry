@@ -21,6 +21,7 @@ from rest_framework.request import Request
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
+from sentry.auth.store import FLOW_LOGIN
 from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -118,7 +119,7 @@ class SAML2AcceptACSView(BaseView):
             request=request,
             organization=(org_context.organization),
             auth_provider=auth_provider,
-            flow=AuthHelper.FLOW_LOGIN,
+            flow=FLOW_LOGIN,
         )
 
         helper.initialize()

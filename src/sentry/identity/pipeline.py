@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry import features, options
+from sentry.identity.pipeline_types import IdentityPipelineProviderT, IdentityPipelineT
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineProvider
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.utils import metrics
 
@@ -19,7 +21,7 @@ from . import default_manager
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
 
-class IdentityProviderPipeline(Pipeline[IdentityProvider]):
+class IdentityProviderPipeline(IdentityPipelineT):
     pipeline_name = "identity_provider"
     provider_manager = default_manager
     provider_model_cls = IdentityProvider
@@ -27,7 +29,7 @@ class IdentityProviderPipeline(Pipeline[IdentityProvider]):
     # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
     def get_provider(
         self, provider_key: str, *, organization: RpcOrganization | None
-    ) -> PipelineProvider[IdentityProvider]:
+    ) -> IdentityPipelineProviderT:
         if provider_key == "vsts" and features.has(
             "organizations:migrate-azure-devops-integration", organization
         ):
