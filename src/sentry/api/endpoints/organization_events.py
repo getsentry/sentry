@@ -303,11 +303,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        else:
-            try:
-                validate_referrer(referrer, raise_error=True)
-            except Exception:
-                referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        elif not validate_referrer(referrer):
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
         debug = request.user.is_superuser and "debug" in request.GET

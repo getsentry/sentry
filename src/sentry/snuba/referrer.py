@@ -1053,16 +1053,16 @@ VALUES = {referrer.value for referrer in Referrer}
 VALID_SUFFIXES = ["primary", "secondary"]
 
 
-def validate_referrer(referrer: str | None, raise_error: bool = False) -> None:
+def validate_referrer(referrer: str | None) -> bool:
     if not referrer:
-        return
+        return True
 
     if referrer in VALUES:
-        return
+        return True
 
     for suffix in VALID_SUFFIXES:
         if referrer.removesuffix(f".{suffix}") in VALUES:
-            return
+            return True
 
     error_message = f"referrer {referrer} is not part of Referrer Enum"
 
@@ -1072,5 +1072,4 @@ def validate_referrer(referrer: str | None, raise_error: bool = False) -> None:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)
 
-    if raise_error:
-        raise Exception(error_message)
+    return False
