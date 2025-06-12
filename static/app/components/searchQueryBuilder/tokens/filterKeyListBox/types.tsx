@@ -42,6 +42,12 @@ export interface RecentQueryItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
+export interface AskSeerItem extends SelectOptionWithKey<string> {
+  hideCheck: boolean;
+  type: 'ask-seer';
+  value: string;
+}
+
 export type SearchKeyItem = KeySectionItem | KeyItem | RawSearchItem | FilterValueItem;
 
 export type FilterKeyItem =
@@ -50,7 +56,8 @@ export type FilterKeyItem =
   | KeySectionItem
   | RecentQueryItem
   | RawSearchItem
-  | FilterValueItem;
+  | FilterValueItem
+  | AskSeerItem;
 
 export type Section = {
   label: ReactNode;

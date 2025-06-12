@@ -139,6 +139,39 @@ function RecentSearchFilterOption<T>({
   );
 }
 
+function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
+  const ref = useRef<HTMLLIElement>(null);
+  const {setDisplaySeerResults} = useSearchQueryBuilder();
+  const organization = useOrganization();
+
+  const {optionProps, labelProps, isFocused, isPressed} = useOption(
+    {
+      key: 'ask_seer',
+      'aria-label': 'Ask Seer',
+      shouldFocusOnHover: true,
+      shouldSelectOnPressUp: true,
+    },
+    state,
+    ref
+  );
+
+  const handleClick = () => {
+    trackAnalytics('trace.explorer.ai_query_interface', {
+      organization,
+      action: 'opened',
+    });
+    setDisplaySeerResults(true);
+  };
+
+  return (
+    <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
+      <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
+      <SeerIcon />
+      <AskSeerLabel {...labelProps}>{t('Ask Seer')}</AskSeerLabel>
+    </AskSeerListItem>
+  );
+}
+
 function useHighlightFirstOptionOnSectionChange({
   state,
   selectedSection,
@@ -216,9 +249,12 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys, setDisplaySeerResults} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
-    ?.value as string | undefined;
+  const {filterKeys} = useSearchQueryBuilder();
+  const focusedItem = state.selectionManager.focusedKey
+    ? (state.collection.getItem(state.selectionManager.focusedKey)?.props?.value as
+        | string
+        | undefined)
+    : undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
@@ -229,28 +265,18 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
+  // Check if ask-seer item should be shown
+  const showAskSeerOption = traceExploreAiQueryContext && areAiFeaturesAllowed;
+
   return (
     <Fragment>
-      <Feature features="organizations:gen-ai-explore-traces">
-        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
-          <SeerButtonWrapper>
-            <SeerFullWidthButton
-              size="md"
-              icon={<SeerIcon />}
-              onClick={() => {
-                trackAnalytics('trace.explorer.ai_query_interface', {
-                  organization,
-                  action: 'opened',
-                });
-                setDisplaySeerResults(true);
-              }}
-              borderless
-            >
-              {t('Ask Seer')}
-            </SeerFullWidthButton>
-          </SeerButtonWrapper>
-        ) : null}
-      </Feature>
+      {showAskSeerOption ? (
+        <Feature features="organizations:gen-ai-explore-traces">
+          <AskSeerPane>
+            <AskSeerOption state={state} />
+          </AskSeerPane>
+        </Feature>
+      ) : null}
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
@@ -333,19 +359,23 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
-  // Add recent filters to hiddenOptions so they don't show up the ListBox component.
-  // We render recent filters manually in the RecentFiltersPane component.
-  const hiddenOptionsWithRecentsAdded = useMemo<Set<SelectKey>>(() => {
-    return new Set([
+  const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
+    const baseHidden = [
       ...hiddenOptions,
       ...recentFilters.map(filter => createRecentFilterOptionKey(getKeyName(filter.key))),
-    ]);
-  }, [hiddenOptions, recentFilters]);
+    ];
+
+    if (traceExploreAiQueryContext && areAiFeaturesAllowed) {
+      baseHidden.push('ask_seer');
+    }
+
+    return new Set(baseHidden);
+  }, [hiddenOptions, recentFilters, traceExploreAiQueryContext, areAiFeaturesAllowed]);
 
   useHighlightFirstOptionOnSectionChange({
     state,
     selectedSection,
-    hiddenOptions: hiddenOptionsWithRecentsAdded,
+    hiddenOptions: hiddenOptionsWithRecentsAndAskSeerAdded,
     sections,
     isOpen,
   });
@@ -390,7 +420,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
-              hiddenOptions={hiddenOptionsWithRecentsAdded}
+              hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
               listBoxProps={listBoxProps}
               listBoxRef={listBoxRef}
               recentFilters={recentFilters}
@@ -416,7 +446,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
-            hiddenOptions={hiddenOptionsWithRecentsAdded}
+            hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
             listBoxProps={listBoxProps}
             listBoxRef={listBoxRef}
             recentFilters={recentFilters}
@@ -603,7 +633,7 @@ const EmptyState = styled('div')`
   }
 `;
 
-const SeerButtonWrapper = styled('div')`
+const AskSeerPane = styled('div')`
   grid-area: seer;
   display: flex;
   align-items: center;
@@ -614,24 +644,37 @@ const SeerButtonWrapper = styled('div')`
   width: 100%;
 `;
 
-const SeerFullWidthButton = styled(Button)`
-  width: 100%;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: ${p => p.theme.purple400};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-align: left;
-  justify-content: flex-start;
-  padding: ${space(1)} ${space(2)};
+const AskSeerListItem = styled('li')`
+  position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  padding: ${space(1)} ${space(1.5)};
+  background: transparent;
+  color: ${p => p.theme.purple400};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  cursor: pointer;
+  border: none;
+  outline: none;
   gap: ${space(1)};
+  list-style: none;
+  margin: 0;
+
   &:hover,
   &:focus {
     background: ${p => p.theme.purple100};
     color: ${p => p.theme.purple400};
-    box-shadow: none;
   }
+
+  &[aria-selected='true'] {
+    background: ${p => p.theme.purple100};
+    color: ${p => p.theme.purple400};
+  }
+`;
+const AskSeerLabel = styled('span')`
+  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.purple400};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
