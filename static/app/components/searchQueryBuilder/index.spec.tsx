@@ -1,5 +1,6 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -4419,6 +4420,19 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getByRole('row', {name: 'span.description:"random value"'})
       ).toBeInTheDocument();
+    });
+  });
+  describe('Ask Seer functionality', function () {
+    it('shows Ask Seer option when trace explore AI context is available and AI features are allowed', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: OrganizationFixture({
+          features: ['organizations:gen-ai-explore-traces'],
+        }),
+      });
+
+      await userEvent.click(getLastInput());
+
+      expect(await screen.findByRole('li', {name: 'Ask Seer'})).toBeInTheDocument();
     });
   });
 });
