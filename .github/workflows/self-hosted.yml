@@ -83,7 +83,7 @@ jobs:
         uses: docker/build-push-action@32945a339266b759abcbdc89316275140b0fc960 # v6.8.10
         with:
           context: .
-          file: "{context}/self-hosted/Dockerfile"
+          file: '{context}/self-hosted/Dockerfile'
           cache-from: ghcr.io/getsentry/sentry:latest
           cache-to: type=inline
           platforms: linux/${{ matrix.platform }}
