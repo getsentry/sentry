@@ -56,13 +56,58 @@ def _validate_create_model_identifier_length(op):
                 _validate_identifier_length(index.name)
 
 
+def _validate_add_field_identifier_length(op):
+    """Validate identifier length for AddField operation."""
+    _validate_identifier_length(op.name)
+    # Check db_column if specified
+    if hasattr(op.field, "db_column") and op.field.db_column:
+        _validate_identifier_length(op.field.db_column)
+
+
+def _validate_rename_field_identifier_length(op):
+    """Validate identifier length for RenameField operation."""
+    _validate_identifier_length(op.new_name)
+
+
+def _validate_rename_model_identifier_length(op):
+    """Validate identifier length for RenameModel operation."""
+    # Model names become table names (usually prefixed with app name)
+    _validate_identifier_length(op.new_name)
+
+
+def _validate_add_index_identifier_length(op):
+    """Validate identifier length for AddIndex operation."""
+    if hasattr(op.index, "name") and op.index.name:
+        _validate_identifier_length(op.index.name)
+
+
+def _validate_remove_index_identifier_length(op):
+    """Validate identifier length for RemoveIndex operation."""
+    if hasattr(op, "name") and op.name:
+        _validate_identifier_length(op.name)
+
+
+def _validate_add_constraint_identifier_length(op):
+    """Validate identifier length for AddConstraint operation."""
+    if hasattr(op.constraint, "name") and op.constraint.name:
+        _validate_identifier_length(op.constraint.name)
+
+
+def _validate_remove_constraint_identifier_length(op):
+    """Validate identifier length for RemoveConstraint operation."""
+    if hasattr(op, "name") and op.name:
+        _validate_identifier_length(op.name)
+
+
 OPERATION_VALIDATOR = {
     migrations.CreateModel: _validate_create_model_identifier_length,
-    migrations.AddField: None,
-    migrations.RenameField: None,
-    migrations.RenameModel: None,
-    migrations.AddIndex: None,
-    migrations.RemoveIndex: None,
+    migrations.AddField: _validate_add_field_identifier_length,
+    migrations.RenameField: _validate_rename_field_identifier_length,
+    migrations.RenameModel: _validate_rename_model_identifier_length,
+    migrations.AddIndex: _validate_add_index_identifier_length,
+    migrations.RemoveIndex: _validate_remove_index_identifier_length,
+    migrations.AddConstraint: _validate_add_constraint_identifier_length,
+    migrations.RemoveConstraint: _validate_remove_constraint_identifier_length,
 }
 
 
