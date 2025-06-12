@@ -57,7 +57,7 @@ const SectionWrapper = styled('section')`
 
 const SectionTitle = styled('h3')`
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: capitalize;
 
@@ -69,6 +69,7 @@ const SectionTitle = styled('h3')`
 
   padding: ${space(1)} ${space(0.75)};
   margin-inline: -${space(1)} -${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const LeftAlignedContent = styled('div')`
