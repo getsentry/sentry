@@ -29,6 +29,8 @@ interface PlatformInsightsTableProps<
   isPlaceholderData?: boolean;
 }
 
+const COL_WIDTH_MINIMUM = 120;
+
 export function PlatformInsightsTable<
   DataRow extends Record<string, any>,
   ColumnKey extends ObjectKey = string,
@@ -78,6 +80,7 @@ export function PlatformInsightsTable<
           grid={{...props.grid, onResizeColumn: handleResizeColumn}}
           columnOrder={columnOrder}
           columnSortBy={[{key: sortField as ColumnKey, order: sortOrder}]}
+          minimumColWidth={COL_WIDTH_MINIMUM}
           emptyMessage={
             <EmptyMessage size="large" icon={<IconSearch size="xl" />}>
               {t('No results found')}
