@@ -54,18 +54,18 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "code" in request.GET:
-            return pipeline.next_step()
+            return helper.next_step()
 
         state = secrets.token_hex()
 
         params = self.get_authorize_params(state=state, redirect_uri=_get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
 
-        pipeline.bind_state("state", state)
+        helper.bind_state("state", state)
         if request.subdomain:
-            pipeline.bind_state("subdomain", request.subdomain)
+            helper.bind_state("subdomain", request.subdomain)
 
         return HttpResponseRedirect(authorization_url)
 
@@ -95,7 +95,7 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request: HttpRequest, pipeline, code: str):
+    def exchange_token(self, request: HttpRequest, helper, code: str):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=_get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
@@ -104,35 +104,35 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return orjson.loads(body)
 
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")
 
         if error:
-            return pipeline.error(error)
+            return helper.error(error)
 
-        if state != pipeline.fetch_state("state"):
-            return pipeline.error(ERR_INVALID_STATE)
+        if state != helper.fetch_state("state"):
+            return helper.error(ERR_INVALID_STATE)
 
         if code is None:
-            return pipeline.error("no code was provided")
+            return helper.error("no code was provided")
 
-        data = self.exchange_token(request, pipeline, code)
+        data = self.exchange_token(request, helper, code)
 
         if "error_description" in data:
-            return pipeline.error(data["error_description"])
+            return helper.error(data["error_description"])
 
         if "error" in data:
             logging.info("Error exchanging token: %s", data["error"])
-            return pipeline.error("Unable to retrieve your token")
+            return helper.error("Unable to retrieve your token")
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
         # hook here
-        pipeline.bind_state("data", data)
+        helper.bind_state("data", data)
 
-        return pipeline.next_step()
+        return helper.next_step()
 
 
 class OAuth2Provider(Provider, abc.ABC):

@@ -730,6 +730,9 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         state.update({"flow": self.flow, "referrer": self.referrer})
         return state
 
+    def dispatch_to(self, step: View) -> HttpResponseBase:
+        return step.dispatch(request=self.request, helper=self)
+
     def finish_pipeline(self) -> HttpResponseBase:
         data = self.fetch_state()
 

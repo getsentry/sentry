@@ -58,22 +58,22 @@ def get_provider(organization_slug: str) -> SAML2Provider | None:
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "SAMLResponse" in request.POST:
-            return pipeline.next_step()
+            return helper.next_step()
 
-        provider = pipeline.provider
+        provider = helper.provider
 
         # During the setup pipeline, the provider will not have been configured yet,
         # so build the config first from the state.
         if not provider.config:
-            provider.config = provider.build_config(pipeline.fetch_state())
+            provider.config = provider.build_config(helper.fetch_state())
 
         if request.subdomain:
             # See auth.helper.handle_existing_identity()
-            pipeline.bind_state("subdomain", request.subdomain)
+            helper.bind_state("subdomain", request.subdomain)
 
-        saml_config = build_saml_config(provider.config, pipeline.organization.slug)
+        saml_config = build_saml_config(provider.config, helper.organization.slug)
         auth = build_auth(request, saml_config)
 
         return HttpResponseRedirect(auth.login())
@@ -90,10 +90,10 @@ class SAML2AcceptACSView(BaseView):
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseBase:
         from sentry.auth.helper import AuthHelper
 
-        pipeline = AuthHelper.get_for_request(request)
+        helper = AuthHelper.get_for_request(request)
 
         # SP initiated authentication, request helper is provided
-        if pipeline:
+        if helper:
             from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 
             sso_login = AuthProviderLoginView()
@@ -115,39 +115,39 @@ class SAML2AcceptACSView(BaseView):
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
-        pipeline = AuthHelper(
+        helper = AuthHelper(
             request=request,
             organization=(org_context.organization),
             auth_provider=auth_provider,
             flow=FLOW_LOGIN,
         )
 
-        pipeline.initialize()
-        return pipeline.current_step()
+        helper.initialize()
+        return helper.current_step()
 
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
-        provider = pipeline.provider
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
+        provider = helper.provider
 
         # If we're authenticating during the setup pipeline the provider will
         # not have been configured yet, build the config first from the state
         if not provider.config:
-            provider.config = provider.build_config(pipeline.fetch_state())
+            provider.config = provider.build_config(helper.fetch_state())
 
-        saml_config = build_saml_config(provider.config, pipeline.organization.slug)
+        saml_config = build_saml_config(provider.config, helper.organization.slug)
 
         auth = build_auth(request, saml_config)
         auth.process_response()
 
         # SSO response verification failed
         if auth.get_errors():
-            return pipeline.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
+            return helper.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
-        pipeline.bind_state("auth_attributes", auth.get_attributes())
+        helper.bind_state("auth_attributes", auth.get_attributes())
 
-        return pipeline.next_step()
+        return helper.next_step()
 
 
 class SAML2SLSView(BaseView):
@@ -262,7 +262,7 @@ class SAML2Provider(Provider, abc.ABC):
         """
         Return a list of AuthViews to setup the SAML provider.
 
-        The setup AuthView(s) must bind the `idp` parameter into the pipeline
+        The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
 
@@ -271,7 +271,7 @@ class SAML2Provider(Provider, abc.ABC):
         Returns the default Attribute Key -> IdP attribute key mapping.
 
         This value will be merged into the configuration by self.build_config,
-        however, should a attribute_mapping exist in the pipeline state at
+        however, should a attribute_mapping exist in the helper state at
         configuration build time, these may be overridden.
         """
         return {}
@@ -382,7 +382,7 @@ def build_saml_config(provider_config, org: str) -> SamlConfig:
         "requestedAuthnContext": False,
     }
 
-    # TODO(epurkhiser): This is also available in the pipeline and should probably come from there.
+    # TODO(epurkhiser): This is also available in the helper and should probably come from there.
     acs_url = absolute_uri(reverse("sentry-auth-organization-saml-acs", args=[org]))
     sls_url = absolute_uri(reverse("sentry-auth-organization-saml-sls", args=[org]))
     metadata_url = absolute_uri(reverse("sentry-auth-organization-saml-metadata", args=[org]))
