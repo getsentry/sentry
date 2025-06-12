@@ -1,27 +1,23 @@
-import abc
-from typing import Generic, cast
+from typing import Any, Generic, Protocol
 
-from sentry.notifications.platform.provider import NotificationProvider
-from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationRenderableT
 
+type NotificationTemplate = Any
+type NotificationData = Any
 
-class NotificationRenderer(abc.ABC, Generic[NotificationRenderableT]):
+
+class NotificationRenderer(Protocol, Generic[NotificationRenderableT]):
     """
-    A base class for all notification providers.
+    A protocol metaclass for all notification providers.
     """
 
-    provider: NotificationProvider[NotificationRenderableT]
+    provider_key: NotificationProviderKey
 
-    @property
-    @abc.abstractmethod
-    def provider_key(self) -> NotificationProviderKey:
+    def render(
+        self, *, data: NotificationData, template: NotificationTemplate
+    ) -> type["NotificationRenderableT"]:
         """
-        The `NotificationProviderKey` associated with this provider.
+        Convert template, and data into a renderable object.
+        The form of the renderable object is defined by the provider.
         """
-        raise NotImplementedError("Must use a NotificationProviderKey")
-
-    def __init__(self) -> None:
-        self.provider = cast(
-            NotificationProvider[NotificationRenderableT], provider_registry.get(self.provider_key)
-        )
+        ...

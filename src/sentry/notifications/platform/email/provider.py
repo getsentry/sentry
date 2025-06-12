@@ -16,11 +16,8 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
 @provider_registry.register(NotificationProviderKey.EMAIL)
 class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     key = NotificationProviderKey.EMAIL
+    default_renderer = EmailRenderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         return True
-
-    @property
-    def default_renderer(self) -> EmailRenderer:
-        return EmailRenderer()

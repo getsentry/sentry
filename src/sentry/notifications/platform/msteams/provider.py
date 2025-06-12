@@ -16,12 +16,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 @provider_registry.register(NotificationProviderKey.MSTEAMS)
 class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
     key = NotificationProviderKey.MSTEAMS
+    default_renderer = MSTeamsRenderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
-
-    @property
-    def default_renderer(self) -> MSTeamsRenderer:
-        return MSTeamsRenderer()

@@ -16,12 +16,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
 @provider_registry.register(NotificationProviderKey.SLACK)
 class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     key = NotificationProviderKey.SLACK
+    default_renderer = SlackRenderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
-
-    @property
-    def default_renderer(self) -> SlackRenderer:
-        return SlackRenderer()

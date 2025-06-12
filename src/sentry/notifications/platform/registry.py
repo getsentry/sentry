@@ -6,12 +6,12 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 from sentry.utils.registry import Registry
 
 
-class NotificationProviderRegistry(Registry[NotificationProvider[NotificationRenderable]]):
+class NotificationProviderRegistry(Registry[type[NotificationProvider[NotificationRenderable]]]):
     """
     A registry for notification providers. Adds `get_all` and `get_available` methods to the base registry.
     """
 
-    def get_all(self) -> list[NotificationProvider[NotificationRenderable]]:
+    def get_all(self) -> list[type[NotificationProvider[NotificationRenderable]]]:
         """
         Returns every NotificationProvider that has been registered. Some providers may not be
         available generally available to all customers. For only released providers, use `get_available` instead.
@@ -20,7 +20,7 @@ class NotificationProviderRegistry(Registry[NotificationProvider[NotificationRen
 
     def get_available(
         self, *, organization: RpcOrganizationSummary | None = None
-    ) -> list[NotificationProvider[NotificationRenderable]]:
+    ) -> list[type[NotificationProvider[NotificationRenderable]]]:
         """
         Returns every registered NotificationProvider that has been released to all customers.
         """

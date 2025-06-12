@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from sentry.notifications.platform.slack.provider import SlackRenderable
 
 
-NotificationRenderableT = TypeVar("NotificationRenderableT")
+NotificationRenderableT = TypeVar("NotificationRenderableT", covariant=True)
 """
 A renderable object that is understood by the notification provider.
 For example, Email might expect HTML, or raw text; Slack might expect a JSON Block Kit object.
