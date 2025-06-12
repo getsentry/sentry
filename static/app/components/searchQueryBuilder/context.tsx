@@ -100,15 +100,29 @@ export function SearchQueryBuilderProvider({
     disabled,
   });
 
+  const stableFieldDefinitionGetter = useMemo(
+    () => fieldDefinitionGetter,
+    [fieldDefinitionGetter]
+  );
+
+  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
+
+  const stableGetSuggestedFilterKey = useCallback(
+    (key: string) => {
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+    },
+    [getSuggestedFilterKey]
+  );
+
   const parseQuery = useCallback(
     (query: string) =>
-      parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
         disallowWildcard,
-        filterKeys,
+        filterKeys: stableFilterKeys,
         invalidMessages,
       }),
     [
@@ -116,8 +130,8 @@ export function SearchQueryBuilderProvider({
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
-      fieldDefinitionGetter,
-      filterKeys,
+      stableFieldDefinitionGetter,
+      stableFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
     ]
@@ -144,10 +158,10 @@ export function SearchQueryBuilderProvider({
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
-      filterKeys,
-      getSuggestedFilterKey: getSuggestedFilterKey ?? ((key: string) => key),
+      filterKeys: stableFilterKeys,
+      getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
-      getFieldDefinition: fieldDefinitionGetter,
+      getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
       actionBarRef,
@@ -168,10 +182,10 @@ export function SearchQueryBuilderProvider({
     parsedQuery,
     filterKeySections,
     filterKeyMenuWidth,
-    filterKeys,
-    getSuggestedFilterKey,
+    stableFilterKeys,
+    stableGetSuggestedFilterKey,
     getTagValues,
-    fieldDefinitionGetter,
+    stableFieldDefinitionGetter,
     dispatch,
     handleSearch,
     placeholder,

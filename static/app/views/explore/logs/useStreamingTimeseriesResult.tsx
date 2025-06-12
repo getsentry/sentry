@@ -1,90 +1,128 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
+import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useLogsAutoRefresh} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {createEmptyTimeseriesResults} from 'sentry/views/explore/logs/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 /**
  * Streaming Timeseries Result
  *
- * Creates a streaming effect for timeseries charts by building a buffer from table data
- * and creating interval buckets that match the underlying timeseries intervals.
+ * Using the pages initial timeseries view, creates a streaming effect for timeseries charts by building a
+ * buffer from streaming table data when autorefresh is on, creating interval buckets that match the underlying
+ * timeseries intervals and adding table counts to those buckets.
  *
- *    Original Timeseries (from API):
+ * This can be moved to an endpoint in the future if there are logic differences.
+ *
+ *    Original Timeseries (from /event-stats API):
  *    ┌─────────────────────────────────────────────────────────────┐
- *    │ [13:00] [12:30] [12:00] [11:30] [11:00] [10:30] [10:00] ... │
- *    │   9       7       3      15       8      12       5         │
+ *    │ [01:00] [02:00] [03:00] [04:00] [05:00] [-----] [-----] ... │
+ *    │   1       2       3       4       5      n/a    n/a         │
  *    └─────────────────────────────────────────────────────────────┘
  *                                   ↑
- *                            30min intervals (descending)
+ *                        1 hour intervals (from 1 to 5)
  *
- *    Table Data (streaming in, descending timestamp):
+ *    Table Data (streaming in into interval buckets from the table):
  *    ┌─────────────────────────────────────────────────────────────┐
- *    │ [12:45] [12:42] [12:38] [12:35] [12:31] [12:28] [12:25] ... │
+ *    │ [01:01] [02:02] [03:03] [04:04] [05:05] [06:06] [07:07] ... │
  *    │ log_a   log_b   log_c   log_d   log_e   log_f   log_g       │
  *    └─────────────────────────────────────────────────────────────┘
  *                          ↓
- *                   Buffer Building
+ *                   Bucketing Process
+ *                   (logs assigned to nearest interval)
  *
- *    Buffer Buckets (matching timeseries intervals, descending):
+ *    Buffer from streamed table data + original data (final result):
  *    ┌─────────────────────────────────────────────────────────────┐
- *    │ [13:00] [12:30] [12:00] [11:30] [11:00] [10:30] [10:00] ... │
- *    │   +0      +2      +0      +0      +0      +0      +0        │ ← From table
- *    │    9       7       3      15       8      12       5        │ ← Original
- *    │   ---     ---     ---     ---     ---     ---     ---       │
- *    │    9       9       3      15       8      12       5        │ ← Final result
+ *    │ [01:00] [02:00] [03:00] [04:00] [05:00] [06:00] [07:00] ... │
+ *    │  +1      +1      +1      +1      +1      +1      +1         │ ← From table
+ *    │   1       2       3       4       5       1       1         │ ← Original
+ *    │  ---     ---     ---     ---     ---     ---     ---        │
+ *    │   2       3       4       5       6       1       1         │ ← Final result
  *    └─────────────────────────────────────────────────────────────┘
- *                          ↑
- *               Same number of buckets maintained,
- *               oldest dropped as new ones added
  *
- * The virtual streaming is already applied to the table data from the infinite query.
  */
+
 export function useStreamingTimeseriesResult(
   tableData: ReturnType<typeof useLogsPageDataQueryResult>,
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>
 ): ReturnType<typeof useSortedTimeSeries> {
   const autoRefresh = useLogsAutoRefresh();
-  const [bufferData, setBufferData] = useState<Record<string, TimeSeries[]>>({});
-  const [latestTimestampSeen, setLatestTimestampSeen] = useState<number | null>(null);
+  const pageFilters = usePageFilters();
   const [timeseriesIntervals, setTimeseriesIntervals] = useState<number[]>([]);
-  const hasInitializedBuffer = useRef(false);
+  const [emptyTimeseriesResult, setEmptyTimeseriesResult] = useState<Record<
+    string,
+    TimeSeries[]
+  > | null>(null);
+  const [bufferUpdateTrigger, setBufferUpdateTrigger] = useState(0);
+  const bufferCountsRef = useRef<number[]>([]);
+  const bufferFirstTimestampRef = useRef<number | null>(null);
+  const latestTimestampSeenRef = useRef<number | null>(null);
   const timeseriesKeysRef = useRef<string[]>([]);
   const timeseriesDataRef = useRef<ReturnType<typeof useSortedTimeSeries>['data']>(null);
-  const tableDataLengthRef = useRef(0);
+  const tableDataRef = useRef(tableData);
+  const processedTimeseriesDataRef =
+    useRef<ReturnType<typeof useSortedTimeSeries>['data']>(null);
 
   const previousTimeseriesIntervals = usePrevious(timeseriesIntervals);
 
-  // Track table data length to avoid unnecessary effects when data reference changes
-  // but actual data hasn't changed meaningfully
-  const currentTableDataLength = tableData?.data?.length ?? 0;
-  const tableDataLengthChanged = tableDataLengthRef.current !== currentTableDataLength;
-  if (tableDataLengthChanged) {
-    tableDataLengthRef.current = currentTableDataLength;
-  }
+  // Calculate interval duration for circular buffer
+  const intervalDuration =
+    timeseriesIntervals.length >= 2
+      ? timeseriesIntervals[1]! - timeseriesIntervals[0]!
+      : null;
 
-  // Extract intervals from timeseries result and store keys
+  // Update tableData ref on every render to have latest data
+  tableDataRef.current = tableData;
+
+  // Create empty data for streaming when autoRefresh is enabled and original is empty
   useEffect(() => {
+    if (!autoRefresh) {
+      setEmptyTimeseriesResult(null);
+      return;
+    }
+
+    // If we have no timeseries data or it's empty, create empty data for streaming
     if (!timeseriesResult.data || Object.keys(timeseriesResult.data).length === 0) {
+      const emptyData = createEmptyTimeseriesResults(pageFilters.selection.datetime);
+      setEmptyTimeseriesResult(emptyData);
+    } else {
+      setEmptyTimeseriesResult(null);
+    }
+  }, [autoRefresh, timeseriesResult.data, pageFilters.selection.datetime]);
+
+  // Extract intervals from timeseries result (or empty data) and store keys
+  useEffect(() => {
+    const dataToProcess = emptyTimeseriesResult || timeseriesResult.data;
+
+    if (!dataToProcess || Object.keys(dataToProcess).length === 0) {
+      return;
+    }
+
+    // Skip if we've already processed this exact data reference
+    if (processedTimeseriesDataRef.current === dataToProcess) {
       return;
     }
 
     // Store the keys and data for later use
-    timeseriesKeysRef.current = Object.keys(timeseriesResult.data);
-    timeseriesDataRef.current = timeseriesResult.data;
+    timeseriesKeysRef.current = Object.keys(dataToProcess);
+    timeseriesDataRef.current = dataToProcess;
+    processedTimeseriesDataRef.current = dataToProcess;
 
-    const firstSeries = Object.values(timeseriesResult.data)[0];
+    const firstSeries = Object.values(dataToProcess)[0];
     if (firstSeries && firstSeries.length > 0) {
       const firstTimeSeries = firstSeries[0];
       if (firstTimeSeries && firstTimeSeries.values.length > 0) {
         const timestamps = firstTimeSeries.values.map(v => v.timestamp);
-        setTimeseriesIntervals(timestamps);
+        if (!arraysEqual(timestamps, timeseriesIntervals)) {
+          setTimeseriesIntervals(timestamps);
+        }
       }
     }
-  }, [timeseriesResult.data]);
+  }, [timeseriesResult.data, emptyTimeseriesResult, timeseriesIntervals]);
 
   // Detect page refresh/query change and reset buffer
   useEffect(() => {
@@ -93,65 +131,46 @@ export function useStreamingTimeseriesResult(
       !arraysEqual(previousTimeseriesIntervals, timeseriesIntervals)
     ) {
       // Intervals changed, assume page refresh - blow away buffer
-      setBufferData({});
-      setLatestTimestampSeen(null);
-      hasInitializedBuffer.current = false;
+      bufferCountsRef.current = [];
+      bufferFirstTimestampRef.current = null;
+      latestTimestampSeenRef.current = null;
+      processedTimeseriesDataRef.current = null; // Reset processed data tracking
+      setBufferUpdateTrigger(prev => prev + 1);
     }
   }, [timeseriesIntervals, previousTimeseriesIntervals]);
-
-  // Initialize buffer when autoRefresh is enabled and we have data
-  useEffect(() => {
-    if (
-      !autoRefresh ||
-      !timeseriesDataRef.current ||
-      hasInitializedBuffer.current ||
-      timeseriesIntervals.length === 0
-    ) {
-      return;
-    }
-
-    // Initialize buffer with current data and set initial timestamp
-    setBufferData(timeseriesDataRef.current);
-
-    // Set initial timestamp from first table row if available
-    if (tableData?.data?.length && tableData.data[0]) {
-      const firstRowTimestamp = Number(
-        BigInt(tableData.data[0][OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n
-      );
-      setLatestTimestampSeen(firstRowTimestamp);
-    }
-
-    hasInitializedBuffer.current = true;
-  }, [autoRefresh, timeseriesIntervals.length, currentTableDataLength, tableData?.data]);
-
-  // Reset buffer when autoRefresh is disabled
-  useEffect(() => {
-    if (!autoRefresh) {
-      hasInitializedBuffer.current = false;
-      setBufferData({});
-      setLatestTimestampSeen(null);
-    }
-  }, [autoRefresh]);
 
   // Process new table rows and update buffer - only when data actually changes
   useEffect(() => {
     if (
       !autoRefresh ||
-      !tableData?.data?.length ||
-      !latestTimestampSeen ||
       timeseriesIntervals.length === 0 ||
       timeseriesKeysRef.current.length === 0 ||
-      !tableDataLengthChanged
+      !tableData?.data?.length ||
+      intervalDuration === null
     ) {
       return;
     }
 
+    // Initialize timestamp if not set yet
+    if (latestTimestampSeenRef.current === null) {
+      // Autorefresh only allows descending sort, so first row is newest, last row is oldest
+      // Use the oldest timestamp (last row) to ensure all new data gets processed
+      const lastRow = tableData.data[tableData.data.length - 1];
+      const oldestRowTimestamp = Number(lastRow![OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+      latestTimestampSeenRef.current = oldestRowTimestamp - 1000;
+    }
+
     // Find new rows (those with timestamp > latestTimestampSeen)
     const newRows = tableData.data.filter(row => {
-      const rowTimestamp = Number(
-        BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n
-      );
-      return rowTimestamp > latestTimestampSeen;
+      const rowTimestamp = Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+      // Normalize timestamp to milliseconds for bucket matching
+      const normalizedTimestamp =
+        rowTimestamp < 1e12 ? rowTimestamp * 1000 : rowTimestamp;
+      const normalizedLatest =
+        latestTimestampSeenRef.current! < 1e12
+          ? latestTimestampSeenRef.current! * 1000
+          : latestTimestampSeenRef.current!;
+      return normalizedTimestamp > normalizedLatest;
     });
 
     if (newRows.length === 0) {
@@ -160,82 +179,103 @@ export function useStreamingTimeseriesResult(
 
     // Update latest timestamp seen
     const newestRowTimestamp = Math.max(
-      ...newRows.map(row =>
-        Number(BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n)
-      )
+      ...newRows.map(row => {
+        const timestamp = Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+        return timestamp < 1e12 ? timestamp * 1000 : timestamp;
+      })
     );
-    setLatestTimestampSeen(newestRowTimestamp);
+    latestTimestampSeenRef.current = newestRowTimestamp;
 
-    // Update buffer data by creating new buckets from table data
-    setBufferData(prevBuffer => {
-      const newBuffer = {...prevBuffer};
+    // Update circular buffer with new rows
+    const newCounts = [...bufferCountsRef.current];
 
-      // For each series key we stored from the original timeseries
-      timeseriesKeysRef.current.forEach(seriesKey => {
-        const originalSeries = prevBuffer[seriesKey];
+    // Initialize buffer if empty
+    if (newCounts.length === 0) {
+      newCounts.length = timeseriesIntervals.length;
+      newCounts.fill(0);
+    }
+
+    // Group new rows into buffer buckets
+    newRows.forEach(row => {
+      const rowTimestamp = Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+      const normalizedTimestamp =
+        rowTimestamp < 1e12 ? rowTimestamp * 1000 : rowTimestamp;
+
+      // Find which buffer bucket this row belongs to
+      const bucketIndex = findBufferBucketIndex(
+        normalizedTimestamp,
+        timeseriesIntervals,
+        intervalDuration
+      );
+
+      if (bucketIndex !== null && bucketIndex >= 0 && bucketIndex < newCounts.length) {
+        newCounts[bucketIndex] = (newCounts[bucketIndex] || 0) + 1;
+      }
+    });
+
+    bufferCountsRef.current = newCounts;
+
+    // Set buffer first timestamp if not set
+    if (bufferFirstTimestampRef.current === null && timeseriesIntervals.length > 0) {
+      bufferFirstTimestampRef.current = timeseriesIntervals[0]!;
+    }
+
+    // Trigger re-render to update the streaming data
+    setBufferUpdateTrigger(prev => prev + 1);
+  }, [autoRefresh, timeseriesIntervals, tableData?.data, intervalDuration]);
+
+  // Create streaming timeseries data when autoRefresh is enabled
+  const streamingTimeseriesData = useMemo(() => {
+    if (!autoRefresh) {
+      return timeseriesResult.data;
+    }
+
+    // If we have buffer data, merge it with original data
+    if (bufferCountsRef.current.length > 0 && bufferFirstTimestampRef.current !== null) {
+      const originalData = timeseriesDataRef.current || timeseriesResult.data;
+      if (!originalData) {
+        return emptyTimeseriesResult || {};
+      }
+
+      // Merge original data with circular buffer
+      const mergedData: Record<string, TimeSeries[]> = {};
+
+      Object.keys(originalData).forEach(seriesKey => {
+        const originalSeries = originalData[seriesKey];
         if (!originalSeries) return;
 
-        const updatedSeries = originalSeries.map(series => {
-          // Create buckets that match the original intervals
-          const newValues = [...series.values];
+        mergedData[seriesKey] = originalSeries.map(series => {
+          const mergedValues = series.values.map((value, index) => {
+            // Map timeseries bucket to buffer bucket
+            const bufferIndex = index < bufferCountsRef.current.length ? index : -1;
+            const bufferCount =
+              bufferIndex >= 0 ? bufferCountsRef.current[bufferIndex] || 0 : 0;
 
-          // Group new rows into interval buckets
-          const bucketCounts: Record<number, number> = {};
-
-          newRows.forEach(row => {
-            const rowTimestamp = Number(
-              BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n
-            );
-
-            // Find the bucket this row belongs to
-            const bucketTimestamp = findBucketForTimestamp(
-              rowTimestamp,
-              timeseriesIntervals
-            );
-            if (bucketTimestamp !== null) {
-              bucketCounts[bucketTimestamp] = (bucketCounts[bucketTimestamp] || 0) + 1;
-            }
-          });
-
-          // Update the values with new counts, maintaining same number of buckets
-          newValues.forEach((value, index) => {
-            const bucketCount = bucketCounts[value.timestamp] || 0;
-            if (bucketCount > 0) {
-              newValues[index] = {
-                ...value,
-                value: (value.value || 0) + bucketCount,
-              };
-            }
+            return {
+              ...value,
+              value: (value.value || 0) + bufferCount,
+            };
           });
 
           return {
             ...series,
-            values: newValues,
+            values: mergedValues,
           };
         });
-
-        newBuffer[seriesKey] = updatedSeries;
       });
 
-      return newBuffer;
-    });
-  }, [
-    autoRefresh,
-    currentTableDataLength,
-    latestTimestampSeen,
-    timeseriesIntervals,
-    tableDataLengthChanged,
-    tableData?.data,
-  ]);
-
-  // Create streaming timeseries data when autoRefresh is enabled
-  const streamingTimeseriesData = useMemo(() => {
-    if (!autoRefresh || Object.keys(bufferData).length === 0) {
-      return timeseriesResult.data;
+      return mergedData;
     }
 
-    return bufferData;
-  }, [autoRefresh, bufferData, timeseriesResult.data]);
+    // If we have empty data (original timeseries was empty), use it
+    if (emptyTimeseriesResult) {
+      return emptyTimeseriesResult;
+    }
+
+    // Fallback to original data
+    return timeseriesResult.data;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh, bufferUpdateTrigger, emptyTimeseriesResult, timeseriesResult.data]);
 
   if (!autoRefresh) {
     return timeseriesResult;
@@ -253,24 +293,33 @@ function arraysEqual<T>(a: T[], b: T[]): boolean {
   return a.every((val, index) => val === b[index]);
 }
 
-// Helper function to find which bucket a timestamp belongs to
-function findBucketForTimestamp(timestamp: number, intervals: number[]): number | null {
-  if (intervals.length === 0) {
+// Helper function to find which buffer bucket a timestamp belongs to
+function findBufferBucketIndex(
+  timestamp: number,
+  intervals: number[],
+  intervalDuration: number | null
+): number | null {
+  if (intervals.length === 0 || intervalDuration === null) {
     return null;
   }
 
-  // Find the bucket that this timestamp should belong to
-  // For now, find the closest interval (could be more sophisticated)
-  let closest = intervals[0]!; // We know it exists because we checked length > 0
-  let minDiff = Math.abs(timestamp - intervals[0]!);
+  // Find the closest interval bucket
+  for (let i = 0; i < intervals.length; i++) {
+    const bucketStart = intervals[i];
+    if (bucketStart === undefined) continue;
 
-  for (const interval of intervals) {
-    const diff = Math.abs(timestamp - interval);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closest = interval;
+    const bucketEnd = bucketStart + intervalDuration;
+
+    if (timestamp >= bucketStart && timestamp < bucketEnd) {
+      return i;
     }
   }
 
-  return closest;
+  // If timestamp is beyond the last bucket, put it in the last bucket
+  const lastInterval = intervals[intervals.length - 1];
+  if (lastInterval !== undefined && timestamp >= lastInterval) {
+    return intervals.length - 1;
+  }
+
+  return null;
 }
