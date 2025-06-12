@@ -151,6 +151,13 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
             threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value,
         )
 
+        # dual written rule
+        self.dual_written_rule = self.create_dynamic_alert()
+        self.dual_written_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.dual_written_rule, label="critical", alert_threshold=0
+        )
+        dual_write_alert_rule(self.dual_written_rule)
+
     def test_valid_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
@@ -247,6 +254,18 @@ class MigrateAnomalyDetectionAlertsTest(TestMigrations):
         }
         assert detector_trigger.type == Condition.ANOMALY_DETECTION
 
+        assert not DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        ).exists()
+
+    def test_skip_correctly_dual_written_rule(self):
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_rule.id)
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+
+        assert DataCondition.objects.filter(
+            condition_group=detector.workflow_condition_group, type=Condition.ANOMALY_DETECTION
+        ).exists()
         assert not DataCondition.objects.filter(
             condition_group=detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.OK,
