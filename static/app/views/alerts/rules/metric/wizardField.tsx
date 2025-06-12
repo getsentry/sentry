@@ -17,6 +17,7 @@ import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
+  DEPRECATED_TRANSACTION_ALERTS,
 } from 'sentry/views/alerts/wizard/options';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -50,6 +51,12 @@ export default function WizardField({
   alertType,
   ...fieldProps
 }: Props) {
+  const isDeprecatedTransactionAlertType =
+    alertType &&
+    deprecateTransactionAlerts(organization) &&
+    DEPRECATED_TRANSACTION_ALERTS.includes(alertType) &&
+    hasEAPAlerts(organization);
+
   const deprecatedTransactionAggregationOptions: MenuOption[] = [
     {
       label: AlertWizardAlertNames.throughput,
@@ -158,6 +165,15 @@ export default function WizardField({
               },
             ]
           : []),
+
+        ...(fieldProps.isEditing && isDeprecatedTransactionAlertType
+          ? [
+              {
+                label: AlertWizardAlertNames[alertType],
+                value: alertType,
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -173,7 +189,7 @@ export default function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, model, disabled}: any) => {
+      {({onChange, model, disabled, isEditing, disabledReason}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const selectedTemplate: AlertType = alertType || 'eap_metrics';
@@ -183,7 +199,10 @@ export default function WizardField({
             dataset,
             alertType,
           });
-        const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
+        const fieldOptions = generateFieldOptions({
+          organization,
+          ...fieldOptionsConfig,
+        });
         const fieldValue = getFieldValue(aggregate ?? '', model);
 
         const fieldKey =
@@ -208,7 +227,8 @@ export default function WizardField({
             <Select
               value={selectedTemplate}
               options={menuOptions}
-              disabled={disabled}
+              disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
+              disabledReason={disabledReason}
               onChange={(option: MenuOption) => {
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
@@ -239,7 +259,7 @@ export default function WizardField({
                 gridColumns={gridColumns}
                 inFieldLabels={inFieldLabels}
                 shouldRenderTag={false}
-                disabled={disabled}
+                disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
                 hideParameterSelector={hideParameterSelector}
                 hidePrimarySelector={hidePrimarySelector}
               />

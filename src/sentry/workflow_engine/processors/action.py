@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.db import models
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
@@ -105,9 +106,15 @@ def filter_recently_fired_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
     # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
+    actions = (
+        Action.objects.filter(dataconditiongroupaction__condition_group__in=filtered_action_groups)
+        .annotate(
+            workflow_id=models.F(
+                "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__id"
+            )
+        )
+        .distinct()
+    )
 
     group = event_data.event.group
 
