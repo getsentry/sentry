@@ -2,7 +2,7 @@ Hi there!
 
 Welcome to the Sentry Startups Program! We're excited to help your startup grow with powerful error monitoring and performance tracking.
 
-As part of the startups program, you've been granted ${{ credit_amount_formatted }} in credits to get you started. These credits can be used for:
+As part of the startups program, you've been granted $5,000 in credits to get you started. These credits can be used for:
 - Error tracking and monitoring
 - Performance monitoring
 - Release tracking

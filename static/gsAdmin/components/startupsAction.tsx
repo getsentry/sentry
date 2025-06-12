@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import NumberField from 'sentry/components/forms/fields/numberField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 
 import type {
@@ -15,8 +15,8 @@ type Props = AdminConfirmRenderProps & {
 };
 
 type State = {
-  creditAmount?: number;
   notes?: string;
+  programType?: string | null;
 };
 
 /**
@@ -24,7 +24,7 @@ type State = {
  */
 class StartupsAction extends Component<Props, State> {
   state: State = {
-    creditAmount: 500, // Default $500 credit
+    programType: 'ycombinator', // Default to YCombinator
     notes: '',
   };
 
@@ -33,8 +33,8 @@ class StartupsAction extends Component<Props, State> {
     this.props.disableConfirmButton(false);
   }
 
-  handleCreditAmountChange = (value: number) => {
-    this.setState({creditAmount: value});
+  handleProgramTypeChange = (value: string | null) => {
+    this.setState({programType: value});
   };
 
   handleNotesChange = (value: string) => {
@@ -42,45 +42,68 @@ class StartupsAction extends Component<Props, State> {
   };
 
   handleConfirm = (_params: AdminConfirmParams) => {
-    const {creditAmount, notes} = this.state;
+    const {programType, notes} = this.state;
     const {onConfirm} = this.props;
 
     const data = {
       startupsProgram: true,
-      creditAmount: (creditAmount || 0) * 100, // Convert to cents
+      programType,
       notes,
     };
     onConfirm?.(data);
   };
 
+  getProgramDescription = (programType: string | null) => {
+    switch (programType) {
+      case 'ycombinator':
+        return '$50,000 in credits for YCombinator startups';
+      case 'other':
+        return '$5,000 in credits for qualifying startups';
+      default:
+        return '';
+    }
+  };
+
   render() {
     const {subscription} = this.props;
-    const {creditAmount, notes} = this.state;
+    const {programType, notes} = this.state;
 
     if (!subscription) {
       return null;
     }
 
+    const programDescription = programType ? this.getProgramDescription(programType) : '';
+
     return (
       <Fragment>
         <Alert.Container>
           <Alert type="info" showIcon>
-            This will grant the customer access to the startups program, add the specified credit amount, and send them a welcome email.
+            This will grant the customer access to the selected startups program and send them a welcome email.
           </Alert>
         </Alert.Container>
 
-        <NumberField
+        {programDescription && (
+          <Alert.Container>
+            <Alert type="success" showIcon>
+              {programDescription}
+            </Alert>
+          </Alert.Container>
+        )}
+
+        <SelectField
           required
           inline={false}
           stacked
           flexibleControlStateSize
-          label="Credit Amount (USD)"
-          name="creditAmount"
-          value={creditAmount}
-          onChange={this.handleCreditAmountChange}
-          help="Amount of credit to grant to this customer (in USD)"
-          min={0}
-          max={10000}
+          label="Startups Program"
+          name="programType"
+          value={programType}
+          onChange={this.handleProgramTypeChange}
+          help="Select which startups program to enroll this customer in"
+          choices={[
+            ['ycombinator', 'YCombinator (Current)'],
+            ['other', 'Other'],
+          ]}
         />
 
         <TextareaField
