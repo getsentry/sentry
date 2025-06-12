@@ -1092,6 +1092,38 @@ describe('Subscription > CombinedUsageTotals', function () {
     expect(screen.getByRole('columnheader', {name: 'Issue Scans'})).toBeInTheDocument();
   });
 
+  it('uses billed usage for accepted counts in expanded table', async function () {
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandMaxSpend: 10_00,
+    });
+    seerSubscription.planTier = 'am3'; // TODO: fix subscription fixture to set planTier properly
+    seerSubscription.categories.seerAutofix!.usage = 1;
+
+    render(
+      <CombinedUsageTotals
+        productGroup={seerSubscription.reservedBudgets![0]!}
+        subscription={seerSubscription}
+        organization={organization}
+        allTotalsByCategory={{
+          seerAutofix: totals,
+          seerScanner: totals,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button', {name: 'Expand usage totals'}));
+    expect(
+      screen.getByRole('row', {name: 'Issue Fixes Quantity % of Issue Fixes'})
+    ).toBeInTheDocument();
+    // used accepted info from BMH, all other info from totals
+    expect(screen.getByRole('row', {name: 'Accepted 1 9%'})).toBeInTheDocument();
+  });
+
   it('renders accepted spans in spend mode with reserved budgets and dynamic sampling', async function () {
     const dsSubscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
