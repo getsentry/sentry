@@ -350,7 +350,7 @@ class GoParser(LanguageParser):
 
     # Interface method declarations (no func keyword, just method signature)
     # This matches lines that look like method signatures in interfaces
-    interface_method_regex = r"^@@.*@@[^=]*?\s*(?P<fnc>\w+)\s*\([^)]*\)(?:\s+[^{]*)?$"
+    interface_method_regex = r"^@@.*@@(?!.*\bfunc\b)\s+(?P<fnc>\w+)\s*\([^)]*\).*$"
 
     regexes = [
         function_declaration_regex,

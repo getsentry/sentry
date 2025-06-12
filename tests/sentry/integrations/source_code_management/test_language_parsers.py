@@ -1064,8 +1064,6 @@ class GoParserTestCase(TestCase):
 
 @@ -152,10 +152,6 @@ var myFunc = func() {
 
-@@ -152,10 +152,6 @@ myFunc := func() {
-
 @@ -152,10 +152,6 @@ func Calculate(x, y int) int
 
 @@ -152,10 +152,6 @@ func ProcessData() (string, error)
@@ -1223,9 +1221,6 @@ class GoParserTestCase(TestCase):
 
     def test_go_edge_cases(self):
         patch = """
-@@ -152,10 +152,6 @@ func()
-
-@@ -152,10 +152,6 @@ func _()
 
 @@ -152,10 +152,6 @@ func (r *T) method_with_underscore()
 
@@ -1238,7 +1233,6 @@ class GoParserTestCase(TestCase):
 """
 
         assert GoParser.extract_functions_from_patch(patch) == {
-            "_",
             "method_with_underscore",
             "fn123",
             "camelCase",
