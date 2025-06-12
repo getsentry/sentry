@@ -259,7 +259,7 @@
     "diff-docs": "pnpm run install-api-docs && node --experimental-transform-types api-docs/openapi-diff.ts",
     "deref-api-docs": "node --experimental-transform-types api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-chartcuterie-config": "node --experimental-strip-types config/build-chartcuterie.ts",
-    "build-acceptance": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
+    "build-acceptance": "CODECOV_ENABLE_BA=false NODE_ENV=production rspack",
     "build-production": "NODE_ENV=production rspack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 rspack",
     "build-js-loader": "node --experimental-transform-types scripts/build-js-loader.ts",
