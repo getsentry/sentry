@@ -25,7 +25,7 @@ import type {
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
-import {PlanName, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
 import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
@@ -368,12 +368,30 @@ export const displayBudgetName = (
   return text;
 };
 
-export const getOnDemandCategories = (plan: Plan) => {
-  return plan.onDemandCategories.filter(category =>
-    plan.availableReservedBudgetTypes.seer
-      ? !plan.availableReservedBudgetTypes.seer.dataCategories.includes(category)
-      : true
-  );
+/**
+ * Returns the configurable on-demand/PAYG categories for the given plan
+ * and budget mode.
+ *
+ * @param plan - The plan to get the on-demand/PAYG categories for
+ * @param budgetMode - The on-demand/PAYG budget mode
+ * @returns A list of the appropriate on-demand/PAYG categories for the given plan and budget mode
+ */
+export const getOnDemandCategories = ({
+  plan,
+  budgetMode,
+}: {
+  budgetMode: OnDemandBudgetMode | null;
+  plan: Plan;
+}) => {
+  if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return plan.onDemandCategories.filter(category => {
+      return Object.values(plan.availableReservedBudgetTypes).every(
+        budgetType => !budgetType.dataCategories.includes(category)
+      );
+    });
+  }
+
+  return plan.onDemandCategories;
 };
 
 export const displayPlanName = (plan?: Plan | null) => {

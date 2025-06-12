@@ -116,7 +116,10 @@ export function formatOnDemandBudget(
     categories = plan.onDemandCategories.map(category => category);
   }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    categories = getOnDemandCategories(plan); // filter seer when budget mode is per-category
+    categories = getOnDemandCategories({
+      plan,
+      budgetMode: budget.budgetMode,
+    });
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
       pluralOndemand: true,
