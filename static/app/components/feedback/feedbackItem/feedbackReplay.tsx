@@ -36,7 +36,12 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
 
   if (replayId && hasReplayId) {
     return (
-      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+      <Section
+        collapsible
+        icon={<IconPlay size="xs" />}
+        sectionKey="replay"
+        title={t('Linked Replay')}
+      >
         <ErrorBoundary mini>
           <ReplaySection
             eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
@@ -50,7 +55,12 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
 
   if ((replayId && hasReplayId === undefined) || isFetchingSentOneReplay) {
     return (
-      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+      <Section
+        collapsible
+        icon={<IconPlay size="xs" />}
+        sectionKey="replay"
+        title={t('Linked Replay')}
+      >
         <Placeholder />
       </Section>
     );
@@ -58,7 +68,12 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
 
   if (!hasSentOneReplay && platformSupported) {
     return (
-      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+      <Section
+        collapsible
+        icon={<IconPlay size="xs" />}
+        sectionKey="replay"
+        title={t('Linked Replay')}
+      >
         <ReplayInlineCTAPanel />
       </Section>
     );
