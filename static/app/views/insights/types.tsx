@@ -239,7 +239,7 @@ export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 type WebVitalsFunctions = 'performance_score' | 'count_scores';
 
-export type SpanMetricsResponseRaw = {
+type SpanMetricsResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -279,7 +279,7 @@ export type SpanMetricsResponse = Flatten<SpanMetricsResponseRaw>;
 
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
-export type EAPSpanResponseRaw = {
+type EAPSpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
