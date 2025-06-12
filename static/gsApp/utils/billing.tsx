@@ -369,14 +369,8 @@ export const displayBudgetName = (
 };
 
 /**
- * Returns the on-demand/PAYG categories for the given plan
+ * Returns the configurable on-demand/PAYG categories for the given plan
  * and budget mode.
- *
- * If `configurableOnly` is true, then only the on-demand/PAYG
- * categories that can be configured for the specified budget mode
- * are returned.
- *
- * Otherwise, we return all on-demand/PAYG categories.
  *
  * @param plan - The plan to get the on-demand/PAYG categories for
  * @param budgetMode - The on-demand/PAYG budget mode
