@@ -14,6 +14,8 @@ import {routes6} from 'admin/routes';
 
 export function init(config: Config) {
   initializeSdk(config);
+
+  // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed
   commonInitialization(config);
 
   ConfigStore.set('getsentry.sendgridApiKey', window.__sendGridApiKey);
