@@ -185,11 +185,6 @@ jobs:
     if: ${{ (github.ref_name == 'master') }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - name: Pull the test image
-        id: image_pull
-        env:
-          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
-        run: docker pull "$IMAGE_URL"
       - name: Get short SHA for docker tag
         id: short_sha
         shell: bash
