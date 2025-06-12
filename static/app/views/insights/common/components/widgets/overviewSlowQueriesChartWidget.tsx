@@ -119,7 +119,9 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
   const footer = hasData && (
     <WidgetFooterTable>
       {queriesRequest.data?.map((item, index) => (
-        <Fragment key={item['sentry.normalized_description']}>
+        <Fragment
+          key={`${item['project.id']}-${item['span.group']}-${item['sentry.normalized_description']}`}
+        >
           <div>
             <SeriesColorIndicator
               style={{
