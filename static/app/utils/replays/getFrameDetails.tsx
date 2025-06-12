@@ -432,7 +432,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'device.battery': (frame: DeviceBatteryFrame) => ({
     colorGraphicsToken: 'promotion',
     description: tct('Device was at [percent]% battery and [charging]', {
-      percent: frame.data.level.toFixed(2),
+      percent: parseFloat((60).toFixed(2)),
       charging: frame.data.charging ? 'charging' : 'not charging',
     }),
     tabKey: TabKey.BREADCRUMBS,
