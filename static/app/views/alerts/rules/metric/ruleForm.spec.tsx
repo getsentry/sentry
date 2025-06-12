@@ -563,7 +563,27 @@ describe('Incident Rules Form', () => {
         await screen.findByText(
           'Transaction based alerts are no longer supported. Create span alerts instead.'
         )
-      ).toBeInTheDocument(); // tooltip description
+      ).toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('project-slug'));
+      expect(
+        await screen.findByText(
+          'Transaction based alerts are no longer supported. Create span alerts instead.'
+        )
+      ).toBeInTheDocument();
+
+      const radio = screen.getByRole('radio', {
+        name: 'Percent Change: {x%} higher or lower compared to previous period',
+      });
+      expect(radio).not.toBeChecked();
+
+      await userEvent.click(
+        screen.getByText(
+          'Percent Change: {x%} higher or lower compared to previous period'
+        )
+      );
+
+      await waitFor(() => expect(radio).toBeChecked());
     });
 
     it('switches from percent change to count', async () => {
