@@ -1,9 +1,6 @@
 from typing import Any
 
-from sentry.notifications.platform.providers.base import (
-    NotificationProvider,
-    NotificationProviderKey,
-)
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderKey
 from sentry.notifications.platform.registry import provider_registry
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 

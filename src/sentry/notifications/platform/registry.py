@@ -1,9 +1,9 @@
-from sentry.notifications.platform.providers.base import NotificationProvider
+from sentry.notifications.platform.provider import NotificationProvider
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.utils.registry import Registry
 
 
-class NotificationProviderRegistry(Registry[NotificationProvider]):
+class NotificationProviderRegistry(Registry[type[NotificationProvider]]):
     """
     A registry for notification providers. Adds `get_all` and `get_available` methods to the base registry.
     """

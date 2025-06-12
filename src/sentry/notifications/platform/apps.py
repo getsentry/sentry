@@ -5,5 +5,8 @@ class Config(AppConfig):
     name = "sentry.notifications.platform"
 
     def ready(self):
-        # Register the notification providers
-        import sentry.notifications.platform.providers  # NOQA
+        # Register the providers providers
+        from .discord.provider import DiscordNotificationProvider  # NOQA
+        from .email.provider import EmailNotificationProvider  # NOQA
+        from .msteams.provider import MSTeamsNotificationProvider  # NOQA
+        from .slack.provider import SlackNotificationProvider  # NOQA

@@ -1,14 +1,13 @@
 import abc
 from enum import StrEnum
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic
 
+from sentry.integrations.types import ExternalProviderEnum
+from sentry.notifications.platform.types import NotificationRenderable
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
-ProviderRenderable = TypeVar("ProviderRenderable")
-"""
-A renderable object that is understood by the notification provider.
-For example, Email might expect HTML, or raw text; Slack might expect a JSON Block Kit object.
-"""
+if TYPE_CHECKING:
+    from sentry.notifications.platform.renderer import NotificationRenderer
 
 
 class NotificationProviderKey(StrEnum):
@@ -16,13 +15,13 @@ class NotificationProviderKey(StrEnum):
     The unique keys for each registered notification provider.
     """
 
-    EMAIL = "email"
-    SLACK = "slack"
-    MSTEAMS = "msteams"
-    DISCORD = "discord"
+    EMAIL = ExternalProviderEnum.EMAIL
+    SLACK = ExternalProviderEnum.SLACK
+    MSTEAMS = ExternalProviderEnum.MSTEAMS
+    DISCORD = ExternalProviderEnum.DISCORD
 
 
-class NotificationProvider(abc.ABC, Generic[ProviderRenderable]):
+class NotificationProvider(abc.ABC, Generic[NotificationRenderable]):
     """
     A base class for all notification providers.
     """
@@ -42,3 +41,11 @@ class NotificationProvider(abc.ABC, Generic[ProviderRenderable]):
         Returns `True` if the provider is available given the key word arguments.
         """
         return False
+
+    @property
+    @abc.abstractmethod
+    def default_renderer(self) -> type["NotificationRenderer[NotificationRenderable]"]:
+        """
+        Returns the default renderer for this provider.
+        """
+        raise NotImplementedError("Must implement a default renderer")

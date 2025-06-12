@@ -1,19 +1,16 @@
 from typing import Any
 
-from sentry.notifications.platform.providers.base import (
-    NotificationProvider,
-    NotificationProviderKey,
-)
+from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderKey
 from sentry.notifications.platform.registry import provider_registry
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
-# TODO(ecosystem): Figure out a way to use 'SlackBlock' type
-SlackMessage = Any
+# TODO(ecosystem): Figure out a way to use 'AdaptiveCard' type
+MSTeamsMessage = Any
 
 
-@provider_registry.register(NotificationProviderKey.SLACK)
-class SlackNotificationProvider(NotificationProvider[SlackMessage]):
-    key = NotificationProviderKey.SLACK
+@provider_registry.register(NotificationProviderKey.MSTEAMS)
+class MSTeamsNotificationProvider(NotificationProvider[MSTeamsMessage]):
+    key = NotificationProviderKey.MSTEAMS
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
