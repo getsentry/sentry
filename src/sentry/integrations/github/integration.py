@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping, Sequence
 from enum import StrEnum
-from typing import Any, Never, TypedDict
+from typing import Any, TypedDict
 from urllib.parse import parse_qsl
 
 from django.http import HttpResponse
@@ -32,6 +32,7 @@ from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
@@ -45,7 +46,9 @@ from sentry.integrations.source_code_management.commit_context import (
     PullRequestIssue,
     _open_pr_comment_log,
 )
-from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
+from sentry.integrations.source_code_management.language_parsers import (
+    get_patch_parsers_for_organization,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -61,7 +64,6 @@ from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
@@ -523,8 +525,8 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
         changed_lines_count = 0
         filtered_pr_files = []
 
-        patch_parsers = PATCH_PARSERS
-        # NOTE: if we are testing beta patch parsers, add check here
+        organization = Organization.objects.get_from_cache(id=repo.organization_id)
+        patch_parsers = get_patch_parsers_for_organization(organization)
 
         for file in pr_files:
             filename = file["filename"]
@@ -708,7 +710,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(
         self,
-    ) -> Sequence[PipelineView[Never] | Callable[[], PipelineView[Never]]]:
+    ) -> Sequence[IntegrationPipelineViewT | Callable[[], IntegrationPipelineViewT]]:
         return [OAuthLoginView(), GithubOrganizationSelection(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -774,10 +776,10 @@ def record_event(event: IntegrationPipelineViewType):
     )
 
 
-class OAuthLoginView(PipelineView[Never]):
+class OAuthLoginView(IntegrationPipelineViewT):
     client: GithubSetupApiClient
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
             lifecycle.add_extra(
@@ -893,8 +895,8 @@ class OAuthLoginView(PipelineView[Never]):
         ]
 
 
-class GithubOrganizationSelection(PipelineView[Never]):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+class GithubOrganizationSelection(IntegrationPipelineViewT):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
         has_scm_multi_org = (
             features.has(
@@ -984,12 +986,12 @@ class GithubOrganizationSelection(PipelineView[Never]):
             )
 
 
-class GitHubInstallation(PipelineView[Never]):
+class GitHubInstallation(IntegrationPipelineViewT):
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Never]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
 

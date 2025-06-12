@@ -54,7 +54,6 @@ export function useInfiniteTestResults() {
       signal,
       meta,
     }): Promise<ApiResult<TestResults>> => {
-      // console.log('asdfasdf', client, signal, meta);
       const result = await fetchDataQuery({
         queryKey: [
           url,
@@ -108,6 +107,7 @@ export function useInfiniteTestResults() {
 
   return {
     data: memoizedData,
+    // TODO: only provide the values that we're interested in
     ...rest,
   };
 }

@@ -225,8 +225,8 @@ class SlackRequestParser(BaseRequestParser):
 
         elif self.view_class in self.django_views:
             # Parse the signed params to identify the associated integration
-            params = unsign(self.match.kwargs.get("signed_params"), salt=SALT)
-            return Integration.objects.filter(id=params.get("integration_id")).first()
+            params = unsign(self.match.kwargs["signed_params"], salt=SALT)
+            return Integration.objects.filter(id=params["integration_id"]).first()
 
         return None
 

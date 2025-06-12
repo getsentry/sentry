@@ -1,13 +1,17 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
 import {DetectorFixture} from 'sentry-fixture/detectors';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import DetectorsList from 'sentry/views/detectors/list';
 
 describe('DetectorsList', function () {
+  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -18,6 +22,46 @@ describe('DetectorsList', function () {
       url: '/organizations/org-slug/detectors/',
       body: [DetectorFixture({name: 'Detector 1'})],
     });
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+  });
+
+  it('displays all detector info correctly', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [DetectorFixture({name: 'Detector 1', owner: null, type: 'metric_issue'})],
+    });
+
+    render(<DetectorsList />, {organization});
+    await screen.findByText('Detector 1');
+
+    const row = screen.getByTestId('detector-list-row');
+
+    // Name
+    expect(within(row).getByText('Detector 1')).toBeInTheDocument();
+    // Type
+    expect(within(row).getByText('Metric')).toBeInTheDocument();
+    // Assignee should be Sentry because owner is null
+    expect(within(row).getByTestId('assignee-sentry')).toBeInTheDocument();
+  });
+
+  it('displays connected automations', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [DetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
+    });
+
+    render(<DetectorsList />, {organization});
+    const row = await screen.findByTestId('detector-list-row');
+    expect(within(row).getByText('1 automation')).toBeInTheDocument();
+
+    // Tooltip should fetch and display the automation name/action
+    await userEvent.hover(within(row).getByText('1 automation'));
+    expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+    expect(await screen.findByText('Slack')).toBeInTheDocument();
   });
 
   it('can filter by project', async function () {
@@ -26,9 +70,7 @@ describe('DetectorsList', function () {
       body: [DetectorFixture({name: 'Detector 1'})],
     });
 
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
-
-    render(<DetectorsList />);
+    render(<DetectorsList />, {organization});
 
     await screen.findByText('Detector 1');
 
@@ -50,7 +92,7 @@ describe('DetectorsList', function () {
         match: [MockApiClient.matchQuery({query: 'type:error'})],
       });
 
-      render(<DetectorsList />);
+      render(<DetectorsList />, {organization});
       await screen.findByText('Detector 1');
 
       // Click through menus to select type:error
