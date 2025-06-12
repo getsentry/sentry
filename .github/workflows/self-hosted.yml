@@ -89,9 +89,9 @@ jobs:
           tags: sentry:${{ matrix.platform }}
           outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
           push: false
-          build-args:
-              - SOURCE_COMMIT=${{ github.sha }}
-              - TARGETARCH=${{ matrix.arch }}
+          build-args: |
+              SOURCE_COMMIT=${{ github.sha }}
+              TARGETARCH=${{ matrix.platform }}
 
       - name: Upload Image
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -108,7 +108,7 @@ jobs:
       packages: write
     steps:
       - name: Docker Login
-      - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+        run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
