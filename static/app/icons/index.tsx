@@ -82,6 +82,7 @@ export {IconPanel} from './iconPanel';
 export {IconPause} from './iconPause';
 export {IconPin} from './iconPin';
 export {IconPlay} from './iconPlay';
+export {IconPrevent} from './iconPrevent';
 export {IconPrevious} from './iconPrevious';
 export {IconPrint} from './iconPrint';
 export {IconProfiling} from './iconProfiling';

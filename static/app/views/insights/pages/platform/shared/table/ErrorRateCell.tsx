@@ -5,6 +5,7 @@ import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
 
 export function getErrorCellIssuesLink({
@@ -37,9 +38,9 @@ export function ErrorRateCell({
 
   const errorCountElement =
     issuesLink && errorCount > 0 ? (
-      <Link to={issuesLink}>({errorCount})</Link>
+      <Link to={issuesLink}>({formatAbbreviatedNumber(errorCount)})</Link>
     ) : (
-      <span style={{color: theme.subText}}>({errorCount})</span>
+      <span style={{color: theme.subText}}>({formatAbbreviatedNumber(errorCount)})</span>
     );
 
   return (
