@@ -68,7 +68,7 @@ class DatabaseBackedAppService(AppService):
 
     def get_sentry_app_by_id(self, *, id: int) -> RpcSentryApp | None:
         try:
-            sentry_app = SentryApp.objects.get_from_cache().using_replica().get(id=id)
+            sentry_app = SentryApp.objects.get_from_cache(id=id, use_replica=True)
         except SentryApp.DoesNotExist:
             return None
         return serialize_sentry_app(sentry_app)
