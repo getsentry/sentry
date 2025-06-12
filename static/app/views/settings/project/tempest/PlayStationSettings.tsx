@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
+import {openAddTempestCredentialsModal, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -13,7 +13,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -27,6 +27,7 @@ import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/ut
 
 import {CredentialRow} from './CredentialRow';
 import EmptyState from './EmptyState';
+import PlayStationSdkAccessModal from './PlayStationSdkAccessModal';
 
 interface Props {
   organization: Organization;
@@ -167,6 +168,27 @@ export const getPlayStationHeaderAction = (
   <Fragment>
     <ButtonBar gap={1.5}>
       <FeedbackWidgetButton />
+      <Button
+        priority="default"
+        size="sm"
+        data-test-id="request-sdk-access"
+        icon={<IconCode />}
+        onClick={() => {
+          openModal(deps => (
+            <PlayStationSdkAccessModal
+              {...deps}
+              organization={organization}
+              project={project}
+            />
+          ));
+          trackAnalytics('tempest.sdk_access_modal_opened', {
+            organization,
+            project_slug: project.slug,
+          });
+        }}
+      >
+        {t('Request SDK Access')}
+      </Button>
       <Tooltip
         title={t('You must be an organization admin to add new credentials.')}
         disabled={hasWriteAccess}
