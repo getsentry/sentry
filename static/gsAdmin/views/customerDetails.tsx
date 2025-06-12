@@ -419,6 +419,7 @@ export default function CustomerDetails() {
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on startups programs',
             confirmModalOpts: {
+              showAuditFields: false,
               renderModalSpecificContent: deps => (
                 <StartupsAction subscription={subscription} {...deps} />
               ),
