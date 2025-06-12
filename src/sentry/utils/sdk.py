@@ -700,7 +700,7 @@ def bind_ambiguous_org_context(
 def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        span.set_attribute(data_name, value)
 
 
 def merge_context_into_scope(

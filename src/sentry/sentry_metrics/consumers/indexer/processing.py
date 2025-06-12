@@ -78,9 +78,9 @@ class MessageProcessor:
             settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE
             * settings.SENTRY_BACKEND_APM_SAMPLING
         )
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
-            custom_sampling_context={"sample_rate": sample_rate},
+            attributes={"sample_rate": sample_rate},
         ):
             return self._process_messages_impl(outer_message)
 
